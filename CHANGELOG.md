@@ -71,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The English irregular verb list on the tools page grows to 258 entries, adding rare base verbs and common derivatives.
 - The Chrome model page shows whether the open profile belongs to the program or to the user.
 - The web tools home drops the left category column, and file transfer is now a card in the tool list under Files.
+- A Chrome voice pack shows its speaker count, and Chinese, Traditional Chinese, and Cantonese list every speaker in the pack.
 
 #### Fixed
 
@@ -130,6 +131,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页的英文不规则动词表补到 258 条，加入少见基础动词和常见派生。
 - Chrome 模型页显示当前打开的配置是程序的还是用户的。
 - web 工具主页去掉左侧分类栏，文件传输改成「文件」分类里的工具卡片。
+- Chrome 语音包说明改为发音人个数。中文、繁体中文和粤语的发音人列表列出这一包里的全部发音人。
 
 #### 修复
 

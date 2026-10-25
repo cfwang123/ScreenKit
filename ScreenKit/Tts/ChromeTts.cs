@@ -456,22 +456,44 @@ static class ChromeTts {
 			("Google Nederlands", "nl-NL", "female"),
 			("Google polski", "pl-PL", "female"),
 		};
+		var packs = ChromePack.BaseSpeakers();
+		var cover = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var s in packs)
+			if (chinesepack(s.lang)) cover.Add(s.lang);
 		var list = new List<SapiVoiceItem>();
 		foreach (var row in rows) {
+			if (cover.Contains(ChromePack.SpeakLang(row.culture))) continue;
 			var lang = row.culture.StartsWith("zh-HK", StringComparison.OrdinalIgnoreCase)
 				? TtsLang.Yue
 				: SapiVoiceItem.LangOf(row.culture);
-			list.Add(new SapiVoiceItem {
-				DisplayName = row.name,
-				Key = "chrome:" + row.name,
-				Name = row.name,
-				Culture = row.culture,
-				Lang = lang,
-				Gender = row.gender,
-				Source = "chrome",
-			});
+			list.Add(voiceitem(row.name, row.culture, lang, row.gender));
+		}
+		foreach (var s in packs) {
+			if (!cover.Contains(s.lang)) continue;
+			var lang = s.lang.Equals("yue-HK", StringComparison.OrdinalIgnoreCase)
+				? TtsLang.Yue
+				: SapiVoiceItem.LangOf(s.lang);
+			list.Add(voiceitem(s.name, s.lang, lang, s.gender));
 		}
 		return list;
+	}
+
+	static bool chinesepack(string lang) {
+		return lang.Equals("zh-CN", StringComparison.OrdinalIgnoreCase)
+			|| lang.Equals("zh-TW", StringComparison.OrdinalIgnoreCase)
+			|| lang.Equals("yue-HK", StringComparison.OrdinalIgnoreCase);
+	}
+
+	static SapiVoiceItem voiceitem(string name, string culture, string lang, string gender) {
+		return new SapiVoiceItem {
+			DisplayName = name,
+			Key = "chrome:" + name,
+			Name = name,
+			Culture = culture,
+			Lang = lang,
+			Gender = gender ?? "",
+			Source = "chrome",
+		};
 	}
 
 	[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

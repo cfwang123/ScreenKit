@@ -111,9 +111,13 @@ static class ChromePack {
 		var voices = readvoices();
 		if (voices.Count < VOICE_LANGS.Length) return 2;
 		var hasZh = false;
-		foreach (var v in voices)
-			if (v.Kind == "tts" && v.Lang == "zh-CN") hasZh = true;
+		foreach (var v in voices) {
+			if (v.Kind != "tts" || v.Lang != "zh-CN") continue;
+			hasZh = true;
+			if (v.Detail.Length > 0 && v.Detail != "6个发音人") return 2;
+		}
 		if (!hasZh) return 2;
+		if (basespeakers("zh-CN").Count != 6) return 2;
 		foreach (var p in InstalledTrPairs()) {
 			if (p == null || p.Length != 2) return 2;
 			if (p[0].Length == 0 || p[1].Length == 0) return 2;
@@ -596,6 +600,7 @@ static class ChromePack {
 	static List<ChromePackItem> readvoicefile() {
 		var path = findvoices();
 		var map = new Dictionary<string, ChromePackItem>(StringComparer.OrdinalIgnoreCase);
+		var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 		if (path == null) return new List<ChromePackItem>();
 		JsonDocument doc;
 		try { doc = JsonDocument.Parse(File.ReadAllText(path)); }
@@ -621,20 +626,81 @@ static class ChromePack {
 				}
 				if (v.TryGetProperty("compressedSize", out var sz) && sz.TryGetInt64(out var n))
 					it.Size += n;
-				if (v.TryGetProperty("speakers", out var sp) && sp.ValueKind == JsonValueKind.Array && it.Detail.Length < 80) {
-					foreach (var s in sp.EnumerateArray()) {
-						var name = s.TryGetProperty("name", out var ne) ? ne.GetString() : "";
-						if (string.IsNullOrWhiteSpace(name)) continue;
-						if (it.Detail.Length > 0) it.Detail += " · ";
-						it.Detail += name;
-						if (it.Detail.Length >= 80) break;
-					}
-				}
+				if (dependentvoice(v)) continue;
+				var added = speakercount(v);
+				if (added <= 0) continue;
+				counts.TryGetValue(lang, out var have);
+				counts[lang] = have + added;
 			}
+		}
+		foreach (var it in map.Values) {
+			if (!counts.TryGetValue(it.Lang, out var n) || n <= 0) continue;
+			it.Detail = n + "个发音人";
 		}
 		var list = new List<ChromePackItem>(map.Values);
 		list.Sort((a, b) => string.Compare(a.Lang, b.Lang, StringComparison.OrdinalIgnoreCase));
 		return list;
+	}
+
+	/// <summary>这一语言的基础发音人，不含 Natural 增强包里的同名重复。</summary>
+	public static List<(string name, string lang, string gender)> BaseSpeakers() => basespeakers(null);
+
+	static List<(string name, string lang, string gender)> basespeakers(string only) {
+		var list = new List<(string name, string lang, string gender)>();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var path = findvoices();
+		if (path != null) {
+			try {
+				using var doc = JsonDocument.Parse(File.ReadAllText(path));
+				collectspeakers(doc.RootElement, only, list, seen);
+			}
+			catch { }
+		}
+		if (list.Count == 0) {
+			var text = cmntext();
+			if (text.Length > 0) {
+				try {
+					using var doc = JsonDocument.Parse(text);
+					collectspeakers(doc.RootElement, only, list, seen);
+				}
+				catch { }
+			}
+		}
+		return list;
+	}
+
+	static void collectspeakers(JsonElement root, string only, List<(string name, string lang, string gender)> list, HashSet<string> seen) {
+		if (root.ValueKind != JsonValueKind.Array) return;
+		foreach (var v in root.EnumerateArray()) {
+			if (dependentvoice(v)) continue;
+			var lang = VoiceLang(v.TryGetProperty("id", out var idEl) ? idEl.GetString() : "");
+			if (lang.Length == 0) continue;
+			if (only != null && !lang.Equals(only, StringComparison.OrdinalIgnoreCase)) continue;
+			if (!v.TryGetProperty("speakers", out var sp) || sp.ValueKind != JsonValueKind.Array) continue;
+			foreach (var s in sp.EnumerateArray()) {
+				var name = s.TryGetProperty("name", out var ne) ? ne.GetString() : "";
+				if (string.IsNullOrWhiteSpace(name)) continue;
+				if (!seen.Add(lang + "\n" + name)) continue;
+				var gender = s.TryGetProperty("gender", out var ge) ? ge.GetString() ?? "" : "";
+				list.Add((name, lang, gender));
+			}
+		}
+	}
+
+	static bool dependentvoice(JsonElement v) {
+		return v.TryGetProperty("dependentVoiceId", out var dep)
+			&& dep.ValueKind == JsonValueKind.String
+			&& !string.IsNullOrWhiteSpace(dep.GetString());
+	}
+
+	static int speakercount(JsonElement v) {
+		if (!v.TryGetProperty("speakers", out var sp) || sp.ValueKind != JsonValueKind.Array) return 0;
+		var n = 0;
+		foreach (var s in sp.EnumerateArray()) {
+			var name = s.TryGetProperty("name", out var ne) ? ne.GetString() : "";
+			if (!string.IsNullOrWhiteSpace(name)) n++;
+		}
+		return n;
 	}
 
 	static bool voiceReady;
