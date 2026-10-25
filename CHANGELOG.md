@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The status bar hid Chrome child processes while speaking, because the launcher process had already exited.
 - Refreshing the Chrome model page no longer marks an installed voice pack as missing.
 - Google voices in the in-browser model tool speak with the installed offline pack, so a proxy is not required.
+- The Speech tab Chrome engine reads Traditional Chinese with Google 國語, the same voice as the in-browser model, instead of the slower on-device Natural voice.
 
 ### 中文
 
@@ -103,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 朗读时状态栏不显示 Chrome 子进程，是因为启动进程已经退出，实际在跑的是配置目录里的 Chrome。
 - 刷新 Chrome 模型页不再把已经安装的语音包显示成未安装。
 - 浏览器小模型里的 Google 语音改用已安装的离线包朗读，不必开代理。
+- 语音合成的 Chrome 引擎读台湾中文时，改用和浏览器小模型一样的 Google 國語，不再改用更慢的离线 Natural 音。
 
 ## v1.0.29 (2026-10-23)
 
