@@ -505,8 +505,17 @@
 				break;
 			}
 		}
+		if (!picked) {
+			for (i = 0; i < list.length; i++) {
+				if (list[i].default) { picked = list[i]; break; }
+			}
+		}
 		if (picked && sysvoice(picked)) {
 			speakwin(text, picked, mine);
+			return;
+		}
+		if (picked && remotegoogle(picked)) {
+			speakchrome(text, picked, mine);
 			return;
 		}
 		var u = new SpeechSynthesisUtterance(text);
@@ -529,6 +538,45 @@
 
 	function sysvoice(v){
 		return /^Microsoft\b/i.test(String(v && v.name || ""));
+	}
+
+	function remotegoogle(v){
+		if (!v || v.localService) return false;
+		var name = String(v.name || "");
+		var uri = String(v.voiceURI || "");
+		if (name.indexOf("Google") === 0 || name.indexOf("Chrome OS") === 0) return true;
+		return uri.indexOf("Google") >= 0 || uri.indexOf("Chrome OS") >= 0;
+	}
+
+	function speakchrome(text, voice, mine){
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "/api/tts/speak", true);
+		F.hdr(xhr, "Content-Type", "application/json;charset=utf-8");
+		xhr.onload = function(){
+			var jo, err;
+			if (mine !== speakGen) return;
+			try { jo = F.parse(xhr.responseText); }
+			catch (e) {
+				SK.msg("aim-msg", "响应不是 JSON", true);
+				return;
+			}
+			if (!jo || jo.code !== 100) {
+				err = jo && jo.data;
+				SK.msg("aim-msg", typeof err === "string" && err ? err : "失败", true);
+				return;
+			}
+			if (mine === speakGen && SK.curtool === "u-aim") SK.msg("aim-msg", "");
+		};
+		xhr.onerror = function(){
+			if (mine !== speakGen) return;
+			SK.msg("aim-msg", "网络错误", true);
+		};
+		SK.msg("aim-msg", tx("web.aim.speaking", "正在朗读"));
+		xhr.send(F.json({
+			text: text,
+			engine: "chrome",
+			lang: voice.lang || vlang() || speechlang()
+		}));
 	}
 
 	function sysname(v){
