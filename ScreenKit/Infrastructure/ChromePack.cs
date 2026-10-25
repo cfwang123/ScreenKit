@@ -1075,7 +1075,7 @@ static class ChromePack {
 	}
 
 	static string voicestart(string type, string lang) {
-		return "(function(){var type=" + jsstr(type) + ";var lang=" + jsstr(lang) + ";" + VOICESTART + "})()";
+		return "(function(){var type=" + jsstr(type) + ";var lang=" + jsstr(lang) + ";" + VOICEASK + VOICESTART + "})()";
 	}
 
 	static string trstart(string src, string dst) {
@@ -1204,6 +1204,24 @@ btn.click();return 'clicked';
 var row=findrow();return row?(text(row)||'').replace(/\s+/g,' ').trim():'';
 ";
 
+	const string VOICEASK = @"
+function ask(msg){
+return new Promise(function(resolve){
+var n=0;
+function go(){
+var h=self.$h;
+if(h&&msg.type==='installLanguage'&&h.onInstallLanguageRequest){h.onInstallLanguageRequest(msg.lang).then(function(r){resolve(r||{});},function(e){resolve({error:String(e&&e.message||e)});});return;}
+if(h&&msg.type==='getLanguageStatus'&&h.onLanguageStatusRequest){h.onLanguageStatusRequest(msg.lang).then(function(r){resolve(r||{});},function(e){resolve({error:String(e&&e.message||e)});});return;}
+if(h&&msg.type==='uninstallLanguage'&&h.onUninstallLanguageRequest){h.onUninstallLanguageRequest(msg.lang).then(function(r){resolve(r||{});},function(e){resolve({error:String(e&&e.message||e)});});return;}
+if(n++<50&&!h&&String(location.href||'').indexOf('offscreen')>=0){setTimeout(go,100);return;}
+try{chrome.runtime.sendMessage(msg,function(r){var err=chrome.runtime.lastError;resolve(err?{error:err.message}:(r||{}));});}
+catch(e){resolve({error:String(e&&e.message||e)});}
+}
+go();
+});
+}
+";
+
 	const string VOICESTART = @"
 self.__skp={done:false,err:'',raw:''};
 function ready(){
@@ -1214,13 +1232,11 @@ return chrome.offscreen.createDocument({url:'offscreen.html',reasons:['AUDIO_PLA
 });
 }
 ready().then(function(){
-chrome.runtime.sendMessage({type:type,lang:lang},function(r){
-var err=chrome.runtime.lastError;
-var res=err?{error:err.message}:(r||{});
+return ask({type:type,lang:lang});
+}).then(function(res){
 self.__skp.raw=JSON.stringify(res||{});
 self.__skp.err=(res&&res.error)||'';
 self.__skp.done=true;
-});
 }).catch(function(e){self.__skp.err=String(e&&e.message||e);self.__skp.done=true;});
 return 'started';
 ";
@@ -1510,7 +1526,7 @@ return 'started';
 					Thread.Sleep(200);
 					if (GetForegroundWindow() == hwnd) {
 						tapread();
-						Thread.Sleep(80);
+						Thread.Sleep(300);
 						if (prev != IntPtr.Zero && prev != hwnd && IsWindow(prev)) focus(prev);
 						return true;
 					}
@@ -1534,16 +1550,29 @@ return 'started';
 		}
 
 		static bool focus(IntPtr hwnd) {
+			if (hwnd == IntPtr.Zero) return false;
 			var fg = GetForegroundWindow();
+			if (fg == hwnd) return true;
 			uint fgThread = 0;
 			if (fg != IntPtr.Zero) fgThread = GetWindowThreadProcessId(fg, out _);
 			var target = GetWindowThreadProcessId(hwnd, out _);
-			var attached = false;
-			if (fgThread != 0 && target != 0 && fgThread != target)
-				attached = AttachThreadInput(fgThread, target, true);
+			var cur = GetCurrentThreadId();
+			var a1 = false;
+			var a2 = false;
+			if (fgThread != 0 && fgThread != cur) a1 = AttachThreadInput(fgThread, cur, true);
+			if (target != 0 && target != cur && target != fgThread) a2 = AttachThreadInput(target, cur, true);
+			ShowWindow(hwnd, SW_RESTORE);
+			BringWindowToTop(hwnd);
 			SetForegroundWindow(hwnd);
 			var ok = GetForegroundWindow() == hwnd;
-			if (attached) AttachThreadInput(fgThread, target, false);
+			if (!ok) {
+				keybd_event(0x12, 0, 0, UIntPtr.Zero);
+				SetForegroundWindow(hwnd);
+				keybd_event(0x12, 0, 2, UIntPtr.Zero);
+				ok = GetForegroundWindow() == hwnd;
+			}
+			if (a2) AttachThreadInput(target, cur, false);
+			if (a1) AttachThreadInput(fgThread, cur, false);
 			return ok;
 		}
 
@@ -1841,7 +1870,7 @@ return 'started';
 				arr.Append(jsstr(langs[i]));
 			}
 			arr.Append(']');
-			var expr = "(async function(){var langs=" + arr + ";" + STATUS + "})()";
+			var expr = "(async function(){var langs=" + arr + ";" + VOICEASK + STATUS + "})()";
 			var raw = EvalExt(expr, true, 300000, ct);
 			var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(raw) ? "[]" : raw);
@@ -1868,7 +1897,7 @@ await ready();
 var out=[];
 for(var i=0;i<langs.length;i++){
 var lang=langs[i];
-var res=await new Promise(function(resolve){chrome.runtime.sendMessage({type:'getLanguageStatus',lang:lang},function(r){var err=chrome.runtime.lastError;resolve(err?{error:err.message}:(r||{}));});});
+var res=await ask({type:'getLanguageStatus',lang:lang});
 out.push({lang:lang,status:(res&&(res.status||res.error))||''});
 }
 return JSON.stringify(out);
@@ -1986,6 +2015,10 @@ return JSON.stringify(out);
 		static extern bool IsWindow(IntPtr h);
 		[DllImport("user32.dll")]
 		static extern bool AttachThreadInput(uint from, uint to, bool attach);
+		[DllImport("user32.dll")]
+		static extern bool BringWindowToTop(IntPtr h);
+		[DllImport("kernel32.dll")]
+		static extern uint GetCurrentThreadId();
 		[DllImport("user32.dll")]
 		static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
 		[DllImport("user32.dll")]

@@ -97,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Disabling Wubi stays off when settings are opened again.
 - The Chrome window used for speech and translation no longer keeps a taskbar button.
 - Installing a Chrome voice pack from the user's own Chrome still starts the speech component.
+- Voice install can focus its own Chrome while the user's Chrome stays in front, so the speech component starts.
 
 ### 中文
 
@@ -153,6 +154,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 关掉五笔后再打开设置，勾选保持关闭。
 - 朗读和翻译用的 Chrome 不再留在任务栏上。
 - 在用户自己的 Chrome 里安装语音包时，也会唤起语音组件。
+- 用户的 Chrome 在前台时，安装语音仍能让程序自己的 Chrome 获得焦点并启动语音组件。
 
 ## v1.0.29 (2026-10-23)
 
