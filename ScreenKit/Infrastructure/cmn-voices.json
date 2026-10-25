@@ -1,0 +1,154 @@
+[
+  {
+    "id": "cmn-cn-x-multi",
+    "fileId": "cmn-cn-x-multi-r56",
+    "url": "https://redirector.gvt1.com/edgedl/android/tts/v26/cmn-cn/cmn-cn-x-multi-r56.zvoice",
+    "sha256Checksum": "6758c15fdde743311236ac32cc8147d13234a175f18fb746906fa0790c1ef9ba",
+    "compressedSize": 15948966,
+    "speakers": [
+      {
+        "speaker": "cca",
+        "name": "Chrome OS 中文 (中国) 1",
+        "gender": "female"
+      },
+      {
+        "speaker": "ccb",
+        "name": "Chrome OS 中文 (中国) 2",
+        "gender": "male"
+      },
+      {
+        "speaker": "ccc",
+        "name": "Chrome OS 中文 (中国) 3",
+        "gender": "female"
+      },
+      {
+        "speaker": "ccd",
+        "name": "Chrome OS 中文 (中国) 4",
+        "gender": "male"
+      },
+      {
+        "speaker": "cce",
+        "name": "Chrome OS 中文 (中国) 5",
+        "gender": "male"
+      },
+      {
+        "speaker": "ssa",
+        "name": "Chrome OS 中文 (中国) 6",
+        "gender": "female"
+      }
+    ],
+    "remote": true
+  },
+  {
+    "id": "cmn-cn-x-multi-seanet",
+    "fileId": "cmn-cn-x-multi-seanet-r56",
+    "url": "https://redirector.gvt1.com/edgedl/android/tts/v26/cmn-cn/cmn-cn-x-multi-seanet-r56.zvoice",
+    "sha256Checksum": "231d0e0cae6c0ed2bdca380679388e9440e159e7f4d6c7b279c9889642401357",
+    "compressedSize": 3730201,
+    "speakers": [
+      {
+        "speaker": "cca",
+        "name": "Google 中文 (中国) 1 (Natural)",
+        "gender": "female"
+      },
+      {
+        "speaker": "ccb",
+        "name": "Google 中文 (中国) 2 (Natural)",
+        "gender": "male"
+      },
+      {
+        "speaker": "ccc",
+        "name": "Google 中文 (中国) 3 (Natural)",
+        "gender": "female"
+      },
+      {
+        "speaker": "ccd",
+        "name": "Google 中文 (中国) 4 (Natural)",
+        "gender": "male"
+      },
+      {
+        "speaker": "cce",
+        "name": "Google 中文 (中国) 5 (Natural)",
+        "gender": "male"
+      },
+      {
+        "speaker": "ssa",
+        "name": "Google 中文 (中国) 6 (Natural)",
+        "gender": "female"
+      }
+    ],
+    "remote": true,
+    "dependentVoiceId": "cmn-cn-x-multi"
+  },
+  {
+    "id": "cmn-tw-x-multi",
+    "fileId": "cmn-tw-x-multi-r56",
+    "url": "https://redirector.gvt1.com/edgedl/android/tts/v26/cmn-tw/cmn-tw-x-multi-r56.zvoice",
+    "sha256Checksum": "4483ad1fe9379a3d18e3a41362b1d53c48e4a8001b877924e47e24a38a235eba",
+    "compressedSize": 15702441,
+    "speakers": [
+      {
+        "speaker": "cta",
+        "name": "Chrome OS 中文 (台灣) 1",
+        "gender": "female"
+      },
+      {
+        "speaker": "ctb",
+        "name": "Chrome OS 中文 (台灣) 2",
+        "gender": "male"
+      },
+      {
+        "speaker": "ctc",
+        "name": "Chrome OS 中文 (台灣) 3",
+        "gender": "female"
+      },
+      {
+        "speaker": "ctd",
+        "name": "Chrome OS 中文 (台灣) 4",
+        "gender": "male"
+      },
+      {
+        "speaker": "cte",
+        "name": "Chrome OS 中文 (台灣) 5",
+        "gender": "male"
+      }
+    ],
+    "remote": true
+  },
+  {
+    "id": "cmn-tw-x-multi-seanet",
+    "fileId": "cmn-tw-x-multi-seanet-r56",
+    "url": "https://redirector.gvt1.com/edgedl/android/tts/v26/cmn-tw/cmn-tw-x-multi-seanet-r56.zvoice",
+    "sha256Checksum": "14cc5d5d85efd0c573fd6e9b2c35d21396ac9a394fd183ff671f3532b5de97d0",
+    "compressedSize": 3750264,
+    "speakers": [
+      {
+        "speaker": "cta",
+        "name": "Google 中文 (台灣) 1 (Natural)",
+        "gender": "female"
+      },
+      {
+        "speaker": "ctb",
+        "name": "Google 中文 (台灣) 2 (Natural)",
+        "gender": "male"
+      },
+      {
+        "speaker": "ctc",
+        "name": "Google 中文 (台灣) 3 (Natural)",
+        "gender": "female"
+      },
+      {
+        "speaker": "ctd",
+        "name": "Google 中文 (台灣) 4 (Natural)",
+        "gender": "male"
+      },
+      {
+        "speaker": "cte",
+        "name": "Google 中文 (台灣) 5 (Natural)",
+        "gender": "male"
+      }
+    ],
+    "remote": true,
+    "dependentVoiceId": "cmn-tw-x-multi"
+  }
+]

@@ -73,6 +73,8 @@ static class ChromePack {
 		if (TrFolder("en - zh-Hant") != "en_zh-Hant") return 2;
 		if (VoiceLang("ja-jp-x-multi") != "ja-JP") return 2;
 		if (VoiceLang("yue-hk-x-multi") != "yue-HK") return 2;
+		if (VoiceLang("cmn-cn-x-multi") != "zh-CN") return 2;
+		if (VoiceLang("cmn-tw-x-multi-seanet") != "zh-TW") return 2;
 		if (VoiceLang("en-us") != "en-US") return 2;
 		if (FilterCode("en - zh").IndexOf("zh") < 0 || FilterCode("en - zh").IndexOf("en") < 0) return 2;
 		if (FilterCode("en - zh-Hant").IndexOf("cht") < 0) return 2;
@@ -314,8 +316,10 @@ static class ChromePack {
 	public static string VoiceLang(string id) {
 		var parts = (id ?? "").Split('-');
 		if (parts.Length < 2 || parts[0].Length == 0 || parts[1].Length == 0) return "";
-		var b = parts[1].ToUpperInvariant();
-		return parts[0].ToLowerInvariant() + "-" + b;
+		var lang = parts[0].ToLowerInvariant() + "-" + parts[1].ToUpperInvariant();
+		if (lang.Equals("cmn-CN", StringComparison.OrdinalIgnoreCase)) return "zh-CN";
+		if (lang.Equals("cmn-TW", StringComparison.OrdinalIgnoreCase)) return "zh-TW";
+		return lang;
 	}
 
 	public static List<ChromePackItem> Query(string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct) {
@@ -475,8 +479,9 @@ static class ChromePack {
 				preparevoice(ChromeTts.ProfileDir());
 				using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
 				sess.WaitExt(15000, ct);
+				reloadvoice(sess, ct);
 				var langs = new List<string>();
-				foreach (var it in list) langs.Add(it.Lang);
+				foreach (var it in list) langs.Add(enginelang(it.Lang));
 				st = sess.VoiceStatus(langs, ct);
 			}
 		}
@@ -486,7 +491,8 @@ static class ChromePack {
 		}
 		if (st == null) return list;
 		foreach (var it in list) {
-			st.TryGetValue(it.Lang, out var s);
+			var key = enginelang(it.Lang);
+			if (!st.TryGetValue(key, out var s)) st.TryGetValue(it.Lang, out s);
 			it.State = PackState(s);
 			if (it.State == FeatureInstallState.Installed) remember(it.Lang, true);
 			else if (it.State == FeatureInstallState.Missing) remember(it.Lang, false);
@@ -501,6 +507,7 @@ static class ChromePack {
 	};
 
 	static List<ChromePackItem> readvoices() {
+		ensurevoices(ChromeTts.ProfileDir());
 		var map = new Dictionary<string, ChromePackItem>(StringComparer.OrdinalIgnoreCase);
 		foreach (var it in builtinvoices())
 			if (it.Lang.Length > 0) map[it.Lang] = it;
@@ -572,7 +579,89 @@ static class ChromePack {
 		return list;
 	}
 
+	static bool voiceReady;
+
+	static void reloadvoice(Sess sess, CancellationToken ct) {
+		if (voiceReady) return;
+		sess.ReloadExt(ct);
+		if (!sess.TryWaitExt(20000, ct))
+			throw new InvalidOperationException(Loc.T("inst.chrome.noext"));
+		voiceReady = true;
+	}
+
+	static string cmnjson;
+
+	static void ensurevoices(string profile) {
+		try {
+			if (string.IsNullOrWhiteSpace(profile)) return;
+			var text = cmntext();
+			if (text.Length == 0) return;
+			var root = Path.Combine(profile, "WasmTtsEngine");
+			if (!Directory.Exists(root)) return;
+			var extra = JsonNode.Parse(text) as JsonArray;
+			if (extra == null) return;
+			foreach (var dir in Directory.GetDirectories(root)) {
+				var file = Path.Combine(dir, "voices.json");
+				if (!File.Exists(file)) continue;
+				if (mergevoices(file, extra)) {
+					forgetvoice("zh-CN");
+					forgetvoice("zh-TW");
+				}
+			}
+		}
+		catch { }
+	}
+
+	static bool cataloghas(string profile) {
+		var dir = Path.Combine(profile ?? "", "WasmTtsEngine");
+		if (!Directory.Exists(dir)) return true;
+		var file = newestvoices(dir);
+		if (file == null) return true;
+		try { return File.ReadAllText(file).IndexOf("\"cmn-cn-x-multi\"", StringComparison.Ordinal) >= 0; }
+		catch { return false; }
+	}
+
+	static string cmntext() {
+		if (cmnjson != null) return cmnjson;
+		using var s = typeof(ChromePack).Assembly.GetManifestResourceStream("chrome.cmn.voices.json");
+		if (s == null) return "";
+		using var rd = new StreamReader(s, Encoding.UTF8);
+		cmnjson = rd.ReadToEnd();
+		return cmnjson ?? "";
+	}
+
+	static bool mergevoices(string file, JsonArray extra) {
+		var root = JsonNode.Parse(File.ReadAllText(file)) as JsonArray;
+		if (root == null) return false;
+		var have = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var n in root) {
+			var id = n?["id"]?.GetValue<string>() ?? "";
+			if (id.Length > 0) have.Add(id);
+		}
+		var added = false;
+		foreach (var n in extra) {
+			var id = n?["id"]?.GetValue<string>() ?? "";
+			if (id.Length == 0 || have.Contains(id)) continue;
+			root.Add(JsonNode.Parse(n.ToJsonString()));
+			have.Add(id);
+			added = true;
+		}
+		if (!added) return false;
+		File.WriteAllText(file, root.ToJsonString(), new UTF8Encoding(false));
+		return true;
+	}
+
+	static void forgetvoice(string lang) {
+		if (string.IsNullOrWhiteSpace(lang)) return;
+		lock (voiceOp) {
+			loadvoice();
+			if (!voiceKnown.Remove(lang)) return;
+			savevoice();
+		}
+	}
+
 	static void preparevoice(string profile) {
+		ensurevoices(profile);
 		try {
 			if (string.IsNullOrWhiteSpace(profile)) return;
 			Directory.CreateDirectory(profile);
@@ -599,23 +688,23 @@ static class ChromePack {
 	}
 
 	static string findvoices() {
-		var roots = new List<string> {
-			Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Google", "Chrome", "User Data", "WasmTtsEngine"),
-			Path.Combine(ChromeTts.ProfileDir(), "WasmTtsEngine"),
-		};
+		var profile = newestvoices(Path.Combine(ChromeTts.ProfileDir(), "WasmTtsEngine"));
+		if (profile != null) return profile;
+		var user = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Google", "Chrome", "User Data", "WasmTtsEngine");
+		return newestvoices(user);
+	}
+
+	static string newestvoices(string root) {
+		if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root)) return null;
 		string best = null;
 		var bestTime = DateTime.MinValue;
-		foreach (var root in roots) {
-			if (!Directory.Exists(root)) continue;
-			foreach (var dir in Directory.GetDirectories(root)) {
-				var file = Path.Combine(dir, "voices.json");
-				if (!File.Exists(file)) continue;
-				var t = File.GetLastWriteTimeUtc(file);
-				if (t >= bestTime) {
-					bestTime = t;
-					best = file;
-				}
-			}
+		foreach (var dir in Directory.GetDirectories(root)) {
+			var file = Path.Combine(dir, "voices.json");
+			if (!File.Exists(file)) continue;
+			var t = File.GetLastWriteTimeUtc(file);
+			if (t < bestTime) continue;
+			bestTime = t;
+			best = file;
 		}
 		return best;
 	}
@@ -723,16 +812,21 @@ static class ChromePack {
 
 	static void onevoice(Sess sess, string lang, bool install, CancellationToken ct, Action<double, long, long> live = null) {
 		var type = install ? "installLanguage" : "uninstallLanguage";
+		var engine = enginelang(lang);
 		var root = ChromeTts.ProfileDir();
+		ensurevoices(root);
+		if ((engine == "cmn-CN" || engine == "cmn-TW") && !cataloghas(root))
+			throw new InvalidOperationException(Loc.T("inst.chrome.voicefail"));
+		reloadvoice(sess, ct);
 		var baseBytes = dirsize(root);
 		var expect = voicesize(lang);
 		sess.ArmNet(ct);
 		sess.ClearBytes();
-		var started = sess.EvalExt(voicestart(type, lang), false, 15000, ct);
+		var started = sess.EvalExt(voicestart(type, engine), false, 15000, ct);
 		if (started != "started") throw new InvalidOperationException(lang + " " + started);
 		sess.ArmNet(ct);
 		var start = Environment.TickCount;
-		while (unchecked(Environment.TickCount - start) < 180000) {
+		while (unchecked(Environment.TickCount - start) < 300000) {
 			ct.ThrowIfCancellationRequested();
 			sess.PumpAll(350, ct);
 			if (!readvoice(sess.EvalExt(VOICEPOLL, false, 8000, ct), out var done, out var err, out var body))
@@ -787,9 +881,19 @@ static class ChromePack {
 	}
 
 	static FeatureInstallState onestatus(Sess sess, string lang, CancellationToken ct) {
-		var st = sess.VoiceStatus(new List<string> { lang }, ct);
-		st.TryGetValue(lang, out var raw);
+		ensurevoices(ChromeTts.ProfileDir());
+		reloadvoice(sess, ct);
+		var key = enginelang(lang);
+		var st = sess.VoiceStatus(new List<string> { key }, ct);
+		if (!st.TryGetValue(key, out var raw)) st.TryGetValue(lang, out raw);
 		return PackState(raw);
+	}
+
+	static string enginelang(string lang) {
+		var s = SpeakLang(lang);
+		if (s.Equals("zh-CN", StringComparison.OrdinalIgnoreCase)) return "cmn-CN";
+		if (s.Equals("zh-TW", StringComparison.OrdinalIgnoreCase)) return "cmn-TW";
+		return s;
 	}
 
 	static long voicesize(string lang) {
@@ -1391,6 +1495,38 @@ return 'started';
 			return page.Eval(expr, wait, ms, ct);
 		}
 
+		public void ReloadExt(CancellationToken ct) {
+			ext ??= connectext();
+			if (ext == null) return;
+			try { ext.Eval("(function(){try{chrome.runtime.reload();}catch(e){}return 'reloading';})()", false, 3000, ct); }
+			catch { }
+			try { ext.Dispose(); } catch { }
+			ext = null;
+			var start = Environment.TickCount;
+			while (unchecked(Environment.TickCount - start) < 8000) {
+				ct.ThrowIfCancellationRequested();
+				if (!extlisted()) return;
+				Thread.Sleep(200);
+			}
+		}
+
+		bool extlisted() {
+			try {
+				var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/list");
+				req.Timeout = 4000;
+				using var resp = req.GetResponse();
+				using var rd = new StreamReader(resp.GetResponseStream());
+				using var doc = JsonDocument.Parse(rd.ReadToEnd());
+				foreach (var el in doc.RootElement.EnumerateArray()) {
+					var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
+					if ((url ?? "").IndexOf(TTS_EXT, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+					if ((url ?? "").IndexOf(TTS_EXT_OLD, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+				}
+			}
+			catch { }
+			return false;
+		}
+
 		public string EvalExt(string expr, bool wait, int ms, CancellationToken ct) {
 			ext ??= connectext();
 			if (ext == null) throw new InvalidOperationException(Loc.T("inst.chrome.noext"));
@@ -1561,7 +1697,7 @@ return 'started';
 			}
 			arr.Append(']');
 			var expr = "(async function(){var langs=" + arr + ";" + STATUS + "})()";
-			var raw = EvalExt(expr, true, 120000, ct);
+			var raw = EvalExt(expr, true, 300000, ct);
 			var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(raw) ? "[]" : raw);
 			if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("error", out var err))

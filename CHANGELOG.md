@@ -63,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation uses the manual proxy when the system proxy is off, and reports an error if Google cannot be reached.
 - Translate and Speech open the Chrome model page on screen. The dedicated profile had kept the hidden Chrome's off-screen window.
 - Opening an already running Chrome to install a voice pack did not send the reading-mode shortcut, so the speech component never started.
+- Installing Chinese reported success when the Chrome voice list had no Mandarin pack, so a refresh showed it missing.
 
 ### 中文
 
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 未开系统代理时 Chrome 翻译改走手动代理；连不上 Google 会直接报错。
 - 翻译和语音里打开 Chrome 模型页时，窗口回到屏幕内。专用配置里存过隐藏 Chrome 的屏幕外位置。
 - 已经开着的 Chrome 里安装语音包时，朗读快捷键没有发到那个窗口，语音组件不会启动。
+- 当前 Chrome 语音目录没有普通话包，安装会立刻报成功，刷新后又变成未安装。
 
 ## v1.0.29 (2026-10-23)
 

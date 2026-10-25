@@ -96,17 +96,24 @@
 		if (!v || !v.localService) return false;
 		var name = String(v.name || "");
 		var uri = String(v.voiceURI || "");
-		if (name.indexOf("Google") === 0) return true;
-		return uri.indexOf("Google") >= 0;
+		if (name.indexOf("Google") === 0 || name.indexOf("Chrome OS") === 0) return true;
+		return uri.indexOf("Google") >= 0 || uri.indexOf("Chrome OS") >= 0;
 	}
 
 	function samelang(a, b){
-		a = String(a || "").toLowerCase().replace(/_/g, "-");
-		b = String(b || "").toLowerCase().replace(/_/g, "-");
+		a = canonlang(a);
+		b = canonlang(b);
 		if (a === b) return true;
 		if ((a === "zh-hk" || a === "yue-hk" || a === "yue") && (b === "zh-hk" || b === "yue-hk" || b === "yue"))
 			return true;
 		return false;
+	}
+
+	function canonlang(s){
+		s = String(s || "").toLowerCase().replace(/_/g, "-");
+		if (s === "cmn-cn" || s === "zh-hans") return "zh-cn";
+		if (s === "cmn-tw" || s === "zh-hant") return "zh-tw";
+		return s;
 	}
 
 	function apply(op){

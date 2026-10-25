@@ -87,6 +87,7 @@
     <EmbeddedResource Include="Web\chrome.html" LogicalName="web.chrome.html" />
     <EmbeddedResource Include="Web\chrome.css" LogicalName="web.chrome.css" />
     <EmbeddedResource Include="Web\chrome.js" LogicalName="web.chrome.js" />
+    <EmbeddedResource Include="Infrastructure\cmn-voices.json" LogicalName="chrome.cmn.voices.json" />
     <EmbeddedResource Include="SendFile\web\index.html" LogicalName="web.index.html" />
     <EmbeddedResource Include="SendFile\web\m.html" LogicalName="web.m.html" />
     <EmbeddedResource Include="SendFile\web\app.js" LogicalName="web.app.js" />
