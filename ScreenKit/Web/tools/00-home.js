@@ -389,7 +389,7 @@
 						"data-page":"reader",
 						"data-cat":"text",
 						"data-name":"小说阅读器 阅读 小说 朗读 听书 txt md reader",
-						"title":"上传或拖入 txt、md 阅读，点击打开，Ctrl+点击新窗口",
+						"title":"拖入 txt、md，存在这个浏览器里阅读，点击打开，Ctrl+点击新窗口",
 						c:[
 						{x:"i.fa-solid.fa-book-open-reader"},
 						{x:"span","data-k":"web.tool.reader",c:"小说阅读器"},

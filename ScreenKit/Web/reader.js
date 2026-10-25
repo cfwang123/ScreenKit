@@ -1,4 +1,4 @@
-// 小说阅读器：web/up/reader 下的 txt、md，划词查词典，按句朗读并高亮当前句。
+// 小说阅读器：txt、md 存在这个浏览器的 IndexedDB 里，划词查词典，按句朗读并高亮当前句。
 (function(){
 	var langAt = 0;
 	var wavclip = null;
@@ -36,6 +36,7 @@
 	var dgen = 0;
 	var maxbox = null;
 	var scrollever = 0;
+	var dbp = null;
 
 
 	// ==================== 页面与语言 ====================
@@ -213,7 +214,7 @@
 		filllang();
 		build();
 		applylang();
-		loadbooks(restorelast);
+		importonce(function(){ loadbooks(restorelast); });
 		loadvoices();
 		loadpacks();
 		loadout();
@@ -261,7 +262,7 @@
 		root.innerHTML = [
 			'<aside class="rd-side">',
 			'<div class="rd-side-top">',
-			'<button id="rd-upload" type="button"><i class="fa-solid fa-upload"></i><span data-k="web.reader.upload">' + L("web.reader.upload", "上传") + "</span></button>",
+			'<button id="rd-upload" type="button"><i class="fa-solid fa-folder-open"></i><span data-k="web.reader.upload">' + L("web.reader.upload", "加入") + "</span></button>",
 			'<input id="rd-file" type="file" accept=".txt,.md,.markdown,.mdown,.mkd,text/plain,text/markdown" multiple hidden>',
 			"</div>",
 			'<input id="rd-filter" class="rd-filter" type="search" autocomplete="off" placeholder="' + esc(L("web.reader.filter", "筛文件名")) + '" data-kph="web.reader.filter">',
@@ -442,17 +443,103 @@
 		el.className = bad ? "rd-msg bad" : "rd-msg";
 	}
 
-	// ==================== 书库 ====================
-	function loadbooks(done){
-		fetchjson("/api/reader/list").then(function(j){
-			if (!j || j.code !== 100) {
-				setmsg(errtext(j), true);
+	// ==================== 书库（IndexedDB，不上传到程序） ====================
+	function opendb(){
+		if (dbp) return dbp;
+		dbp = new Promise(function(ok, bad){
+			if (!window.indexedDB) {
+				bad(new Error("这个浏览器没有本地书库"));
 				return;
 			}
-			st.books = (j.data && j.data.items) || [];
+			var req = indexedDB.open("sk-reader", 1);
+			req.onupgradeneeded = function(){
+				var db = req.result;
+				if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "name" });
+				if (!db.objectStoreNames.contains("body")) db.createObjectStore("body", { keyPath: "name" });
+			};
+			req.onsuccess = function(){
+				keepstore();
+				ok(req.result);
+			};
+			req.onerror = function(){ bad(req.error || new Error("打不开本地书库")); };
+		});
+		dbp.catch(function(){ dbp = null; });
+		return dbp;
+	}
+
+	function keepstore(){
+		try {
+			if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+		} catch (e) {}
+	}
+
+	function idbreq(req){
+		return new Promise(function(ok, bad){
+			req.onsuccess = function(){ ok(req.result); };
+			req.onerror = function(){ bad(req.error || new Error("本地书库失败")); };
+		});
+	}
+
+	function txdone(tx){
+		return new Promise(function(ok, bad){
+			tx.oncomplete = function(){ ok(); };
+			tx.onerror = function(){ bad(tx.error || new Error("本地书库失败")); };
+			tx.onabort = function(){ bad(tx.error || new Error("本地书库失败")); };
+		});
+	}
+
+	function storeerr(e){
+		if (e && e.name === "QuotaExceededError") return L("web.reader.quota", "浏览器里的空间不够，存不下这个文件。");
+		return e && e.message ? e.message : "存不到浏览器里";
+	}
+
+	/** 第一次打开时，把程序里已有的书拷进浏览器。之后只读本地。 */
+	function importonce(done){
+		var mark = "sk-reader-imported";
+		try { if (localStorage.getItem(mark) === "1") { done(); return; } } catch (e) {}
+		fetchjson("/api/reader/list").then(function(j){
+			if (!j || j.code !== 100) { done(); return; }
+			var items = (j.data && j.data.items) || [];
+			var i = 0;
+			function next(){
+				if (i >= items.length) {
+					try { localStorage.setItem(mark, "1"); } catch (e2) {}
+					done();
+					return;
+				}
+				var name = bookname(items[i].name);
+				var bytes = items[i].bytes || 0;
+				i++;
+				if (!name || bytes > 20 * 1024 * 1024) { next(); return; }
+				opendb().then(function(db){
+					return idbreq(db.transaction("meta", "readonly").objectStore("meta").get(name));
+				}).then(function(row){
+					if (row) { next(); return; }
+					return fetchjson("/api/reader/file?name=" + encodeURIComponent(name)).then(function(fj){
+						var text = (fj && fj.data && fj.data.text) || "";
+						if (!fj || fj.code !== 100 || !text) { next(); return; }
+						var u8 = new TextEncoder().encode(text);
+						var buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
+						return putbook(name, buf).then(next, next);
+					}, next);
+				}, next);
+			}
+			next();
+		}, function(){ done(); });
+	}
+
+	function loadbooks(done){
+		opendb().then(function(db){
+			return idbreq(db.transaction("meta", "readonly").objectStore("meta").getAll());
+		}).then(function(rows){
+			rows = rows || [];
+			rows.sort(function(a, b){
+				return String(a.name).localeCompare(String(b.name), undefined, { sensitivity: "accent" });
+			});
+			st.books = rows;
 			paintbooks();
 			if (done) done();
-		}).catch(function(e){ setmsg(e && e.message ? e.message : "网络错误", true); });
+		}).catch(function(e){ setmsg(storeerr(e), true); });
 	}
 
 	function paintbooks(){
@@ -472,7 +559,7 @@
 			p.className = "rd-empty";
 			p.textContent = st.books.length
 				? L("web.reader.nomatch", "没有对上的文件")
-				: L("web.reader.empty", "还没有书。上传 txt 或 md 文件放进来。");
+				: L("web.reader.empty", "还没有书。把 txt 或 md 拖进来，存在这个浏览器里。");
 			box.appendChild(p);
 		}
 	}
@@ -541,18 +628,20 @@
 		var body = $("rd-body");
 		body.className = "rd-body";
 		body.innerHTML = '<p class="rd-empty">' + esc(L("web.reader.loading", "正在打开…")) + "</p>";
-		var url = "/api/reader/file?name=" + encodeURIComponent(name) + (enc ? "&enc=" + encodeURIComponent(enc) : "");
 		var mine = ++st.token;
-		fetchjson(url).then(function(j){
+		opendb().then(function(db){
+			return idbreq(db.transaction("body", "readonly").objectStore("body").get(name));
+		}).then(function(rec){
 			if (mine !== st.token || st.cur !== name) return;
-			if (!j || j.code !== 100) {
-				body.innerHTML = '<p class="rd-empty">' + esc(errtext(j)) + "</p>";
+			if (!rec || !rec.buf) {
+				body.innerHTML = '<p class="rd-empty">' + esc(L("web.reader.missing", "这本书不在这个浏览器里")) + "</p>";
 				return;
 			}
-			st.text = (j.data && j.data.text) || "";
-			st.ext = (j.data && j.data.ext) || extname(name);
-			if (j.data && j.data.enc && j.data.enc !== st.enc) {
-				st.enc = j.data.enc;
+			var dec = decodebytes(rec.buf, enc);
+			st.text = dec.text;
+			st.ext = extname(name);
+			if (dec.enc && dec.enc !== st.enc) {
+				st.enc = dec.enc;
 				$("rd-enc").value = st.enc;
 			}
 			render(st.text, st.ext);
@@ -566,7 +655,7 @@
 			setmsg("");
 		}).catch(function(e){
 			if (mine !== st.token) return;
-			body.innerHTML = '<p class="rd-empty">' + esc(e && e.message ? e.message : "网络错误") + "</p>";
+			body.innerHTML = '<p class="rd-empty">' + esc(storeerr(e)) + "</p>";
 		});
 	}
 
@@ -583,7 +672,7 @@
 		} catch (e) {}
 	}
 
-	/** 页面里拖入文件时就上传，不用先点上传。 */
+	/** 页面里拖入文件时就存进这个浏览器，不用先点加入。 */
 	function wiredrop(){
 		var depth = 0;
 		on(document, "dragenter", function(ev){
@@ -636,14 +725,15 @@
 		step();
 		function step(){
 			if (i >= files.length) {
-				loadbooks();
-				if (first) openbook(first, true);
+				loadbooks(function(){
+					if (first) openbook(first, true);
+				});
 				return;
 			}
 			var f = files[i++];
-			var ext = extname(f.name);
-			if (ext !== ".txt" && ext !== ".md" && ext !== ".markdown" && ext !== ".mdown" && ext !== ".mkd") {
-				setmsg(L("web.reader.badfile", "请上传 txt 或 md 文件"), true);
+			var name = bookname(f.name);
+			if (!name) {
+				setmsg(L("web.reader.badfile", "请选择 txt 或 md 文件"), true);
 				step();
 				return;
 			}
@@ -652,55 +742,145 @@
 				step();
 				return;
 			}
-			var overwrite = hasbook(f.name);
-			if (overwrite) {
-				var q = L("web.reader.overwrite", "覆盖同名文件「{0}」？").replace("{0}", f.name);
-				if (!window.confirm(q)) { step(); return; }
-				overwrite = true;
+			if (!f.size) {
+				setmsg(L("web.reader.blank", "这篇是空的。"), true);
+				step();
+				return;
 			}
-			setmsg(L("web.reader.uploading", "正在上传…") + " " + f.name);
-			var url = "/api/reader/upload?name=" + encodeURIComponent(f.name) + (overwrite ? "&overwrite=1" : "");
-			fetch(url, { method: "POST", body: f }).then(function(r){ return r.json(); }).then(function(j){
-				if (!j || j.code !== 100) {
-					setmsg(errtext(j), true);
-					step();
-					return;
-				}
-				var saved = (j.data && j.data.name) || f.name;
-				if (!first) first = saved;
-				setmsg(L("web.reader.uploaded", "已上传") + " " + saved);
+			if (hasbook(name)) {
+				var q = L("web.reader.overwrite", "覆盖同名文件「{0}」？").replace("{0}", name);
+				if (!window.confirm(q)) { step(); return; }
+			}
+			setmsg(L("web.reader.uploading", "正在保存…") + " " + name);
+			readbuf(f).then(function(buf){
+				return putbook(name, buf);
+			}).then(function(){
+				if (!first) first = name;
+				setmsg(L("web.reader.uploaded", "已保存") + " " + name);
 				step();
 			}).catch(function(e){
-				setmsg(e && e.message ? e.message : "网络错误", true);
+				setmsg(storeerr(e), true);
 				step();
 			});
 		}
 	}
 
-	function renamebook(from, to){
-		fetchjson("/api/reader/rename", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ from: from, to: to })
-		}).then(function(j){
-			if (!j || j.code !== 100) { setmsg(errtext(j), true); return; }
-			var next = (j.data && j.data.name) || to;
-			if (st.cur === from) {
-				st.cur = next;
-				settitle(next);
+	function readbuf(f){
+		return new Promise(function(ok, bad){
+			var r = new FileReader();
+			r.onload = function(){ ok(r.result); };
+			r.onerror = function(){ bad(r.error || new Error("读不出文件")); };
+			r.readAsArrayBuffer(f);
+		});
+	}
+
+	function putbook(name, buf){
+		return opendb().then(function(db){
+			var tx = db.transaction(["meta", "body"], "readwrite");
+			tx.objectStore("meta").put({ name: name, bytes: buf.byteLength, mtime: Date.now() });
+			tx.objectStore("body").put({ name: name, buf: buf });
+			return txdone(tx);
+		});
+	}
+
+	function bookname(raw){
+		var name = String(raw || "").replace(/\\/g, "/");
+		var i = name.lastIndexOf("/");
+		if (i >= 0) name = name.slice(i + 1);
+		name = name.trim();
+		if (!name || name === "." || name === "..") return "";
+		if (name.length > 180) {
+			var ext = extname(name);
+			name = name.slice(0, 180 - ext.length) + name.slice(name.length - ext.length);
+		}
+		if (!extname(name)) name += ".txt";
+		return bookext(name) ? name : "";
+	}
+
+	function bookext(name){
+		var ext = extname(name);
+		return ext === ".txt" || ext === ".md" || ext === ".markdown" || ext === ".mdown" || ext === ".mkd";
+	}
+
+	function decodebytes(buf, enc){
+		var bytes = buf ? new Uint8Array(buf) : new Uint8Array(0);
+		var used = enc || "";
+		var cut;
+		if (!bytes.length) return { text: "", enc: used || "utf-8" };
+		if (!used) {
+			if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF)
+				return { text: decodetext(bytes.subarray(3), "utf-8", false), enc: "utf-8" };
+			if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE)
+				return { text: decodetext(bytes.subarray(2), "utf-16le", false), enc: "utf-16le" };
+			if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF)
+				return { text: decodetext(bytes.subarray(2), "utf-16be", false), enc: "utf-16be" };
+			try {
+				return { text: decodetext(bytes, "utf-8", true), enc: "utf-8" };
+			} catch (e) {
+				return { text: decodetext(bytes, "gb18030", false), enc: "gb18030" };
 			}
-			mvlocal(from, next);
+		}
+		if (used === "utf-8") {
+			cut = bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF ? 3 : 0;
+			return { text: decodetext(bytes.subarray(cut), "utf-8", false), enc: used };
+		}
+		if (used === "utf-16le") {
+			cut = bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE ? 2 : 0;
+			return { text: decodetext(bytes.subarray(cut), "utf-16le", false), enc: used };
+		}
+		if (used === "utf-16be") {
+			cut = bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF ? 2 : 0;
+			return { text: decodetext(bytes.subarray(cut), "utf-16be", false), enc: used };
+		}
+		return { text: decodetext(bytes, used, false), enc: used };
+	}
+
+	function decodetext(bytes, label, fatal){
+		return new TextDecoder(label, { fatal: !!fatal }).decode(bytes);
+	}
+
+	function renamebook(from, to){
+		to = bookname(to);
+		if (!to) { setmsg(L("web.reader.badfile", "请选择 txt 或 md 文件"), true); return; }
+		if (to === from) return;
+		opendb().then(function(db){
+			var tx = db.transaction(["meta", "body"], "readwrite");
+			var meta = tx.objectStore("meta");
+			var body = tx.objectStore("body");
+			return idbreq(meta.get(to)).then(function(exist){
+				if (exist) throw new Error(L("web.reader.samename", "已有同名文件"));
+				return idbreq(meta.get(from));
+			}).then(function(row){
+				if (!row) throw new Error(L("web.reader.missing", "这本书不在这个浏览器里"));
+				return idbreq(body.get(from)).then(function(rec){
+					if (!rec) throw new Error(L("web.reader.missing", "这本书不在这个浏览器里"));
+					meta.delete(from);
+					body.delete(from);
+					row.name = to;
+					rec.name = to;
+					meta.put(row);
+					body.put(rec);
+					return txdone(tx);
+				});
+			});
+		}).then(function(){
+			if (st.cur === from) {
+				st.cur = to;
+				st.ext = extname(to);
+				settitle(to);
+			}
+			mvlocal(from, to);
 			loadbooks();
-		}).catch(function(e){ setmsg(e && e.message ? e.message : "网络错误", true); });
+		}).catch(function(e){ setmsg(storeerr(e), true); });
 	}
 
 	function delbook(name){
-		fetchjson("/api/reader/delete", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ name: name })
-		}).then(function(j){
-			if (!j || j.code !== 100) { setmsg(errtext(j), true); return; }
+		opendb().then(function(db){
+			var tx = db.transaction(["meta", "body"], "readwrite");
+			tx.objectStore("meta").delete(name);
+			tx.objectStore("body").delete(name);
+			return txdone(tx);
+		}).then(function(){
 			if (st.cur === name) {
 				st.cur = "";
 				st.text = "";
@@ -715,7 +895,7 @@
 			}
 			rmlocal(name);
 			loadbooks();
-		}).catch(function(e){ setmsg(e && e.message ? e.message : "网络错误", true); });
+		}).catch(function(e){ setmsg(storeerr(e), true); });
 	}
 
 	function mvlocal(from, to){
