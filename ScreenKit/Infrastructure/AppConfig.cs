@@ -347,6 +347,8 @@ static class AppConfig {
 				o.HttpLan = parsebool(hl, true);
 			if (map.TryGetValue("http_port", out var hp) && int.TryParse(hp, out var port))
 				o.HttpPort = Compat.Clamp(port, 1, 65535);
+			if (map.TryGetValue("http_keepalive", out var hka) && int.TryParse(hka, out var keepalive))
+				o.HttpKeepAlive = Compat.Clamp(keepalive, 0, 300);
 			if (map.TryGetValue("sendfile_enabled", out var sfe))
 				o.SendFileEnabled = parsebool(sfe, true);
 			if (map.TryGetValue("sendfile_udp_port", out var sfup) && int.TryParse(sfup, out var sfUdp))
@@ -830,6 +832,8 @@ static class AppConfig {
 		sb.AppendLine("# 允许局域网访问。false 时只监听 127.0.0.1");
 		sb.AppendLine($"http_lan = {(o.HttpLan ? "true" : "false")}");
 		sb.AppendLine($"http_port = {o.HttpPort}");
+		sb.AppendLine("# 长连接（Keep-Alive）空闲最多保持几秒。0=每个请求处理完就断开。默认 10");
+		sb.AppendLine($"http_keepalive = {Compat.Clamp(o.HttpKeepAlive, 0, 300)}");
 		sb.AppendLine($"# 服务模式：引擎常驻预热。开启时不按空闲卸载");
 		sb.AppendLine($"service_mode = {(o.ServiceMode ? "true" : "false")}");
 		sb.AppendLine($"# ONNX 空闲卸载（分钟）。识别/翻译/人脸/语音。0=不自动卸载。服务模式不卸载");

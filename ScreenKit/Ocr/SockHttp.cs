@@ -16,6 +16,8 @@ sealed class SockHttpServer {
 	TcpListener tcp;
 	volatile bool running;
 	Action<SockCtx> onrequest;
+	/// <summary>长连接空闲最多保持多久（毫秒）。0 表示每个请求处理完就断开。</summary>
+	public int KeepAliveMs = 10000;
 
 	public int Port { get; private set; }
 
@@ -110,24 +112,39 @@ sealed class SockHttpServer {
 	}
 
 	void serve(TcpClient c) {
+		var ka = KeepAliveMs;
 		try {
 			noinherit(c.Client);
 			c.NoDelay = true;
-			try { c.ReceiveTimeout = 15000; } catch { }
 			try { c.SendTimeout = 120000; } catch { }
 			var ns = c.GetStream();
-			var ctx = readctx(ns, c.Client.RemoteEndPoint as IPEndPoint);
-			if (ctx == null) {
-				write400(ns);
-				return;
-			}
-			try { c.ReceiveTimeout = 0; } catch { }
-			try { onrequest?.Invoke(ctx); }
-			catch { }
-			finally {
-				if (!ctx.Upgraded && !ctx.RawTaken) {
-					try { ctx.Response.Close(); } catch { }
+			var first = true;
+			while (running) {
+				// 首个请求最多等 15 秒；复用连接时只等到长连接超时
+				try { c.ReceiveTimeout = first ? 15000 : ka; } catch { }
+				var ctx = readctx(ns, c.Client.RemoteEndPoint as IPEndPoint, out var bad);
+				if (ctx == null) {
+					if (bad) write400(ns);
+					break;
 				}
+				first = false;
+				try { c.ReceiveTimeout = 0; } catch { }
+				var keep = ka > 0 && !ctx.Request.Pipelined && reusable(ctx);
+				ctx.Response.KeepAlive = keep;
+				try { onrequest?.Invoke(ctx); }
+				catch { keep = false; }
+				finally {
+					if (!ctx.Upgraded && !ctx.RawTaken) {
+						try { ctx.Response.Close(); }
+						catch { keep = false; }
+					}
+				}
+				// 发包时才知道没有 Content-Length 的响应当场把可复用改回 false
+				keep = keep && ctx.Response.KeepAlive;
+				if (ctx.Upgraded || ctx.RawTaken || !keep) break;
+				// 请求体没读完不能接着读下一个请求
+				try { c.ReceiveTimeout = 3000; } catch { }
+				if (!drainbody(ctx.Request)) break;
 			}
 		}
 		catch { }
@@ -136,13 +153,41 @@ sealed class SockHttpServer {
 		}
 	}
 
+	/// <summary>客户端与响应都允许复用才接着读下一个请求。HTTP/1.1 默认复用，1.0 要显式 keep-alive。</summary>
+	static bool reusable(SockCtx ctx) {
+		var req = ctx.Request;
+		if (req == null || req.IsWebSocketRequest) return false;
+		var conn = req.Headers["Connection"] ?? "";
+		if (string.Equals(req.HttpVersion, "HTTP/1.0", StringComparison.OrdinalIgnoreCase))
+			return conn.IndexOf("keep-alive", StringComparison.OrdinalIgnoreCase) >= 0;
+		return conn.IndexOf("close", StringComparison.OrdinalIgnoreCase) < 0;
+	}
+
+	/// <summary>把没读完的请求体读掉，超过 4MB 就放弃（不能复用连接）。</summary>
+	static bool drainbody(SockReq req) {
+		var s = req?.InputStream;
+		if (s == null) return true;
+		var buf = new byte[4096];
+		long total = 0;
+		try {
+			while (true) {
+				var n = s.Read(buf, 0, buf.Length);
+				if (n <= 0) return true;
+				total += n;
+				if (total > 4L * 1024 * 1024) return false;
+			}
+		}
+		catch { return false; }
+	}
+
 	static void write400(Stream ns) {
 		var b = Encoding.ASCII.GetBytes(
 			"HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
 		try { ns.Write(b, 0, b.Length); } catch { }
 	}
 
-	static SockCtx readctx(NetworkStream ns, IPEndPoint remote) {
+	static SockCtx readctx(NetworkStream ns, IPEndPoint remote, out bool bad) {
+		bad = false;
 		const int MAXHDR = 65536;
 		var buf = new byte[MAXHDR];
 		var n = 0;
@@ -157,14 +202,24 @@ sealed class SockHttpServer {
 			end = hdrend(buf, n);
 			if (end >= 0) break;
 		}
-		if (end < 0) return null;
+		if (end < 0) {
+			bad = true;
+			return null;
+		}
 		var text = Encoding.GetEncoding("iso-8859-1").GetString(buf, 0, end);
 		var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
-		if (lines.Length == 0) return null;
+		if (lines.Length == 0) {
+			bad = true;
+			return null;
+		}
 		var parts = lines[0].Split(new[] { ' ' }, 3);
-		if (parts.Length < 2 || parts[0].Length == 0 || parts[1].Length == 0) return null;
+		if (parts.Length < 2 || parts[0].Length == 0 || parts[1].Length == 0) {
+			bad = true;
+			return null;
+		}
 		var method = parts[0];
 		var target = parts[1];
+		var version = parts.Length > 2 ? parts[2].Trim() : "HTTP/1.0";
 		var headers = new SockHeaders();
 		for (var i = 1; i < lines.Length; i++) {
 			var line = lines[i];
@@ -188,8 +243,10 @@ sealed class SockHttpServer {
 		var hasLen = false;
 		var cls = headers["Content-Length"];
 		if (!string.IsNullOrEmpty(cls)) {
-			if (!long.TryParse(cls, NumberStyles.Integer, CultureInfo.InvariantCulture, out clen) || clen < 0)
+			if (!long.TryParse(cls, NumberStyles.Integer, CultureInfo.InvariantCulture, out clen) || clen < 0) {
+				bad = true;
 				return null;
+			}
 			hasLen = true;
 		}
 		var chunked = !hasLen && (headers["Transfer-Encoding"] ?? "")
@@ -201,9 +258,13 @@ sealed class SockHttpServer {
 		}
 		Uri uri;
 		try { uri = makeuri(target, headers["Host"]); }
-		catch { return null; }
+		catch {
+			bad = true;
+			return null;
+		}
 		Stream input;
 		byte[] prefetch;
+		var pipelined = false;
 		if (ws) {
 			input = Stream.Null;
 			prefetch = leftover;
@@ -216,9 +277,11 @@ sealed class SockHttpServer {
 		else {
 			input = new SockIn(ns, leftover, clen);
 			prefetch = Array.Empty<byte>();
+			pipelined = leftover.Length > clen;
 		}
 		var req = new SockReq {
 			HttpMethod = method,
+			HttpVersion = version,
 			Url = uri,
 			RawUrl = target,
 			Headers = headers,
@@ -226,6 +289,7 @@ sealed class SockHttpServer {
 			ContentEncoding = charsetof(ctype),
 			ContentType = ctype,
 			ContentLength64 = clen,
+			Pipelined = pipelined,
 			RemoteEndPoint = remote,
 			IsWebSocketRequest = ws,
 		};
@@ -301,6 +365,9 @@ public sealed class SockCtx {
 
 public sealed class SockReq {
 	public string HttpMethod;
+	public string HttpVersion;
+	/// <summary>同一包里还有下一个请求（管线化）。这种连接不复用。</summary>
+	public bool Pipelined;
 	public Uri Url;
 	public string RawUrl;
 	public SockHeaders Headers;
@@ -364,6 +431,8 @@ public sealed class SockRes {
 	public string ContentType;
 	public Encoding ContentEncoding;
 	public long ContentLength64 = -1;
+	/// <summary>响应允许复用连接。发包时若发现没有 Content-Length 会改回 false。</summary>
+	public bool KeepAlive;
 	public readonly SockHeaders Headers = new();
 	public Stream OutputStream => output;
 
@@ -450,7 +519,9 @@ sealed class SockOut : Stream {
 				sb.Append(key).Append(": ").Append(val).Append("\r\n");
 			}
 		}
-		if (!sawConn) sb.Append("Connection: close\r\n");
+		var keep = res.KeepAlive && res.ContentLength64 >= 0;
+		if (!sawConn) sb.Append(keep ? "Connection: keep-alive\r\n" : "Connection: close\r\n");
+		if (!keep) res.KeepAlive = false;
 		sb.Append("\r\n");
 		var hb = Encoding.UTF8.GetBytes(sb.ToString());
 		net.Write(hb, 0, hb.Length);

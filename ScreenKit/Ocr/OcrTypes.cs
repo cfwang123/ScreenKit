@@ -176,6 +176,8 @@ public sealed class OcrOptions {
 	public string HttpShowHost() => HttpLan ? "0.0.0.0" : "127.0.0.1";
 	/// <summary>HTTP 端口，默认与 Umi-OCR 一致 1224。</summary>
 	public int HttpPort = 1224;
+	/// <summary>长连接（Keep-Alive）空闲最多保持几秒。0 表示每个请求处理完就断开。默认 10。</summary>
+	public int HttpKeepAlive = 10;
 	/// <summary>局域网文件传输服务（手机 App）。</summary>
 	public bool SendFileEnabled = true;
 	/// <summary>旧字段，文件传输 HTTP 已与 HttpPort 共用；仅测试单独起服务时使用。</summary>

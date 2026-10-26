@@ -84,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese adjectives and nouns now list dialect forms too: Kansai 高うない / 静かや / 学生や, and Kyushu 高か / 高うなか for i-adjectives.
 - Korean nouns: add dialect forms for Gyeongsang, Jeolla, Chungcheong and Jeju; keep command and suggestion dialect forms to verbs
 - The local web server now gzips JSON API responses and text web files (HTML, JS, CSS, SVG) when the client asks for it, and caches the compressed static files instead of recompressing them on every request.
+- The HTTP API supports Keep-Alive: HTTP/1.1 reuses connections and an idle connection is held for at most 10 seconds (configurable with http_keepalive).
 
 #### Changed
 
@@ -188,6 +189,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语形容词和名词也列出方言说法：关西 高うない、静かや、学生や；い形容词另有九州 高か、高うなか。
 - 韩语名词：补充庆尚道、全罗道、忠清道、济州方言；方言命令/劝诱只对动词显示
 - 本机网页服务对 JSON 接口和 HTML、JS、CSS、SVG 等文本文件按 gzip 压缩，客户端支持才压；静态文件的压缩结果会缓存，文件没改不会重复压缩。
+- HTTP 接口支持 Keep-Alive：HTTP/1.1 默认复用连接，空闲连接最多保持 10 秒（可用 http_keepalive 调整）。
 
 #### 变更
 

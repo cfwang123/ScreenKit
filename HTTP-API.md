@@ -23,6 +23,7 @@ http_face = true
 http_rtsp = true
 http_lan = true
 http_port = 1224
+http_keepalive = 10
 ```
 
 Each `http_*` module defaults to on. Turning one off leaves that path out of `GET /api` and makes the path return code 810. `http_rtsp = false` refuses `WebSocket /rtsp` and does not upgrade the connection. `/api/status`, `/api/toast`, `/api/zhconv`, `/api/pinyin`, `/api/calendar`, `/api/jpyomi`, `/api/text`, `/api/fx`, `/api/ipcity`, `/api/mac`, `/api/usb`, `/api/qrmake`, `/api/qrscan`, and `/api/cast/stop` stay available. `GET /` is the local tools page. `WebSocket /chat` is the tools-page chat room. The first text frame is `{"op":"join","nick":"name","gender":"m|f|"}`, then `{"op":"say","text":"..."}`. An omitted or other `gender` means private. `POST /chat/file` uploads one image or file (`multipart` fields `file` and `kind=image|file`, 8 MB). The bytes go to `tmp/chat-` plus an id beside the program and are deleted on the next start. The client then sends `{"op":"file","file":"<id>"}`. `GET /chat/file/{id}` downloads it. Optional `to` is a peer id and `priv:true` delivers that message only to the two people. `{"op":"offer","file":"<id>","to":peer}` asks that person to accept; `{"op":"take","xfer":n}` or `{"op":"drop","xfer":n}` answers. The file id is sent to the receiver only after take. Heartbeats are every 5 seconds; a missed heartbeat closes the socket. `http_enabled = false` turns the whole server off. OCR also covers `/api/qr` and the Umi-OCR compatible `/api/qrcode`. ASR also covers `/api/itn` and `/api/asr/models`.
@@ -35,6 +36,7 @@ Each `http_*` module defaults to on. Turning one off leaves that path out of `GE
 | JSON text | UTF-8 CJK as-is (not `\uXXXX` escapes) |
 | CORS | `*` allowed for local web debugging |
 | OPTIONS | Preflight supported (204) |
+| Connection | Keep-Alive supported: HTTP/1.1 reuses the connection unless the client sends `Connection: close`. An idle connection is held for at most 10 s (`http_keepalive`, 0–300; `0` closes after every response) |
 
 The bottom status bar keeps the listener beside the memory summary, for example `HTTP 0.0.0.0:1224` or `HTTP 127.0.0.1:1224`. Per-NIC file-transfer sockets without the API listener show `HTTP LAN:1224`. If the API, file transfer, and cast are all off it shows `HTTP off`. If one of them is on but nothing is listening it shows `HTTP not started` and the error. Click the HTTP text to open the web home in the browser. Click the model summary to open Memory. The empty space to the right does nothing.
 

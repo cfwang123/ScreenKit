@@ -23,6 +23,7 @@ http_face = true
 http_rtsp = true
 http_lan = true
 http_port = 1224
+http_keepalive = 10
 ```
 
 各 `http_*` 默认开启。关掉一项后，`GET /api` 不再列出该路径，请求返回 810。`http_rtsp = false` 时 `WebSocket /rtsp` 不接收，也不升级连接。`/api/status`、`/api/toast`、`/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/ipcity`、`/api/mac`、`/api/usb`、`/api/qrmake`、`/api/qrscan` 和 `/api/cast/stop` 仍可用。`GET /` 是本机工具页。`WebSocket /chat` 是工具页聊天室：第一条文字帧为 `{"op":"join","nick":"昵称","gender":"m|f|"}`，之后 `{"op":"say","text":"..."}`。`gender` 省略或其它值表示保密。`POST /chat/file` 上传一张图片或一个文件（`multipart` 字段 `file` 和 `kind=image|file`，单个 8 MB），写到程序目录 `tmp/chat-` 加编号，下次启动时删除。上传后再发 `{"op":"file","file":"<id>"}`。`GET /chat/file/{id}` 下载。可选 `to` 是对方编号，`priv:true` 时只有双方收到。`{"op":"offer","file":"<id>","to":对方}` 请对方接收，对方用 `{"op":"take","xfer":n}` 或 `{"op":"drop","xfer":n}` 回答。文件编号在对方点接收之后才发给对方。心跳 5 秒一次，失败就断开。`http_enabled = false` 关闭整个服务。OCR 同时包含 `/api/qr` 和 Umi-OCR 兼容的 `/api/qrcode`。ASR 同时包含 `/api/itn` 和 `/api/asr/models`。
@@ -35,6 +36,7 @@ http_port = 1224
 | JSON 文本 | 中文等直接 UTF-8 输出，不用 `\uXXXX` 转义 |
 | CORS | 已允许 `*`，便于本机网页调试 |
 | OPTIONS | 支持预检（204） |
+| 长连接 | 支持 Keep-Alive：HTTP/1.1 默认复用连接，客户端发 `Connection: close` 才断开。空闲连接最多保持 10 秒（`http_keepalive`，0–300；`0` 表示每个请求处理完就断开） |
 
 底部状态栏在内存汇总旁一直显示监听地址，例如 `HTTP 0.0.0.0:1224` 或 `HTTP 127.0.0.1:1224`。只有传文件的网卡监听时显示「HTTP 局域网:1224」。接口、传文件和投屏都关闭时显示「HTTP 未启用」。其中一项开着但没听上时显示「HTTP 未启动」，并带上失败原因。点 HTTP 文字用浏览器打开 web工具页；点模型摘要打开内存占用；右边空白没有点击效果。
 

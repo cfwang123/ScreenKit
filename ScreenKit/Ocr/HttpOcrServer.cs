@@ -104,7 +104,9 @@ sealed partial class HttpOcrServer : IDisposable {
 		var all = port != 0 && (lan || host == "+");
 		lock (listenLock) {
 			Stop();
-			var s = new SockHttpServer();
+			var s = new SockHttpServer {
+				KeepAliveMs = Compat.Clamp(getOpts?.Invoke()?.HttpKeepAlive ?? 10, 0, 300) * 1000,
+			};
 			s.Start(all ? "+" : "127.0.0.1", port, handle);
 			sock = s;
 			Port = s.Port;
