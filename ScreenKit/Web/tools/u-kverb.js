@@ -538,11 +538,11 @@
 		});
 	}
 
-	function paint(word, note, rows){
+	function paint(word, note, rows, tm){
 		var out = F.id("kv-out");
 		if (!out) return;
 		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
-		lastpaint = { word: word, note: note, rows: rows };
+		lastpaint = { word: word, note: note, rows: rows, tm: tm };
 		render(out);
 	}
 
@@ -551,7 +551,7 @@
 	function render(out){
 		if (!out || !lastpaint) return;
 		perline = 1;
-		out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows);
+		out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows, lastpaint.tm);
 		var tab = out.getElementsByTagName("table")[0];
 		var w = tab ? tab.offsetWidth : 0;
 		var cw = out.clientWidth;
@@ -569,11 +569,11 @@
 		}
 		if (n > 1) {
 			perline = n;
-			out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows);
+			out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows, lastpaint.tm);
 		}
 		while (perline > 1 && out.scrollWidth > out.clientWidth + 2) {
 			perline--;
-			out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows);
+			out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows, lastpaint.tm);
 		}
 	}
 
@@ -587,9 +587,10 @@
 		if (out && lastpaint) render(out);
 	}
 
-	function tablehtml(word, note, rows){
+	function tablehtml(word, note, rows, tm){
 		var tip = esc(tx("dict.speak", "发音"));
-		var html = '<div class="jv-head"><b>' + esc(word) + "</b><span>" + esc(note) + "</span></div><table class=\"jv-tab\">";
+		var html = '<div class="jv-head"><b>' + esc(word) + "</b><span>" + esc(note) + "</span>"
+			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div><table class=\"jv-tab\">";
 		var g = "";
 		var buf = [];
 		var i;
@@ -662,13 +663,15 @@
 			SK.msg("box-msg", "");
 			return;
 		}
+		var t0 = now();
 		var built = build(word, force, langcode());
+		var tcalc = now() - t0;
 		if (!built.ok) {
 			paint("", "", []);
 			SK.msg("box-msg", built.err, true);
 			return;
 		}
-		paint(built.word, built.note, built.rows);
+		paint(built.word, built.note, built.rows, timestr(-1, tcalc));
 		SK.msg("box-msg", "");
 	}
 
@@ -1719,5 +1722,22 @@
 		add("yba.hap", "敬语 아님다", "아님다");
 		add("yba.qhap", "敬语疑问 아님까", "아님까?");
 		return rows;
+	}
+
+	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
+	function timestr(dictms, calcms){
+		var a = "";
+		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
+		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		return a;
+	}
+
+	function fmtms(v){
+		v = Math.round(v * 10) / 10;
+		return v < 1 ? "<1 ms" : Math.round(v) + " ms";
+	}
+
+	function now(){
+		return window.performance && window.performance.now ? window.performance.now() : Date.now();
 	}
 })();

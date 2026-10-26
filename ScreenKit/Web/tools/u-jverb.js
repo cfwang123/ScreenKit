@@ -243,11 +243,11 @@
 		});
 	}
 
-	function paint(head, name, rows){
+	function paint(head, name, rows, tm){
 		var out = F.id("jv-out");
 		if (!out) return;
 		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
-		lastpaint = { head: head, name: name, rows: rows };
+		lastpaint = { head: head, name: name, rows: rows, tm: tm };
 		render(out);
 	}
 
@@ -256,7 +256,7 @@
 	function render(out){
 		if (!out || !lastpaint) return;
 		perline = 1;
-		out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows);
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
 		var tab = out.getElementsByTagName("table")[0];
 		var w = tab ? tab.offsetWidth : 0;
 		var cw = out.clientWidth;
@@ -274,11 +274,11 @@
 		}
 		if (n > 1) {
 			perline = n;
-			out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows);
+			out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
 		}
 		while (perline > 1 && out.scrollWidth > out.clientWidth + 2) {
 			perline--;
-			out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows);
+			out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
 		}
 	}
 
@@ -292,9 +292,10 @@
 		if (out && lastpaint) render(out);
 	}
 
-	function tablehtml(head, name, rows){
+	function tablehtml(head, name, rows, tm){
 		var tip = esc(tx("dict.speak", "发音"));
-		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(name) + "</span></div><table class=\"jv-tab\">";
+		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(name) + "</span>"
+			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div><table class=\"jv-tab\">";
 		var g = null;
 		var buf = [];
 		var i, rg;
@@ -407,7 +408,9 @@
 			SK.msg("box-msg", "");
 			return;
 		}
+		var t0 = now();
 		lookup(word, function(res){
+			var tdict = now() - t0;
 			if (n !== gen) return;
 			var use = pick === "auto" ? null : { kind: pick, flag: "", sub: "" };
 			var note = "";
@@ -464,13 +467,15 @@
 				SK.msg("box-msg", tx("web.jverb.bad", "看不出是动词的辞书形"), true);
 				return;
 			}
+			var t1 = now();
 			var built = build(word, use.kind, use.flag, use.sub, langcode());
+			var tcalc = now() - t1;
 			if (!built.ok) {
 				paint("", "", []);
 				SK.msg("box-msg", built.err, true);
 				return;
 			}
-			paint(built.head, built.name, built.rows);
+			paint(built.head, built.name, built.rows, timestr(tdict, tcalc));
 			SK.msg("box-msg", note || "", bad);
 		});
 	}
@@ -1435,6 +1440,23 @@
 
 	function ends(s, suf){
 		return s.length >= suf.length && s.slice(-suf.length) === suf;
+	}
+
+	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
+	function timestr(dictms, calcms){
+		var a = "";
+		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
+		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		return a;
+	}
+
+	function fmtms(v){
+		v = Math.round(v * 10) / 10;
+		return v < 1 ? "<1 ms" : Math.round(v) + " ms";
+	}
+
+	function now(){
+		return window.performance && window.performance.now ? window.performance.now() : Date.now();
 	}
 
 	function last(s){ return s.charAt(s.length - 1); }

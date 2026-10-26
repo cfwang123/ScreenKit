@@ -1349,13 +1349,15 @@
 			SK.msg("box-msg", "");
 			return;
 		}
+		var t0 = now();
 		var built = build(word, langcode(), sel ? sel.value : "auto");
+		var tcalc = now() - t0;
 		if (!built.ok) {
 			paint("", "", []);
 			SK.msg("box-msg", built.err, true);
 			return;
 		}
-		paint(built.head, built.note, built.rows);
+		paint(built.head, built.note, built.rows, timestr(-1, tcalc));
 		SK.msg("box-msg", "");
 	}
 
@@ -1366,11 +1368,11 @@
 	var rtimer = 0;
 	var bound = false;
 
-	function paint(head, note, rows){
+	function paint(head, note, rows, tm){
 		var out = F.id("ev-out");
 		if (!out) return;
 		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
-		lastpaint = { head: head, note: note, rows: rows };
+		lastpaint = { head: head, note: note, rows: rows, tm: tm };
 		render(out);
 	}
 
@@ -1379,7 +1381,7 @@
 	function render(out){
 		if (!out || !lastpaint) return;
 		perline = 1;
-		out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows, lastpaint.tm);
 		var tab = out.getElementsByTagName("table")[0];
 		var w = tab ? tab.offsetWidth : 0;
 		var cw = out.clientWidth;
@@ -1397,11 +1399,11 @@
 		}
 		if (n > 1) {
 			perline = n;
-			out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
+			out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows, lastpaint.tm);
 		}
 		while (perline > 1 && out.scrollWidth > out.clientWidth + 2) {
 			perline--;
-			out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
+			out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows, lastpaint.tm);
 		}
 	}
 
@@ -1416,9 +1418,10 @@
 	}
 
 	// 一行两组「名称 + 词形」。
-	function tablehtml(head, note, rows){
+	function tablehtml(head, note, rows, tm){
 		var tip = esc(tx("dict.speak", "发音"));
-		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(note) + "</span></div>"
+		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(note) + "</span>"
+			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div>"
 			+ '<table class="jv-tab ev-tab">';
 		var g = null;
 		var buf = [];
@@ -1459,6 +1462,23 @@
 				+ '<i class="fa-solid fa-volume-high"></i></button></div>';
 		}
 		return html + "</td>";
+	}
+
+	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
+	function timestr(dictms, calcms){
+		var a = "";
+		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
+		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		return a;
+	}
+
+	function fmtms(v){
+		v = Math.round(v * 10) / 10;
+		return v < 1 ? "<1 ms" : Math.round(v) + " ms";
+	}
+
+	function now(){
+		return window.performance && window.performance.now ? window.performance.now() : Date.now();
 	}
 
 	function esc(s){

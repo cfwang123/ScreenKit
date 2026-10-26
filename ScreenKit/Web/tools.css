@@ -468,6 +468,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .jv-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 4px; }
 .jv-head b { font-size: 16px; }
 .jv-head span { color: var(--muted); font-size: 12px; }
+.jv-head .jv-time { margin-left: auto; padding-left: 10px; white-space: nowrap; }
 .jv-tab { border-collapse: collapse; font-size: 14px; line-height: 1.35; }
 .jv-tab td { padding: 1px 0; vertical-align: middle; white-space: nowrap; }
 .jv-tab .jv-k { color: var(--muted); font-size: 12px; width: 7.2em; padding-right: 6px; }
