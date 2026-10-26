@@ -730,26 +730,30 @@
 		}
 		var variant = opt.variant || "std";
 		if (variant !== "std") {
-			g = L(lang, LAB.g_var);
+			var variants = variant === "all" ? ["coll", "north", "south", "arch"] : [variant];
 			var p3s = info.pres[2];
 			var p3p = info.pres[5];
-			if (variant === "north") {
-				R(g, L(lang, ["北俄 · 3-е л. ед. ч.", "Northern · 3rd sg."]), p3s.replace(/ет$/, "т"));
-				R(g, L(lang, ["北俄 · 3-е л. мн. ч.", "Northern · 3rd pl."]), p3p);
-			}
-			else if (variant === "south") {
-				R(g, L(lang, ["南俄 · 3-е л. ед. ч.", "Southern · 3rd sg."]), p3s.replace(/т$/, "ть"));
-				R(g, L(lang, ["南俄 · 3-е л. мн. ч.", "Southern · 3rd pl."]), p3p.replace(/т$/, "ть"));
-			}
-			else if (variant === "coll") {
-				R(g, L(lang, ["口语 · 2-е л. ед. ч.", "Colloquial · 2nd sg."]), info.pres[1].replace(/ешь$/, "шь"));
-				R(g, L(lang, ["口语 · 3-е л. ед. ч.", "Colloquial · 3rd sg."]), p3s.replace(/ет$/, "т"));
-				R(g, L(lang, ["口语 · 命令式 + -ка", "Colloquial · imperative + -ка"]), info.imp ? info.imp[0] + "-ка" : "—");
-			}
-			else if (variant === "arch") {
-				R(g, L(lang, ["古体 · 2-е л. ед. ч.", "Archaic · 2nd sg."]), info.pres[1].replace(/ешь$/, "еши").replace(/ишь$/, "иши"));
-				R(g, L(lang, ["古体 · 1-е л. мн. ч.", "Archaic · 1st pl."]), info.pres[3]);
-				R(g, L(lang, ["古体 · 3-е л. мн. ч.", "Archaic · 3rd pl."]), p3p);
+			for (var v0 = 0; v0 < variants.length; v0++) {
+				var vv = variants[v0];
+				g = L(lang, LAB.g_var);
+				if (vv === "north") {
+					R(g, L(lang, ["北俄 · 3-е л. ед. ч.", "Northern · 3rd sg."]), p3s.replace(/ет$/, "т"));
+					R(g, L(lang, ["北俄 · 3-е л. мн. ч.", "Northern · 3rd pl."]), p3p);
+				}
+				else if (vv === "south") {
+					R(g, L(lang, ["南俄 · 3-е л. ед. ч.", "Southern · 3rd sg."]), p3s.replace(/т$/, "ть"));
+					R(g, L(lang, ["南俄 · 3-е л. мн. ч.", "Southern · 3rd pl."]), p3p.replace(/т$/, "ть"));
+				}
+				else if (vv === "coll") {
+					R(g, L(lang, ["口语 · 2-е л. ед. ч.", "Colloquial · 2nd sg."]), info.pres[1].replace(/ешь$/, "шь"));
+					R(g, L(lang, ["口语 · 3-е л. ед. ч.", "Colloquial · 3rd sg."]), p3s.replace(/ет$/, "т"));
+					R(g, L(lang, ["口语 · 命令式 + -ка", "Colloquial · imperative + -ка"]), info.imp ? info.imp[0] + "-ка" : "—");
+				}
+				else if (vv === "arch") {
+					R(g, L(lang, ["古体 · 2-е л. ед. ч.", "Archaic · 2nd sg."]), info.pres[1].replace(/ешь$/, "еши").replace(/ишь$/, "иши"));
+					R(g, L(lang, ["古体 · 1-е л. мн. ч.", "Archaic · 1st pl."]), info.pres[3]);
+					R(g, L(lang, ["古体 · 3-е л. мн. ч.", "Archaic · 3rd pl."]), p3p);
+				}
 			}
 			R(g, L(lang, LAB.var_note), "—");
 		}
@@ -793,17 +797,21 @@
 		}
 		var v = opt.variant || "std";
 		if (v !== "std") {
-			g = L(lang, LAB.g_var);
-			if (v === "north" || v === "south") {
-				R(g, L(lang, ["属格（方言读音）", "Genitive (dialect pronunciation)"]), forms[0][1].replace(/ого$/, "ово").replace(/его$/, "ево"));
-			}
-			else if (v === "coll") {
-				R(g, L(lang, ["口语长尾", "Colloquial long form"]), w.replace(/ый$/, "ой"));
-				if (sh) R(g, L(lang, ["短尾（口语）", "Short form (colloquial)"]), sh[1]);
-			}
-			else if (v === "arch") {
-				R(g, L(lang, ["古体属格", "Archaic genitive"]), forms[0][1].replace(/ого$/, "аго").replace(/его$/, "яго"));
-				R(g, L(lang, ["古体复数主格", "Archaic plural nominative"]), forms[3][0].replace(/ые$/, "ыя").replace(/ие$/, "ия"));
+			var variants = v === "all" ? ["coll", "north", "south", "arch"] : [v];
+			for (var v1 = 0; v1 < variants.length; v1++) {
+				var vv = variants[v1];
+				g = L(lang, LAB.g_var);
+				if (vv === "north" || vv === "south") {
+					R(g, L(lang, ["北/南俄 · 属格（方言读音）", "Northern / Southern · genitive (dialect pronunciation)"]), forms[0][1].replace(/ого$/, "ово").replace(/его$/, "ево"));
+				}
+				else if (vv === "coll") {
+					R(g, L(lang, ["口语长尾", "Colloquial long form"]), w.replace(/ый$/, "ой"));
+					if (sh) R(g, L(lang, ["短尾（口语）", "Short form (colloquial)"]), sh[1]);
+				}
+				else if (vv === "arch") {
+					R(g, L(lang, ["古体属格", "Archaic genitive"]), forms[0][1].replace(/ого$/, "аго").replace(/его$/, "яго"));
+					R(g, L(lang, ["古体复数主格", "Archaic plural nominative"]), forms[3][0].replace(/ые$/, "ыя").replace(/ие$/, "ия"));
+				}
 			}
 			R(g, L(lang, LAB.var_note), "—");
 		}
@@ -830,7 +838,6 @@
 		for (var c = 0; c < 6; c++) R(g, L(lang, CASE[c]), forms[c]);
 		g = L(lang, LAB.g_noun_pl);
 		for (var c2 = 0; c2 < 6; c2++) R(g, L(lang, CASE[c2]), forms[6 + c2]);
-		var v = opt.variant || "std";
 		var voc = NOUN_VOC[w] || null;
 		var loc2 = NOUN_LOC2[w] || null;
 		var part = NOUN_PART[w] || null;
@@ -841,22 +848,6 @@
 			if (loc2) R(g, L(lang, LAB.loc2), loc2);
 			if (part) R(g, L(lang, LAB.part), part);
 			if (archpl) R(g, L(lang, LAB.arch_pl), archpl);
-		}
-		if (v !== "std") {
-			g = L(lang, LAB.g_var);
-			if (v === "coll") {
-				if (voc) R(g, L(lang, LAB.voc), voc);
-				if (part) R(g, L(lang, LAB.part), part);
-				if (loc2) R(g, L(lang, LAB.loc2), loc2);
-			}
-			else if (v === "north" || v === "south") {
-				R(g, L(lang, ["南北俄方言", "Northern / Southern Russian"]), L(lang, ["名词变格与标准语基本相同；差异主要在语音。", "Noun declension is largely the same; differences are mostly phonetic."]));
-			}
-			else if (v === "arch") {
-				if (archpl) R(g, L(lang, LAB.arch_pl), archpl);
-				if (voc) R(g, L(lang, LAB.voc), voc);
-			}
-			R(g, L(lang, LAB.var_note), "—");
 		}
 		var note = [nounGenderName(info.g, lang), nounDeclName(info, lang), anim ? L(lang, LAB.anim_yes) : L(lang, LAB.anim_no), L(lang, LAB.stress)];
 		return { ok: true, head: w, note: note.join(" · "), rows: rows };
@@ -1615,31 +1606,6 @@
 			+ "</select></label>"
 			+ '<label id="rv-word">' + SK.combo("rv-in", "читать", "不定式、形容词或名词") + "</label>"
 			+ "</div>"
-			+ '<div class="row" id="rv-row2">'
-			+ '<label id="rv-aspect"><select id="rv-sel">'
-			+ '<option value="auto"></option>'
-			+ '<option value="impf"></option>'
-			+ '<option value="pf"></option>'
-			+ "</select></label>"
-			+ '<label id="rv-gender"><select id="rv-sel-gender">'
-			+ '<option value="auto"></option>'
-			+ '<option value="m"></option>'
-			+ '<option value="f"></option>'
-			+ '<option value="n"></option>'
-			+ "</select></label>"
-			+ '<label id="rv-anim"><select id="rv-sel-anim">'
-			+ '<option value="auto"></option>'
-			+ '<option value="anim"></option>'
-			+ '<option value="inan"></option>'
-			+ "</select></label>"
-			+ '<label id="rv-var"><select id="rv-sel-var">'
-			+ '<option value="std"></option>'
-			+ '<option value="coll"></option>'
-			+ '<option value="north"></option>'
-			+ '<option value="south"></option>'
-			+ '<option value="arch"></option>'
-			+ "</select></label>"
-			+ "</div>"
 			+ '<div id="rv-out"></div>';
 	}
 
@@ -1654,46 +1620,22 @@
 		if (title) title.textContent = tx("web.tool.rverb", L(lang, LAB.title));
 		setlab("rv-kind", "web.rverb.kind", L(lang, LAB.kind));
 		setlab("rv-word", "web.rverb.word", L(lang, LAB.word));
-		setlab("rv-aspect", "web.rverb.aspect", L(lang, LAB.aspect));
-		setlab("rv-anim", "web.rverb.anim", L(lang, LAB.anim));
-		setlab("rv-gender", "web.rverb.gender", L(lang, LAB.gender));
-		setlab("rv-var", "web.rverb.variant", L(lang, LAB.variant));
 		SK.combofill("rv-in", pickgroups(lang));
 		setopt("rv-sel-kind", "auto", "web.rverb.auto", L(lang, LAB.auto));
 		setopt("rv-sel-kind", "verb", "web.rverb.verb", L(lang, LAB.verb));
 		setopt("rv-sel-kind", "adj", "web.rverb.adj", L(lang, LAB.adj));
 		setopt("rv-sel-kind", "noun", "web.rverb.noun", L(lang, LAB.noun));
-		setopt("rv-sel", "auto", "web.rverb.auto", L(lang, LAB.auto));
-		setopt("rv-sel", "impf", "web.rverb.impf", L(lang, LAB.impf));
-		setopt("rv-sel", "pf", "web.rverb.pf", L(lang, LAB.pf));
-		setopt("rv-sel-anim", "auto", "web.rverb.auto", L(lang, LAB.auto));
-		setopt("rv-sel-anim", "anim", "web.rverb.anim_yes", L(lang, LAB.anim_yes));
-		setopt("rv-sel-anim", "inan", "web.rverb.anim_no", L(lang, LAB.anim_no));
-		setopt("rv-sel-gender", "auto", "web.rverb.auto", L(lang, LAB.auto));
-		setopt("rv-sel-gender", "m", "web.rverb.masc", L(lang, LAB.g_m));
-		setopt("rv-sel-gender", "f", "web.rverb.fem", L(lang, LAB.g_f));
-		setopt("rv-sel-gender", "n", "web.rverb.neut", L(lang, LAB.g_n));
-		setopt("rv-sel-var", "std", "web.rverb.std", L(lang, LAB.std));
-		setopt("rv-sel-var", "coll", "web.rverb.coll", L(lang, LAB.coll));
-		setopt("rv-sel-var", "north", "web.rverb.north", L(lang, LAB.north));
-		setopt("rv-sel-var", "south", "web.rverb.south", L(lang, LAB.south));
-		setopt("rv-sel-var", "arch", "web.rverb.arch", L(lang, LAB.arch));
 		var box = F.id("rv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.rverb.ph");
 			box.placeholder = tx("web.rverb.ph", L(lang, LAB.ph));
 		}
-		bind("rv-sel-kind", function(){ syncui(); run(); });
-		bind("rv-sel", run);
-		bind("rv-sel-anim", run);
-		bind("rv-sel-gender", run);
-		bind("rv-sel-var", run);
+		bind("rv-sel-kind", run);
 		var out = F.id("rv-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = onout;
 		}
-		syncui();
 		run();
 	}
 
@@ -1702,18 +1644,6 @@
 		if (!el || F.attr(el, "data-bind")) return;
 		F.seta(el, "data-bind", "1");
 		el.onchange = fn;
-	}
-
-	function syncui(){
-		var kind = F.id("rv-sel-kind");
-		var v = kind ? kind.value : "auto";
-		show(F.id("rv-aspect"), v === "verb" || v === "auto");
-		show(F.id("rv-gender"), v === "noun" || v === "auto");
-		show(F.id("rv-anim"), v === "adj" || v === "noun" || v === "auto");
-	}
-
-	function show(el, on){
-		if (el) el.style.display = on ? "" : "none";
 	}
 
 	function setlab(id, key, fb){
@@ -1767,12 +1697,7 @@
 		timer = 0;
 		var box = F.id("rv-in");
 		var word = box ? box.value : "";
-		var sel = F.id("rv-sel");
-		var manual = sel ? sel.value : "auto";
 		var kind = F.id("rv-sel-kind");
-		var anim = F.id("rv-sel-anim");
-		var gender = F.id("rv-sel-gender");
-		var vari = F.id("rv-sel-var");
 		if (!norm(word)) {
 			paint("", "", []);
 			SK.msg("box-msg", "");
@@ -1780,10 +1705,10 @@
 		}
 		var built = build(word, langcode(), {
 			kind: kind ? kind.value : "auto",
-			aspect: manual,
-			anim: anim ? anim.value : "auto",
-			gender: gender ? gender.value : "auto",
-			variant: vari ? vari.value : "std"
+			aspect: "auto",
+			anim: "auto",
+			gender: "auto",
+			variant: "all"
 		});
 		if (!built.ok) {
 			paint("", "", []);

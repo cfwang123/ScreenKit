@@ -80,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - だろう also lists the contracted past presumptive 〜たろう (学生だったろう, 学生ではなかったろう).
 - The appearance そうだ rows now also list なさそうだ (食べなさそうだ, 高くなさそうだ, 静かじゃなさそうだ).
 - A group derived from ない lists なさ, なさげ and なさすぎる (食べなさすぎる, 高くなさすぎる, 静かじゃなさすぎる).
+- Chrome translation can now pick non-English language pairs such as Chinese to Japanese; Chrome pivots through English, so both the English to Chinese and English to Japanese models are needed.
 
 #### Changed
 
@@ -175,6 +176,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - だろう 补上缩略的过去推量「〜たろう」（学生だったろう、学生ではなかったろう）。
 - 样态「そうだ」行并列给出「なさそうだ」（食べなさそうだ、高くなさそうだ、静かじゃなさそうだ）。
 - 新增一组「ない的派生」：なさ、なさげ、なさすぎる（食べなさすぎる、高くなさすぎる、静かじゃなさすぎる）。
+- Chrome 翻译可以选中文 ↔ 日文这类非英文语言对。Chrome 内部经英文中转，需要同时装好英文 ↔ 中文和英文 ↔ 日文的模型。
 
 #### 变更
 

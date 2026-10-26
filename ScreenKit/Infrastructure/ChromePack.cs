@@ -127,6 +127,16 @@ static class ChromePack {
 		if (marks == null || marks.Count != 2 || !marks.Contains("ja-JP") || !marks.Contains("yue-HK")) return 2;
 		if (marks.Contains("en-US") || marks.Contains("zh-CN")) return 2;
 		if (markinstalled("none") != null) return 2;
+		var fake = new List<string[]> { new[] { "zh", "en" }, new[] { "en", "ja" } };
+		var tg = new List<string>();
+		trtargets(fake, tg, "zh");
+		if (!tg.Contains("ja") || tg.Contains("zh")) return 2;
+		var tg2 = new List<string>();
+		trtargets(fake, tg2, "ja");
+		if (!tg2.Contains("zh")) return 2;
+		var tg3 = new List<string>();
+		trtargets(fake, tg3, "en");
+		if (!tg3.Contains("zh") || !tg3.Contains("ja")) return 2;
 		return 0;
 	}
 
@@ -270,13 +280,36 @@ static class ChromePack {
 		}
 	}
 
+	/// <summary>已装模型能翻到的语言。非英文对由 Chrome 经英文中转，所以要 src↔en 和 en↔dst 都有。</summary>
 	public static void AddInstalledTrTargets(List<string> into, string src) {
-		if (into == null) return;
+		trtargets(InstalledTrPairs(), into, src);
+	}
+
+	static void trtargets(List<string[]> pairs, List<string> into, string src) {
+		if (into == null || pairs == null) return;
 		src = TrLang.Normalize(src);
-		foreach (var p in InstalledTrPairs()) {
+		if (src.Length == 0 || src == TrLang.Auto) return;
+		var viaen = !string.Equals(src, TrLang.En, StringComparison.OrdinalIgnoreCase) && haspair(pairs, src, TrLang.En);
+		foreach (var p in pairs) {
+			if (p == null || p.Length < 2) continue;
 			if (string.Equals(p[0], src, StringComparison.OrdinalIgnoreCase)) addtrcode(into, p[1]);
 			else if (string.Equals(p[1], src, StringComparison.OrdinalIgnoreCase)) addtrcode(into, p[0]);
+			else if (viaen) {
+				if (string.Equals(p[0], TrLang.En, StringComparison.OrdinalIgnoreCase)) addtrcode(into, p[1]);
+				else if (string.Equals(p[1], TrLang.En, StringComparison.OrdinalIgnoreCase)) addtrcode(into, p[0]);
+			}
 		}
+	}
+
+	static bool haspair(List<string[]> pairs, string a, string b) {
+		foreach (var p in pairs) {
+			if (p == null || p.Length < 2) continue;
+			if (string.Equals(p[0], a, StringComparison.OrdinalIgnoreCase)
+				&& string.Equals(p[1], b, StringComparison.OrdinalIgnoreCase)) return true;
+			if (string.Equals(p[0], b, StringComparison.OrdinalIgnoreCase)
+				&& string.Equals(p[1], a, StringComparison.OrdinalIgnoreCase)) return true;
+		}
+		return false;
 	}
 
 	static void addtrcode(List<string> into, string code) {
