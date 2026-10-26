@@ -331,7 +331,8 @@
     <MakeDir Directories="$(_SlimOut)\lang" Condition="'@(_SlimLang)' != ''" />
     <Copy SourceFiles="@(_SlimLang)" DestinationFolder="$(_SlimOut)\lang" SkipUnchangedFiles="true"
           Condition="'@(_SlimLang)' != ''" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\pinyin.toml;$(MSBuildProjectDirectory)\pinyin.user.toml" DestinationFolder="$(_SlimOut)" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\pinyin.toml;$(MSBuildProjectDirectory)\pinyin.user.toml" DestinationFolder="$(_SlimOut)"
+          SkipUnchangedFiles="true" />
     <!-- 若上次发布残留按需库/junk，删掉以免误带进压缩包 -->
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
