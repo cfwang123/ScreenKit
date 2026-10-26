@@ -1399,9 +1399,17 @@
 		cur = g("mood");
 		add("hearsay", "다고 해요", noun + (bat ? "이라고" : "라고") + " 해요");
 		add("hearsays", "래요", noun + (bat ? "이래요" : "래요"));
-		add("guess", "인 것 같아요", noun + "인 것 같아요");
+		add("hearsaysp", "았대요", noun + (bat ? "이었대요" : "였대요"));
 		add("conj", "인가 봐요", noun + "인가 봐요");
+		add("guess", "인 것 같아요", noun + "인 것 같아요");
+		add("guessf", "일 것 같아요", noun + "일 것 같아요");
+		add("maybe", "일지도 몰라요", noun + "일지도 몰라요");
 		add("oblig", "이어야 돼요", noun + (bat ? "이어야" : "여야") + " 돼요");
+		add("oblig2", "지 않으면 안 돼요", noun + (bat ? "이지" : "지") + " 않으면 안 돼요");
+		add("perm", "아도 돼요", noun + (bat ? "이어도" : "여도") + " 돼요");
+		add("prohibit", "으면 안 돼요", noun + (bat ? "이면" : "면") + " 안 돼요");
+		add("excl", "군요", noun + (bat ? "이군요" : "군요"));
+		add("confirm", "다면서요?", noun + (bat ? "이라면서요?" : "라면서요?"));
 		return rows;
 	}
 
@@ -1440,9 +1448,17 @@
 		cur = g("mood");
 		add("hearsay", "다고 해요", "아니라고 해요");
 		add("hearsays", "래요", "아니래요");
+		add("hearsaysp", "았대요", "아니었대요");
 		add("guess", "ㄴ 것 같아요", "아닌 것 같아요");
+		add("guessf", "ㄹ 것 같아요", "아닐 것 같아요");
+		add("maybe", "ㄹ지도 몰라요", "아닐지도 몰라요");
 		add("conj", "ㄴ가 봐요", "아닌가 봐요");
 		add("oblig", "어야 돼요", "아니어야 돼요");
+		add("oblig2", "지 않으면 안 돼요", "아니지 않으면 안 돼요");
+		add("perm", "아도 돼요", "아니어도 돼요");
+		add("prohibit", "으면 안 돼요", "아니면 안 돼요");
+		add("excl", "군요", "아니군요");
+		add("confirm", "다면서요?", "아니라면서요?");
 		return rows;
 	}
 })();
