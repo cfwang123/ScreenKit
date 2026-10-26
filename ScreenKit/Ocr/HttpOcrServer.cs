@@ -2780,7 +2780,6 @@ sealed partial class HttpOcrServer : IDisposable {
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
 		res.Headers["Access-Control-Allow-Headers"] = "Content-Type";
-		res.Headers["Vary"] = "Accept-Encoding";
 		// 接口响应不压缩：JSON 多是小包，压了省不了多少还要多耗 CPU。
 		writebody(ctx, bytes, null, false);
 	}
