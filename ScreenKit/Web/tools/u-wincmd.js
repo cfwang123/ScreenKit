@@ -2402,9 +2402,9 @@
 		setsLabel: "命令行",
 		store: "sk-wincmd-shell",
 		sets: [
+			makeset("cmd", "CMD", CMD, "搜索：taskkill、语法、ipconfig、netstat、sc", "dir"),
 			makeset("powershell", "Windows PowerShell", PS, "搜索：Get-Process、语法、winget、端口、注册表", "Get-ChildItem"),
-			makeset("pwsh", "pwsh", pwshrows(), "搜索：-Parallel、语法、Get-Error、Test-Json、winget", "Get-ChildItem"),
-			makeset("cmd", "CMD", CMD, "搜索：taskkill、语法、ipconfig、netstat、sc", "dir")
+			makeset("pwsh", "pwsh", pwshrows(), "搜索：-Parallel、语法、Get-Error、Test-Json、winget", "Get-ChildItem")
 		]
 	});
 })();
