@@ -852,16 +852,15 @@ sealed partial class HttpOcrServer : IDisposable {
 	void handlelangjs(SockCtx ctx) {
 		var bytes = Loc.WebFile();
 		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
+		var gz = WebGzip.Cached("l.js|" + (Loc.Lang ?? "") + "|" + WebGzip.Stamp(bytes),
+			"application/javascript; charset=utf-8", bytes);
 		var res = ctx.Response;
 		res.StatusCode = 200;
 		res.ContentType = "application/javascript; charset=utf-8";
-		res.ContentLength64 = bytes.Length;
 		res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
-		try {
-			if (!head) res.OutputStream.Write(bytes, 0, bytes.Length);
-		}
-		catch { }
+		res.Headers["Vary"] = "Accept-Encoding";
+		writebody(ctx, bytes, gz, head);
 	}
 
 	static string uilang() {
@@ -888,35 +887,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			name = "chrome.html";
 			mime = "text/html; charset=utf-8";
 		}
-		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
-			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
-			return;
-		}
 		var html = name == "chrome.html";
-		if (html) {
-			var text = Encoding.UTF8.GetString(bytes);
-			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
-			bytes = Encoding.UTF8.GetBytes(text);
-		}
-		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
-		var res = ctx.Response;
-		res.StatusCode = 200;
-		res.ContentType = mime;
-		res.ContentLength64 = bytes.Length;
-		if (html) {
-			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
-			res.Headers["Pragma"] = "no-cache";
-		}
-		else
-			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
-		res.Headers["Access-Control-Allow-Origin"] = "*";
-		try {
-			if (!head) res.OutputStream.Write(bytes, 0, bytes.Length);
-		}
-		finally {
-			try { res.OutputStream.Close(); } catch { }
-			try { res.Close(); } catch { }
-		}
+		sendwebasset(ctx, name, mime, html);
 	}
 
 	void handletoolspage(SockCtx ctx, string path) {
@@ -950,38 +922,8 @@ sealed partial class HttpOcrServer : IDisposable {
 			name = "tools.html";
 			mime = "text/html; charset=utf-8";
 		}
-		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
-			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
-			return;
-		}
 		var html = name == "tools.html";
-		if (html) {
-			var text = Encoding.UTF8.GetString(bytes);
-			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
-			text = text.Replace("__SK_UI_LANG__", uilang());
-			bytes = Encoding.UTF8.GetBytes(text);
-		}
-		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
-		var res = ctx.Response;
-		res.StatusCode = 200;
-		res.ContentType = mime;
-		res.ContentLength64 = bytes.Length;
-		// HTML 不缓存。样式和脚本地址带 web 文件的修改时间，刷新页面就会拿到新文件。
-		if (html) {
-			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
-			res.Headers["Pragma"] = "no-cache";
-		}
-		else
-			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
-		res.Headers["Access-Control-Allow-Origin"] = "*";
-		try {
-			if (!head)
-				res.OutputStream.Write(bytes, 0, bytes.Length);
-		}
-		finally {
-			try { res.OutputStream.Close(); } catch { }
-			try { res.Close(); } catch { }
-		}
+		sendwebasset(ctx, name, mime, html);
 	}
 
 	void handletext(SockCtx ctx) {
@@ -2758,19 +2700,62 @@ sealed partial class HttpOcrServer : IDisposable {
 		res.StatusCode = 200;
 		res.ContentType = "application/json; charset=utf-8";
 		res.ContentEncoding = Encoding.UTF8;
-		res.ContentLength64 = bytes.Length;
 		// CORS：方便本地网页调用
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
 		res.Headers["Access-Control-Allow-Headers"] = "Content-Type";
+		res.Headers["Vary"] = "Accept-Encoding";
+		var gz = WebGzip.Accepts(ctx.Request?.Headers?["Accept-Encoding"]) ? WebGzip.Maybe(res.ContentType, bytes) : null;
+		writebody(ctx, bytes, gz, false);
+	}
+
+	/// <summary>写正文：有压缩结果且客户端接受就发 gzip，否则发原文。写完关响应。</summary>
+	static void writebody(SockCtx ctx, byte[] plain, byte[] gz, bool head) {
+		var res = ctx.Response;
+		var zipped = gz != null && WebGzip.Accepts(ctx.Request?.Headers?["Accept-Encoding"]);
+		var body = zipped ? gz : plain;
+		if (zipped) res.Headers["Content-Encoding"] = "gzip";
+		res.ContentLength64 = body?.Length ?? 0;
 		try {
-			res.OutputStream.Write(bytes, 0, bytes.Length);
+			if (!head && body != null && body.Length > 0)
+				res.OutputStream.Write(body, 0, body.Length);
 		}
 		finally {
 			try { res.OutputStream.Close(); } catch { }
 			try { res.Close(); } catch { }
 		}
 	}
+
+	/// <summary>发网页静态文件：按需 gzip，HTML 不缓存，样式脚本缓存一小时。</summary>
+	void sendwebasset(SockCtx ctx, string name, string mime, bool html) {
+		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
+		Func<byte[], byte[]> transform = html ? htmlverlang : null;
+		if (!SendFileWebPages.TryLoadForSend(name, mime, html ? uilang() : "", transform, out var bytes, out var gz)) {
+			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
+			return;
+		}
+		var res = ctx.Response;
+		res.StatusCode = 200;
+		res.ContentType = mime;
+		res.Headers["Access-Control-Allow-Origin"] = "*";
+		res.Headers["Vary"] = "Accept-Encoding";
+		if (html) {
+			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
+			res.Headers["Pragma"] = "no-cache";
+		}
+		else
+			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
+		writebody(ctx, bytes, gz, head);
+	}
+
+	/// <summary>HTML 里的版本占位符换成启动时间，再带上界面语言。</summary>
+	byte[] htmlverlang(byte[] raw) {
+		var text = Encoding.UTF8.GetString(raw);
+		text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
+		text = text.Replace("__SK_UI_LANG__", uilang());
+		return Encoding.UTF8.GetBytes(text);
+	}
+
 
 	public void Dispose() {
 		if (disposed) return;

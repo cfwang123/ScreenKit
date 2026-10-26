@@ -20,36 +20,8 @@ sealed partial class HttpOcrServer {
 			name = "dict.html";
 			mime = "text/html; charset=utf-8";
 		}
-		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
-			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
-			return;
-		}
 		var html = name == "dict.html";
-		if (html) {
-			var text = Encoding.UTF8.GetString(bytes);
-			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
-			text = text.Replace("__SK_UI_LANG__", uilang());
-			bytes = Encoding.UTF8.GetBytes(text);
-		}
-		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
-		var res = ctx.Response;
-		res.StatusCode = 200;
-		res.ContentType = mime;
-		res.ContentLength64 = bytes.Length;
-		if (html) {
-			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
-			res.Headers["Pragma"] = "no-cache";
-		}
-		else
-			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
-		res.Headers["Access-Control-Allow-Origin"] = "*";
-		try {
-			if (!head) res.OutputStream.Write(bytes, 0, bytes.Length);
-		}
-		finally {
-			try { res.OutputStream.Close(); } catch { }
-			try { res.Close(); } catch { }
-		}
+		sendwebasset(ctx, name, mime, html);
 	}
 
 	bool dicton(SockCtx ctx) {

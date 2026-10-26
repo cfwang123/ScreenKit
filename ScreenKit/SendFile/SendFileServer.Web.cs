@@ -355,34 +355,41 @@ public sealed partial class SendFileServer {
 	}
 
 	static void writewebfile(SfCtx ctx, string name, string contentType, bool head, bool html) {
-		if (!SendFileWebPages.TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) {
+		if (!SendFileWebPages.TryLoadForSend(name, contentType, html ? Loc.Lang : "", html ? webhtml : null,
+			out var bytes, out var gz)) {
 			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
 			return;
-		}
-		if (html) {
-			var text = Encoding.UTF8.GetString(bytes);
-			text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
-			bytes = Encoding.UTF8.GetBytes(text);
 		}
 		var res = ctx.Response;
 		res.StatusCode = 200;
 		res.ContentType = contentType;
-		res.ContentLength64 = bytes.Length;
+		res.Headers["Access-Control-Allow-Origin"] = "*";
+		res.Headers["Vary"] = "Accept-Encoding";
 		if (html) {
 			res.Headers["Cache-Control"] = SendFileWebPages.NO_CACHE;
 			res.Headers["Pragma"] = "no-cache";
 		}
 		else
 			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
-		res.Headers["Access-Control-Allow-Origin"] = "*";
+		var zipped = gz != null && WebGzip.Accepts(ctx.Request?.Headers?["Accept-Encoding"]);
+		var body = zipped ? gz : bytes;
+		if (zipped) res.Headers["Content-Encoding"] = "gzip";
+		res.ContentLength64 = body?.Length ?? 0;
 		try {
-			if (!head)
-				res.OutputStream.Write(bytes, 0, bytes.Length);
+			if (!head && body != null && body.Length > 0)
+				res.OutputStream.Write(body, 0, body.Length);
 		}
 		finally {
 			try { res.OutputStream.Close(); } catch { }
 			try { res.Close(); } catch { }
 		}
+	}
+
+	/// <summary>把页面里的版本占位符换成启动时间，浏览器不会一直用旧缓存。</summary>
+	static byte[] webhtml(byte[] raw) {
+		var text = Encoding.UTF8.GetString(raw);
+		text = text.Replace(SendFileWebPages.VerPlaceholder, SendFileWebPages.BootStamp);
+		return Encoding.UTF8.GetBytes(text);
 	}
 
 	static void writeredir(SfCtx ctx, string loc) {
@@ -400,9 +407,60 @@ static class SendFileWebPages {
 	/// <summary>样式、脚本和图片的浏览器缓存：1 小时。HTML 页面不缓存。</summary>
 	public const string CACHE_CONTROL = "public, max-age=3600";
 	public const string NO_CACHE = "no-store, no-cache, must-revalidate";
+	/// <summary>网页文件缓存的条数上限，满了整张表清掉重来。</summary>
+	const int SENDMAX = 200;
 	static long bootStamp;
 	static bool bootReady;
 	static readonly object mergeLock = new object();
+	sealed class SendFile {
+		public byte[] Plain;
+		public byte[] Gz;
+	}
+	static readonly object sendLock = new();
+	static readonly Dictionary<string, SendFile> sendCache = new(StringComparer.Ordinal);
+
+	/// <summary>读网页文件并顺手压好。文件和压缩结果都按修改时间缓存，文件没改不会重读重压。</summary>
+	/// <param name="variant">同一文件的另一种加工结果（如界面语言），进缓存键。</param>
+	/// <param name="transform">占位符替换等固定加工，只在缓存没命中时调用。</param>
+	public static bool TryLoadForSend(string name, string contentType, string variant, Func<byte[], byte[]> transform,
+		out byte[] plain, out byte[] gz) {
+		plain = null;
+		gz = null;
+		if (string.IsNullOrWhiteSpace(name)) return false;
+		if (string.Equals(name, "tools.js", StringComparison.OrdinalIgnoreCase)) mergejs();
+		var key = $"{name}\n{contentType}\n{variant}\n{filestamp(name)}";
+		lock (sendLock) {
+			if (sendCache.TryGetValue(key, out var hit)) {
+				plain = hit.Plain;
+				gz = hit.Gz;
+				return true;
+			}
+		}
+		if (!TryLoad(name, out var bytes) || bytes == null || bytes.Length == 0) return false;
+		if (transform != null) bytes = transform(bytes) ?? bytes;
+		plain = bytes;
+		gz = WebGzip.Maybe(contentType, bytes);
+		var item = new SendFile { Plain = plain, Gz = gz };
+		lock (sendLock) {
+			if (sendCache.Count > SENDMAX) sendCache.Clear();
+			sendCache[key] = item;
+		}
+		return true;
+	}
+
+	/// <summary>磁盘文件用修改时间加长度，嵌入资源用进程启动时间，变了缓存就失效。</summary>
+	static string filestamp(string name) {
+		try {
+			var disk = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", name);
+			if (File.Exists(disk)) {
+				var fi = new FileInfo(disk);
+				return $"{fi.LastWriteTimeUtc.Ticks}.{fi.Length}";
+			}
+		}
+		catch { }
+		if (!bootReady) EnsureBootStamp();
+		return "e" + bootStamp.ToString(CultureInfo.InvariantCulture);
+	}
 
 	/// <summary>把 web/tools 里的工具脚本按文件名拼成 web/tools.js。源文件没更新就跳过。</summary>
 	static void mergejs() {

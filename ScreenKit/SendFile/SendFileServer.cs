@@ -1115,12 +1115,17 @@ public sealed partial class SendFileServer : IDisposable {
 		res.StatusCode = 200;
 		res.ContentType = "application/json; charset=utf-8";
 		res.ContentEncoding = Encoding.UTF8;
-		res.ContentLength64 = bytes.Length;
 		res.Headers["Access-Control-Allow-Origin"] = "*";
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS";
 		res.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Device-Id, X-Token, X-Web-Token";
+		res.Headers["Vary"] = "Accept-Encoding";
+		var zipped = WebGzip.Accepts(ctx.Request?.Headers?["Accept-Encoding"]);
+		var gz = zipped ? WebGzip.Maybe(res.ContentType, bytes) : null;
+		var body2 = gz != null ? gz : bytes;
+		if (gz != null) res.Headers["Content-Encoding"] = "gzip";
+		res.ContentLength64 = body2.Length;
 		try {
-			res.OutputStream.Write(bytes, 0, bytes.Length);
+			res.OutputStream.Write(body2, 0, body2.Length);
 		}
 		finally {
 			try { res.OutputStream.Close(); } catch { }
