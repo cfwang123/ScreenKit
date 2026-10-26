@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese conjugation also lists たそうだ and a hearsay / conjecture group: そうだ, らしい, ようだ, みたいだ, かもしれない, はずだ.
 - Add a Russian verb conjugation tool: aspect, present/future, past, imperative, subjunctive, participles and gerunds.
 - Japanese conjugation adds judgement/duty, degree/tendency, question/confirmation and reason patterns: わけだ, わけがない, べきだ, ものだ, つもりだ, がちだ, 気味だ, かな, かしら, んじゃないか, のだから, おかげで, and more in the hearsay group.
+- Add adjective and noun forms to the English word-forms tool.
 
 #### Changed
 
@@ -146,6 +147,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语词形变化新增「たそうだ」，并加了一组传闻・推量：そうだ、らしい、ようだ、みたいだ、かもしれない、はずだ。
 - 新增俄语动词变化工具：按体列出现在时或将来时、过去时、命令式、假定式、分词和副动词。
 - 日语词形变化新增判断・义务、程度・倾向、疑问・确认、原因・理由几组句型（わけだ、べきだ、つもりだ、がちだ、かな、んじゃないか、のだから、おかげで 等），传闻组再补に違いない、とのことだ、とか、っぽい 等。
+- 英语词形工具增加形容词和名词：比较级、最高级、比较句型、副词和名词形式，以及复数、所有格、冠词、可数性和主谓一致。
 
 #### 变更
 

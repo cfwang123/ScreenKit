@@ -782,7 +782,7 @@
 		var base = head;
 		var from = "";
 		if (!NOUNSET[base] && !NOUNIRR[base]) {
-			var sg = singularof(base);
+			var sg = singularof(base, true);
 			if (sg && sg !== base) {
 				from = base;
 				base = sg;
@@ -923,7 +923,7 @@
 		return "";
 	}
 
-	function singularof(w){
+	function singularof(w, loose){
 		if (NOUNIRR[w]) return w;
 		var k, list, i;
 		for (k in NOUNIRR) {
@@ -941,7 +941,9 @@
 		if (/oes$/.test(w)) cands.push(w.slice(0, -2));
 		if (/(ses|xes|zes|ches|shes)$/.test(w)) cands.push(w.slice(0, -2));
 		if (/s$/.test(w)) cands.push(w.slice(0, -1));
-		for (i = 0; i < cands.length; i++) if (knownnoun(cands[i])) return cands[i];
+		for (i = 0; i < cands.length; i++) {
+			if (loose ? (knownnoun(cands[i]) || VERBSET[cands[i]] || ADJSET[cands[i]]) : knownnoun(cands[i])) return cands[i];
+		}
 		return "";
 	}
 
@@ -1081,7 +1083,7 @@
 	if (typeof SK === "undefined" || !SK.regutil) return;
 
 	SK.regutil("u-everb", {
-		title: "英语动词时态",
+		title: "英语词形变化",
 		go: "显示",
 		live: true,
 		own: true,

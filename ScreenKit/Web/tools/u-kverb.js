@@ -90,7 +90,8 @@
 		pg: ["平安道", "평안도", "Pyeongan"],
 		aux: ["补助", "보조", "Auxiliary"],
 		voice: ["态", "태", "Voice"],
-		style: ["文体", "문체", "Style"]
+		style: ["文体", "문체", "Style"],
+		mood: ["语气", "양태", "Mood"]
 	};
 	var NOTE = {
 		v: ["动词", "동사", "verb"],
@@ -236,7 +237,26 @@
 		haq: ["准敬语疑问", "하오체 의문", "semi-formal question"],
 		hage: ["对等语", "하게체", "familiar"],
 		hagecmd: ["对等语命令", "하게체 명령", "familiar command"],
-		hagesug: ["对等语劝诱", "하게체 청유", "familiar suggestion"]
+		hagesug: ["对等语劝诱", "하게체 청유", "familiar suggestion"],
+		hearsay: ["传闻", "전언", "hearsay"],
+		hearsays: ["传闻缩略", "전언 준말", "short hearsay"],
+		hearsaysp: ["传闻缩略过去", "전언 준말 과거", "short hearsay past"],
+		conj: ["推量", "추량", "conjecture"],
+		guess: ["判断（现在）", "판단 현재", "judgment (present)"],
+		guessf: ["判断（将来）", "판단 미래", "judgment (future)"],
+		maybe: ["也许", "어쩌면", "maybe"],
+		oblig: ["义务", "의무", "obligation"],
+		oblig2: ["义务（否定式）", "의무 부정", "must (negative)"],
+		perm: ["许可", "허가", "permission"],
+		prohibit: ["禁止", "금지", "prohibition"],
+		req: ["请求", "요청", "request"],
+		reqp: ["恭请", "정중한 요청", "polite request"],
+		intent: ["意愿", "의향", "intention"],
+		plan: ["打算", "계획", "plan"],
+		decide: ["决心", "결심", "decision"],
+		promise: ["约定", "약속", "arrangement"],
+		excl: ["感叹", "감탄", "exclamation"],
+		confirm: ["确认", "확인", "confirming"]
 	};
 	var PICKG = {
 		v: ["动词", "동사", "Verbs"],
@@ -1207,6 +1227,30 @@
 			add("hagecmd", "하게체 명령", jn(syls) + "게");
 			add("hagesug", "하게체 청유", jn(syls) + "세");
 		}
+		// 语气：传闻、推量、判断、义务、许可、请求、意愿、感叹
+		var plainNow = neunda(syls, plainDa, word);
+		cur = g("mood");
+		add("hearsay", "다고 해요", plainNow + "고 해요");
+		add("hearsays", "대요", plainNow.replace(/다$/, "대요"));
+		add("hearsaysp", "았대요", past + "대요");
+		add("conj", "나 봐요", adj && !eobs ? nieunWord(syls, irr) + "가 봐요" : dropR(syls, "나 봐요"));
+		add("guess", "는 것 같아요", (adj && !eobs ? nieunWord(syls, irr) : neun(syls)) + " 것 같아요");
+		add("guessf", "ㄹ 것 같아요", rl + " 것 같아요");
+		add("maybe", "ㄹ지도 몰라요", rl + "지도 몰라요");
+		add("oblig", "아야 돼요", ba + "야 돼요");
+		add("oblig2", "지 않으면 안 돼요", jn(syls) + "지 않으면 안 돼요");
+		add("perm", "아도 돼요", ba + "도 돼요");
+		add("prohibit", "으면 안 돼요", plusEu(st, "면 안 돼요", false));
+		add("excl", "는군요", (adj || kind === "itda" ? jn(syls) : neun(syls)) + "군요");
+		add("confirm", "다면서요?", plainNow + "면서요?");
+		if (verb) {
+			add("req", "아 주세요", ba + " 주세요");
+			add("reqp", "아 주시겠어요?", ba + " 주시겠어요?");
+			add("intent", "ㄹ래요", rl + "래요");
+			add("plan", "려고 해요", plusEu(st, "려고 해요", false));
+			add("decide", "아야겠어요", ba + "야겠어요");
+			add("promise", "기로 했어요", jn(syls) + "기로 했어요");
+		}
 		// 方言：与标准语不同的常用说法，每个方言一组
 		var dia = dialectRows(syls, irr, kind, {
 			hey: hey, ba: ba, past: past, st: st, rl: rl
@@ -1352,6 +1396,12 @@
 		add("honpy", "셨어요", copArt(noun, bat, "셨어요", "셨어요"));
 		cur = g("neg");
 		add("any", "아니에요", noun ? noun + (bat ? "이" : "가") + " 아니에요" : "아니에요");
+		cur = g("mood");
+		add("hearsay", "다고 해요", noun + (bat ? "이라고" : "라고") + " 해요");
+		add("hearsays", "래요", noun + (bat ? "이래요" : "래요"));
+		add("guess", "인 것 같아요", noun + "인 것 같아요");
+		add("conj", "인가 봐요", noun + "인가 봐요");
+		add("oblig", "이어야 돼요", noun + (bat ? "이어야" : "여야") + " 돼요");
 		return rows;
 	}
 
@@ -1387,6 +1437,12 @@
 		add("modf", "ㄹ", "아닐");
 		add("deon", "던", "아니던");
 		add("atd", "았던", "아니었던");
+		cur = g("mood");
+		add("hearsay", "다고 해요", "아니라고 해요");
+		add("hearsays", "래요", "아니래요");
+		add("guess", "ㄴ 것 같아요", "아닌 것 같아요");
+		add("conj", "ㄴ가 봐요", "아닌가 봐요");
+		add("oblig", "어야 돼요", "아니어야 돼요");
 		return rows;
 	}
 })();
