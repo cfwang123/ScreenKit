@@ -937,7 +937,7 @@ http.doc.tts.sapi = "用本机 SAPI 发音人合成。\ntext：要读的文字�
 http.doc.tts.win = "用 Windows 语音合成。本机没有发音人时不会出声。\ntext：要读的文字。\nengine：winrt。\nvoice：可选，winrt: 开头的发音人。"
 http.doc.tts.edge = "用 Edge 在线语音合成，需要能访问网络。\ntext：要读的文字。\nengine：edge。\nvoice：edge: 开头的发音人，例如 edge:ko-KR-SunHiNeural。"
 http.doc.ttsdevices = "列出正在使用的播放设备。\n仅 GET。无参数。\nid 是设备编号，name 是名称，index 是序号，default 为 true 的是默认设备。"
-http.doc.ttsspeak = "合成后直接在本机播放，不返回音频。合成参数与 /api/tts 相同。\ntext：要读的文字。\ndevices：播放设备，可多个。填 /api/tts/devices 的 id、名称或 index。省略则用默认设备。\nplay：queue 排队，now 立刻打断当前并播放。默认 queue。\ndevice 仍是 Sherpa 的计算设备，不是喇叭。"
+http.doc.ttsspeak = "合成后直接在本机播放，不返回音频。合成参数与 /api/tts 相同。\ntext：要读的文字。\ndevices：播放设备，可多个。填 /api/tts/devices 的 id、名称或 index。省略则用默认设备。\nplay：queue 排队，now 立刻打断当前并播放。默认 queue。\ndevice 仍是 Sherpa 的计算设备，不是喇叭。\n只接受本机调用，局域网请求返回 code 403。"
 http.doc.itn = "把口语数字等还原成书面形式（WeText 加规则）。跟随 ASR 模块开关。\ntext：待处理文字，例如「二零二四年一月一日」。"
 http.doc.translate = "批量翻译。默认用所选翻译 LLM，没有就绪的 LLM 时用已安装的本地模型。\nitems：字符串数组。\nsrc：源语言，如 zh。\ndst：目标语言，如 en。\nnative / learn：自动互译的母语 / 学习语言，可省略。\nengine：auto（缺省）/ onnx / chrome / llm。\nmodel：engine=onnx 时指定本地模型，方向键如 zh-en，目录名如 opus-mt-zh-en-onnx。\nllm：LLM 端点名；engine 不是 onnx 时 model 是它的别名。\nGET /api/translate/langs 列出可选语言、引擎和模型。"
 http.doc.chat = "和已配置的对话 LLM 交谈。\ntext：用户问题。也可以传音频做语音输入。\ntts：true 时把回答再合成语音，响应含 wav_base64。\nagent：true 时启用搜索和本地文件工具。\nengine：朗读回答时的语音引擎，如 sapi。"

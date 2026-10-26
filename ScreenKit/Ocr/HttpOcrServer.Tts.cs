@@ -282,6 +282,11 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		if (ischromereq(jo)) {
+			// Chrome 语音在这台机器上说话，局域网请求不接。
+			if (!fromlocal(ctx)) {
+				writejson(ctx, 403, err(403, "Chrome 语音只允许本机调用"));
+				return;
+			}
 			writechrome(ctx, jo, text);
 			return;
 		}

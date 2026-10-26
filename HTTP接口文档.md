@@ -44,7 +44,7 @@ http_keepalive = 10
 
 ## 2. 统一响应约定
 
-接口失败也返回 **HTTP 200**。成败只看 JSON 里的 `code` 和 `data`。未知路径、方法不对、未捕获异常同样是 200，错误码在 JSON 里（404、805、900）。预检 OPTIONS 仍是 204。WebSocket 升级成功仍是 101。
+接口失败一般返回 **HTTP 200**。成败只看 JSON 里的 `code` 和 `data`。未知路径、方法不对、未捕获异常同样是 200，错误码在 JSON 里（404、805、900）。预检 OPTIONS 仍是 204。WebSocket 升级成功仍是 101。**唯一的例外是重接口限流**：识别、合成、翻译、人脸、对话和网络查询类接口同时进行的请求超过 16 个时，超出的当场返回 HTTP **503**（JSON `code` 也是 503），不排队，客户端稍后重试即可。状态、模型列表、文本工具等轻接口不受此限。
 
 ### 2.1 成功（有业务数据）
 
@@ -80,6 +80,7 @@ http_keepalive = 10
 | 100 | 成功 |
 | 101 | OCR 未检测到文字；条码未检出；人脸未检测到人脸 |
 | 404 | 未知路径 |
+| 503 | 重接口并发已满（HTTP 状态码同样是 503）：识别 / 合成 / 翻译 / 人脸 / 对话 / 网络查询同时超过 16 个 |
 | 800 | 请求解析失败 / 体为空 |
 | 801 | 请求为空 |
 | 802 | 缺少必要字段（如 base64、text） |
@@ -127,7 +128,7 @@ http_keepalive = 10
 | GET | `/api/tts/models` | 列出 TTS 模型。`engine` 按引擎过滤；全量结果会缓存 |
 | GET | `/api/tts/devices` | 列出播放设备 |
 | POST | `/api/tts` | 语音合成（返回 WAV base64） |
-| POST | `/api/tts/speak` | 合成后在本机播放。`play=queue` 排队，`play=now` 立即打断 |
+| POST | `/api/tts/speak` | 合成后在本机播放。`play=queue` 排队，`play=now` 立即打断。只接受本机调用 |
 | POST | `/api/itn` | 文本逆归一化（WeText + 规则后处理） |
 | GET | `/api/translate/langs` | 列出源语言和各自的目标语言、可选引擎和本地 ONNX 模型 |
 | POST | `/api/translate` · `/api/translate/batch` | 批量翻译，`engine` 可选 auto / onnx / chrome / llm |
@@ -883,6 +884,8 @@ open("out.wav", "wb").write(base64.b64decode(data["data"]["wav_base64"]))
 ```
 
 `POST /api/tts/speak` 用与 `/api/tts` 相同的合成参数生成语音，然后在本机播放。响应里没有 WAV。合成结束后就返回，不等待播完。
+
+只接受本机（回环地址）调用：局域网里别的机器请求时不会播放，JSON 里 `code` 为 403，`data` 说明只允许本机。`/api/tts` 走 Chrome 引擎时同样是在这台机器上出声、不返回 WAV，这条分支也只允许本机调用。
 
 | 字段 | 必填 | 说明 |
 |------|------|------|

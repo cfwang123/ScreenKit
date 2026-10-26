@@ -127,7 +127,7 @@ Failures generally return **HTTP 200**. Success or failure is only the JSON `cod
 | GET | `/api/tts/models` | List TTS models. `engine` filters one engine; a full list is cached |
 | GET | `/api/tts/devices` | List playback devices |
 | POST | `/api/tts` | Speech synthesis (WAV base64) |
-| POST | `/api/tts/speak` | Synthesize and play here. `play=queue` waits; `play=now` interrupts |
+| POST | `/api/tts/speak` | Synthesize and play here. `play=queue` waits; `play=now` interrupts. Loopback callers only |
 | POST | `/api/itn` | Inverse text normalization (WeText + rules) |
 | GET | `/api/translate/langs` | Source languages and the targets for each, plus the engines and local ONNX models |
 | POST | `/api/translate` · `/api/translate/batch` | Batch translate; `engine` is auto / onnx / chrome / llm |
@@ -863,6 +863,8 @@ CLI: `ScreenKit --test-http-tts` starts a loopback server, checks SAPI / Windows
 ```
 
 `POST /api/tts/speak` uses the same synthesis fields as `/api/tts`, then plays the audio on this PC. The response has no WAV. It returns when the clip is queued, not when playback ends.
+
+Only loopback callers are accepted: when the request comes from another machine on the LAN, nothing plays and the JSON response has `code` 403 with `data` saying it is local-only. `/api/tts` with the Chrome engine also speaks on this PC instead of returning a WAV, so that branch is loopback-only as well.
 
 | Field | Required | Description |
 |-------|----------|-------------|

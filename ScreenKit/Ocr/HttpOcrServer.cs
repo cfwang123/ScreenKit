@@ -547,6 +547,11 @@ sealed partial class HttpOcrServer : IDisposable {
 
 			if (path is "/api/tts/speak") {
 				if (!apiok(ctx, optNow.HttpTts && optNow.ModTts)) return;
+				// 本机播放，局域网来的请求不接。
+				if (!fromlocal(ctx)) {
+					writejson(ctx, 403, err(403, "tts/speak 只允许本机调用"));
+					return;
+				}
 				if (!ispost(req)) {
 					writejson(ctx, 405, err(805, "tts/speak 仅支持 POST"));
 					return;
@@ -2645,6 +2650,14 @@ sealed partial class HttpOcrServer : IDisposable {
 		return false;
 	}
 
+	/// <summary>请求是不是本机发来的。局域网里别的设备不该让这台机器出声。</summary>
+	static bool fromlocal(SockCtx ctx) {
+		var addr = ctx?.Request?.RemoteEndPoint?.Address;
+		if (addr == null) return false;
+		if (addr.IsIPv4MappedToIPv6) addr = addr.MapToIPv4();
+		return System.Net.IPAddress.IsLoopback(addr);
+	}
+
 	static JsonArray apilist(OcrOptions o) {
 		var a = new JsonArray {
 			"GET  /  本机工具页",
@@ -2701,7 +2714,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			a.Add("GET  /api/tts/models  ?engine=&refresh=");
 			a.Add("GET  /api/tts/devices");
 			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}");
-			a.Add("POST /api/tts/speak  JSON{text, devices?, play=queue|now, engine?, voice?}");
+			a.Add("POST /api/tts/speak  JSON{text, devices?, play=queue|now, engine?, voice?}  仅本机");
 		}
 		if (o.HttpTranslate && o.ModTranslate) {
 			a.Add("GET  /api/translate/engines  只列翻译引擎和模型数量");
