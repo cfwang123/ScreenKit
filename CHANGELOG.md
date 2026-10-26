@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The HTTP API supports Keep-Alive: HTTP/1.1 reuses connections and an idle connection is held for at most 10 seconds (configurable with http_keepalive).
 - Windows OCR splits a row of icon-separated segments into one result per segment instead of joining them into one line.
 - Korean verbs: North Korean (Munhwao), DPRK broadcast and Yanbian Korean endings, including -ㅂ네다, -습네다, hapsyo -ㅂ니다, -시였습니다, -리라, -ㅁ다/슴다 and -ㄴ다이.
+- The Japanese word-form tool now lists N5 to N1 verb patterns, classical (N0) forms and compound verbs, such as てもいい, てあげる, ざるを得ない and んばかり
 
 #### Changed
 
@@ -83,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP requests never pop the install dialog anymore; a missing runtime library returns error code 953
 - HTTP concurrency details: fx rates download outside the cache lock with a shared HttpClient, usb.ids loads once, reader uploads read the body outside the file lock, status caches model scans for 2 s, and the font/encoding tables initialize under a lock
 - LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
+- Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
 
 #### Fixed
 
@@ -149,6 +151,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 接口支持 Keep-Alive：HTTP/1.1 默认复用连接，空闲连接最多保持 10 秒（可用 http_keepalive 调整）。
 - Windows OCR 把一行里用图标隔开的多段文字拆成多条结果，不再拼成一行。
 - 韩语动词变化：新增朝鲜文化语、朝鲜播音体和延边朝鲜语词尾，如 -ㅂ네다、-습네다、합쇼체 -ㅂ니다、-시였습니다、-리라、-ㅁ다/슴다、-ㄴ다이。
+- 日语词形变化新增 N5～N1 句型、文语（N0）和复合动词，如 てもいい、てあげる、ざるを得ない、んばかり
 
 #### 变更
 
@@ -174,6 +177,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 请求不再弹安装提示，缺运行库时直接返回错误码 953
 - HTTP 并发细节：汇率下载移出缓存锁并复用静态 HttpClient，usb.ids 单飞，reader 上传在锁外读请求体，status 的模型扫描缓存 2 秒，字体表/编码表加锁初始化
 - LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
+- 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
 
 #### 修复
 

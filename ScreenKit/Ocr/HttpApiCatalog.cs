@@ -72,6 +72,7 @@ static class HttpApiCatalog {
 		add(list, "GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");
 		add(list, "POST /api/jpyomi", "POST", "/api/jpyomi", "{\n  \"text\": \"東京は晴れです\",\n  \"mono\": false\n}", "http.doc.jpyomi");
 		add(list, "POST /api/text", "POST", "/api/text", "{\n  \"text\": \"hi\",\n  \"op\": \"b64enc\"\n}", "http.doc.text", accept: "GET/POST");
+		add(list, "GET /api/conj", "GET", "/api/conj?lang=ja&q=食べる&kind=2&ui=zh", "", "http.doc.conj", accept: "GET/POST");
 		add(list, "GET /api/fake", "GET", "/api/fake", "", "http.doc.fake", accept: "GET/POST");
 		add(list, "POST /api/fake", "POST", "/api/fake", "{\n  \"locale\": \"zh_CN\",\n  \"kind\": \"name\",\n  \"n\": 2\n}", "http.doc.fake");
 		add(list, "POST /api/fx", "POST", "/api/fx", "{\n  \"amount\": 1,\n  \"from\": \"USD\",\n  \"to\": \"CNY\"\n}", "http.doc.fx", accept: "GET/POST");

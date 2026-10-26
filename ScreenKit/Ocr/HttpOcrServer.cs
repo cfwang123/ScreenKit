@@ -343,6 +343,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/conj" or "/api/conj/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "conj 仅支持 GET 或 POST"));
+					return;
+				}
+				handleconj(ctx);
+				return;
+			}
+
 			if (path is "/api/text" or "/api/text/") {
 				if (!isget(req) && !ispost(req)) {
 					writejson(ctx, 405, err(805, "text 仅支持 GET 或 POST"));
@@ -732,6 +741,44 @@ sealed partial class HttpOcrServer : IDisposable {
 		string.Equals(req.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase);
 
 	// ───────── status / ASR / TTS / ITN ─────────
+
+	/// <summary>日/韩/英动词变形：GET/POST /api/conj?lang=ja|ko|en&amp;q=…&amp;kind=&amp;flag=&amp;sub=&amp;type=&amp;ui=zh</summary>
+	void handleconj(SockCtx ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		var word = (field(ctx, jo, "q") ?? field(ctx, jo, "word") ?? "").Trim();
+		if (word.Length == 0) {
+			writejson(ctx, 200, err(802, "请提供 q（辞书形）"));
+			return;
+		}
+		var lang = (field(ctx, jo, "lang") ?? "ja").Trim().ToLowerInvariant();
+		var ui = (field(ctx, jo, "ui") ?? Loc.Lang ?? "zh").Trim().ToLowerInvariant();
+		ConjResult r;
+		try {
+			r = ConjApi.Build(lang, word, field(ctx, jo, "kind"), field(ctx, jo, "flag"),
+				field(ctx, jo, "sub"), field(ctx, jo, "type"), ui);
+		}
+		catch (Exception ex) {
+			writejson(ctx, 200, err(942, "变形失败: " + ex.Message));
+			return;
+		}
+		var arr = new JsonArray();
+		if (r.Rows != null) {
+			foreach (var one in r.Rows)
+				arr.Add(new JsonObject { ["l"] = one.L ?? "", ["v"] = one.V ?? "", ["g"] = one.G ?? "" });
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["ok"] = r.Ok,
+				["err"] = r.Err ?? "",
+				["head"] = r.Head ?? "",
+				["name"] = r.Name ?? "",
+				["note"] = r.Note ?? "",
+				["irr"] = r.Irr ?? "",
+				["rows"] = arr,
+			},
+		});
+	}
 
 	void handlestatus(SockCtx ctx) {
 		var o = getOpts?.Invoke() ?? new OcrOptions();

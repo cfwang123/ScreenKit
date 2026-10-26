@@ -664,15 +664,38 @@
 			return;
 		}
 		var t0 = now();
-		var built = build(word, force, langcode());
-		var tcalc = now() - t0;
-		if (!built.ok) {
-			paint("", "", []);
-			SK.msg("box-msg", built.err, true);
-			return;
-		}
-		paint(built.word, built.note, built.rows, timestr(-1, tcalc));
-		SK.msg("box-msg", "");
+		conjreq({ lang: "ko", q: word, type: force, ui: langcode() }, function(d){
+			var tcalc = now() - t0;
+			if (!d) {
+				paint("", "", []);
+				SK.msg("box-msg", tx("web.kverb.down", "变形接口不可用"), true);
+				return;
+			}
+			if (!d.ok) {
+				paint("", "", []);
+				SK.msg("box-msg", d.err, true);
+				return;
+			}
+			paint(d.head, d.note, objrows(d.rows), timestr(-1, tcalc));
+			SK.msg("box-msg", "");
+		});
+	}
+
+	// 变形算在 C# 端（/api/conj），这里只取结果和渲染。
+	function conjreq(params, done){
+		var qs = [], k;
+		for (k in params) if (params[k] !== undefined && params[k] !== null && params[k] !== "")
+			qs.push(k + "=" + encodeURIComponent(params[k]));
+		fetch("/api/conj?" + qs.join("&")).then(function(r){ return r.json(); }).then(function(jo){
+			done(jo && jo.code === 100 && jo.data ? jo.data : null);
+		}, function(){ done(null); });
+	}
+
+	function objrows(rows){
+		var out = [], i;
+		if (!rows) return out;
+		for (i = 0; i < rows.length; i++) out.push({ name: rows[i].l, text: rows[i].v, g: rows[i].g || "" });
+		return out;
 	}
 
 	function langcode(){
@@ -1134,6 +1157,7 @@
 		return s.replace(/[.?。．!！,，]+$/g, "");
 	}
 
+		// 旧实现：计算已移到 C# 端（/api/conj），保留仅供对照，勿再调用。
 	function build(word, force, lang){
 		word = norm(word);
 		lang = lang || "zh";

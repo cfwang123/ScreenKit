@@ -367,7 +367,29 @@ Text helpers. Not tied to a module switch. `text` may be empty. Unknown `op` ret
 
 ---
 
-## 5.5.1 GET/POST `/api/fx`
+## 5.5.1 GET/POST `/api/conj`
+
+Conjugation table for Japanese, Korean and English verbs, adjectives and nouns. Pure computation, no dictionary lookup, always available.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lang` | string | `ja` (default), `ko`, `en` |
+| `q` / `word` | string | Dictionary form, e.g. `食べる`, `하다`, `go`. Empty returns 802 |
+| `kind` | string | Japanese POS: `1` `2` `3` `ai` `an` `n`; guessed from the ending when omitted |
+| `flag` | string | Japanese specials: `iku` `kure` `aru` `arunai` `ute` |
+| `sub` | string | Japanese group 3: `suru` `kuru` |
+| `type` | string | Korean/English type or POS: `auto` `v` `a` `n` … |
+| `ui` | string | Label language: `zh` prefix for Chinese, otherwise English; defaults to the UI language |
+
+```json
+{ "lang": "ja", "q": "食べる", "kind": "2", "ui": "zh" }
+```
+
+**Response `data`:** `ok`, `err`, `head`, `name`, `note`, `irr`, `rows`. Each row is `{ "l": label, "v": forms (comma-separated), "g": group }`.
+
+---
+
+## 5.5.2 GET/POST `/api/fx`
 
 Currency conversion. Not tied to a module switch. Foreign units use the Bank of China middle rate (中行折算价 per 100, divided by 100). A successful page is cached for 10 minutes. A timeout, an empty page, or a missing currency uses the built-in 2026-10-10 table and that failure is cached for 10 minutes too. There is no jiao or fen. An unknown unit or a non-number returns 802.
 
@@ -385,7 +407,7 @@ Currency conversion. Not tied to a module switch. Foreign units use the Bank of 
 
 ---
 
-## 5.5.2 GET/POST `/api/ipcity`
+## 5.5.3 GET/POST `/api/ipcity`
 
 City for an IP address or domain. Not tied to a module switch. An empty `ip` looks up this PC's public address. The request uses the app HTTP proxy setting and tries ip-api.com, then ipinfo.io, then api.ip.sb. A private or invalid address returns 802.
 
@@ -401,7 +423,7 @@ City for an IP address or domain. Not tied to a module switch. An empty `ip` loo
 
 ---
 
-## 5.5.3 GET/POST `/api/mac`
+## 5.5.4 GET/POST `/api/mac`
 
 IEEE registrant for a MAC address. Not tied to a module switch. Colons, dashes, dots, or plain hex are accepted, from the first six digits through a full address. The request uses the app HTTP proxy and tries macaddresslookup.app, then api.macvendors.com, then macverify.com. A locally administered address (the second-least bit of the first octet) is not registered and returns 802 without a network call. An unknown prefix also returns 802.
 
@@ -417,7 +439,7 @@ IEEE registrant for a MAC address. Not tied to a module switch. Colons, dashes, 
 
 ---
 
-## 5.5.4 GET/POST `/api/usb`
+## 5.5.5 GET/POST `/api/usb`
 
 Vendor and product name for a USB ID. Not tied to a module switch. The list is the public `usb.ids` file. It is downloaded through the app HTTP proxy, stored as `tmp/usb.ids` beside the program, and used again for 7 days. Accepted forms: `046d`, `046d:c52b`, `0x046d`, and `VID_046D&PID_C52B`. An unknown vendor returns 802. An unknown product still returns the vendor.
 

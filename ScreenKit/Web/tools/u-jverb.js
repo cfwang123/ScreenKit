@@ -468,15 +468,21 @@
 				return;
 			}
 			var t1 = now();
-			var built = build(word, use.kind, use.flag, use.sub, langcode());
-			var tcalc = now() - t1;
-			if (!built.ok) {
-				paint("", "", []);
-				SK.msg("box-msg", built.err, true);
-				return;
-			}
-			paint(built.head, built.name, built.rows, timestr(tdict, tcalc));
-			SK.msg("box-msg", note || "", bad);
+			conjreq({ lang: "ja", q: word, kind: use.kind, flag: use.flag, sub: use.sub, ui: langcode() }, function(d){
+				var tcalc = now() - t1;
+				if (!d) {
+					paint("", "", []);
+					SK.msg("box-msg", tx("web.jverb.down", "变形接口不可用"), true);
+					return;
+				}
+				if (!d.ok) {
+					paint("", "", []);
+					SK.msg("box-msg", d.err, true);
+					return;
+				}
+				paint(d.head, d.name, rowsarr(d.rows), timestr(tdict, tcalc));
+				SK.msg("box-msg", note || "", bad);
+			});
 		});
 	}
 
@@ -524,6 +530,23 @@
 		};
 		xhr.onerror = function(){ ok(null); };
 		xhr.send();
+	}
+
+	// 变形算在 C# 端（/api/conj），这里只取结果和渲染。
+	function conjreq(params, done){
+		var qs = [], k;
+		for (k in params) if (params[k] !== undefined && params[k] !== null && params[k] !== "")
+			qs.push(k + "=" + encodeURIComponent(params[k]));
+		getjson("/api/conj?" + qs.join("&"), function(jo){
+			done(jo && jo.code === 100 && jo.data ? jo.data : null);
+		});
+	}
+
+	function rowsarr(rows){
+		var out = [], i;
+		if (!rows) return out;
+		for (i = 0; i < rows.length; i++) out.push([rows[i].l, rows[i].v, rows[i].g || ""]);
+		return out;
 	}
 
 	function choose(entries, word){
@@ -672,6 +695,7 @@
 		};
 	}
 
+		// 旧实现：计算已移到 C# 端（/api/conj），保留仅供对照，勿再调用。
 	function build(word, kind, flag, sub, lang){
 		word = norm(word);
 		var L = labs(lang || "zh");
