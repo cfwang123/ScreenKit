@@ -111,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web pages now pick up changed scripts and styles after a normal refresh: the cache version follows the modification time of the web files instead of the page's own mtime.
 - Windows OCR reads characters near the image edge as fragments (语 as 讠吾, 则 as 贝刂); a band of background colour is now added around the image before recognition.
 - Mixed Chinese + English recognition compared the cell box, already scaled back to the source image, with word boxes still in the enlarged image, so on upscaled screenshots the English numbers were never used; both are now compared at the same scale.
+- Mixed recognition took the dollar sign as its own word and the English result brought it again, so prices came out as $$0.30; the sign now stays with the number.
 
 ### 中文
 
@@ -181,6 +182,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页工具改过脚本或样式后，普通刷新就能取到新文件（版本号跟着 web 文件的修改时间走），不用再按 Ctrl+F5。
 - Windows OCR 遇到贴着图像边的文字会把字认碎（「语」认成「讠吾」、「则」认成「贝刂」），识别前在四周补一圈背景色。
 - 中英混合识别时，格子框已缩回原图，词框还是放大后的坐标，放大过的小图上取不到英文数字；现在按同一尺度比较。
+- 中英混合时美元符号被单独认成一个词，换成英文结果后又带了一遍，价格变成 $$0.30；现在符号跟后面的数字一起整段处理。
 
 ## v1.0.29 (2026-10-23)
 

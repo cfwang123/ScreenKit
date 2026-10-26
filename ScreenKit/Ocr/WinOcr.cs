@@ -480,7 +480,13 @@ static class WinOcr {
 		for (int i = 0; i < cellWords.Count; ) {
 			var wd = cellWords[i];
 			var zh = wd.Text ?? "";
-			if (!runword(zh) || !hasalnum(zh)) {
+			// 美元符号这类单独一个框的符号，跟着后一个数字一起整段处理，免得英文结果把符号又带一遍
+			var lead = false;
+			if (!hasalnum(zh) && punctlike(zh) && i + 1 < cellWords.Count) {
+				var nx = cellWords[i + 1].Text ?? "";
+				lead = hasalnum(nx) && !anycjk(nx);
+			}
+			if (!runword(zh) || (!hasalnum(zh) && !lead)) {
 				put(zh, wd);
 				i++;
 				continue;
