@@ -1553,12 +1553,32 @@
 		return String(s).replace("%s", v);
 	}
 
+	// 选了类型就把下拉换成这个类型的例词；回到自动再列全部。
+	function ontype(){
+		SK.combofill("rv-in", pickgroups(langcode()));
+		run();
+	}
+
+	function pickok(group, pick){
+		if (pick === "auto") return true;
+		if (pick === "adj") return group === "adj";
+		if (pick === "noun") return group === "noun";
+		return group !== "adj" && group !== "noun";
+	}
+
+	function pickkind(){
+		var sel = F.id("rv-sel-kind");
+		return sel && sel.value ? sel.value : "auto";
+	}
+
 	function pickgroups(lang){
+		var pick = pickkind();
 		var groups = [];
 		var cur = null;
 		var i, row, gloss, name;
 		for (i = 0; i < PICKS.length; i++) {
 			row = PICKS[i];
+			if (!pickok(row[0], pick)) continue;
 			name = lang === "zh" ? PICKG[row[0]][0] : PICKG[row[0]][1];
 			if (!cur || cur.g !== name) {
 				cur = { g: name, items: [] };
@@ -1635,7 +1655,7 @@
 			F.seta(box, "data-kph", "web.rverb.ph");
 			box.placeholder = tx("web.rverb.ph", L(lang, LAB.ph));
 		}
-		bind("rv-sel-kind", run);
+		bind("rv-sel-kind", ontype);
 		var out = F.id("rv-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");

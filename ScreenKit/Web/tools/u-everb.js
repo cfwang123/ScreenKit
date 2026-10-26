@@ -1246,6 +1246,11 @@
 		setopt("v", "web.everb.verb", LAB.t_v[0]);
 		setopt("a", "web.everb.adj", LAB.t_a[0]);
 		setopt("n", "web.everb.noun", LAB.t_n[0]);
+		var sel = F.id("ev-sel");
+		if (sel && !F.attr(sel, "data-bind")) {
+			F.seta(sel, "data-bind", "1");
+			sel.onchange = ontype;
+		}
 		var out = F.id("ev-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
@@ -1262,13 +1267,33 @@
 		}
 	}
 
+	// 下拉只列当前类型的例词：自动列全部，选了动词/形容词/名词就只列这一类。
+	function ontype(){
+		SK.combofill("ev-in", pickgroups());
+		run();
+	}
+
+	function pickok(group, pick){
+		if (pick === "auto") return true;
+		if (pick === "a") return group === "adj";
+		if (pick === "n") return group === "noun";
+		return group !== "adj" && group !== "noun";
+	}
+
+	function pickkind(){
+		var sel = F.id("ev-sel");
+		return sel && sel.value ? sel.value : "auto";
+	}
+
 	function pickgroups(){
 		var zh = langcode() === "zh";
+		var pick = pickkind();
 		var groups = [];
 		var cur = null;
 		var i, p, name;
 		for (i = 0; i < PICKS.length; i++) {
 			p = PICKS[i];
+			if (!pickok(p[0], pick)) continue;
 			name = zh ? PICKG[p[0]][0] : PICKG[p[0]][1];
 			if (!cur || cur.g !== name) {
 				cur = { g: name, items: [] };
