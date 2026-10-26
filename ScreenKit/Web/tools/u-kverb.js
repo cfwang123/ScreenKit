@@ -240,7 +240,6 @@
 		hagesug: ["对等语劝诱", "하게체 청유", "familiar suggestion"],
 		hearsay: ["传闻", "전언", "hearsay"],
 		hearsays: ["传闻缩略", "전언 준말", "short hearsay"],
-		hearsaysp: ["传闻缩略过去", "전언 준말 과거", "short hearsay past"],
 		conj: ["推量", "추량", "conjecture"],
 		guess: ["判断（现在）", "판단 현재", "judgment (present)"],
 		guessf: ["判断（将来）", "판단 미래", "judgment (future)"],
@@ -520,15 +519,15 @@
 
 	function cell(item, tip){
 		var forms = String(item.text || "").split(" / ");
-		var bits = "";
+		var html = "";
 		var i;
 		for (i = 0; i < forms.length; i++) {
 			if (!forms[i]) continue;
-			if (bits) bits += " ";
-			bits += "<span>" + esc(forms[i]) + "</span>"
+			if (html) html += "<br>";
+			html += "<span>" + esc(forms[i]) + "</span>"
 				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button>';
 		}
-		return '<td class="jv-k">' + esc(item.name) + '</td><td class="jv-v">' + bits + "</td>";
+		return '<td class="jv-k">' + esc(item.name) + '</td><td class="jv-v">' + html + "</td>";
 	}
 
 	function esc(s){
@@ -1243,27 +1242,28 @@
 		var negGuess = itda ? "없나 봐요" : jn(syls) + (adj ? "지 않은가 봐요" : "지 않나 봐요");
 		var negGuessP = itda ? "없는 것 같아요" : jn(syls) + (adj ? "지 않은 것 같아요" : "지 않는 것 같아요");
 		var negExcl = itda ? "없군요" : jn(syls) + (adj ? "지 않은군요" : "지 않는군요");
-		var both = function(a, n){ return a + " / " + n; };
+		// 肯定 / 否定 / 过去肯定 / 过去否定，同一格内每行一个
+		var quad = function(a, n, pa, pn){ return a + " / " + n + " / " + pa + " / " + pn; };
+		var pair = function(a, n){ return a + " / " + n; };
 		cur = g("mood");
-		add("hearsay", "다고 해요", both(plainNow + "고 해요", negNow + "고 해요"));
-		add("hearsays", "대요", both(plainNow.replace(/다$/, "대요"), negNow.replace(/다$/, "대요")));
-		add("hearsaysp", "았대요", both(past + "대요", negPast + "대요"));
-		add("conj", "나 봐요", both(adj && !eobs ? nieunWord(syls, irr) + "가 봐요" : dropR(syls, "나 봐요"), negGuess));
-		add("guess", "는 것 같아요", both((adj && !eobs ? nieunWord(syls, irr) : neun(syls)) + " 것 같아요", negGuessP));
-		add("guessf", "ㄹ 것 같아요", both(rl + " 것 같아요", negFut + " 것 같아요"));
-		add("maybe", "ㄹ지도 몰라요", both(rl + "지도 몰라요", negFut + "지도 몰라요"));
-		add("oblig", "아야 돼요", both(ba + "야 돼요", itda ? "없어야 돼요" : jn(syls) + "지 않아야 돼요"));
-		add("perm", "아도 돼요", both(ba + "도 돼요", itda ? "없어도 돼요" : jn(syls) + "지 않아도 돼요"));
+		add("hearsay", "다고 해요", quad(plainNow + "고 해요", negNow + "고 해요", past + "다고 해요", negPast + "다고 해요"));
+		add("hearsays", "대요", quad(plainNow.replace(/다$/, "대요"), negNow.replace(/다$/, "대요"), past + "대요", negPast + "대요"));
+		add("conj", "나 봐요", quad(adj && !eobs ? nieunWord(syls, irr) + "가 봐요" : dropR(syls, "나 봐요"), negGuess, past + "나 봐요", negPast + "나 봐요"));
+		add("guess", "는 것 같아요", quad((adj && !eobs ? nieunWord(syls, irr) : neun(syls)) + " 것 같아요", negGuessP, past + "던 것 같아요", negPast + "던 것 같아요"));
+		add("guessf", "ㄹ 것 같아요", pair(rl + " 것 같아요", negFut + " 것 같아요"));
+		add("maybe", "ㄹ지도 몰라요", quad(rl + "지도 몰라요", negFut + "지도 몰라요", past + "을지도 몰라요", negPast + "을지도 몰라요"));
+		add("oblig", "아야 돼요", pair(ba + "야 돼요", itda ? "없어야 돼요" : jn(syls) + "지 않아야 돼요"));
+		add("perm", "아도 돼요", quad(ba + "도 돼요", itda ? "없어도 돼요" : jn(syls) + "지 않아도 돼요", ba + "도 됐어요", itda ? "없어도 됐어요" : jn(syls) + "지 않아도 됐어요"));
 		add("prohibit", "으면 안 돼요", plusEu(st, "면 안 돼요", false));
-		add("excl", "는군요", both((adj || itda ? jn(syls) : neun(syls)) + "군요", negExcl));
-		add("confirm", "다면서요?", both(plainNow + "면서요?", negNow + "면서요?"));
+		add("excl", "는군요", quad((adj || itda ? jn(syls) : neun(syls)) + "군요", negExcl, past + "군요", negPast + "군요"));
+		add("confirm", "다면서요?", quad(plainNow + "면서요?", negNow + "면서요?", past + "다면서요?", negPast + "다면서요?"));
 		if (verb) {
-			add("req", "아 주세요", both(ba + " 주세요", jn(syls) + "지 말아 주세요"));
-			add("reqp", "아 주시겠어요?", both(ba + " 주시겠어요?", jn(syls) + "지 말아 주시겠어요?"));
-			add("intent", "ㄹ래요", both(rl + "래요", jn(syls) + "지 않을래요"));
-			add("plan", "려고 해요", both(plusEu(st, "려고 해요", false), jn(syls) + "지 않으려고 해요"));
-			add("decide", "아야겠어요", both(ba + "야겠어요", jn(syls) + "지 않아야겠어요"));
-			add("promise", "기로 했어요", both(jn(syls) + "기로 했어요", jn(syls) + "지 않기로 했어요"));
+			add("req", "아 주세요", pair(ba + " 주세요", jn(syls) + "지 말아 주세요"));
+			add("reqp", "아 주시겠어요?", pair(ba + " 주시겠어요?", jn(syls) + "지 말아 주시겠어요?"));
+			add("intent", "ㄹ래요", pair(rl + "래요", jn(syls) + "지 않을래요"));
+			add("plan", "려고 해요", quad(plusEu(st, "려고 해요", false), jn(syls) + "지 않으려고 해요", plusEu(st, "려고 했어요", false), jn(syls) + "지 않으려고 했어요"));
+			add("decide", "아야겠어요", pair(ba + "야겠어요", jn(syls) + "지 않아야겠어요"));
+			add("promise", "기로 해요", quad(jn(syls) + "기로 해요", jn(syls) + "지 않기로 해요", jn(syls) + "기로 했어요", jn(syls) + "지 않기로 했어요"));
 		}
 		// 方言：与标准语不同的常用说法，每个方言一组
 		var dia = dialectRows(syls, irr, kind, {
@@ -1413,18 +1413,18 @@
 		cur = g("mood");
 		var p = bat ? "이" : "가";
 		var nop = noun + p + " 아니";
-		add("hearsay", "다고 해요", noun + (bat ? "이라고" : "라고") + " 해요 / " + nop + "라고 해요");
-		add("hearsays", "래요", noun + (bat ? "이래요" : "래요") + " / " + nop + "래요");
-		add("hearsaysp", "았대요", noun + (bat ? "이었대요" : "였대요") + " / " + nop + "었대요");
-		add("conj", "인가 봐요", noun + "인가 봐요 / " + noun + p + " 아닌가 봐요");
-		add("guess", "인 것 같아요", noun + "인 것 같아요 / " + noun + p + " 아닌 것 같아요");
+		var quad = function(a, n, pa, pn){ return a + " / " + n + " / " + pa + " / " + pn; };
+		add("hearsay", "다고 해요", quad(noun + (bat ? "이라고" : "라고") + " 해요", nop + "라고 해요", noun + (bat ? "이었다고" : "였다고") + " 해요", nop + "었다고 해요"));
+		add("hearsays", "래요", quad(noun + (bat ? "이래요" : "래요"), nop + "래요", noun + (bat ? "이었대요" : "였대요"), nop + "었대요"));
+		add("conj", "인가 봐요", quad(noun + "인가 봐요", noun + p + " 아닌가 봐요", noun + (bat ? "이었나" : "였나") + " 봐요", nop + "었나 봐요"));
+		add("guess", "인 것 같아요", quad(noun + "인 것 같아요", noun + p + " 아닌 것 같아요", noun + (bat ? "이었던" : "였던") + " 것 같아요", nop + "었던 것 같아요"));
 		add("guessf", "일 것 같아요", noun + "일 것 같아요 / " + noun + p + " 아닐 것 같아요");
-		add("maybe", "일지도 몰라요", noun + "일지도 몰라요 / " + noun + p + " 아닐지도 몰라요");
+		add("maybe", "일지도 몰라요", quad(noun + "일지도 몰라요", noun + p + " 아닐지도 몰라요", noun + (bat ? "이었을지도" : "였을지도") + " 몰라요", nop + "었을지도 몰라요"));
 		add("oblig", "이어야 돼요", noun + (bat ? "이어야" : "여야") + " 돼요 / " + nop + "어야 돼요");
-		add("perm", "아도 돼요", noun + (bat ? "이어도" : "여도") + " 돼요 / " + nop + "어도 돼요");
+		add("perm", "아도 돼요", quad(noun + (bat ? "이어도" : "여도") + " 돼요", nop + "어도 돼요", noun + (bat ? "이어도" : "여도") + " 됐어요", nop + "어도 됐어요"));
 		add("prohibit", "으면 안 돼요", noun + (bat ? "이면" : "면") + " 안 돼요");
-		add("excl", "군요", noun + (bat ? "이군요" : "군요") + " / " + nop + "군요");
-		add("confirm", "다면서요?", noun + (bat ? "이라면서요?" : "라면서요?") + " / " + nop + "라면서요?");
+		add("excl", "군요", quad(noun + (bat ? "이군요" : "군요"), nop + "군요", noun + (bat ? "이었군요" : "였군요"), nop + "었군요"));
+		add("confirm", "다면서요?", quad(noun + (bat ? "이라면서요?" : "라면서요?"), nop + "라면서요?", noun + (bat ? "이었다면서요?" : "였다면서요?"), nop + "었다면서요?"));
 		return rows;
 	}
 

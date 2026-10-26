@@ -97,6 +97,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web tools home drops the left category column, and file transfer is now a card in the tool list under Files.
 - A Chrome voice pack shows its speaker count, and Chinese, Traditional Chinese, and Cantonese list every speaker in the pack.
 - Korean moods: show affirmative and negative forms side by side in the same cell
+- Extend the Russian tool with adjective and noun declension, additional moods, and colloquial, northern/southern and archaic variants.
+- Korean moods: add past affirmative and negative variants, listed one per line
 
 #### Fixed
 
@@ -185,6 +187,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具主页去掉左侧分类栏，文件传输改成「文件」分类里的工具卡片。
 - Chrome 语音包说明改为发音人个数。中文、繁体中文和粤语的发音人列表列出这一包里的全部发音人。
 - 韩语语气：肯定形与否定形并列显示在同一格
+- 扩展俄语工具：新增形容词和名词变格，补充语气以及口语、南北俄方言和古体变体。
+- 韩语语气：增加过去肯定、否定变体，每行一种说法
 
 #### 修复
 
