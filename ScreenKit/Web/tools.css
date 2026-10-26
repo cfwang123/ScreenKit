@@ -404,7 +404,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #jv-out, #kv-out { overflow-x: auto; }
 #kv-row, #jv-row { align-items: flex-end; }
 #kv-row > label, #jv-row > label { width: auto; }
-#kv-row > #kv-word, #jv-row > #jv-word { flex: 1 1 240px; min-width: 180px; }
+#kv-row > #kv-word, #jv-row > #jv-word { flex: 0 1 340px; width: 340px; max-width: 340px; min-width: 200px; }
 #kv-row > #kv-type { flex: 0 0 112px; }
 #jv-row > #jv-type { flex: 0 0 200px; }
 .combo { position: relative; margin-top: 6px; }
