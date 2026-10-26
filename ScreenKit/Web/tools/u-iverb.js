@@ -338,6 +338,9 @@
 	var cur = "all";
 	var picked = 0;
 
+	// 英语动词时态工具复用这张表，免得再抄一份。
+	if (typeof SK !== "undefined") SK.iverbrows = ROWS;
+
 	if (typeof module !== "undefined" && module.exports) {
 		module.exports = ROWS;
 		return;

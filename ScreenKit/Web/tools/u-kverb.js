@@ -175,7 +175,19 @@
 		hyeo: ["书面连接", "문어 연결", "written link"],
 		hyeot: ["书面过去", "문어 과거", "written past"],
 		hyeos: ["书面然后", "문어 순서", "written then"],
-		ji: ["中顿", "중지", "pause"]
+		ji: ["中顿", "중지", "pause"],
+		qyes: ["判断疑问", "판단 의문", "yes-no question"],
+		qwh: ["疑问词疑问", "의문사 의문", "wh-question"],
+		qlight: ["轻问", "가벼운 의문", "light question"],
+		cpast: ["确认过去", "확인 과거", "confirming past"],
+		fcmd: ["敬语命令", "높임 명령", "formal command"],
+		cmd: ["命令", "명령", "command"],
+		cfut: ["非敬语将来", "반말 미래", "casual future"],
+		must: ["必须", "필수", "must"],
+		proh: ["禁止", "금지", "prohibition"],
+		peq: ["平语", "평대", "familiar"],
+		peqp: ["平语过去", "평대 과거", "familiar past"],
+		sug: ["劝诱", "청유", "suggestion"]
 	};
 	var PICKG = {
 		common: ["常见", "자주", "Common"],
@@ -1066,47 +1078,47 @@
 	function dialectRows(syls, irr, kind, f, lang){
 		var rows = [];
 		var g = function(id){ return lp(lang, GRP[id]); };
-		function add(id, name, text){
-			if (text) rows.push({ id: "dia." + id, g: g(id), name: name, text: text });
+		function add(gid, key, text){
+			if (text) rows.push({ id: "dia." + gid + "." + key, g: g(gid), name: rowName(key, key, lang), text: text });
 		}
 		var q = qPlain(syls, irr, kind);
 		var haps = hapsho(syls);
 		// 경상도：해요체 -예、합쇼체 -ㅁ니더、판단 -나 / 의문사 -노
-		add("gs", "-예", f.hey.replace(/요$/, "예"));
-		add("gs", "-했어예", f.past + "어예");
-		add("gs", "-나?", qdial(q, "나") + "?");
-		add("gs", "-노?", qdial(q, "노") + "?");
-		add("gs", "-ㅁ니더", haps.replace(/다$/, "더"));
-		// 전라도：해요체 -라우/-지라우、의문 -냐、确认 -당께、命令 -시소
-		add("jl", "-라우", f.ba + "라우");
-		add("jl", "-했지라우", f.past + "지라우");
-		add("jl", "-냐?", qdial(q, "냐") + "?");
-		add("jl", "-했당께", f.past + "당께");
-		add("jl", "-시소", plusEu(f.st, "시소", true));
-		// 충청도：해요체 -유、过去 -슈、의문 -냐、将来 -ㄹ겨、轻问 -남
-		add("cc", "-유", f.hey.replace(/요$/, "유"));
-		add("cc", "-했슈", f.past + "슈");
-		add("cc", "-냐?", qdial(q, "냐") + "?");
-		add("cc", "-ㄹ겨", f.rl + "겨");
-		add("cc", "-했남?", f.past + "남?");
+		add("gs", "hey", f.hey.replace(/요$/, "예"));
+		add("gs", "prpy", f.past + "어예");
+		add("gs", "qyes", qdial(q, "나") + "?");
+		add("gs", "qwh", qdial(q, "노") + "?");
+		add("gs", "hap", haps.replace(/다$/, "더"));
+		// 전라도：높임 -라우/-지라우、의문 -냐、确认 -당께、命令 -시소
+		add("jl", "hey", f.ba + "라우");
+		add("jl", "prph", f.past + "지라우");
+		add("jl", "qplain", qdial(q, "냐") + "?");
+		add("jl", "cpast", f.past + "당께");
+		add("jl", "fcmd", plusEu(f.st, "시소", true));
+		// 충청도：해요체 -유/-슈、의문 -냐、将来 -ㄹ겨、轻问 -남
+		add("cc", "hey", f.hey.replace(/요$/, "유"));
+		add("cc", "prpy", f.past + "슈");
+		add("cc", "qplain", qdial(q, "냐") + "?");
+		add("cc", "cfut", f.rl + "겨");
+		add("cc", "qlight", f.past + "남?");
 		// 제주：합쇼체 -수다/-수꽈、必须 -아/어사、禁止 -지 말앙
 		var jj = jejuBase(syls, kind, irr, f.ba);
-		add("jj", "-수다", jj + "수다");
-		add("jj", "-수꽈?", jj + "수꽈?");
-		add("jj", "-아/어사", f.ba + "사");
-		add("jj", "-지 말앙", jn(syls) + "지 말앙");
-		// 함경도：-슴다、-슴메、确认 -지비、劝诱 -기요、命令 -ㅂ소
-		add("hg", "-했슴다", f.past + "슴다");
-		add("hg", "-했슴메", f.past + "슴메");
-		add("hg", "-했지비", f.past + "지비");
-		add("hg", "-기요", jn(syls) + "기요");
-		add("hg", "-ㅂ소", hapN(syls, "소"));
-		// 평안도：-ㅂ네다、疑问 -ㅂ네까、劝诱 -ㅂ세다、命令 -라우、过去 -수다
-		add("pg", "-ㅂ네다", hapN(syls, "네다"));
-		add("pg", "-ㅂ네까?", hapN(syls, "네까?"));
-		add("pg", "-ㅂ세다", hapN(syls, "세다"));
-		add("pg", "-라우", plusEu(f.st, "라우", true));
-		add("pg", "-했수다", f.past + "수다");
+		add("jj", "hap", jj + "수다");
+		add("jj", "qhap", jj + "수꽈?");
+		add("jj", "must", f.ba + "사");
+		add("jj", "proh", jn(syls) + "지 말앙");
+		// 함경도：敬语过去 -슴다、平语过去 -슴메、确认过去 -지비、劝诱 -기요、敬语命令 -ㅂ소
+		add("hg", "prph", f.past + "슴다");
+		add("hg", "peqp", f.past + "슴메");
+		add("hg", "cpast", f.past + "지비");
+		add("hg", "sug", jn(syls) + "기요");
+		add("hg", "fcmd", hapN(syls, "소"));
+		// 평안도：敬语 -ㅂ네다/-ㅂ네까、劝诱 -ㅂ세다、命令 -라우、敬语过去 -수다
+		add("pg", "hap", hapN(syls, "네다"));
+		add("pg", "qhap", hapN(syls, "네까?"));
+		add("pg", "sug", hapN(syls, "세다"));
+		add("pg", "cmd", plusEu(f.st, "라우", true));
+		add("pg", "prph", f.past + "수다");
 		return rows;
 	}
 

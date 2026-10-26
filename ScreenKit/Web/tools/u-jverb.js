@@ -142,7 +142,7 @@
 		var hint = F.id("jv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.jverb.hint");
-			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见动词和特殊变化。类型默认自动：先查词典；没有则用示例里的类型；再按词尾（る是 2 类，する、くる是 3 类）。いく的て形、た形是って、った。表的后部是尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
+			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见动词和特殊变化。类型默认自动：先查词典；没有则用示例里的类型；再按词尾（る是 2 类，する、くる是 3 类）。いく的て形、た形是って、った。表的后部是补助动词（ながら、やがる、ている 等）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
 		}
 		setlab("jv-word", "web.jverb.word", "动词");
 		SK.combofill("jv-in", pickgroups());
@@ -478,6 +478,8 @@
 			tei: "辞書", teim: "ます",
 			bad2: "2类要以る结尾", bad3: "3类是する或くる", bad1: "1类词尾要是う段假名",
 			teiru: "ている",
+			aux: "补助动词", ngara: "ながら", tagaru: "たがる", yagaru: "やがる",
+			sugiru: "すぎる", yasui: "やすい", nikui: "にくい", souda: "そうだ", mashou: "ましょう",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
@@ -494,6 +496,8 @@
 			tei: "plain", teim: "masu",
 			bad2: "Group 2 must end with る", bad3: "Group 3 is する or くる", bad1: "Group 1 must end with an u-row kana",
 			teiru: "teiru",
+			aux: "Auxiliaries", ngara: "nagara", tagaru: "tagaru", yagaru: "yagaru",
+			sugiru: "sugiru", yasui: "yasui", nikui: "nikui", souda: "souda", mashou: "mashou",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
@@ -542,7 +546,33 @@
 			row(L.tai, tai),
 			row(L.takunai, tai.slice(0, -2) + "たくない")
 		]);
-		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai, rows: rows.concat(keigo(plain, masu, pas, L)) };
+		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
+			rows: rows.concat(auxrows(L, plain, masu, te), keigo(plain, masu, pas, L)) };
+	}
+
+	// 连用形（和て形）后面常接的补助动词，单独一组。ある・いる 是状态动词，不接这些。
+	function auxrows(L, plain, masu, te){
+		if (isAru(plain) || isStateIru(plain)) return [];
+		var ren = masu.slice(0, -2);
+		var rows = [
+			row(L.ngara, ren + "ながら"),
+			row(L.tagaru, ren + "たがる"),
+			row(L.yagaru, ren + "やがる"),
+			row(L.sugiru, ren + "すぎる"),
+			row(L.yasui, ren + "やすい"),
+			row(L.nikui, ren + "にくい"),
+			row(L.souda, ren + "そうだ"),
+			row(L.mashou, ren + "ましょう"),
+			row(L.teiru, te + "いる")
+		];
+		var i;
+		for (i = 0; i < rows.length; i++) rows[i][2] = L.aux;
+		return rows;
+	}
+
+	function isStateIru(word){
+		word = norm(word);
+		return word === "居る" || hira(word) === "いる";
 	}
 
 	// なさい接连用形（行き＋なさい）；な是なさい的省略，同样接连用形（行きな），
@@ -564,6 +594,7 @@
 		var suru = kind === "3" && !kuru;
 		var pre = suru ? ren.slice(0, -1) : "";   // 勉強する → 勉強
 		var aru = isAru(word);
+		var kure = isKureru(word);
 		var nai = suru ? pre + "せえへん" : kuru ? "けえへん" : kansainai(mz, kind);
 		var n = suru ? pre + "せん" : kuru ? "こん" : mz + "ん";
 		// 关西：ない＝へん，ないで＝んといて，尊敬＝はる，命令＝なはれ
@@ -571,15 +602,15 @@
 		if (!aru) {
 			rows.push([L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks]);
 			rows.push([L.gson, ren + "はる", L.dks]);
-			rows.push([L.cmd, ren + "なはれ", L.dks]);
+			if (!kure) rows.push([L.cmd, ren + "なはれ", L.dks]);
 		}
 		// 九州（博多）：ない＝ん，ている＝とる，一段とサ変的命令＝れ
 		rows.push([L.nai, n, L.dky]);
 		if (!aru) rows.push([L.teiru, tes + "とる", L.dky]);
-		if (kind === "2" || suru) rows.push([L.cmd, suru ? pre + "せれ" : mz + "れ", L.dky]);
+		if (!kure && (kind === "2" || suru)) rows.push([L.cmd, suru ? pre + "せれ" : mz + "れ", L.dky]);
 		// 东北：意向＝べ，一段的命令＝れ
 		rows.push([L.vol, std.plain + "べ", L.dth]);
-		if (kind === "2") rows.push([L.cmd, mz + "れ", L.dth]);
+		if (!kure && kind === "2") rows.push([L.cmd, mz + "れ", L.dth]);
 		// 广岛：ない＝ん，なかった＝んかった，ている＝とる・ちょる，尊敬＝んさる
 		rows.push([L.nai, n, L.dhi]);
 		rows.push([L.nakatta, n + "かった", L.dhi]);
@@ -626,7 +657,8 @@
 	function ichidan(word, L){
 		if (last(word) !== "る") return { ok: false, err: L.bad2 };
 		var stem = word.slice(0, -1);
-		var cmd = isKureru(word) ? stem : stem + "ろ、" + stem + "よ";
+		// くれる的命令形除了「くれ」还有「給え」（〜て給え）。
+		var cmd = isKureru(word) ? stem + "、給え" : stem + "ろ、" + stem + "よ";
 		return pack(L, word, stem + "ます", stem + "ない", stem + "て", stem + "た", stem + "れば",
 			cmd, stem + "よう", stem + "られる", stem + "られる", stem + "させる", stem + "させられる");
 	}
