@@ -58,6 +58,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean verbs: add Gyeongsang, Jeolla, Chungcheong, Jeju, Hamgyeong and Pyeongan dialect groups
 - Japanese verb conjugation also lists 給え, やがる and the common auxiliaries ながら, たがる, すぎる, やすい, にくい, そうだ, ましょう and ている.
 - Japanese verb conjugation also lists つつ / つつある, きる / きれる, あう, かける / かかる, そこなう, たがらない, すぎない, そうに / そうな, the te-form auxiliaries ておく, てしまう, てみる, てある, てくる, ていく, てください, and the polite ませんか / ましょうか.
+- English verb tenses on the tools page: enter a base verb and get the sixteen tenses, plus negatives, questions, passive and other forms, with a speak button on each.
+- Korean verbs: add auxiliary, causative/change and connective forms
 
 #### Changed
 
@@ -123,6 +125,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语动词变化：新增庆尚道、全罗道、忠清道、济州、咸镜道、平安道方言分组
 - 日语动词变形新增「給え」「やがる」，以及ながら、たがる、すぎる、やすい、にくい、そうだ、ましょう、ている 这些常用补助动词。
 - 日语动词变形新增つつ／つつある、きる／きれる、あう、かける／かかる、そこなう、たがらない、すぎない、そうに／そうな，ておく、てしまう、てみる、てある、てくる、ていく、てください，以及敬体的ませんか／ましょうか。
+- 工具页新增英语动词时态：输入原形，列出十六种时态，另附否定、疑问、被动和其他形式，每项可以发音。
+- 韩语动词变化：补充补助动词、使动/变化和连接词尾
 
 #### 变更
 

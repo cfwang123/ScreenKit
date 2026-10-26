@@ -70,7 +70,9 @@
 		cc: ["忠清道", "충청도", "Chungcheong"],
 		jj: ["济州", "제주", "Jeju"],
 		hg: ["咸镜道", "함경도", "Hamgyeong"],
-		pg: ["平安道", "평안도", "Pyeongan"]
+		pg: ["平安道", "평안도", "Pyeongan"],
+		aux: ["补助", "보조", "Auxiliary"],
+		voice: ["态", "태", "Voice"]
 	};
 	var NOTE = {
 		v: ["动词", "동사", "verb"],
@@ -187,7 +189,25 @@
 		proh: ["禁止", "금지", "prohibition"],
 		peq: ["平语", "평대", "familiar"],
 		peqp: ["平语过去", "평대 과거", "familiar past"],
-		sug: ["劝诱", "청유", "suggestion"]
+		sug: ["劝诱", "청유", "suggestion"],
+		try: ["尝试", "시도", "try"],
+		done: ["做完", "완료", "completely"],
+		leave: ["做好放着", "해 둠", "left done"],
+		prep: ["预先做好", "미리 해 둠", "done in advance"],
+		benef: ["为别人做", "남을 위해", "for someone"],
+		hbenef: ["谦让", "겸양", "humble"],
+		endup: ["最终", "결국", "end up"],
+		caus: ["使动", "사동", "causative"],
+		turn: ["变成", "변화", "become"],
+		becom: ["变得", "형용사 변화", "become (adj.)"],
+		simul: ["同时", "동시", "while"],
+		assoon: ["刚…就", "즉시", "as soon as"],
+		choice: ["或者", "선택", "or"],
+		purpose: ["以便", "목적", "so that"],
+		afterdoing: ["做了之后", "과거 후", "after doing"],
+		midway: ["中途", "도중", "midway"],
+		cond: ["前提", "전제", "given that"],
+		neunde: ["过去转折", "과거 대조", "but (past)"]
 	};
 	var PICKG = {
 		common: ["常见", "자주", "Common"],
@@ -1025,6 +1045,18 @@
 		add("su", "ㄹ 수 있다", rl + " 수 있다");
 		add("sun", "ㄹ 수 없어요", rl + " 수 없어요");
 		add("ado", "아도", ba + "도");
+		add("simul", "면서", plusEu(st, "면서", false));
+		add("choice", "거나", jn(syls) + "거나");
+		add("neunde", "았는데", past + "는데");
+		add("purpose", "도록", jn(syls) + "도록");
+		add("afterdoing", "았더니", past + "더니");
+		add("cond", "거든", jn(syls) + "거든");
+		if (verb) {
+			add("assoon", "자마자", jn(syls) + "자마자");
+			add("nikka", "느라고", dropR(syls, "느라고"));
+			add("midway", "다가", jn(syls) + "다가");
+			add("ase", "고서", jn(syls) + "고서");
+		}
 		cur = g("mod");
 		if (adj && !eobs) add("modn", "ㄴ", nieunWord(syls, irr));
 		else add("modn", "는", neun(syls));
@@ -1038,6 +1070,7 @@
 		add("jan", "잖아요", dropR(syls, "잖아요"));
 		add("jyo", "죠", jn(syls) + "죠");
 		add("jiyo", "지요", jn(syls) + "지요");
+		add("deon", "았더라고요", past + "더라고요");
 		if (irr === "hada") {
 			var hy = stem.slice(0, -1) + "하여";
 			cur = g("wrt");
@@ -1045,6 +1078,22 @@
 			add("hyeot", "하였다", stem.slice(0, -1) + "하였다");
 			add("hyeos", "하여서", hy + "서");
 		}
+		// 补助动词：试、做完、放着、预先、为别人、最终
+		cur = g("aux");
+		if (verb) {
+			add("try", "보다", ba + " 봤어요");
+			add("done", "버리다", ba + " 버렸어요");
+			add("leave", "놓다", ba + " 놨어요");
+			add("prep", "두다", ba + " 뒀어요");
+			add("benef", "주다", ba + " 줬어요");
+			add("hbenef", "드리다", ba + " 드렸어요");
+			add("endup", "고 말다", jn(syls) + "고 말았어요");
+		}
+		// 态：使动、变成、形容词的「变得」
+		cur = g("voice");
+		add("caus", "게 하다", jn(syls) + "게 했어요");
+		add("turn", "게 되다", jn(syls) + "게 되었어요");
+		if (adj) add("becom", "아/어지다", ba + "졌어요");
 		// 方言：与标准语不同的常用说法，每个方言一组
 		var dia = dialectRows(syls, irr, kind, {
 			hey: hey, ba: ba, past: past, st: st, rl: rl
