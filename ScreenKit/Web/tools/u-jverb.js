@@ -122,7 +122,7 @@
 	if (typeof SK === "undefined" || !SK.regutil) return;
 
 	SK.regutil("u-jverb", {
-		title: "日语动词变形",
+		title: "日语词形变化",
 		go: "变形",
 		live: true,
 		own: true,
@@ -158,30 +158,31 @@
 	}
 
 	function open(){
+		var ens = langcode() !== "zh";
 		var go = F.id("box-go");
 		if (go) {
 			F.seta(go, "data-k", "web.jverb.go");
-			go.textContent = tx("web.jverb.go", "变形");
+			go.textContent = tx("web.jverb.go", ens ? "Conjugate" : "变形");
 		}
 		var hint = F.id("jv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.jverb.hint");
-			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见动词和特殊变化。类型默认自动：先查词典；没有则用示例里的类型；再按词尾（る是 2 类，する、くる是 3 类）。いく的て形、た形是って、った。表的后部是补助动词（ながら、やがる、ている 等）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
+			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见词和特殊变化。自动先查日语词典，判断是动词、い形容词、な形容词还是名词；查不到时按词尾猜：る＝2类，する・くる＝3类，い＝い形容词，其余按名词；也可在右侧指定类型。动词表的后部是补助动词（ながら、ておく、やがる 等）、敬体（ましょう、ませんか）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
 		}
-		setlab("jv-word", "web.jverb.word", "辞书形");
+		setlab("jv-word", "web.jverb.word", ens ? "Dictionary form" : "辞书形");
 		SK.combofill("jv-in", pickgroups());
-		setlab("jv-type", "web.jverb.type", "类型");
-		setopt("auto", "web.jverb.auto", "自动");
-		setopt("1", "web.jverb.t1", "1类（五段）");
-		setopt("2", "web.jverb.t2", "2类（一段）");
-		setopt("3", "web.jverb.t3", "3类（する・くる）");
-		setopt("ai", "web.jverb.tai", "い形容词");
-		setopt("an", "web.jverb.tan", "な形容词");
-		setopt("n", "web.jverb.tn", "名词");
+		setlab("jv-type", "web.jverb.type", ens ? "Type" : "类型");
+		setopt("auto", "web.jverb.auto", ens ? "Auto" : "自动");
+		setopt("1", "web.jverb.t1", ens ? "Group 1 (godan)" : "1类（五段）");
+		setopt("2", "web.jverb.t2", ens ? "Group 2 (ichidan)" : "2类（一段）");
+		setopt("3", "web.jverb.t3", ens ? "Group 3 (suru, kuru)" : "3类（する・くる）");
+		setopt("ai", "web.jverb.tai", ens ? "i-adjective" : "い形容词");
+		setopt("an", "web.jverb.tan", ens ? "na-adjective" : "な形容词");
+		setopt("n", "web.jverb.tn", ens ? "Noun" : "名词");
 		var box = F.id("jv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.jverb.ph");
-			box.placeholder = tx("web.jverb.ph", "辞书形，如 食べる、高い、学生");
+			box.placeholder = tx("web.jverb.ph", ens ? "Dictionary form, e.g. 食べる、高い、学生" : "辞书形，如 食べる、高い、学生");
 		}
 		var out = F.id("jv-out");
 		if (out && !F.attr(out, "data-bind")) {
@@ -515,6 +516,10 @@
 			teoku: "ておく", teshimau: "てしまう", temiru: "てみる", tearu: "てある",
 			tekuru: "てくる", teiku: "ていく", tekudasai: "てください",
 			mashou: "ましょう", mashouka: "ましょうか", masenka: "ませんか",
+			ai: "い形容词", an: "な形容词", nn: "名词", badai: "い形容词要以い结尾",
+			pol: "丁宁形", polneg: "丁宁否定", polpast: "丁宁过去", polpastneg: "丁宁过去否定",
+			adv: "副词形", naru: "なる", sa: "さ", rentai: "连体形",
+			darou: "だろう", deshou: "でしょう", dearu: "である",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
@@ -541,6 +546,10 @@
 			teoku: "teoku", teshimau: "teshimau", temiru: "temiru", tearu: "tearu",
 			tekuru: "tekuru", teiku: "teiku", tekudasai: "tekudasai",
 			mashou: "mashou", mashouka: "mashou ka", masenka: "masen ka",
+			ai: "i-adjective", an: "na-adjective", nn: "noun", badai: "An i-adjective must end with い",
+			pol: "polite", polneg: "polite negative", polpast: "polite past", polpastneg: "polite past negative",
+			adv: "adverbial", naru: "naru", sa: "sa", rentai: "attributive",
+			darou: "darou", deshou: "deshou", dearu: "dearu",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
@@ -549,15 +558,107 @@
 		word = norm(word);
 		var L = labs(lang || "zh");
 		var rows;
-		if (kind === "2") rows = ichidan(word, L);
+		if (kind === "ai") rows = iadj(word, L);
+		else if (kind === "an") rows = naadj(word, L);
+		else if (kind === "n") rows = nounrows(word, L);
+		else if (kind === "2") rows = ichidan(word, L);
 		else if (kind === "3") rows = surukuru(word, sub, L);
 		else if (kind === "1") rows = godan(word, flag, L);
 		else return { ok: false, err: L.bad1 };
 		if (!rows.ok) return rows;
-		var name = kind === "2" ? L.c2 : kind === "3" ? (rows.sub === "kuru" ? L.c3k : L.c3s) : L.c1;
+		var name = kind === "2" ? L.c2 : kind === "3" ? (rows.sub === "kuru" ? L.c3k : L.c3s)
+			: kind === "1" ? L.c1 : kind === "ai" ? L.ai : kind === "an" ? L.an : L.nn;
 		if (flag === "iku" || isIku(word) && kind === "1") name += " · " + L.iku;
-		rows.rows = rows.rows.concat(dialectrows(word, kind, rows, L));
+		if (kind !== "ai" && kind !== "an" && kind !== "n") rows.rows = rows.rows.concat(dialectrows(word, kind, rows, L));
 		return { ok: true, head: word, name: name, rows: rows.rows };
+	}
+
+	// い形容词：高くない、高かった。いい（良い）和 かっこいい 的活用按「よ」走。
+	function iadj(word, L){
+		if (word.length < 2 || last(word) !== "い") return { ok: false, err: L.badai };
+		var s = iadjstem(word);
+		return { ok: true, plain: word, rows: [
+			row(L.dict, word),
+			row(L.pol, word + "です"),
+			row(L.nai, s + "くない"),
+			row(L.polneg, s + "くありません"),
+			row(L.ta, s + "かった"),
+			row(L.polpast, s + "かったです"),
+			row(L.nakatta, s + "くなかった"),
+			row(L.polpastneg, s + "くありませんでした"),
+			row(L.te, s + "くて"),
+			row(L.adv, s + "く"),
+			row(L.ba, s + "ければ"),
+			row(L.tara, s + "かったら"),
+			row(L.naru, s + "くなる"),
+			row(L.souda, irri(word) ? s + "さそうだ" : s + "そうだ"),
+			row(L.sugiru, s + "すぎる"),
+			row(L.sa, s + "さ"),
+			row(L.darou, word + "だろう"),
+			row(L.deshou, word + "でしょう")
+		] };
+	}
+
+	function iadjstem(word){
+		if (irri(word)) return word === "いい" || word === "良い" || word === "よい" || word === "好い" ? "よ" : word.slice(0, -2) + "よ";
+		return word.slice(0, -1);
+	}
+
+	// いい・かっこいい 这类词干是「よ」，「そうだ」要变成「よさそうだ」。
+	function irri(word){
+		if (word === "いい" || word === "良い" || word === "よい" || word === "好い") return true;
+		return ends(word, "いい") && word !== "かわいい" && word !== "可愛い";
+	}
+
+	// な形容词：静かだ、静かだった。
+	function naadj(word, L){
+		if (ends(word, "な") || ends(word, "だ")) word = word.slice(0, -1);
+		if (!word) return { ok: false, err: L.bad3 };
+		return { ok: true, plain: word, rows: [
+			row(L.dict, word + "だ"),
+			row(L.pol, word + "です"),
+			row(L.nai, word + "ではない、" + word + "じゃない"),
+			row(L.polneg, word + "ではありません"),
+			row(L.ta, word + "だった"),
+			row(L.polpast, word + "でした"),
+			row(L.nakatta, word + "ではなかった、" + word + "じゃなかった"),
+			row(L.polpastneg, word + "ではありませんでした"),
+			row(L.te, word + "で"),
+			row(L.rentai, word + "な"),
+			row(L.adv, word + "に"),
+			row(L.ba, word + "なら"),
+			row(L.tara, word + "だったら"),
+			row(L.naru, word + "になる"),
+			row(L.dearu, word + "である"),
+			row(L.souda, word + "そうだ"),
+			row(L.sugiru, word + "すぎる"),
+			row(L.sa, word + "さ"),
+			row(L.darou, word + "だろう"),
+			row(L.deshou, word + "でしょう")
+		] };
+	}
+
+	// 名词：学生だ、学生だった。和な形容词一样接だ・で・だった，连体形用の。
+	function nounrows(word, L){
+		if (ends(word, "だ")) word = word.slice(0, -1);
+		if (!word) return { ok: false, err: L.bad3 };
+		return { ok: true, plain: word, rows: [
+			row(L.dict, word + "だ"),
+			row(L.pol, word + "です"),
+			row(L.nai, word + "ではない、" + word + "じゃない"),
+			row(L.polneg, word + "ではありません"),
+			row(L.ta, word + "だった"),
+			row(L.polpast, word + "でした"),
+			row(L.nakatta, word + "ではなかった、" + word + "じゃなかった"),
+			row(L.polpastneg, word + "ではありませんでした"),
+			row(L.te, word + "で"),
+			row(L.rentai, word + "の"),
+			row(L.ba, word + "なら"),
+			row(L.tara, word + "だったら"),
+			row(L.dearu, word + "である"),
+			row(L.darou, word + "だろう"),
+			row(L.deshou, word + "でしょう")
+		] };
 	}
 
 	function row(lab, val){ return [lab, val]; }
@@ -778,7 +879,8 @@
 		var end = last(word);
 		if (end === "る") return { kind: "2", flag: "", sub: "" };
 		if (COL[end]) return { kind: "1", flag: isIku(word) ? "iku" : "", sub: "" };
-		return null;
+		if (end === "い") return { kind: "ai", flag: "", sub: "" };
+		return { kind: "n", flag: "", sub: "" };
 	}
 
 	function findpre(word){
@@ -804,10 +906,13 @@
 		else if (s.indexOf("irregular verb") >= 0) flag = "arunai";
 		var kind = "";
 		var sub = "";
-		if (s.indexOf("ichidan") >= 0) kind = "2";
+		if (s.indexOf("keiyodoshi") >= 0) kind = "an";
+		else if (s.indexOf("keiyoushi") >= 0) kind = "ai";
+		else if (s.indexOf("ichidan") >= 0) kind = "2";
 		else if (s.indexOf("kuru verb") >= 0) { kind = "3"; sub = "kuru"; }
 		else if (s.indexOf("suru verb") >= 0 && s.indexOf("takes the aux") < 0) { kind = "3"; sub = "suru"; }
 		else if (s.indexOf("godan") >= 0) kind = "1";
+		else if (s.indexOf("noun") >= 0) kind = "n";
 		if (!kind) return null;
 		return { kind: kind, flag: flag, sub: sub };
 	}

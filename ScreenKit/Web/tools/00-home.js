@@ -303,11 +303,11 @@
 						"type":"button",
 						"data-tool":"u-jverb",
 						"data-cat":"text",
-						"data-name":"日语动词变形 活用 五段 一段 する くる いく 敬语 尊敬 谦让 verb",
-						"title":"按词典里的 1/2/3 类列出动词变形，含敬语。输入框可下拉常见词和特殊变化，每项可以发音",
+						"data-name":"日语词形变化 日语动词变形 活用 五段 一段 する くる いく い形容词 な形容词 名词 敬语 尊敬 谦让 方言 verb adjective noun",
+						"title":"列出动词、い形容词、な形容词、名词的变化，含补助动词、敬语和方言。输入框可下拉常见词和特殊变化，每项可以发音",
 						c:[
 						{x:"i.fa-solid.fa-language"},
-						{x:"span","data-k":"web.tool.jverb",c:"日语动词变形"},
+						{x:"span","data-k":"web.tool.jverb",c:"日语词形变化"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-jverb","title":"收藏"}
 					]
 					},

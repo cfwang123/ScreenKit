@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English verb tenses on the tools page: enter a base verb and get the sixteen tenses, plus negatives, questions, passive and other forms, with a speak button on each.
 - Korean verbs: add auxiliary, causative/change and connective forms
 - Korean verbs: add passive forms, the hao and hage styles, and state forms
+- Japanese conjugation also handles i-adjectives, na-adjectives and nouns, tells them from verbs automatically, and can be given the type by hand.
 
 #### Changed
 
@@ -130,6 +131,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页新增英语动词时态：输入原形，列出十六种时态，另附否定、疑问、被动和其他形式，每项可以发音。
 - 韩语动词变化：补充补助动词、使动/变化和连接词尾
 - 韩语动词变化：补充被动形、准敬语/对等语文体和状态形
+- 日语词形变化支持い形容词、な形容词和名词，自动区分动词和它们，也可手动指定类型。
 
 #### 变更
 
