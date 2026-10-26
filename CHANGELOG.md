@@ -108,6 +108,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome voice filtering now keeps Cantonese in its own language entry instead of listing it under Chinese.
 - Show an installation prompt when Russian speech is unavailable.
 - Web pages now pick up changed scripts and styles after a normal refresh: the cache version follows the modification time of the web files instead of the page's own mtime.
+- Windows OCR reads characters near the image edge as fragments (语 as 讠吾, 则 as 贝刂); a band of background colour is now added around the image before recognition.
 
 ### 中文
 
@@ -175,6 +176,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 语音筛选把粤语单独列出，不再混在中文里。
 - 俄语语音不可用时提示安装，而不是只显示无法发音。
 - 网页工具改过脚本或样式后，普通刷新就能取到新文件（版本号跟着 web 文件的修改时间走），不用再按 Ctrl+F5。
+- Windows OCR 遇到贴着图像边的文字会把字认碎（「语」认成「讠吾」、「则」认成「贝刂」），识别前在四周补一圈背景色。
 
 ## v1.0.29 (2026-10-23)
 

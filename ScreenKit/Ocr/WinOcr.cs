@@ -108,8 +108,10 @@ static class WinOcr {
 			throw new FileNotFoundException("图像不存在", path);
 		return offsta(() => {
 			using var fs = File.OpenRead(path);
-			var bmp = decode(fs, out var w, out var h, out var scale);
-			return withsize(recognizebmp(opt, bmp, scale), w, h);
+			var bmp = decode(fs, out var w, out var h, out var scale, out var pad);
+			var r = withsize(recognizebmp(opt, bmp, scale), w, h);
+			shiftfrompad(r, pad, scale);
+			return r;
 		});
 	}
 
@@ -118,8 +120,10 @@ static class WinOcr {
 			throw new InvalidOperationException("图像为空");
 		return offsta(() => {
 			using var ms = new MemoryStream(image, false);
-			var bmp = decode(ms, out var w, out var h, out var scale);
-			return withsize(recognizebmp(opt, bmp, scale), w, h);
+			var bmp = decode(ms, out var w, out var h, out var scale, out var pad);
+			var r = withsize(recognizebmp(opt, bmp, scale), w, h);
+			shiftfrompad(r, pad, scale);
+			return r;
 		});
 	}
 
@@ -164,9 +168,73 @@ static class WinOcr {
 	}
 
 	/// <summary>准备送进引擎的图。不按检测边长缩小；字行太矮则 Lanczos 放大。</summary>
-	static byte[] prepare(byte[] bgra, int width, int height, out int dw, out int dh, out double scale) {
+	/// <summary>四周留的背景边宽。字贴边时引擎会把偏旁拆开认。</summary>
+	static int padof(int w, int h) {
+		var s = Math.Min(w, h);
+		var p = (int)Math.Round(s * 0.10);
+		if (p < 12) p = 12;
+		if (p > 64) p = 64;
+		return p;
+	}
+
+	/// <summary>四周补一圈取四角平均色，中间原样拷贝。</summary>
+	static byte[] padbgra(byte[] src, int w, int h, int pad) {
+		var nw = w + pad * 2;
+		var nh = h + pad * 2;
+		var dst = new byte[nw * nh * 4];
+		var acc = new int[3];
+		var xs = new[] { Math.Min(2, w - 1), Math.Max(0, w - 3) };
+		var ys = new[] { Math.Min(2, h - 1), Math.Max(0, h - 3) };
+		var n = 0;
+		foreach (var y in ys)
+			foreach (var x in xs) {
+				var i = (y * w + x) * 4;
+				for (int c = 0; c < 3; c++) acc[c] += src[i + c];
+				n++;
+			}
+		var bg = new byte[3];
+		for (int c = 0; c < 3; c++) bg[c] = (byte)(n > 0 ? acc[c] / n : 255);
+		for (int y = 0; y < nh; y++) {
+			var sy = y - pad;
+			var inside = sy >= 0 && sy < h;
+			var srow = sy * w * 4;
+			var drow = y * nw * 4;
+			for (int x = 0; x < nw; x++) {
+				var di = drow + x * 4;
+				var sx = x - pad;
+				if (inside && sx >= 0 && sx < w) {
+					var si = srow + sx * 4;
+					dst[di] = src[si];
+					dst[di + 1] = src[si + 1];
+					dst[di + 2] = src[si + 2];
+					dst[di + 3] = src[si + 3];
+				}
+				else {
+					dst[di] = bg[0];
+					dst[di + 1] = bg[1];
+					dst[di + 2] = bg[2];
+					dst[di + 3] = 255;
+				}
+			}
+		}
+		return dst;
+	}
+
+	/// <summary>结果坐标从补边后的图换算回原图。</summary>
+	static void shiftfrompad(OcrResult r, int pad, double scale) {
+		if (r?.Lines == null || pad <= 0 || scale <= 0) return;
+		var d = (float)(pad / scale);
+		foreach (var ln in r.Lines) {
+			if (ln?.Box == null) continue;
+			for (int i = 0; i < ln.Box.Length; i++)
+				ln.Box[i] = new Point2f(ln.Box[i].X - d, ln.Box[i].Y - d);
+		}
+	}
+
+	static byte[] prepare(byte[] bgra, int width, int height, out int dw, out int dh, out double scale, out int pad) {
 		var cap = maxside();
 		scale = 1;
+		pad = 0;
 		dw = width;
 		dh = height;
 		var work = bgra;
@@ -185,6 +253,13 @@ static class WinOcr {
 			scale *= grow;
 			dw = fw;
 			dh = fh;
+		}
+		// 文字贴到图像边上时 Windows OCR 会把字认碎，四周补一圈背景色
+		pad = padof(dw, dh);
+		if (pad > 0) {
+			work = padbgra(work, dw, dh, pad);
+			dw += pad * 2;
+			dh += pad * 2;
 		}
 		return work;
 	}
@@ -245,10 +320,12 @@ static class WinOcr {
 	static OcrResult recognizebgra(OcrOptions opt, byte[] bgra, int width, int height) {
 		if (bgra == null || width < 1 || height < 1)
 			throw new InvalidOperationException("图像为空");
-		var work = prepare(bgra, width, height, out var dw, out var dh, out var scale);
+		var work = prepare(bgra, width, height, out var dw, out var dh, out var scale, out var pad);
 		var bmp = SoftwareBitmap.CreateCopyFromBuffer(
 			work.AsBuffer(), BitmapPixelFormat.Bgra8, dw, dh, BitmapAlphaMode.Ignore);
-		return withsize(recognizebmp(opt, bmp, scale), width, height);
+		var res = withsize(recognizebmp(opt, bmp, scale), width, height);
+		shiftfrompad(res, pad, scale);
+		return res;
 	}
 
 	static OcrResult withsize(OcrResult r, int width, int height) {
@@ -871,7 +948,7 @@ static class WinOcr {
 		public double H => B - T;
 	}
 
-	static SoftwareBitmap decode(Stream stream, out int width, out int height, out double scale) {
+	static SoftwareBitmap decode(Stream stream, out int width, out int height, out double scale, out int pad) {
 		using var ras = stream.AsRandomAccessStream();
 		var decoder = wait(Windows.Graphics.Imaging.BitmapDecoder.CreateAsync(ras).AsTask());
 		var sw = (int)decoder.PixelWidth;
@@ -899,7 +976,7 @@ static class WinOcr {
 			ExifOrientationMode.IgnoreExifOrientation,
 			ColorManagementMode.DoNotColorManage).AsTask());
 		var pixels = data.DetachPixelData();
-		var work = prepare(pixels, dw, dh, out var fw, out var fh, out var rel);
+		var work = prepare(pixels, dw, dh, out var fw, out var fh, out var rel, out pad);
 		scale = (dw / (double)sw) * rel;
 		return SoftwareBitmap.CreateCopyFromBuffer(
 			work.AsBuffer(), BitmapPixelFormat.Bgra8, fw, fh, BitmapAlphaMode.Ignore);
