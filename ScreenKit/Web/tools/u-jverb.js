@@ -541,7 +541,8 @@
 			kppoi: "っぽい", kge: "げ", kkehai: "気配だ",
 			duty: "判断・义务", wake: "わけだ", wakenai: "わけがない", beki: "べきだ",
 			bekinai: "べきではない", monoda: "ものだ", kotoda: "ことだ", tsumori: "つもりだ", yotei: "予定だ",
-			degree: "程度・倾向", gachi: "がちだ", kimi: "気味だ", ippou: "一方だ", bakari: "ばかりだ", tokoro: "ところだ",
+			degree: "程度・倾向", gachi: "がちだ", kimi: "気味だ", ippou: "一方だ", bakari: "ばかりだ",
+			tokoro1: "ところだ（即将）", tokoro2: "ところだ（刚刚）", tokoro3: "ところだ（正在）",
 			confirm: "疑问・确认", kana: "かな", kashira: "かしら", deshoune: "でしょうね", janai: "んじゃないか",
 			reason: "原因・理由", nodakara: "のだから", monode: "もので", okage: "おかげで",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
@@ -581,7 +582,8 @@
 			kppoi: "ppoi", kge: "ge", kkehai: "kehai da",
 			duty: "Judgement / duty", wake: "wake da", wakenai: "wake ga nai", beki: "beki da",
 			bekinai: "beki dewa nai", monoda: "mono da", kotoda: "koto da", tsumori: "tsumori da", yotei: "yotei da",
-			degree: "Degree / tendency", gachi: "gachi da", kimi: "gimi da", ippou: "ippou da", bakari: "bakari da", tokoro: "tokoro da",
+			degree: "Degree / tendency", gachi: "gachi da", kimi: "gimi da", ippou: "ippou da", bakari: "bakari da",
+			tokoro1: "tokoro da (about to)", tokoro2: "tokoro da (just did)", tokoro3: "tokoro da (doing)",
 			confirm: "Question / confirmation", kana: "kana", kashira: "kashira", deshoune: "deshou ne", janai: "n ja nai ka",
 			reason: "Reason", nodakara: "no dakara", monode: "mono de", okage: "okage de",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
@@ -745,7 +747,7 @@
 			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, plain, plain, ta, plain),
 				patternrows(L, {
 					plain: plain, pred: plain, drop: plain, attrib: plain, attribN: plain,
-					ren: masu.slice(0, -2), ta: ta, stem: masu.slice(0, -2)
+					ren: masu.slice(0, -2), ta: ta, teiru: te + "いる", stem: masu.slice(0, -2)
 				}, "v"),
 				keigo(plain, masu, pas, L)) };
 	}
@@ -797,7 +799,10 @@
 			rows.push([L.kimi, k.ren + "気味だ", L.degree]);
 			rows.push([L.ippou, k.plain + "一方だ", L.degree]);
 			rows.push([L.bakari, k.plain + "ばかりだ", L.degree]);
-			rows.push([L.tokoro, k.plain + "ところだ", L.degree]);
+			// ところだ 有三种：辞書形＝即将，た形＝刚刚，ている＝正在。
+			rows.push([L.tokoro1, k.plain + "ところだ", L.degree]);
+			rows.push([L.tokoro2, k.ta + "ところだ", L.degree]);
+			rows.push([L.tokoro3, k.teiru + "ところだ", L.degree]);
 		}
 		rows.push([L.kana, k.drop + "かな", L.confirm]);
 		rows.push([L.kashira, k.drop + "かしら", L.confirm]);
