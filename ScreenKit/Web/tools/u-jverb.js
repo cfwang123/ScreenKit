@@ -468,7 +468,7 @@
 			dict: "辞書形", masu: "ます形", masen: "ません", mashita: "ました", masend: "ませんでした",
 			nai: "ない形", nakatta: "なかった", nakute: "なくて", naide: "ないで",
 			te: "て形", ta: "た形", tara: "たら", ba: "ば形",
-			cmd: "命令形", stop: "禁止形", vol: "意向形", pot: "可能形",
+			cmd: "命令形", nasai: "なさい", na: "な（=なさい）", stop: "禁止形", vol: "意向形", pot: "可能形",
 			pas: "受身形", cau: "使役形", cap: "使役受身", tai: "たい", takunai: "たくない",
 			c1: "1类（五段）", c2: "2类（一段）", c3s: "3类（する）", c3k: "3类（くる）",
 			iku: "いく",
@@ -482,7 +482,7 @@
 			dict: "dictionary", masu: "masu", masen: "masen", mashita: "mashita", masend: "masen deshita",
 			nai: "nai", nakatta: "nakatta", nakute: "nakute", naide: "naide",
 			te: "te", ta: "ta", tara: "tara", ba: "ba",
-			cmd: "imperative", stop: "prohibitive", vol: "volitional", pot: "potential",
+			cmd: "imperative", nasai: "nasai", na: "na (= nasai)", stop: "prohibitive", vol: "volitional", pot: "potential",
 			pas: "passive", cau: "causative", cap: "causative-passive", tai: "tai", takunai: "takunai",
 			c1: "group 1 (godan)", c2: "group 2 (ichidan)", c3s: "group 3 (suru)", c3k: "group 3 (kuru)",
 			iku: "iku",
@@ -526,7 +526,8 @@
 			row(L.ta, ta),
 			row(L.tara, ta + "ら"),
 			row(L.ba, ba),
-			row(L.cmd, cmd),
+			row(L.cmd, cmd)
+		].concat(nasairows(L, plain, masu.slice(0, -2)), [
 			row(L.stop, plain + "な"),
 			row(L.vol, vol),
 			row(L.pot, pot),
@@ -535,8 +536,15 @@
 			row(L.cap, cap),
 			row(L.tai, tai),
 			row(L.takunai, tai.slice(0, -2) + "たくない")
-		];
+		]);
 		return { ok: true, plain: plain, masu: masu, ta: ta, nai: nai, rows: rows.concat(keigo(plain, masu, pas, L)) };
+	}
+
+	// なさい接连用形（行き＋なさい）；な是なさい的省略，同样接连用形（行きな），
+	// 和禁止形的「辞书形＋な」（行くな）不是一回事。なさる、くださる这类尊敬动词本身已是敬语，不加。
+	function nasairows(L, plain, ren){
+		if (isSonkeAru(plain)) return [];
+		return [row(L.nasai, ren + "なさい"), row(L.na, ren + "な")];
 	}
 
 	function godan(word, flag, L){

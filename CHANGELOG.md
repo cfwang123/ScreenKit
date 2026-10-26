@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese verb input has a dropdown of common verbs and irregulars (いく, ある, 問う, なさる, くれる, and godan verbs ending in る). The table also lists honorific, humble, and deferential forms.
 - The tools page conjugates a Korean verb or adjective from the dictionary form, with a speaker button on each form.
 - Add English irregular verb lookup on the tools page, with every form searchable.
+- Japanese verb conjugation also lists なさい and its short な (行きなさい, 行きな).
 
 #### Changed
 
@@ -113,6 +114,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语动词输入框可下拉常见动词和特殊变化（いく、ある、問う、なさる、くれる，以及词尾る的五段）。变形表增加尊敬、谦让、丁重。
 - 工具页可以输入韩语词典形，列出动词或形容词的变化，每条都能听发音。
 - 工具页新增英文不规则动词查询，任意一种形式都能搜到。
+- 日语动词变形新增「なさい」和它的省略「な」（行きなさい、行きな）。
 
 #### 变更
 
