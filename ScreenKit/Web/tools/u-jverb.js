@@ -143,7 +143,6 @@
 	function body(){
 		return '<p class="hint" id="jv-hint"></p>'
 			+ '<div class="row" id="jv-row">'
-			+ '<label id="jv-word">' + SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") + "</label>"
 			+ '<label id="jv-type"><select id="jv-sel">'
 			+ '<option value="auto"></option>'
 			+ '<option value="1"></option>'
@@ -153,6 +152,7 @@
 			+ '<option value="an"></option>'
 			+ '<option value="n"></option>'
 			+ "</select></label>"
+			+ '<label id="jv-word">' + SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") + "</label>"
 			+ "</div>"
 			+ '<div id="jv-out"></div>';
 	}
@@ -179,6 +179,11 @@
 		setopt("ai", "web.jverb.tai", ens ? "i-adjective" : "い形容词");
 		setopt("an", "web.jverb.tan", ens ? "na-adjective" : "な形容词");
 		setopt("n", "web.jverb.tn", ens ? "Noun" : "名词");
+		var sel = F.id("jv-sel");
+		if (sel && !F.attr(sel, "data-bind")) {
+			F.seta(sel, "data-bind", "1");
+			sel.onchange = ontype;
+		}
 		var box = F.id("jv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.jverb.ph");
@@ -199,6 +204,12 @@
 		if (!btn || btn === out) return;
 		var text = F.attr(btn, "data-v") || "";
 		if (text) speak(text);
+	}
+
+	// 选了类型就把下拉换成这个类型的示例；回到自动再列全部。
+	function ontype(){
+		SK.combofill("jv-in", pickgroups());
+		run();
 	}
 
 	function speak(text){
@@ -254,11 +265,14 @@
 
 	function pickgroups(){
 		var lang = langcode();
+		var sel = F.id("jv-sel");
+		var pick = sel ? sel.value : "auto";
 		var groups = [];
 		var cur = null;
 		var i, p, name, gloss, show;
 		for (i = 0; i < PICKS.length; i++) {
 			p = PICKS[i];
+			if (pick !== "auto" && p[3] !== pick) continue;
 			name = lang === "zh" ? PICKG[p[0]][0] : PICKG[p[0]][1];
 			if (!cur || cur.g !== name) {
 				cur = { g: name, items: [] };
