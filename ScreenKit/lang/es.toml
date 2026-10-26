@@ -4694,3 +4694,4 @@ web.rverb.novoice = "La voz rusa no está instalada. Abre «Instalar funciones �
 web.verb.tdict = "Diccionario"
 web.verb.tcalc = "Cálculo"
 tts.engine.chrome.tip = "Las voces de Google en Chrome se sintetizan en línea. Si no se llega a Google no sonará nada: use un proxy o un motor local."
+inst.chrome.langpack = "paquete de idioma"

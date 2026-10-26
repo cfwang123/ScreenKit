@@ -4694,3 +4694,4 @@ web.rverb.novoice = "ロシア語の音声がインストールされていま�
 web.verb.tdict = "辞書"
 web.verb.tcalc = "計算"
 tts.engine.chrome.tip = "Chrome の Google 音声はオンライン合成です。Google に接続できないと音が出ないため、プロキシを使うかローカル音声エンジンに切り替えてください。"
+inst.chrome.langpack = "言語パック"

@@ -118,7 +118,7 @@ static class ChromePack {
 		foreach (var v in voices) {
 			if (v.Kind != "tts" || v.Lang != "zh-CN") continue;
 			hasZh = true;
-			if (v.Detail.Length > 0 && v.Detail != "6个发音人") return 2;
+			if (v.Detail.Length > 0 && v.Detail != Loc.T("inst.chrome.langpack")) return 2;
 		}
 		if (!hasZh) return 2;
 		if (basespeakers("zh-CN").Count != 6) return 2;
@@ -672,7 +672,8 @@ static class ChromePack {
 		}
 		foreach (var it in map.Values) {
 			if (!counts.TryGetValue(it.Lang, out var n) || n <= 0) continue;
-			it.Detail = n + "个发音人";
+			// 装的是这个语言的语音语言包，里面的发音人 desktop Chrome 用不到，不按发音人计数
+			it.Detail = Loc.T("inst.chrome.langpack");
 		}
 		var list = new List<ChromePackItem>(map.Values);
 		list.Sort((a, b) => string.Compare(a.Lang, b.Lang, StringComparison.OrdinalIgnoreCase));

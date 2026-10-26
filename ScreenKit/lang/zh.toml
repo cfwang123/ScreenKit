@@ -4828,3 +4828,4 @@ web.rverb.novoice = "未安装俄语语音，无法发音。请打开「安装�
 web.verb.tdict = "查词"
 web.verb.tcalc = "计算"
 tts.engine.chrome.tip = "Chrome 的 Google 声音是联网合成的：网络访问不到 Google 时可能一直没声音，请开代理，或改用本机语音引擎。"
+inst.chrome.langpack = "语言包"

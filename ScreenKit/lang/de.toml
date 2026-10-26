@@ -4694,3 +4694,4 @@ web.rverb.novoice = "Die russische Sprachausgabe ist nicht installiert. Öffnen 
 web.verb.tdict = "Wörterbuch"
 web.verb.tcalc = "Berechnung"
 tts.engine.chrome.tip = "Chroms Google-Stimmen werden online erzeugt. Ohne Zugang zu Google bleibt es stumm: Proxy verwenden oder eine lokale Engine wählen."
+inst.chrome.langpack = "Sprachpaket"

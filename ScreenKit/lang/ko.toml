@@ -4694,3 +4694,4 @@ web.rverb.novoice = "러시아어 음성이 설치되어 있지 않습니다. «
 web.verb.tdict = "사전"
 web.verb.tcalc = "계산"
 tts.engine.chrome.tip = "Chrome의 Google 음성은 온라인 합성입니다. Google에 접속할 수 없으면 소리가 나지 않으니 프록시를 쓰거나 로컬 음성 엔진으로 바꾸세요."
+inst.chrome.langpack = "언어 팩"

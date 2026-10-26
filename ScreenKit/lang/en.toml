@@ -4828,3 +4828,4 @@ web.rverb.novoice = "Russian speech is not installed. Open Install features → 
 web.verb.tdict = "Dict"
 web.verb.tcalc = "Calc"
 tts.engine.chrome.tip = "Chrome's Google voices are synthesized online. If Google is unreachable nothing plays, so use a proxy or switch to a local engine."
+inst.chrome.langpack = "language pack"
