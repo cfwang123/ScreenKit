@@ -256,6 +256,9 @@ static class ChromeTts {
 			if (Voices.FindAll(v => v.Source == "chrome" && v.Culture == "zh-CN").Count != 1) return 2;
 			foreach (var v in Voices)
 				if (v.Source == "chrome" && (v.Name ?? "").StartsWith("Chrome OS", StringComparison.OrdinalIgnoreCase)) return 2;
+			// 粤语要单独筛，不能因为 zh-HK 这个区域性又算回中文。
+			var yue = new SapiVoiceItem { Name = "Google 粤語（香港）", Culture = "zh-HK", Lang = TtsLang.Yue, Source = "chrome" };
+			if (TtsLang.VoiceMatches(yue, TtsLang.Zh) || !TtsLang.VoiceMatches(yue, TtsLang.Yue)) return 2;
 			if (ChildCount(Process.GetCurrentProcess().Id) < 0) return 2;
 			if (TryRun(out _)) return 2;
 			return 0;

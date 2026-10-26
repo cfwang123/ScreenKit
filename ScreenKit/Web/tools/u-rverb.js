@@ -617,6 +617,8 @@
 	var NOUN_PLNOM = { "палец": "пальцы" };
 	var timer = 0;
 	var clip = null;
+	var clipUrl = null;
+	var speakSeq = 0;
 
 	function build(word, lang, opt){
 		lang = lang || "zh";
@@ -1680,14 +1682,41 @@
 			try { clip.pause(); } catch (e) {}
 			clip = null;
 		}
-		var audio = new Audio("/api/dict/speak?text=" + encodeURIComponent(text) + "&lang=ru");
-		clip = audio;
-		audio.onerror = function(){
-			if (clip === audio) SK.msg("box-msg", tx("web.rverb.nospeak", "无法发音"), true);
-		};
-		var played = audio.play();
-		if (played && played.then) played.then(function(){}, function(){
-			if (clip === audio) SK.msg("box-msg", tx("web.rverb.nospeak", "无法发音"), true);
+		if (clipUrl) {
+			try { URL.revokeObjectURL(clipUrl); } catch (e) {}
+			clipUrl = null;
+		}
+		var seq = ++speakSeq;
+		fetch("/api/dict/speak?text=" + encodeURIComponent(text) + "&lang=ru").then(function(r){
+			var ct = r.headers.get("content-type") || "";
+			if (ct.indexOf("audio") < 0) return r.json().then(function(j){ throw j || {}; });
+			return r.blob();
+		}).then(function(b){
+			if (seq !== speakSeq) return;
+			var url = URL.createObjectURL(b);
+			var audio = new Audio(url);
+			clip = audio;
+			clipUrl = url;
+			audio.onended = function(){
+				if (clipUrl === url) {
+					try { URL.revokeObjectURL(url); } catch (e) {}
+					clipUrl = null;
+				}
+			};
+			audio.onerror = function(){
+				if (clip === audio) SK.msg("box-msg", tx("web.rverb.nospeak", "无法发音"), true);
+			};
+			var played = audio.play();
+			if (played && played.then) played.then(function(){}, function(){
+				if (clip === audio) SK.msg("box-msg", tx("web.rverb.nospeak", "无法发音"), true);
+			});
+		}).catch(function(j){
+			if (seq !== speakSeq) return;
+			if (j && j.error === "novoice") {
+				SK.msg("box-msg", tx("web.rverb.novoice", "未安装俄语语音，无法发音。请打开「安装功能 → Windows语音合成」，勾选俄语并安装，装好后重启 ScreenKit。"), true);
+				return;
+			}
+			SK.msg("box-msg", (j && (j.data || j.message)) || tx("web.rverb.nospeak", "无法发音"), true);
 		});
 	}
 

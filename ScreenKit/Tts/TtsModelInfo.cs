@@ -123,6 +123,14 @@ static class TtsLang {
 		}
 		return have == want;
 	}
+
+	/// <summary>发音人是否属于筛选语言。Lang 有值时只认 Lang，粤语（zh-HK）不会被算进中文。</summary>
+	public static bool VoiceMatches(SapiVoiceItem v, string want) {
+		if (v == null) return false;
+		if (string.IsNullOrEmpty(want)) return true;
+		var have = string.IsNullOrEmpty(v.Lang) ? v.Culture : v.Lang;
+		return Match(have, want);
+	}
 }
 
 /// <summary>性别标签：male / female；可空表示未知。</summary>

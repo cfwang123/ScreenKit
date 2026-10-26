@@ -988,9 +988,7 @@ public partial class MainWindow {
 
 	static bool winrtvoicematches(SapiVoiceItem v, string wantLang, string wantGender) {
 		if (v == null) return false;
-		if (!string.IsNullOrEmpty(wantLang) && !TtsLang.Match(v.Lang, wantLang)
-			&& !TtsLang.Match(v.Culture, wantLang))
-			return false;
+		if (!string.IsNullOrEmpty(wantLang) && !TtsLang.VoiceMatches(v, wantLang)) return false;
 		if (!string.IsNullOrEmpty(wantGender) && !string.IsNullOrEmpty(v.Gender)
 			&& !TtsGender.Match(v.Gender, wantGender))
 			return false;
