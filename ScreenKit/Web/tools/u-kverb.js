@@ -97,6 +97,7 @@
 		a: ["形容词", "형용사", "adjective"],
 		itda: ["있다", "있다", "있다"],
 		ida: ["이다", "이다", "이다"],
+		noun: ["名词", "명사", "noun"],
 		anida: ["아니다", "아니다", "아니다"],
 		d: ["ㄷ 不规则", "ㄷ 불규칙", "ㄷ irregular"],
 		b: ["ㅂ 不规则", "ㅂ 불규칙", "ㅂ irregular"],
@@ -238,60 +239,104 @@
 		hagesug: ["对等语劝诱", "하게체 청유", "familiar suggestion"]
 	};
 	var PICKG = {
-		common: ["常见", "자주", "Common"],
-		irr: ["特殊变化", "불규칙", "Irregular"]
+		v: ["动词", "동사", "Verbs"],
+		a: ["形容词", "형용사", "Adjectives"],
+		n: ["名词", "명사", "Nouns"]
 	};
 	var PICKS = [
-		["common", "먹다", "吃", "", "eat"],
-		["common", "가다", "去", "", "go"],
-		["common", "오다", "来", "", "come"],
-		["common", "하다", "做", "", "do"],
-		["common", "되다", "成为", "", "become"],
-		["common", "보다", "看", "", "see"],
-		["common", "주다", "给", "", "give"],
-		["common", "사다", "买", "", "buy"],
-		["common", "만나다", "见面", "", "meet"],
-		["common", "읽다", "读", "", "read"],
-		["common", "알다", "知道", "", "know"],
-		["common", "살다", "住", "", "live"],
-		["common", "만들다", "制作", "", "make"],
-		["common", "마시다", "喝", "", "drink"],
-		["common", "배우다", "学习", "", "learn"],
-		["common", "기다리다", "等待", "", "wait"],
-		["common", "공부하다", "学习", "", "study"],
-		["common", "좋아하다", "喜欢", "", "like"],
-		["common", "일하다", "工作", "", "work"],
-		["common", "닫다", "关", "", "close"],
-		["common", "믿다", "相信", "", "believe"],
-		["common", "잡다", "抓", "", "catch"],
-		["common", "웃다", "笑", "", "laugh"],
-		["irr", "듣다", "听 · ㄷ", "ㄷ", "listen · ㄷ"],
-		["irr", "걷다", "走 · ㄷ", "ㄷ", "walk · ㄷ"],
-		["irr", "묻다", "问 · ㄷ", "ㄷ", "ask · ㄷ"],
-		["irr", "돕다", "帮 · ㅂ", "ㅂ", "help · ㅂ"],
-		["irr", "춥다", "冷 · ㅂ", "ㅂ", "cold · ㅂ"],
-		["irr", "짓다", "建 · ㅅ", "ㅅ", "build · ㅅ"],
-		["irr", "낫다", "愈 · ㅅ", "ㅅ", "recover · ㅅ"],
-		["irr", "그렇다", "那样 · ㅎ", "ㅎ", "so · ㅎ"],
-		["irr", "파랗다", "蓝 · ㅎ", "ㅎ", "blue · ㅎ"],
-		["irr", "어떻다", "怎样 · ㅎ", "ㅎ", "how · ㅎ"],
-		["irr", "모르다", "不知 · 르", "르", "not know · 르"],
-		["irr", "부르다", "叫 · 르", "르", "call · 르"],
-		["irr", "빠르다", "快 · 르", "르", "fast · 르"],
-		["irr", "따르다", "跟随 · ㅡ", "ㅡ", "follow · ㅡ"],
-		["irr", "쓰다", "写 · ㅡ", "ㅡ", "write · ㅡ"],
-		["irr", "예쁘다", "漂亮 · ㅡ", "ㅡ", "pretty · ㅡ"],
-		["irr", "아프다", "疼 · ㅡ", "ㅡ", "hurt · ㅡ"],
-		["irr", "모으다", "收集 · ㅡ", "ㅡ", "gather · ㅡ"],
-		["irr", "푸르다", "青绿 · 러", "러", "green · 러"],
-		["irr", "놓다", "放", "", "put"],
-		["irr", "가시다", "去 · 敬语", "높임", "go · honorific"],
-		["irr", "계시다", "在 · 敬语", "높임", "stay · honorific"],
-		["irr", "있다", "有", "", "exist"],
-		["irr", "없다", "没有", "", "not exist"],
-		["irr", "행복하다", "幸福 · 하다", "하다", "happy · 하다"],
-		["irr", "학생이다", "是学生", "", "be a student"],
-		["irr", "아니다", "不是", "", "not be"]
+		["v", "먹다", "吃", "", "eat"],
+		["v", "가다", "去", "", "go"],
+		["v", "오다", "来", "", "come"],
+		["v", "하다", "做", "", "do"],
+		["v", "되다", "成为", "", "become"],
+		["v", "보다", "看", "", "see"],
+		["v", "주다", "给", "", "give"],
+		["v", "사다", "买", "", "buy"],
+		["v", "만나다", "见面", "", "meet"],
+		["v", "읽다", "读", "", "read"],
+		["v", "알다", "知道", "", "know"],
+		["v", "살다", "住", "", "live"],
+		["v", "만들다", "制作", "", "make"],
+		["v", "마시다", "喝", "", "drink"],
+		["v", "배우다", "学习", "", "learn"],
+		["v", "기다리다", "等待", "", "wait"],
+		["v", "공부하다", "学习", "하다", "study"],
+		["v", "좋아하다", "喜欢", "하다", "like"],
+		["v", "일하다", "工作", "하다", "work"],
+		["v", "닫다", "关", "", "close"],
+		["v", "믿다", "相信", "", "believe"],
+		["v", "잡다", "抓", "", "catch"],
+		["v", "웃다", "笑", "", "laugh"],
+		["v", "놓다", "放", "", "put"],
+		["v", "듣다", "听 · ㄷ", "ㄷ", "listen · ㄷ"],
+		["v", "걷다", "走 · ㄷ", "ㄷ", "walk · ㄷ"],
+		["v", "묻다", "问 · ㄷ", "ㄷ", "ask · ㄷ"],
+		["v", "돕다", "帮 · ㅂ", "ㅂ", "help · ㅂ"],
+		["v", "짓다", "建 · ㅅ", "ㅅ", "build · ㅅ"],
+		["v", "낫다", "愈 · ㅅ", "ㅅ", "recover · ㅅ"],
+		["v", "모르다", "不知 · 르", "르", "not know · 르"],
+		["v", "부르다", "叫 · 르", "르", "call · 르"],
+		["v", "따르다", "跟随 · ㅡ", "ㅡ", "follow · ㅡ"],
+		["v", "쓰다", "写 · ㅡ", "ㅡ", "write · ㅡ"],
+		["v", "모으다", "收集 · ㅡ", "ㅡ", "gather · ㅡ"],
+		["v", "가시다", "去 · 敬语", "높임", "go · honorific"],
+		["v", "계시다", "在 · 敬语", "높임", "stay · honorific"],
+		["a", "좋다", "好", "", "good"],
+		["a", "많다", "多", "", "many"],
+		["a", "크다", "大", "", "big"],
+		["a", "작다", "小", "", "small"],
+		["a", "높다", "高", "", "high"],
+		["a", "낮다", "低", "", "low"],
+		["a", "길다", "长", "", "long"],
+		["a", "짧다", "短", "", "short"],
+		["a", "멀다", "远", "", "far"],
+		["a", "넓다", "宽", "", "wide"],
+		["a", "좁다", "窄", "", "narrow"],
+		["a", "빠르다", "快 · 르", "르", "fast · 르"],
+		["a", "다르다", "不同 · 르", "르", "different · 르"],
+		["a", "예쁘다", "漂亮 · ㅡ", "ㅡ", "pretty · ㅡ"],
+		["a", "아프다", "疼 · ㅡ", "ㅡ", "hurt · ㅡ"],
+		["a", "바쁘다", "忙 · ㅡ", "ㅡ", "busy · ㅡ"],
+		["a", "가깝다", "近 · ㅂ", "ㅂ", "near · ㅂ"],
+		["a", "춥다", "冷 · ㅂ", "ㅂ", "cold · ㅂ"],
+		["a", "덥다", "热 · ㅂ", "ㅂ", "hot · ㅂ"],
+		["a", "어렵다", "难 · ㅂ", "ㅂ", "difficult · ㅂ"],
+		["a", "쉽다", "容易 · ㅂ", "ㅂ", "easy · ㅂ"],
+		["a", "맵다", "辣 · ㅂ", "ㅂ", "spicy · ㅂ"],
+		["a", "무겁다", "重 · ㅂ", "ㅂ", "heavy · ㅂ"],
+		["a", "가볍다", "轻 · ㅂ", "ㅂ", "light · ㅂ"],
+		["a", "아름답다", "美 · ㅂ", "ㅂ", "beautiful · ㅂ"],
+		["a", "그렇다", "那样 · ㅎ", "ㅎ", "so · ㅎ"],
+		["a", "파랗다", "蓝 · ㅎ", "ㅎ", "blue · ㅎ"],
+		["a", "어떻다", "怎样 · ㅎ", "ㅎ", "how · ㅎ"],
+		["a", "푸르다", "青绿 · 러", "러", "green · 러"],
+		["a", "있다", "有", "", "exist"],
+		["a", "없다", "没有", "", "not exist"],
+		["a", "행복하다", "幸福 · 하다", "하다", "happy · 하다"],
+		["v", "아니다", "不是", "", "not be"],
+		["n", "학생", "学生", "", "student"],
+		["n", "선생님", "老师", "", "teacher"],
+		["n", "사람", "人", "", "person"],
+		["n", "친구", "朋友", "", "friend"],
+		["n", "물", "水", "", "water"],
+		["n", "밥", "饭", "", "rice"],
+		["n", "책", "书", "", "book"],
+		["n", "집", "家", "", "house"],
+		["n", "학교", "学校", "", "school"],
+		["n", "회사", "公司", "", "company"],
+		["n", "한국", "韩国", "", "Korea"],
+		["n", "서울", "首尔", "", "Seoul"],
+		["n", "시간", "时间", "", "time"],
+		["n", "돈", "钱", "", "money"],
+		["n", "이름", "名字", "", "name"],
+		["n", "의사", "医生", "", "doctor"],
+		["n", "커피", "咖啡", "", "coffee"],
+		["n", "고양이", "猫", "", "cat"],
+		["n", "바다", "海", "", "sea"],
+		["n", "꽃", "花", "", "flower"],
+		["n", "음식", "食物", "", "food"],
+		["n", "영화", "电影", "", "movie"],
+		["n", "컴퓨터", "电脑", "", "computer"]
 	];
 	var clip = null;
 
@@ -324,12 +369,13 @@
 	function body(){
 		return '<p class="hint" id="kv-hint"></p>'
 			+ '<div class="row" id="kv-row">'
-			+ '<label id="kv-word">' + SK.combo("kv-in", "먹다", "词典形，如 먹다、하다、예쁘다") + "</label>"
 			+ '<label id="kv-type"><select id="kv-sel">'
 			+ '<option value="auto"></option>'
 			+ '<option value="v"></option>'
 			+ '<option value="a"></option>'
+			+ '<option value="n"></option>'
 			+ "</select></label>"
+			+ '<label id="kv-word">' + SK.combo("kv-in", "먹다", "词典形，如 먹다、예쁘다、학생") + "</label>"
 			+ "</div>"
 			+ '<div id="kv-out"></div>';
 	}
@@ -338,20 +384,26 @@
 		var hint = F.id("kv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.kverb.hint");
-			hint.textContent = tx("web.kverb.hint", "输入词典形（以 다 结尾）。自动区分动词和形容词，也可以改类型。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词加 이다（如 학생이다）按词尾变化。");
+			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。");
 		}
 		var title = F.id("box-title");
 		if (title) title.textContent = tx("web.tool.kverb", "韩语动词变化");
-		setlab("kv-word", "web.kverb.word", "动词");
+		setlab("kv-word", "web.kverb.word", "词典形");
 		setlab("kv-type", "web.kverb.type", "类型");
 		SK.combofill("kv-in", pickgroups());
 		setopt("auto", "web.kverb.auto", "自动");
 		setopt("v", "web.kverb.verb", "动词");
 		setopt("a", "web.kverb.adj", "形容词");
+		setopt("n", "web.kverb.noun", "名词");
+		var sel = F.id("kv-sel");
+		if (sel && !F.attr(sel, "data-bind")) {
+			F.seta(sel, "data-bind", "1");
+			sel.onchange = ontype;
+		}
 		var box = F.id("kv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.kverb.ph");
-			box.placeholder = tx("web.kverb.ph", "词典形，如 먹다、하다、예쁘다");
+			box.placeholder = tx("web.kverb.ph", "词典形，如 먹다、예쁘다、학생");
 		}
 		var out = F.id("kv-out");
 		if (out && !F.attr(out, "data-bind")) {
@@ -361,13 +413,22 @@
 		run();
 	}
 
+	// 换了类型就把下拉限制成这一类；自动时列全部
+	function ontype(){
+		SK.combofill("kv-in", pickgroups());
+		run();
+	}
+
 	function pickgroups(){
 		var lang = langcode();
+		var sel = F.id("kv-sel");
+		var pick = sel ? sel.value : "auto";
 		var groups = [];
 		var cur = null;
 		var i, row, gloss, name;
 		for (i = 0; i < PICKS.length; i++) {
 			row = PICKS[i];
+			if (pick !== "auto" && row[0] !== pick) continue;
 			name = lp(lang, PICKG[row[0]]);
 			if (!cur || cur.g !== name) {
 				cur = { g: name, items: [] };
@@ -949,6 +1010,16 @@
 		force = force || "auto";
 		if (!word) return { ok: true, rows: [], note: "", word: "", kind: "", irr: "" };
 		var all = decAll(word);
+		// 名词类型：词本身按 이다 变化；已经写成 …이다 的也认
+		if (force === "n") {
+			if (!all || !all.length) return { ok: false, err: lp(lang, NOTE.bad), rows: [] };
+			if (word === "아니다") return pack(word, "anida", "", anidaRows(word, lang), lang);
+			var nw = word === "이다" || (word.length > 2 && word.slice(-2) === "이다") ? word : word + "이다";
+			return pack(word, "noun", "", copulaRows(nw, lang), lang);
+		}
+		// 自动：不带动词词尾时按名词 + 이다
+		if (all && all.length && word.charAt(word.length - 1) !== "다")
+			return pack(word, "noun", "", copulaRows(word + "이다", lang), lang);
 		if (!all || word.charAt(word.length - 1) !== "다" || all.length < 2)
 			return { ok: false, err: lp(lang, NOTE.bad), rows: [] };
 		if (word === "아니다") return pack(word, "anida", "", anidaRows(word, lang), lang);
