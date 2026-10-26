@@ -682,7 +682,7 @@
 			row(L.ba, s + "ければ、" + s + "くなければ"),
 			row(L.tara, s + "かったら、" + s + "くなかったら"),
 			row(L.naru, s + "くなる"),
-			row(L.souda, irri(word) ? s + "さそうだ" : s + "そうだ"),
+			row(L.souda, (irri(word) ? s + "さそうだ" : s + "そうだ") + "、" + s + "くなさそうだ"),
 			row(L.sugiru, s + "すぎる"),
 			row(L.sa, s + "さ"),
 			row(L.darou, word + "だろう、" + s + "くないだろう、" + s + "かっただろう、" + s + "くなかっただろう"),
@@ -732,7 +732,7 @@
 			row(L.tara, word + "だったら、" + word + "ではなかったら"),
 			row(L.naru, word + "になる"),
 			row(L.dearu, word + "である、" + word + "ではない"),
-			row(L.souda, word + "そうだ"),
+			row(L.souda, word + "そうだ、" + word + "じゃなさそうだ"),
 			row(L.sugiru, word + "すぎる"),
 			row(L.sa, word + "さ"),
 			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
@@ -817,7 +817,7 @@
 			row(L.tte, plain + "って、" + nai + "って")
 		]);
 		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
-			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, verbforms(plain, masu, nai, te, ta)),
+			rows: rows.concat(auxrows(L, plain, masu, te, nai), evidrows(L, verbforms(plain, masu, nai, te, ta)),
 				patternrows(L, verbforms(plain, masu, nai, te, ta), "v"),
 				keigo(plain, masu, pas, L)) };
 	}
@@ -912,7 +912,7 @@
 
 	// 连用形、て形后面常接的补助动词，和敬体的劝诱・疑问，各成一组。
 	// ある・いる 是状态动词，なさる・くださる 本身是敬语，都不接这些。
-	function auxrows(L, plain, masu, te){
+	function auxrows(L, plain, masu, te, nai){
 		if (isAru(plain) || isStateIru(plain) || isSonkeAru(plain)) return [];
 		var ren = masu.slice(0, -2);
 		var rows = [
@@ -926,7 +926,7 @@
 			row(L.suginai, ren + "すぎない"),
 			row(L.yasui, ren + "やすい"),
 			row(L.nikui, ren + "にくい"),
-			row(L.souda, ren + "そうだ"),
+			row(L.souda, ren + "そうだ、" + nai.slice(0, -1) + "さそうだ"),
 			row(L.souni, ren + "そうに、" + ren + "そうな"),
 			row(L.kiru, ren + "きる"),
 			row(L.kireru, ren + "きれる"),

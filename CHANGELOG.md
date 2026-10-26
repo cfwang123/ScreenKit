@@ -78,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The te, ba, tara, darou, deshou, nda and tte rows also show their negative forms, and na-adjectives and nouns list the polite でござる and honorific でいらっしゃる copulas.
 - だろう / でしょう now also list the past affirmative and negative (学生だっただろう, 学生ではなかっただろう).
 - だろう also lists the contracted past presumptive 〜たろう (学生だったろう, 学生ではなかったろう).
+- The appearance そうだ rows now also list なさそうだ (食べなさそうだ, 高くなさそうだ, 静かじゃなさそうだ).
 
 #### Changed
 
@@ -171,6 +172,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - て形、ば形、たら、だろう、でしょう、なんだ、って 这些行也并列给出否定形；な形容词和名词补上「でござる」（丁重）和「でいらっしゃる」（尊敬）的说法。
 - だろう / でしょう 也列出过去肯定和否定（学生だっただろう、学生ではなかっただろう）。
 - だろう 补上缩略的过去推量「〜たろう」（学生だったろう、学生ではなかったろう）。
+- 样态「そうだ」行并列给出「なさそうだ」（食べなさそうだ、高くなさそうだ、静かじゃなさそうだ）。
 
 #### 变更
 
