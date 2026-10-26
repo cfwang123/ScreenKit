@@ -5,6 +5,29 @@
         FontFamily="Segoe UI, Microsoft YaHei UI"
         FontSize="13"
         AutomationProperties.AutomationId="dict.window">
+	<UserControl.Resources>
+		<DataTemplate x:Key="ConjRowTemplate">
+			<StackPanel>
+				<TextBlock Text="{Binding G}" Visibility="{Binding HeadVis}"
+				           FontWeight="SemiBold" Foreground="#8830A8"
+				           Margin="0,8,0,2" TextWrapping="Wrap"/>
+				<Grid Visibility="{Binding RowVis}">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="220"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Text="{Binding L}" Foreground="#285AAA"
+					           TextWrapping="Wrap" Margin="0,0,8,0"/>
+					<TextBlock Grid.Column="1" Text="{Binding V}" TextWrapping="Wrap"/>
+				</Grid>
+			</StackPanel>
+		</DataTemplate>
+		<Style x:Key="ConjItemStyle" TargetType="ListBoxItem">
+			<Setter Property="Padding" Value="2,0"/>
+			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+			<Setter Property="Focusable" Value="False"/>
+		</Style>
+	</UserControl.Resources>
 	<Grid Margin="10">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -88,14 +111,21 @@
 			</ListBox>
 			<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center"
 			              Background="{StaticResource BorderSoft}"/>
-			<RichTextBox x:Name="edetail" Grid.Column="2" Margin="8,0,0,0"
-			             IsReadOnly="True" IsReadOnlyCaretVisible="True" IsDocumentEnabled="True"
-			             VerticalScrollBarVisibility="Auto" FontSize="13"
-			             Padding="8,6" BorderBrush="{StaticResource BorderSoft}"
-			             ContextMenu="{x:Null}"
-			             AutomationProperties.AutomationId="dict.detail">
-				<FlowDocument PagePadding="2" FontSize="13"/>
-			</RichTextBox>
+			<TabControl x:Name="dtabc" Grid.Column="2" Margin="8,0,0,0"
+			            BorderThickness="1" BorderBrush="{StaticResource BorderSoft}"
+			            AutomationProperties.AutomationId="dict.tabs">
+				<TabItem x:Name="tabinfo" Header="词条详情"
+				         AutomationProperties.AutomationId="dict.tab.0">
+					<RichTextBox x:Name="edetail"
+					             IsReadOnly="True" IsReadOnlyCaretVisible="True" IsDocumentEnabled="True"
+					             VerticalScrollBarVisibility="Auto" FontSize="13"
+					             Padding="8,6" BorderThickness="0"
+					             ContextMenu="{x:Null}"
+					             AutomationProperties.AutomationId="dict.detail">
+						<FlowDocument PagePadding="2" FontSize="13"/>
+					</RichTextBox>
+				</TabItem>
+			</TabControl>
 		</Grid>
 		<TextBlock x:Name="lbstatus" Grid.Row="2" Margin="2,6,0,0" FontSize="12"
 		           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>

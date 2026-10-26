@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean verbs: North Korean (Munhwao), DPRK broadcast and Yanbian Korean endings, including -ㅂ네다, -습네다, hapsyo -ㅂ니다, -시였습니다, -리라, -ㅁ다/슴다 and -ㄴ다이.
 - The Japanese word-form tool now lists N5 to N1 verb patterns, classical (N0) forms and compound verbs, such as てもいい, てあげる, ざるを得ない and んばかり
 - Web dictionary: the detail pane now has tabs; verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English)
+- Main window dictionary: the detail pane now uses tabs; verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English)
 
 #### Changed
 
@@ -86,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP concurrency details: fx rates download outside the cache lock with a shared HttpClient, usb.ids loads once, reader uploads read the body outside the file lock, status caches model scans for 2 s, and the font/encoding tables initialize under a lock
 - LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
 - Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
+- Japanese word forms: N5-N0 grammar patterns now show at the end of the table
 
 #### Fixed
 
@@ -154,6 +156,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语动词变化：新增朝鲜文化语、朝鲜播音体和延边朝鲜语词尾，如 -ㅂ네다、-습네다、합쇼체 -ㅂ니다、-시였습니다、-리라、-ㅁ다/슴다、-ㄴ다이。
 - 日语词形变化新增 N5～N1 句型、文语（N0）和复合动词，如 てもいい、てあげる、ざるを得ない、んばかり
 - 网页词典：详情栏改为多标签，动词/形容词/名词词条多出可搜索的「形态变化」页（日、韩、英）
+- 主窗口词典：详情栏改成标签页，动词/形容词/名词词条多出可搜索的「形态变化」页（日、韩、英）
 
 #### 变更
 
@@ -180,6 +183,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 并发细节：汇率下载移出缓存锁并复用静态 HttpClient，usb.ids 单飞，reader 上传在锁外读请求体，status 的模型扫描缓存 2 秒，字体表/编码表加锁初始化
 - LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
 - 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
+- 日语词形变化：N5~N0 句型移到整张表的最后
 
 #### 修复
 

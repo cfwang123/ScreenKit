@@ -64,6 +64,8 @@ sealed class JpConjPacked {
 	public string err = "";
 	public string plain = "", masu = "", te = "", ta = "", nai = "", sub = "";
 	public List<ConjRow> rows = new();
+	/// <summary>要拼在整张表最后的行（N5~N0 句型）。</summary>
+	public List<ConjRow> tail;
 }
 
 /// <summary>敬语词条（lexOf）与生产型敬语（prodOf）用的小结构。</summary>
@@ -253,6 +255,7 @@ static class JpConj {
 		if (flag == "iku" || (isiku(word) && kind == "1")) name += " · " + L.iku;
 		var rows = pk.rows;
 		if (kind != "ai" && kind != "an" && kind != "n") rows.AddRange(dialectrows(word, kind, pk, L));
+		if (pk.tail != null) rows.AddRange(pk.tail);
 		return new ConjResult { Ok = true, Head = word, Name = name, Rows = rows };
 	}
 
@@ -809,13 +812,14 @@ static class JpConj {
 		rows.Add(row(L.takunai, cut(tai, 2) + "たくない"));
 		rows.Add(row(L.nda, plain + "んだ、" + nai + "んだ"));
 		rows.Add(row(L.tte, plain + "って、" + nai + "って"));
-		rows.AddRange(JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, cau)));
 		rows.AddRange(auxrows(L, plain, masu, te, nai));
 		rows.AddRange(evidrows(L, verbforms(plain, masu, nai, te, ta)));
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
 		rows.AddRange(naihaseirows(L, nai));
 		rows.AddRange(keigo(plain, masu, pas, L));
-		return new JpConjPacked { plain = plain, masu = masu, te = te, ta = ta, nai = nai, rows = rows };
+		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
+		var tail = JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, cau));
+		return new JpConjPacked { plain = plain, masu = masu, te = te, ta = ta, nai = nai, rows = rows, tail = tail };
 	}
 
 	// 语气句型用的接续形（动词）。

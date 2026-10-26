@@ -38,6 +38,29 @@ public sealed class DictRow : INotifyPropertyChanged {
 	public override string ToString() => Title ?? "";
 }
 
+/// <summary>形态变化页的一行：组标题行，或「形态名 / 变形」两列。</summary>
+public sealed class ConjItem {
+	public string G { get; set; } = "";
+	public string L { get; set; } = "";
+	public string V { get; set; } = "";
+	public Visibility HeadVis { get; set; } = Visibility.Collapsed;
+	public Visibility RowVis { get; set; } = Visibility.Visible;
+}
+
+/// <summary>词条能变形的词性：动词、形容词、名词；日语动词再带五段/一段/サ変/カ変。</summary>
+sealed class ConjCat {
+	public string Cat = "", Kind = "", Sub = "";
+}
+
+/// <summary>一个「形态变化」标签页：自己的过滤框、计数和列表。</summary>
+sealed class ConjPane {
+	public TabItem Tab;
+	public TextBox Q;
+	public TextBlock Cnt;
+	public ListBox List;
+	public List<ConjRow> Rows;
+}
+
 sealed class DictSelRow {
 	public long Id { get; set; }
 	public string Word { get; set; } = "";
@@ -94,6 +117,9 @@ public partial class DictWindow : UserControl {
 	bool selbarsync;
 	bool outdict;
 	bool keepscroll;
+	List<ConjCat> concats = new();
+	List<ConjPane> conjpanes = new();
+	int conjgen;
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
 	public Action<string> OnTranslate;
@@ -126,6 +152,9 @@ public partial class DictWindow : UserControl {
 		lhits.SelectionChanged += (_, _) => {
 			if (filling) return;
 			if (lhits.SelectedItem is DictRow row) loaddetail(row);
+		};
+		dtabc.SelectionChanged += (_, _) => {
+			if (dtabc.SelectedIndex > 0) loadconj(dtabc.SelectedIndex - 1);
 		};
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
 		bspeak.Click += (_, _) => _ = speak(curspeak, speaklang(curlang));
@@ -738,6 +767,10 @@ public partial class DictWindow : UserControl {
 		curword = "";
 		curspeak = "";
 		curlang = "";
+		concats.Clear();
+		for (var i = conjpanes.Count - 1; i >= 0; i--) dtabc.Items.Remove(conjpanes[i].Tab);
+		conjpanes.Clear();
+		dtabc.SelectedIndex = 0;
 		edetail.Document = newdoc();
 	}
 
@@ -889,6 +922,158 @@ public partial class DictWindow : UserControl {
 		}
 		edetail.Document = doc;
 		edetail.ScrollToHome();
+		buildtabs(e);
+	}
+
+	// 详情栏的标签：词条详情 + 该词条能变形的词性各一个。
+	void buildtabs(DictEntry e) {
+		concats = catsof(e);
+		conjgen++;
+		for (var i = conjpanes.Count - 1; i >= 0; i--) dtabc.Items.Remove(conjpanes[i].Tab);
+		conjpanes.Clear();
+		tabinfo.Header = Loc.T("dict.tab.info");
+		for (var i = 0; i < concats.Count; i++) addconjtab(tablabel(concats[i]));
+		dtabc.SelectedIndex = 0;
+	}
+
+	void addconjtab(string header) {
+		var n = conjpanes.Count;
+		var pane = new ConjPane();
+		pane.Tab = new TabItem { Header = header };
+		pane.Tab.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.tab." + (n + 1));
+		var dock = new DockPanel();
+		var top = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
+		pane.Cnt = new TextBlock {
+			Margin = new Thickness(8, 0, 0, 0),
+			VerticalAlignment = VerticalAlignment.Center,
+			FontSize = 12,
+			Foreground = (Brush)FindResource("TextMuted"),
+		};
+		pane.Cnt.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.count." + n);
+		pane.Q = new TextBox {
+			Height = 28,
+			FontSize = 13,
+			Padding = new Thickness(8, 2, 8, 2),
+			VerticalContentAlignment = VerticalAlignment.Center,
+		};
+		pane.Q.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.search." + n);
+		var ci = n;
+		pane.Q.TextChanged += (_, _) => fillconj(ci);
+		DockPanel.SetDock(pane.Cnt, Dock.Right);
+		top.Children.Add(pane.Cnt);
+		top.Children.Add(pane.Q);
+		DockPanel.SetDock(top, Dock.Top);
+		dock.Children.Add(top);
+		pane.List = new ListBox {
+			BorderThickness = new Thickness(0),
+			ItemTemplate = (DataTemplate)FindResource("ConjRowTemplate"),
+			ItemContainerStyle = (Style)FindResource("ConjItemStyle"),
+		};
+		pane.List.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.list." + n);
+		ScrollViewer.SetHorizontalScrollBarVisibility(pane.List, ScrollBarVisibility.Disabled);
+		dock.Children.Add(pane.List);
+		pane.Tab.Content = dock;
+		conjpanes.Add(pane);
+		dtabc.Items.Add(pane.Tab);
+	}
+
+	static string tablabel(ConjCat c) => c.Cat switch {
+		"v" => Loc.T("dict.tab.verb"),
+		"a" => Loc.T("dict.tab.adj"),
+		_ => Loc.T("dict.tab.noun"),
+	};
+
+	// 词条能变形的词性。同一词性只出一个标签；日语动词按词典词性分五段/一段/サ変/カ変。
+	static List<ConjCat> catsof(DictEntry e) {
+		var outl = new List<ConjCat>();
+		var texts = new List<string>();
+		if (e.Pos.Length > 0) texts.Add(e.Pos);
+		foreach (var s in e.Senses) if (s.Pos.Length > 0) texts.Add(s.Pos);
+		var lang = (e.Dict ?? "").ToLowerInvariant();
+
+		void put(string cat, string kind, string sub) {
+			var hit = outl.Find(x => x.Cat == cat);
+			if (hit != null) {
+				if (hit.Kind.Length == 0 && kind.Length > 0) { hit.Kind = kind; hit.Sub = sub; }
+				return;
+			}
+			outl.Add(new ConjCat { Cat = cat, Kind = kind, Sub = sub });
+		}
+		foreach (var t in texts) {
+			if (lang == "ja") {
+				if (Has(t, "kuru verb")) put("v", "3", "kuru");
+				else if (Has(t, "suru verb") || Has(t, "aux. verb suru")) put("v", "3", "suru");
+				else if (Has(t, "ichidan verb")) put("v", "2", "");
+				else if (Has(t, "godan verb")) put("v", "1", "");
+				if (Has(t, "adjectival nouns")) put("a", "an", "");
+				else if (Has(t, "adjective")) put("a", "ai", "");
+				if (Has(t, "noun")) put("n", "", "");
+			}
+			else if (lang == "ko") {
+				if (Has(t, "verb") || Has(t, "동사")) put("v", "", "");
+				if (Has(t, "adjective") || Has(t, "형용사")) put("a", "", "");
+				if (Has(t, "noun") || Has(t, "명사")) put("n", "", "");
+			}
+			else if (lang == "en") {
+				var paren = t.TrimStart().StartsWith("(", StringComparison.Ordinal);
+				var part = Has(t, "past") || Has(t, "participle") || Has(t, "present");
+				if (Has(t, "verb") || (paren && part)) put("v", "", "");
+				if (Has(t, "adjective") || (paren && !part)) put("a", "", "");
+				if (Has(t, "noun")) put("n", "", "");
+			}
+		}
+		return outl;
+	}
+
+	static bool Has(string s, string bit) => s.IndexOf(bit, StringComparison.OrdinalIgnoreCase) >= 0;
+
+	void loadconj(int ci) {
+		if (ci < 0 || ci >= conjpanes.Count || ci >= concats.Count) return;
+		var pane = conjpanes[ci];
+		if (pane.Rows != null) return;
+		var cat = concats[ci];
+		var lang = curlang;
+		var ja = lang == "ja";
+		var word = curword;
+		if (ja && cat.Sub == "suru" && !word.EndsWith("する", StringComparison.Ordinal)) word += "する";
+		var g = ++conjgen;
+		pane.Cnt.Text = "";
+		Task.Run(() => {
+			try { return ConjApi.Build(lang, word, ja ? cat.Kind : "", "", ja ? "" : "", ja ? "" : cat.Cat, Loc.Lang); }
+			catch { return null; }
+		}).ContinueWith(t => Dispatcher.BeginInvoke(new Action(() => {
+			if (g != conjgen) return;
+			var r = t.Result;
+			if (r == null || !r.Ok) {
+				pane.Cnt.Text = r != null && r.Err != null && r.Err.Length > 0 ? r.Err : Loc.T("dict.conj.fail");
+				return;
+			}
+			pane.Rows = r.Rows;
+			fillconj(ci);
+		})));
+	}
+
+	void fillconj(int ci) {
+		if (ci < 0 || ci >= conjpanes.Count) return;
+		var pane = conjpanes[ci];
+		if (pane.Rows == null) return;
+		var k = (pane.Q.Text ?? "").Trim().ToLowerInvariant();
+		var items = new List<ConjItem>();
+		string last = null;
+		var n = 0;
+		foreach (var r in pane.Rows) {
+			if (k.Length > 0 && !(r.L + " " + r.V).ToLowerInvariant().Contains(k)) continue;
+			n++;
+			if (r.G != last) {
+				last = r.G;
+				if (!string.IsNullOrEmpty(last))
+					items.Add(new ConjItem { G = last, HeadVis = Visibility.Visible, RowVis = Visibility.Collapsed });
+			}
+			items.Add(new ConjItem { L = r.L, V = r.V });
+		}
+		if (n == 0) items.Add(new ConjItem { L = Loc.T("dict.conj.empty") });
+		pane.List.ItemsSource = items;
+		pane.Cnt.Text = string.Format(Loc.T("dict.conj.count"), n, pane.Rows.Count);
 	}
 
 	void openselpop() {
