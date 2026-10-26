@@ -1225,8 +1225,6 @@
 	function body(){
 		return '<p class="hint" id="ev-hint" data-k="web.everb.hint">' + esc(tr(LAB.hint)) + "</p>"
 			+ '<div class="row" id="ev-row">'
-			+ '<label id="ev-word"><span data-k="web.everb.word">' + esc(tr(LAB.word)) + "</span>"
-			+ SK.combo("ev-in", "walk", LAB.ph[0]) + "</label>"
 			+ '<label id="ev-type"><span data-k="web.everb.type">' + esc(tr(LAB.type)) + "</span>"
 			+ '<select id="ev-sel">'
 			+ '<option value="auto"></option>'
@@ -1234,6 +1232,8 @@
 			+ '<option value="a"></option>'
 			+ '<option value="n"></option>'
 			+ "</select></label>"
+			+ '<label id="ev-word"><span data-k="web.everb.word">' + esc(tr(LAB.word)) + "</span>"
+			+ SK.combo("ev-in", "walk", LAB.ph[0]) + "</label>"
 			+ "</div>"
 			+ '<div id="ev-out"></div>';
 	}
