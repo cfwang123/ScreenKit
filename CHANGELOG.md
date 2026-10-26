@@ -118,6 +118,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Voice install sends the reading shortcut to the browser window, not the empty Chrome widget.
 - Korean verbs: form the formal question correctly (갑니까, 삽니까)
 - Japanese ところだ lists all three forms: dictionary (about to), ta (just did) and te-iru (doing).
+- Chrome model page: the Chrome window now reaches 127.0.0.1 directly again, so the page shows which Chrome profile it is running in.
 
 ### 中文
 
@@ -195,6 +196,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安装语音时把朗读快捷键发给带页面的浏览器窗口，不再发给那个空白的 Chrome 窗口。
 - 韩语动词变化：修正敬语疑问形（갑니까、삽니까）
 - 日语 ところだ 列出三种：辞书形（即将）、た形（刚刚）、ている（正在）。
+- Chrome 模型页：Chrome 窗口访问 127.0.0.1 改回直连，页面重新显示当前用的 Chrome 配置目录。
 
 ## v1.0.29 (2026-10-23)
 

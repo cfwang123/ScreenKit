@@ -409,10 +409,30 @@ static class ChromeTts {
 		return cmd.Substring(i, end - i);
 	}
 
+	/// <summary>浏览器主进程（不是 --type= 子进程）。按可执行文件名认，命令里带 chrome 字样的别的不算。</summary>
 	static bool browserchrome(string cmd) {
 		if (string.IsNullOrEmpty(cmd)) return false;
-		if (cmd.IndexOf("chrome", StringComparison.OrdinalIgnoreCase) < 0) return false;
-		return cmd.IndexOf("--type=", StringComparison.OrdinalIgnoreCase) < 0;
+		if (cmd.IndexOf("--type=", StringComparison.OrdinalIgnoreCase) >= 0) return false;
+		var image = imagepath(cmd);
+		if (image.Length == 0) return false;
+		try {
+			var name = Path.GetFileName(image);
+			return name.Equals("chrome.exe", StringComparison.OrdinalIgnoreCase)
+				|| name.Equals("chromium.exe", StringComparison.OrdinalIgnoreCase);
+		}
+		catch { return false; }
+	}
+
+	/// <summary>命令行第一个词（可执行文件）。带引号时取到下一个引号。</summary>
+	static string imagepath(string cmd) {
+		var s = cmd.TrimStart();
+		if (s.Length == 0) return "";
+		if (s[0] == '"') {
+			var j = s.IndexOf('"', 1);
+			return j < 0 ? s.Substring(1) : s.Substring(1, j - 1);
+		}
+		var end = s.IndexOf(' ');
+		return end < 0 ? s : s.Substring(0, end);
 	}
 
 	static string userchrome() {

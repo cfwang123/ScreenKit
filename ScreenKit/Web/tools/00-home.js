@@ -342,11 +342,11 @@
 						"type":"button",
 						"data-tool":"u-everb",
 						"data-cat":"text",
-						"data-name":"英语 英文 动词 时态 一般现在时 一般过去时 一般将来时 现在进行时 现在完成时 过去完成时 将来完成时 过去将来 被动语态 否定 疑问 变形 conjugation tense verb",
-						"title":"输入英语动词原形，列出十六种时态、否定、疑问、被动和基本形式，每项可以发音",
+						"data-name":"英语 英文 动词 时态 一般现在时 一般过去时 一般将来时 现在进行时 现在完成时 过去完成时 将来完成时 过去将来 被动语态 否定 疑问 变形 conjugation tense verb 形容词 比较级 最高级 名词 复数 所有格 冠词 adjective noun plural",
+						"title":"输入英语动词、形容词或名词，列出时态变化、比较级和最高级、复数和所有格，每项可以发音",
 						c:[
 						{x:"i.fa-solid.fa-clock"},
-						{x:"span","data-k":"web.tool.everb",c:"英语动词时态"},
+						{x:"span","data-k":"web.tool.everb",c:"英语词形变化"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-everb","title":"收藏"}
 					]
 					},

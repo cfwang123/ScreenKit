@@ -263,26 +263,29 @@
 		return html;
 	}
 
+	// 下拉按词性分组：特殊（不规则的）在前，然后 1/2/3 类动词、い形容词、な形容词、名词。
+	// 选了类型就只列这一类的示例（不规则的词也按它实际的类归进去）。
 	function pickgroups(){
 		var lang = langcode();
 		var sel = F.id("jv-sel");
 		var pick = sel ? sel.value : "auto";
 		var groups = [];
-		var cur = null;
-		var i, p, name, gloss, show;
-		for (i = 0; i < PICKS.length; i++) {
-			p = PICKS[i];
-			if (pick !== "auto" && p[3] !== pick) continue;
-			name = lang === "zh" ? PICKG[p[0]][0] : PICKG[p[0]][1];
-			if (!cur || cur.g !== name) {
-				cur = { g: name, items: [] };
-				groups.push(cur);
+		var i, j, p, key, items, gloss, show;
+		for (i = 0; i < PICKORD.length; i++) {
+			key = PICKORD[i];
+			if (pick !== "auto" && pick !== key) continue;
+			items = [];
+			for (j = 0; j < PICKS.length; j++) {
+				p = PICKS[j];
+				if (p[3] !== key) continue;
+				gloss = lang === "zh" ? p[6] : p[7];
+				show = p[1];
+				if (p[2] && p[2] !== p[1]) show += "  " + p[2];
+				if (gloss) show += "  " + gloss;
+				items.push({ v: p[1], t: show });
 			}
-			gloss = lang === "zh" ? p[6] : p[7];
-			show = p[1];
-			if (p[2] && p[2] !== p[1]) show += "  " + p[2];
-			if (gloss) show += "  " + gloss;
-			cur.items.push({ v: p[1], t: show });
+			if (!items.length) continue;
+			groups.push({ g: lang === "zh" ? PICKNAME[key][0] : PICKNAME[key][1], items: items });
 		}
 		return groups;
 	}

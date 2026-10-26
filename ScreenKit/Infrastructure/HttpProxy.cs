@@ -17,7 +17,9 @@ sealed class HttpProxy : IWebProxy {
 	/// <summary>system / manual / off。</summary>
 	public static string Mode = "system";
 
-	const string CHROMEBYPASS = "<-loopback>;<local>;*.cn;10.0.0.0/8;172.16.0.0/12;192.168.0.0/16;169.254.0.0/16;"
+	// 回环、内网、.cn、国内镜像直连。不要加 <-loopback>：它会把回环从 Chrome 自带的绕过表里减掉，
+	// 连 127.0.0.1 的本机页面也交给代理，服务端就认不出是哪次 Chrome 在访问。
+	const string CHROMEBYPASS = "<local>;*.cn;10.0.0.0/8;172.16.0.0/12;192.168.0.0/16;169.254.0.0/16;"
 		+ "hf-mirror.com;*.hf-mirror.com;ghfast.top;*.ghfast.top;ghproxy.net;*.ghproxy.net;"
 		+ "ghproxy.com;*.ghproxy.com;ghproxy.org;*.ghproxy.org;mirror.ghproxy.com;ghps.cc;*.ghps.cc";
 
