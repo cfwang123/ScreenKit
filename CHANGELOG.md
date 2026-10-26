@@ -77,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese modality rows now show the affirmative and negative side by side, e.g. 学生だそうだ / 学生ではないそうだ.
 - The te, ba, tara, darou, deshou, nda and tte rows also show their negative forms, and na-adjectives and nouns list the polite でござる and honorific でいらっしゃる copulas.
 - だろう / でしょう now also list the past affirmative and negative (学生だっただろう, 学生ではなかっただろう).
+- だろう also lists the contracted past presumptive 〜たろう (学生だったろう, 学生ではなかったろう).
 
 #### Changed
 
@@ -169,6 +170,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语语气句型的肯定和否定并列显示，如 学生だそうだ / 学生ではないそうだ。
 - て形、ば形、たら、だろう、でしょう、なんだ、って 这些行也并列给出否定形；な形容词和名词补上「でござる」（丁重）和「でいらっしゃる」（尊敬）的说法。
 - だろう / でしょう 也列出过去肯定和否定（学生だっただろう、学生ではなかっただろう）。
+- だろう 补上缩略的过去推量「〜たろう」（学生だったろう、学生ではなかったろう）。
 
 #### 变更
 

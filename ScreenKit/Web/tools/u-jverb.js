@@ -582,7 +582,7 @@
 			ai: "い形容词", an: "な形容词", nn: "名词", badai: "い形容词要以い结尾",
 			pol: "丁宁形", polneg: "丁宁否定", polpast: "丁宁过去", polpastneg: "丁宁过去否定",
 			adv: "副词形", naru: "なる", sa: "さ", rentai: "连体形",
-			darou: "だろう", deshou: "でしょう", dearu: "である",
+			darou: "だろう", deshou: "でしょう", tarou: "たろう", dearu: "である",
 			nda: "んだ", nanda: "なんだ", tte: "って",
 			evid: "传闻・推量", tasouda: "たそうだ", rashii: "らしい", youda: "ようだ",
 			mitaida: "みたいだ", kamoshirenai: "かもしれない", hazuda: "はずだ",
@@ -626,7 +626,7 @@
 			ai: "i-adjective", an: "na-adjective", nn: "noun", badai: "An i-adjective must end with い",
 			pol: "polite", polneg: "polite negative", polpast: "polite past", polpastneg: "polite past negative",
 			adv: "adverbial", naru: "naru", sa: "sa", rentai: "attributive",
-			darou: "darou", deshou: "deshou", dearu: "dearu",
+			darou: "darou", deshou: "deshou", tarou: "tarou", dearu: "dearu",
 			nda: "nda", nanda: "nanda", tte: "tte",
 			evid: "Hearsay / conjecture", tasouda: "ta + souda", rashii: "rashii", youda: "youda",
 			mitaida: "mitaida", kamoshirenai: "kamoshirenai", hazuda: "hazuda",
@@ -687,6 +687,7 @@
 			row(L.sa, s + "さ"),
 			row(L.darou, word + "だろう、" + s + "くないだろう、" + s + "かっただろう、" + s + "くなかっただろう"),
 			row(L.deshou, word + "でしょう、" + s + "くないでしょう、" + s + "かったでしょう、" + s + "くなかったでしょう"),
+			row(L.tarou, s + "かったろう、" + s + "くなかったろう"),
 			row(L.nda, word + "んだ、" + s + "くないんだ"),
 			row(L.tte, word + "って、" + s + "くないって")
 		].concat(evidrows(L, {
@@ -736,6 +737,7 @@
 			row(L.sa, word + "さ"),
 			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
 			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
+			row(L.tarou, word + "だったろう、" + word + "ではなかったろう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
 			row(L.tte, word + "だって、" + word + "ではないって")
 		].concat(evidrows(L, {
@@ -769,6 +771,7 @@
 			row(L.dearu, word + "である、" + word + "ではない"),
 			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
 			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
+			row(L.tarou, word + "だったろう、" + word + "ではなかったろう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
 			row(L.tte, word + "だって、" + word + "ではないって")
 		].concat(evidrows(L, {
