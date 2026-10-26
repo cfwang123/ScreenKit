@@ -353,19 +353,6 @@
 					{
 						x:"button",
 						"type":"button",
-						"data-tool":"u-cverb",
-						"data-cat":"text",
-						"data-name":"中文 汉语 动词 形容词 名词 了 着 过 离合词 洗澡 见面 量词 们 把字句 被字句 语气 变化 语法 chinese mandarin verb noun",
-						"title":"输入中文词，按动词、形容词、名词列出变化和常用句式，每句可以发音",
-						c:[
-						{x:"i.fa-solid.fa-comment-dots"},
-						{x:"span","data-k":"web.tool.cverb",c:"中文词形变化"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-cverb","title":"收藏"}
-					]
-					},
-					{
-						x:"button",
-						"type":"button",
 						"data-tool":"u-mdread",
 						"data-cat":"text",
 						"data-name":"md 阅读器 markdown 预览 拖入",
