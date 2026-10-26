@@ -64,7 +64,13 @@
 		con: ["连接", "연결", "Connective"],
 		mod: ["定语", "관형", "Modifier"],
 		wrt: ["书面", "문어", "Written"],
-		ext: ["其他", "기타", "Other"]
+		ext: ["其他", "기타", "Other"],
+		gs: ["庆尚道", "경상도", "Gyeongsang"],
+		jl: ["全罗道", "전라도", "Jeolla"],
+		cc: ["忠清道", "충청도", "Chungcheong"],
+		jj: ["济州", "제주", "Jeju"],
+		hg: ["咸镜道", "함경도", "Hamgyeong"],
+		pg: ["平安道", "평안도", "Pyeongan"]
 	};
 	var NOTE = {
 		v: ["动词", "동사", "verb"],
@@ -1027,6 +1033,80 @@
 			add("hyeot", "하였다", stem.slice(0, -1) + "하였다");
 			add("hyeos", "하여서", hy + "서");
 		}
+		// 方言：与标准语不同的常用说法，每个方言一组
+		var dia = dialectRows(syls, irr, kind, {
+			hey: hey, ba: ba, past: past, st: st, rl: rl
+		}, lang);
+		for (var di = 0; di < dia.length; di++) rows.push(dia[di]);
+		return rows;
+	}
+
+	// -ㅂ네다 / -읍네다 这类以 ㅂ 结尾的方言尾：开音节加 ㅂ，闭音节加 읍
+	function hapN(syls, tail){
+		var s = cp(syls);
+		var last = s[s.length - 1];
+		if (last.jong === 0 || last.jong === J_R) {
+			last.jong = J_B;
+			return jn(s) + tail;
+		}
+		return jn(s) + "읍" + tail;
+	}
+
+	// 济州语 -수다 / -수꽈：动词接 해체形（먹어수다、가수다），形容词和 있다 接词干（좋수다）
+	function jejuBase(syls, kind, irr, ba){
+		if (kind === "v" && irr !== "hada") return ba;
+		return jn(syls);
+	}
+
+	// 把标准语 의문형 -느냐/-냐 换成方言的 -나/-노/-냐
+	function qdial(q, end){
+		return q.replace(/느냐$/, end).replace(/냐$/, end);
+	}
+
+	function dialectRows(syls, irr, kind, f, lang){
+		var rows = [];
+		var g = function(id){ return lp(lang, GRP[id]); };
+		function add(id, name, text){
+			if (text) rows.push({ id: "dia." + id, g: g(id), name: name, text: text });
+		}
+		var q = qPlain(syls, irr, kind);
+		var haps = hapsho(syls);
+		// 경상도：해요체 -예、합쇼체 -ㅁ니더、판단 -나 / 의문사 -노
+		add("gs", "-예", f.hey.replace(/요$/, "예"));
+		add("gs", "-했어예", f.past + "어예");
+		add("gs", "-나?", qdial(q, "나") + "?");
+		add("gs", "-노?", qdial(q, "노") + "?");
+		add("gs", "-ㅁ니더", haps.replace(/다$/, "더"));
+		// 전라도：해요체 -라우/-지라우、의문 -냐、确认 -당께、命令 -시소
+		add("jl", "-라우", f.ba + "라우");
+		add("jl", "-했지라우", f.past + "지라우");
+		add("jl", "-냐?", qdial(q, "냐") + "?");
+		add("jl", "-했당께", f.past + "당께");
+		add("jl", "-시소", plusEu(f.st, "시소", true));
+		// 충청도：해요체 -유、过去 -슈、의문 -냐、将来 -ㄹ겨、轻问 -남
+		add("cc", "-유", f.hey.replace(/요$/, "유"));
+		add("cc", "-했슈", f.past + "슈");
+		add("cc", "-냐?", qdial(q, "냐") + "?");
+		add("cc", "-ㄹ겨", f.rl + "겨");
+		add("cc", "-했남?", f.past + "남?");
+		// 제주：합쇼체 -수다/-수꽈、必须 -아/어사、禁止 -지 말앙
+		var jj = jejuBase(syls, kind, irr, f.ba);
+		add("jj", "-수다", jj + "수다");
+		add("jj", "-수꽈?", jj + "수꽈?");
+		add("jj", "-아/어사", f.ba + "사");
+		add("jj", "-지 말앙", jn(syls) + "지 말앙");
+		// 함경도：-슴다、-슴메、确认 -지비、劝诱 -기요、命令 -ㅂ소
+		add("hg", "-했슴다", f.past + "슴다");
+		add("hg", "-했슴메", f.past + "슴메");
+		add("hg", "-했지비", f.past + "지비");
+		add("hg", "-기요", jn(syls) + "기요");
+		add("hg", "-ㅂ소", hapN(syls, "소"));
+		// 평안도：-ㅂ네다、疑问 -ㅂ네까、劝诱 -ㅂ세다、命令 -라우、过去 -수다
+		add("pg", "-ㅂ네다", hapN(syls, "네다"));
+		add("pg", "-ㅂ네까?", hapN(syls, "네까?"));
+		add("pg", "-ㅂ세다", hapN(syls, "세다"));
+		add("pg", "-라우", plusEu(f.st, "라우", true));
+		add("pg", "-했수다", f.past + "수다");
 		return rows;
 	}
 
