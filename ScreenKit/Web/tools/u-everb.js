@@ -586,7 +586,7 @@
 		function R(g, name, text){ rows.push({ g: g, name: name, text: text }); }
 		function P(a, ngt){
 			var c = lang === "zh" ? "：" : ": ";
-			return L(LAB.pos) + c + a + " / " + L(LAB.neg) + c + ngt;
+			return L(LAB.pos) + c + a + "\n" + L(LAB.neg) + c + ngt;
 		}
 		var g;
 		// 基本形式
@@ -821,7 +821,7 @@
 		function R(g, name, text){ rows.push({ g: g, name: name, text: text }); }
 		function P(a, ngt){
 			var c = lang === "zh" ? "：" : ": ";
-			return L(LAB.pos) + c + a + " / " + L(LAB.neg) + c + ngt;
+			return L(LAB.pos) + c + a + "\n" + L(LAB.neg) + c + ngt;
 		}
 		var c1 = String(c).split(" / ")[0];
 		var s1 = String(s).split(" / ")[0];
@@ -888,7 +888,7 @@
 		function R(g, name, text){ rows.push({ g: g, name: name, text: text }); }
 		function P(a, ngt){
 			var c = lang === "zh" ? "：" : ": ";
-			return L(LAB.pos) + c + a + " / " + L(LAB.neg) + c + ngt;
+			return L(LAB.pos) + c + a + "\n" + L(LAB.neg) + c + ngt;
 		}
 		var g = L(LAB.g_n_form);
 		R(g, L(LAB.n_sg), base);
@@ -1174,6 +1174,10 @@
 		return w + "ed";
 	}
 
+	function speech(s){
+		return String(s == null ? "" : s).replace(/^(肯定|否定|Positive|Negative)[:：]\s*/i, "");
+	}
+
 	function saytext(s){
 		return String(s == null ? "" : s).replace(/·/g, ",").replace(/\s*\/\s*/g, " or ").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
 	}
@@ -1340,10 +1344,16 @@
 				g = rows[i].g;
 				html += '<tr><td class="kv-g" colspan="2">' + esc(g) + "</td></tr>";
 			}
-			html += '<tr><td class="jv-k">' + esc(rows[i].name) + '</td><td class="jv-v"><span>'
-				+ esc(rows[i].text) + "</span>"
-				+ '<button type="button" class="jv-spk" data-v="' + esc(saytext(rows[i].text)) + '" title="' + tip + '">'
-				+ '<i class="fa-solid fa-volume-high"></i></button></td></tr>';
+			html += '<tr><td class="jv-k">' + esc(rows[i].name) + '</td><td class="jv-v">';
+			var lines = String(rows[i].text).split(/\s*(?:\n|·)\s*/);
+			var j;
+			for (j = 0; j < lines.length; j++) {
+				if (!lines[j]) continue;
+				html += '<div class="ev-line"><span>' + esc(lines[j]) + "</span>"
+					+ '<button type="button" class="jv-spk" data-v="' + esc(saytext(speech(lines[j]))) + '" title="' + tip + '">'
+					+ '<i class="fa-solid fa-volume-high"></i></button></div>';
+			}
+			html += "</td></tr>";
 		}
 		html += "</table>";
 		out.innerHTML = html;
