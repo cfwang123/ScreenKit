@@ -147,6 +147,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome TTS no longer lists the six Chrome OS Chinese speakers; Windows Chrome exposes only one voice per language, so those six entries all played the same voice. The list now matches the voices Chrome actually reports.
 - Chrome voice filtering now keeps Cantonese in its own language entry instead of listing it under Chinese.
 - Show an installation prompt when Russian speech is unavailable.
+- Web pages now pick up changed scripts and styles after a normal refresh: the cache version follows the modification time of the web files instead of the page's own mtime.
 
 ### 中文
 
@@ -253,6 +254,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 朗读不再把语音包里的 6 个 Chrome OS 中文发音人列成多个声音；Windows 版 Chrome 每种语言只有一个声音，原来那 6 项都落到同一个声音。现在列表只显示 Chrome 实际提供的声音。
 - Chrome 语音筛选把粤语单独列出，不再混在中文里。
 - 俄语语音不可用时提示安装，而不是只显示无法发音。
+- 网页工具改过脚本或样式后，普通刷新就能取到新文件（版本号跟着 web 文件的修改时间走），不用再按 Ctrl+F5。
 
 ## v1.0.29 (2026-10-23)
 

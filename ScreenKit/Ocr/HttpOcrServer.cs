@@ -2732,7 +2732,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	void sendwebasset(SockCtx ctx, string name, string mime, bool html) {
 		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
 		Func<byte[], byte[]> transform = html ? htmlverlang : null;
-		if (!SendFileWebPages.TryLoadForSend(name, mime, html ? uilang() : "", transform, out var bytes, out var gz)) {
+		if (!SendFileWebPages.TryLoadForSend(name, mime, html ? pagevariant() : "", transform, out var bytes, out var gz)) {
 			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
 			return;
 		}
@@ -2749,6 +2749,12 @@ sealed partial class HttpOcrServer : IDisposable {
 			res.Headers["Cache-Control"] = SendFileWebPages.CACHE_CONTROL;
 		writebody(ctx, bytes, gz, head);
 	}
+
+	/// <summary>
+	/// 页面缓存键：界面语言 + 网页版本。web/ 下任一文件改过，版本就变，
+	/// 页面里的 ?v= 跟着换，浏览器才会重新取脚本和样式。
+	/// </summary>
+	static string pagevariant() => uilang() + "|" + SendFileWebPages.BootStamp;
 
 	/// <summary>HTML 里的版本占位符换成启动时间，再带上界面语言。</summary>
 	byte[] htmlverlang(byte[] raw) {

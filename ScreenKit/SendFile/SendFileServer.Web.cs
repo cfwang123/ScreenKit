@@ -355,7 +355,9 @@ public sealed partial class SendFileServer {
 	}
 
 	static void writewebfile(SfCtx ctx, string name, string contentType, bool head, bool html) {
-		if (!SendFileWebPages.TryLoadForSend(name, contentType, html ? Loc.Lang : "", html ? webhtml : null,
+		// 页面缓存键带上网页版本：web/ 下文件改过就重新生成，?v= 才会换
+		var variant = html ? Loc.Lang + "|" + SendFileWebPages.BootStamp : "";
+		if (!SendFileWebPages.TryLoadForSend(name, contentType, variant, html ? webhtml : null,
 			out var bytes, out var gz)) {
 			writejson(ctx, 404, err(404, "页面文件缺失: " + name));
 			return;
