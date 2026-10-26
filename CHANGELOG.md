@@ -81,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary: one- and two-character lookups scan key blocks in parallel instead of one single-threaded pass, about 0.5 s down to under 0.1 s
 - WinRT calendar, Japanese readings and speech synthesis now share one resident STA thread instead of spawning a thread per request
 - HTTP requests never pop the install dialog anymore; a missing runtime library returns error code 953
+- Chrome speech only uses voices installed on this PC and fails at once when the language has none, instead of silently falling back to Google network voices.
 
 #### Fixed
 
@@ -170,6 +171,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典：一字、两字查询改成分块并行扫键段，不再单线程全表走一遍，约 0.5 秒降到 0.1 秒内
 - WinRT 日历换算、日文读音、语音合成改用常驻 STA 线程，不再每个请求新建线程
 - HTTP 请求不再弹安装提示，缺运行库时直接返回错误码 953
+- Chrome 朗读只用装在本机的离线声音，这一语言没有就立即失败，不再回落到 Google 的网络声音。
 
 #### 修复
 
