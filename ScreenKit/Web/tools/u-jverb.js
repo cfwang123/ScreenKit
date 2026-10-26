@@ -468,7 +468,7 @@
 			dict: "辞書形", masu: "ます形", masen: "ません", mashita: "ました", masend: "ませんでした",
 			nai: "ない形", nakatta: "なかった", nakute: "なくて", naide: "ないで",
 			te: "て形", ta: "た形", tara: "たら", ba: "ば形",
-			cmd: "命令形", nasai: "なさい", na: "な（=なさい）", stop: "禁止形", vol: "意向形", pot: "可能形",
+			cmd: "命令形", nasai: "なさい", na: "な（=なさい）", tamae: "給え", stop: "禁止形", vol: "意向形", pot: "可能形",
 			pas: "受身形", cau: "使役形", cap: "使役受身", tai: "たい", takunai: "たくない",
 			c1: "1类（五段）", c2: "2类（一段）", c3s: "3类（する）", c3k: "3类（くる）",
 			iku: "いく",
@@ -486,7 +486,7 @@
 			dict: "dictionary", masu: "masu", masen: "masen", mashita: "mashita", masend: "masen deshita",
 			nai: "nai", nakatta: "nakatta", nakute: "nakute", naide: "naide",
 			te: "te", ta: "ta", tara: "tara", ba: "ba",
-			cmd: "imperative", nasai: "nasai", na: "na (= nasai)", stop: "prohibitive", vol: "volitional", pot: "potential",
+			cmd: "imperative", nasai: "nasai", na: "na (= nasai)", tamae: "tamae", stop: "prohibitive", vol: "volitional", pot: "potential",
 			pas: "passive", cau: "causative", cap: "causative-passive", tai: "tai", takunai: "takunai",
 			c1: "group 1 (godan)", c2: "group 2 (ichidan)", c3s: "group 3 (suru)", c3k: "group 3 (kuru)",
 			iku: "iku",
@@ -575,11 +575,11 @@
 		return word === "居る" || hira(word) === "いる";
 	}
 
-	// なさい接连用形（行き＋なさい）；な是なさい的省略，同样接连用形（行きな），
+	// なさい・給え接连用形（行き＋なさい／行きたまえ）；な是なさい的省略，同样接连用形（行きな），
 	// 和禁止形的「辞书形＋な」（行くな）不是一回事。なさる、くださる这类尊敬动词本身已是敬语，不加。
 	function nasairows(L, plain, ren){
 		if (isSonkeAru(plain)) return [];
-		return [row(L.nasai, ren + "なさい"), row(L.na, ren + "な")];
+		return [row(L.nasai, ren + "なさい"), row(L.na, ren + "な"), row(L.tamae, ren + "たまえ")];
 	}
 
 	// 方言只列和标准语不同的形，按使用人口和知名度的顺序：关西、九州、东北、广岛。
@@ -657,8 +657,7 @@
 	function ichidan(word, L){
 		if (last(word) !== "る") return { ok: false, err: L.bad2 };
 		var stem = word.slice(0, -1);
-		// くれる的命令形除了「くれ」还有「給え」（〜て給え）。
-		var cmd = isKureru(word) ? stem + "、給え" : stem + "ろ、" + stem + "よ";
+		var cmd = isKureru(word) ? stem : stem + "ろ、" + stem + "よ";
 		return pack(L, word, stem + "ます", stem + "ない", stem + "て", stem + "た", stem + "れば",
 			cmd, stem + "よう", stem + "られる", stem + "られる", stem + "させる", stem + "させられる");
 	}
