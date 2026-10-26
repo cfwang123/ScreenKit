@@ -4781,3 +4781,4 @@ feat.ImeDb.old = "This lexicon is an old version. Select it, then install to rep
 web.tool.iverb = "English irregular verbs"
 web.cat.files = "Files"
 tray.pdf = "PDF workbench…"
+web.tool.everb = "English verb tenses"

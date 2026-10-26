@@ -4781,3 +4781,4 @@ feat.ImeDb.old = "这是旧版词库。勾选后，安装会换成新版本，�
 web.tool.iverb = "英文不规则动词"
 web.cat.files = "文件"
 tray.pdf = "PDF 识别工作台…"
+web.tool.everb = "英语动词时态"
