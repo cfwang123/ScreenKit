@@ -65,23 +65,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader keeps txt and md files in the browser instead of uploading them.
 - The in-browser model voice list shows whether each Chrome voice pack is installed.
 - Novel reader prepares the next sentence while the current one is still playing, so the pause between sentences is shorter.
-- Each Korean conjugation is labeled with its speech level, such as formal, polite, or casual.
-- The Korean verb box has a list of common verbs and irregular verbs.
 - Refreshing the tools page rebuilds the tool scripts, so web tool edits show up without restarting.
 - Install features marks an old ime.db as a new version. Install replaces it with the current lexicon, including Japanese spellings and conjugations; uninstall removes the old file.
-- The Korean verb field is one box: type a word, or open the example list on that box.
 - A partial Japanese reading lists every lexicon word that can still be completed.
-- The English irregular verb list on the tools page grows to 258 entries, adding rare base verbs and common derivatives.
 - The Chrome model page shows whether the open profile belongs to the program or to the user.
 - The web tools home drops the left category column, and file transfer is now a card in the tool list under Files.
 - A Chrome voice pack shows its speaker count, and Chinese, Traditional Chinese, and Cantonese list every speaker in the pack.
-- Korean moods: show affirmative and negative forms side by side in the same cell
-- Extend the Russian tool with adjective and noun declension, additional moods, and colloquial, northern/southern and archaic variants.
-- Korean moods: add past affirmative and negative variants, listed one per line
-- Multiple forms in a Japanese table cell now stack vertically, and the table falls back to one pair per line instead of scrolling sideways.
-- Simplify the Russian word-forms tool to a type selector and one input, listing all forms without aspect or register selectors.
 - The build merges and minifies web scripts and styles; the slim package ships only merged, minified js/css.
-- The English and Russian word-forms tools narrow the example list to the selected type, like Japanese and Korean.
 
 #### Fixed
 
@@ -111,8 +101,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Voice install can focus its own Chrome while the user's Chrome stays in front, so the speech component starts.
 - Voice install waits until its Chrome window is in front and the page is ready before sending the reading shortcut.
 - Voice install sends the reading shortcut to the browser window, not the empty Chrome widget.
-- Korean verbs: form the formal question correctly (갑니까, 삽니까)
-- Japanese ところだ lists all three forms: dictionary (about to), ta (just did) and te-iru (doing).
 - Chrome model page: the Chrome window now reaches 127.0.0.1 directly again, so the page shows which Chrome profile it is running in.
 - Chrome model page runs in its own Chrome profile now, so installing or removing packs only restarts the background Chrome and no longer closes the page window.
 - Chrome TTS no longer lists the six Chrome OS Chinese speakers; Windows Chrome exposes only one voice per language, so those six entries all played the same voice. The list now matches the voices Chrome actually reports.
@@ -143,23 +131,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器的 txt、md 改存在浏览器里，不再上传到程序。
 - 浏览器小模型选择 Chrome 发音时，会标出该模型是否已安装。
 - 小说阅读器在读当前句时提前合成下一句，缩短两句之间的停顿。
-- 韩语每个变化标明语体，例如敬语、半敬语、非敬语。
-- 韩语动词输入可以下拉选择常见动词和特殊变化的动词。
 - 刷新工具页会重新拼接网页工具脚本，改完不用重启程序。
 - 安装功能里，旧的 ime.db 会标成有新版本。安装会换成当前词库（含日语写法和活用），卸载会删掉旧文件。
-- 韩语动词改成一个输入框，可以直接输入，也可以在这个框里打开列表示例。
 - 日语读音只打到一半时，候选列出还能接着输入的词。
-- 工具页的英文不规则动词表补到 258 条，加入少见基础动词和常见派生。
 - Chrome 模型页显示当前打开的配置是程序的还是用户的。
 - web 工具主页去掉左侧分类栏，文件传输改成「文件」分类里的工具卡片。
 - Chrome 语音包说明改为发音人个数。中文、繁体中文和粤语的发音人列表列出这一包里的全部发音人。
-- 韩语语气：肯定形与否定形并列显示在同一格
-- 扩展俄语工具：新增形容词和名词变格，补充语气以及口语、南北俄方言和古体变体。
-- 韩语语气：增加过去肯定、否定变体，每行一种说法
-- 日语表格同一格的多个形式改为竖排，宽度不够时从两列退回一列，尽量不出现横向滚动条。
-- 简化俄语词形变化工具：只保留类型选择和输入框，不再选择体或语体，所有变化一次列出。
 - 编译时合并并压缩 web 的 js/css；精简包只带合并、压缩后的 js/css。
-- 英、俄语词形变化工具选择类型后，下拉只列该类型的例词，与日韩一致。
 
 #### 修复
 
@@ -189,8 +167,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 用户的 Chrome 在前台时，安装语音仍能让程序自己的 Chrome 获得焦点并启动语音组件。
 - 安装语音时等程序的 Chrome 窗口到前台并打开页面后，再发朗读快捷键。
 - 安装语音时把朗读快捷键发给带页面的浏览器窗口，不再发给那个空白的 Chrome 窗口。
-- 韩语动词变化：修正敬语疑问形（갑니까、삽니까）
-- 日语 ところだ 列出三种：辞书形（即将）、た形（刚刚）、ている（正在）。
 - Chrome 模型页：Chrome 窗口访问 127.0.0.1 改回直连，页面重新显示当前用的 Chrome 配置目录。
 - Chrome 模型页改用单独的 Chrome 配置，装包、卸载只重启后台 Chrome，不再把模型页窗口关掉。
 - Chrome 朗读不再把语音包里的 6 个 Chrome OS 中文发音人列成多个声音；Windows 版 Chrome 每种语言只有一个声音，原来那 6 项都落到同一个声音。现在列表只显示 Chrome 实际提供的声音。
