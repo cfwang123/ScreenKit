@@ -401,6 +401,12 @@
 		["n", "컴퓨터", "电脑", "", "computer"]
 	];
 	var clip = null;
+	var perline = 2;
+	var maxcols = 4;
+	var tries = 0;
+	var lastpaint = null;
+	var rtimer = 0;
+	var bound = false;
 
 	if (exp) {
 		exp.build = build;
@@ -472,6 +478,10 @@
 			F.seta(out, "data-bind", "1");
 			out.onclick = onout;
 		}
+		if (!bound) {
+			bound = true;
+			window.addEventListener("resize", onresize);
+		}
 		run();
 	}
 
@@ -531,7 +541,53 @@
 	function paint(word, note, rows){
 		var out = F.id("kv-out");
 		if (!out) return;
-		if (!rows || !rows.length) { out.innerHTML = ""; return; }
+		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
+		lastpaint = { word: word, note: note, rows: rows };
+		render(out);
+	}
+
+	// 页面越宽排得越多：先按一栏量出最宽的一行，够放几栏就排几栏，最多四栏；
+	// 排完仍然超宽再逐栏退回，尽量不出现横向滚动条。
+	function render(out){
+		if (!out || !lastpaint) return;
+		perline = 1;
+		out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows);
+		var tab = out.getElementsByTagName("table")[0];
+		var w = tab ? tab.offsetWidth : 0;
+		var cw = out.clientWidth;
+		if (cw <= 0) {
+			// 刚切到工具页时容器可能还没显示，等一帧再量。
+			if (tries < 5) { tries++; setTimeout(refit, 40); }
+			return;
+		}
+		tries = 0;
+		var n = 1;
+		if (w > 0) {
+			n = Math.floor((cw + 10) / (w + 10));
+			if (n > maxcols) n = maxcols;
+			if (n < 1) n = 1;
+		}
+		if (n > 1) {
+			perline = n;
+			out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows);
+		}
+		while (perline > 1 && out.scrollWidth > out.clientWidth + 2) {
+			perline--;
+			out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows);
+		}
+	}
+
+	function onresize(){
+		if (rtimer) clearTimeout(rtimer);
+		rtimer = setTimeout(refit, 150);
+	}
+
+	function refit(){
+		var out = F.id("kv-out");
+		if (out && lastpaint) render(out);
+	}
+
+	function tablehtml(word, note, rows){
 		var tip = esc(tx("dict.speak", "发音"));
 		var html = '<div class="jv-head"><b>' + esc(word) + "</b><span>" + esc(note) + "</span></div><table class=\"jv-tab\">";
 		var g = "";
@@ -542,20 +598,21 @@
 				html += flush(buf, tip);
 				buf = [];
 				g = rows[i].g;
-				html += '<tr><td class="kv-g" colspan="4">' + esc(g) + "</td></tr>";
+				html += '<tr><td class="kv-g" colspan="' + perline * 2 + '">' + esc(g) + "</td></tr>";
 			}
 			buf.push(rows[i]);
 		}
-		html += flush(buf, tip) + "</table>";
-		out.innerHTML = html;
+		return html + flush(buf, tip) + "</table>";
 	}
 
 	function flush(buf, tip){
 		var html = "";
-		var j;
-		for (j = 0; j < buf.length; j += 2) {
-			html += "<tr>" + cell(buf[j], tip);
-			html += j + 1 < buf.length ? cell(buf[j + 1], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+		var j, k;
+		for (j = 0; j < buf.length; j += perline) {
+			html += "<tr>";
+			for (k = 0; k < perline; k++) {
+				html += j + k < buf.length ? cell(buf[j + k], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+			}
 			html += "</tr>";
 		}
 		return html;

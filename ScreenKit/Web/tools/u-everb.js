@@ -1360,6 +1360,8 @@
 	}
 
 	var perline = 2;
+	var maxcols = 4;
+	var tries = 0;
 	var lastpaint = null;
 	var rtimer = 0;
 	var bound = false;
@@ -1369,15 +1371,36 @@
 		if (!out) return;
 		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
 		lastpaint = { head: head, note: note, rows: rows };
-		perline = 2;
-		out.innerHTML = tablehtml(head, note, rows);
-		fit(out);
+		render(out);
 	}
 
-	// 两栏排不下就退回一栏，尽量不出现横向滚动条。
-	function fit(out){
-		if (perline === 2 && out.scrollWidth > out.clientWidth + 2 && lastpaint) {
-			perline = 1;
+	// 页面越宽排得越多：先按一栏量出最宽的一行，够放几栏就排几栏，最多四栏；
+	// 排完仍然超宽再逐栏退回，尽量不出现横向滚动条。
+	function render(out){
+		if (!out || !lastpaint) return;
+		perline = 1;
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
+		var tab = out.getElementsByTagName("table")[0];
+		var w = tab ? tab.offsetWidth : 0;
+		var cw = out.clientWidth;
+		if (cw <= 0) {
+			// 刚切到工具页时容器可能还没显示，等一帧再量。
+			if (tries < 5) { tries++; setTimeout(refit, 40); }
+			return;
+		}
+		tries = 0;
+		var n = 1;
+		if (w > 0) {
+			n = Math.floor((cw + 10) / (w + 10));
+			if (n > maxcols) n = maxcols;
+			if (n < 1) n = 1;
+		}
+		if (n > 1) {
+			perline = n;
+			out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
+		}
+		while (perline > 1 && out.scrollWidth > out.clientWidth + 2) {
+			perline--;
 			out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
 		}
 	}
@@ -1389,10 +1412,7 @@
 
 	function refit(){
 		var out = F.id("ev-out");
-		if (!out || !lastpaint) return;
-		perline = 2;
-		out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
-		fit(out);
+		if (out && lastpaint) render(out);
 	}
 
 	// 一行两组「名称 + 词形」。
