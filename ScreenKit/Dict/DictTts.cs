@@ -268,9 +268,14 @@ static class DictTts {
 	}
 
 	public static bool IdleUnload(int limitMs) {
-		lock (OnnxGate) {
+		// 发音合成进行中不排队等锁：界面定时器调用，等一次合成会把界面卡住。
+		if (!System.Threading.Monitor.TryEnter(OnnxGate, 0)) return false;
+		try {
 			if (onnxEng == null) return false;
 			return onnxEng.IdleUnload(limitMs);
+		}
+		finally {
+			System.Threading.Monitor.Exit(OnnxGate);
 		}
 	}
 

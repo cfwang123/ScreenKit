@@ -8,6 +8,8 @@ namespace ScreenKit;
 /// <summary>HTTP TTS：Sherpa + SAPI + Windows（WinRT）+ Edge 在线语音 + Chrome（本机播放）。</summary>
 sealed partial class HttpOcrServer {
 	const int VoiceCacheMs = 30_000;
+	/// <summary>在线发音人表基本不变，拉到一次就复用一小时。</summary>
+	const int EdgeVoiceCacheMs = 60 * 60 * 1000;
 	readonly object sapiGate = new();
 	readonly object winRtGate = new();
 	readonly object edgeGate = new();
@@ -18,6 +20,7 @@ sealed partial class HttpOcrServer {
 	List<SapiVoiceItem> cachedWinRtVoices;
 	List<SapiVoiceItem> cachedEdgeVoices;
 	int lastVoiceScan;
+	int lastEdgeVoices;
 	readonly object ttsModelsGate = new();
 	JsonArray cachedTtsModels;
 
@@ -81,7 +84,7 @@ sealed partial class HttpOcrServer {
 				}
 			}
 		}
-		var built = buildttsmodels(engine);
+		var built = buildttsmodels(engine, refresh);
 		fromCache = false;
 		if (engine != null) return built;
 		lock (ttsModelsGate) {
@@ -476,7 +479,7 @@ sealed partial class HttpOcrServer {
 		public string Engine;
 	}
 
-	JsonArray buildttsmodels(string only) {
+	JsonArray buildttsmodels(string only, bool refresh = false) {
 		var arr = new JsonArray();
 		var all = string.IsNullOrEmpty(only);
 		if (all || only == "sherpa") {
@@ -484,15 +487,13 @@ sealed partial class HttpOcrServer {
 			try { list = svc?.ScanTts?.Invoke(); } catch { }
 			addsherpa(arr, list);
 		}
-		if (all || only == "sapi" || only == "winrt") refreshvoices();
+		if (all || only == "sapi" || only == "winrt") refreshvoices(refresh);
 		if (all || only == "sapi")
 			addsysmodel(arr, "SAPI", "sapi", "Sapi", cachedSapiVoices);
 		if (all || only == "winrt")
 			addsysmodel(arr, "Windows", "winrt", "WinRt", cachedWinRtVoices);
-		if (all || only == "edge") {
-			cachedEdgeVoices ??= listedgevoices();
-			addsysmodel(arr, "Edge Online", "edge", "Edge", cachedEdgeVoices);
-		}
+		if (all || only == "edge")
+			addsysmodel(arr, "Edge Online", "edge", "Edge", listedgevoices(refresh));
 		if (all || only == "chrome")
 			addsysmodel(arr, "Chrome", "chrome", "Chrome", ChromeTts.Voices);
 		return arr;
@@ -677,8 +678,7 @@ sealed partial class HttpOcrServer {
 		synthedge(string text, string voice, int? sid, float speed, int volume, string lang = null) {
 		lock (edgeGate) {
 			var eng = ensureedge();
-			var list = eng.LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult().ToList();
-			cachedEdgeVoices = list;
+			var list = edgevoices(false);
 			var pick = pickvoice(list, voice, sid, lang);
 			if (pick == null)
 				throw new InvalidOperationException("未找到 Edge 在线发音人: " + (voice ?? ""));
@@ -818,8 +818,8 @@ sealed partial class HttpOcrServer {
 			?? list[0];
 	}
 
-	void refreshvoices() {
-		if (cachedSapiVoices != null
+	void refreshvoices(bool force = false) {
+		if (!force && cachedSapiVoices != null
 			&& unchecked(Environment.TickCount - lastVoiceScan) < VoiceCacheMs)
 			return;
 		cachedSapiVoices = listsapivoices();
@@ -882,12 +882,26 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	List<SapiVoiceItem> listedgevoices() {
+	/// <summary>在线发音人表。合成和列表共用这份缓存，避免每次请求都联网拉一遍。</summary>
+	List<SapiVoiceItem> edgevoices(bool refresh) {
+		lock (edgeGate) {
+			if (!refresh && cachedEdgeVoices != null
+				&& unchecked(Environment.TickCount - lastEdgeVoices) < EdgeVoiceCacheMs)
+				return cachedEdgeVoices;
+			var list = ensureedge().LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult().ToList();
+			cachedEdgeVoices = list;
+			lastEdgeVoices = Environment.TickCount;
+			return list;
+		}
+	}
+
+	List<SapiVoiceItem> listedgevoices(bool refresh = false) {
 		try {
-			return ensureedge().LoadVoicesAsync(CancellationToken.None).GetAwaiter().GetResult().ToList();
+			return edgevoices(refresh);
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("http tts edge enum", ex);
+			// 失败不写缓存（尤其不缓存空表），下次还能重试。
 			return new List<SapiVoiceItem>();
 		}
 	}
@@ -943,6 +957,8 @@ sealed partial class HttpOcrServer {
 		cachedSapiVoices = null;
 		cachedWinRtVoices = null;
 		cachedEdgeVoices = null;
+		lastVoiceScan = 0;
+		lastEdgeVoices = 0;
 	}
 
 	static string sapigender(VoiceGender g) => g switch {

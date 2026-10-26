@@ -40,10 +40,15 @@ sealed class AsrEngine : IDisposable {
 	}
 
 	public bool IdleUnload(int limitMs) {
-		lock (gate) {
+		// 识别进行中不排队等锁：界面定时器调用，等一次识别会把界面卡住。
+		if (!System.Threading.Monitor.TryEnter(gate, 0)) return false;
+		try {
 			if (recognizer == null || !OnnxIdle.Due(lastuse, limitMs)) return false;
 			drop();
 			return true;
+		}
+		finally {
+			System.Threading.Monitor.Exit(gate);
 		}
 	}
 

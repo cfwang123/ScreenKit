@@ -138,12 +138,16 @@ sealed class TranslateEngine : IDisposable {
 		}
 	}
 
-	/// <summary>全部已加载方向都空闲超过 limitMs 时一起释放。</summary>
+	/// <summary>全部已加载方向都空闲超过 limitMs 时一起释放。翻译进行中不排队等锁。</summary>
 	public bool IdleUnload(int limitMs) {
-		lock (Gate) {
+		if (!System.Threading.Monitor.TryEnter(Gate, 0)) return false;
+		try {
 			if (loaded.Count == 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
 			unloadall();
 			return true;
+		}
+		finally {
+			System.Threading.Monitor.Exit(Gate);
 		}
 	}
 

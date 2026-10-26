@@ -53,12 +53,17 @@ sealed class LandmarkDetector : IDisposable {
 	}
 
 	public bool IdleUnload(int limitMs) {
-		lock (gate) {
+		// 推理进行中不排队等锁：界面定时器调用，等一次推理会把界面卡住。
+		if (!System.Threading.Monitor.TryEnter(gate, 0)) return false;
+		try {
 			if (released || busy > 0 || !OnnxIdle.Due(lastuse, limitMs)) return false;
 			released = true;
 			try { session.Dispose(); } catch { }
 			lastuse = 0;
 			return true;
+		}
+		finally {
+			System.Threading.Monitor.Exit(gate);
 		}
 	}
 

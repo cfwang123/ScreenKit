@@ -74,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - A Chrome voice pack shows its speaker count, and Chinese, Traditional Chinese, and Cantonese list every speaker in the pack.
 - The build merges and minifies web scripts and styles; the slim package ships only merged, minified js/css.
 - In Chinese + English recognition, numbers and Latin runs now come from the English pass, and the two results are no longer pasted twice; a line with one wide gap stays a single line instead of being split into columns.
+- HTTP TTS: the Edge online voice list is cached for an hour instead of being fetched on every request.
 
 #### Fixed
 
@@ -112,6 +113,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR reads characters near the image edge as fragments (语 as 讠吾, 则 as 贝刂); a band of background colour is now added around the image before recognition.
 - Mixed Chinese + English recognition compared the cell box, already scaled back to the source image, with word boxes still in the enlarged image, so on upscaled screenshots the English numbers were never used; both are now compared at the same scale.
 - Mixed recognition took the dollar sign as its own word and the English result brought it again, so prices came out as $$0.30; the sign now stays with the number.
+- Idle model unload no longer waits behind a running synthesis or recognition, so the UI thread is not blocked.
 
 ### 中文
 
@@ -145,6 +147,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 语音包说明改为发音人个数。中文、繁体中文和粤语的发音人列表列出这一包里的全部发音人。
 - 编译时合并并压缩 web 的 js/css；精简包只带合并、压缩后的 js/css。
 - 中英混合识别时，数字和英文改用英文引擎的结果，不再和中文结果重复拼接；只有一个大空档的行仍是一整行，不当成分栏切开。
+- HTTP 语音合成：Edge 在线发音人列表缓存一小时，不再每个请求都联网拉一遍。
 
 #### 修复
 
@@ -183,6 +186,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR 遇到贴着图像边的文字会把字认碎（「语」认成「讠吾」、「则」认成「贝刂」），识别前在四周补一圈背景色。
 - 中英混合识别时，格子框已缩回原图，词框还是放大后的坐标，放大过的小图上取不到英文数字；现在按同一尺度比较。
 - 中英混合时美元符号被单独认成一个词，换成英文结果后又带了一遍，价格变成 $$0.30；现在符号跟后面的数字一起整段处理。
+- 空闲卸载模型时不再排队等正在进行的合成或识别，界面线程不会被卡住。
 
 ## v1.0.29 (2026-10-23)
 

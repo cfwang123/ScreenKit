@@ -143,15 +143,19 @@ sealed class OcrRunner : IDisposable {
 		}
 	}
 
-	/// <summary>空闲超过 limitMs 则后台释放。服务模式由调用方跳过。</summary>
+	/// <summary>空闲超过 limitMs 则后台释放。服务模式由调用方跳过。识别进行中不排队等锁。</summary>
 	public bool IdleUnload(int limitMs) {
 		OcrEngine old;
-		lock (gate) {
+		if (!System.Threading.Monitor.TryEnter(gate, 0)) return false;
+		try {
 			if (eng == null || !OnnxIdle.Due(lastuse, limitMs)) return false;
 			old = eng;
 			eng = null;
 			engKey = "";
 			lastuse = 0;
+		}
+		finally {
+			System.Threading.Monitor.Exit(gate);
 		}
 		_ = Task.Run(() => { try { old.Dispose(); } catch { } });
 		return true;

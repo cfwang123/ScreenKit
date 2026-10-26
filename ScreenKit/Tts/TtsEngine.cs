@@ -83,11 +83,19 @@ sealed class TtsEngine : IDisposable {
 		}
 	}
 
+	/// <summary>
+	/// 空闲卸载由界面定时器调用。合成进行中不排队等锁，直接跳过（下个 tick 再来），
+	/// 否则一次 2～3 秒的合成会把界面卡住。
+	/// </summary>
 	public bool IdleUnload(int limitMs) {
-		lock (gate) {
+		if (!System.Threading.Monitor.TryEnter(gate, 0)) return false;
+		try {
 			if (tts == null || !OnnxIdle.Due(lastuse, limitMs)) return false;
 			drop();
 			return true;
+		}
+		finally {
+			System.Threading.Monitor.Exit(gate);
 		}
 	}
 
