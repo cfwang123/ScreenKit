@@ -185,6 +185,7 @@
 		s_time: ["would rather · it is time", "would rather · it is time"],
 		s_opt: ["祈愿（may）", "Optative (may)"],
 		s_inv: ["倒装条件", "Inverted condition"],
+		s_sub: ["虚拟式（英式多用 should）", "Mandative subjunctive"],
 		i_pos: ["肯定祈使", "Affirmative imperative"],
 		i_neg: ["否定祈使", "Negative imperative"],
 		i_hort: ["劝诱（let's）", "Hortative (let's)"],
@@ -203,8 +204,6 @@
 		d_bre: ["英式", "British"],
 		d_ame: ["美式", "American"],
 		d_aus: ["澳新（多同英式）", "Australian & NZ (mostly British)"],
-		d_same: ["各地区写法相同", "Same in all regions"],
-		d_sub: ["虚拟式（英式多用 should）", "Mandative subjunctive"],
 		o_inf: ["不定式", "Infinitive"],
 		o_pinf: ["完成式不定式", "Perfect infinitive"],
 		o_ger: ["动名词", "Gerund"],
@@ -325,6 +324,8 @@
 		// 虚拟与条件
 		g = L(LAB.g_sub);
 		R(g, L(LAB.s_pres), "I suggest that he " + b + " · it is important that he " + b);
+		R(g, L(LAB.s_sub), isBe ? "AmE: that he be · BrE: that he should be"
+			: "AmE: that he " + b + " · BrE: that he should " + b);
 		R(g, L(LAB.s_irr), "if I " + (isBe ? "were" : pastF) + ", I would " + b);
 		R(g, L(LAB.s_past), "if I had " + ppF + ", I would have " + ppF);
 		R(g, L(LAB.s_mix), "if I had " + ppF + ", I would be " + ingF);
@@ -376,20 +377,13 @@
 			}
 			if (base === "sneak") { ameP = "snuck" + tail; amePP = "snuck" + tail; }
 		}
-		g = L(LAB.g_dia);
-		if (!isBe && (breP !== ameP || brePP !== amePP)) {
+		// 只列真的有地区写法差别的动词
+		if ((!isBe && (breP !== ameP || brePP !== amePP)) || LDOUBLE[base]) {
+			g = L(LAB.g_dia);
 			R(g, L(LAB.d_bre), breP + " / " + brePP + " · " + brIng);
 			R(g, L(LAB.d_ame), ameP + " / " + amePP + " · " + ingF);
 			R(g, L(LAB.d_aus), breP + " / " + brePP + " · " + brIng);
 		}
-		else if (LDOUBLE[base]) {
-			R(g, L(LAB.d_bre), breP + " / " + brePP + " · " + brIng);
-			R(g, L(LAB.d_ame), ameP + " / " + amePP + " · " + ingF);
-			R(g, L(LAB.d_aus), breP + " / " + brePP + " · " + brIng);
-		}
-		else R(g, L(LAB.d_same), isBe ? "was / were · been · being" : pastF + " / " + ppF + " · " + ingF);
-		R(g, L(LAB.d_sub), isBe ? "AmE: that he be · BrE: that he should be"
-			: "AmE: that he " + b + " · BrE: that he should " + b);
 		// 其他形式
 		g = L(LAB.g_oth);
 		R(g, L(LAB.o_inf), "to " + b);
