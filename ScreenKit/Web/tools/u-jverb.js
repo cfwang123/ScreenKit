@@ -480,8 +480,8 @@
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
-				paint(d.head, d.name, rowsarr(d.rows), timestr(tdict, tcalc));
-				SK.msg("box-msg", note || "", bad);
+				paint(d.head, d.name, rowsarr(d.rows), timestr(tdict, tcalc, bad ? "" : note));
+				SK.msg("box-msg", bad ? note : "", bad);
 			});
 		});
 	}
@@ -751,11 +751,12 @@
 		return word === "為さる" || word === "下さる";
 	}
 
-	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
-	function timestr(dictms, calcms){
+	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。extra 是词条提示，并进同一行。
+	function timestr(dictms, calcms, extra){
 		var a = "";
 		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
 		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		if (extra) a += (a ? " · " : "") + extra;
 		return a;
 	}
 
