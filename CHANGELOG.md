@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese verb conjugation lists forms that differ from standard Japanese in Kansai, Kyushu (Hakata), Tohoku and Hiroshima, one group per dialect.
 - Korean verbs: add Gyeongsang, Jeolla, Chungcheong, Jeju, Hamgyeong and Pyeongan dialect groups
 - Japanese verb conjugation also lists 給え, やがる and the common auxiliaries ながら, たがる, すぎる, やすい, にくい, そうだ, ましょう and ている.
+- Japanese verb conjugation also lists つつ / つつある, きる / きれる, あう, かける / かかる, そこなう, たがらない, すぎない, そうに / そうな, the te-form auxiliaries ておく, てしまう, てみる, てある, てくる, ていく, てください, and the polite ませんか / ましょうか.
 
 #### Changed
 
@@ -121,6 +122,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语动词变形新增关西、九州（博多）、东北、广岛的方言说法，每个方言一组，只列和标准语不同的形。
 - 韩语动词变化：新增庆尚道、全罗道、忠清道、济州、咸镜道、平安道方言分组
 - 日语动词变形新增「給え」「やがる」，以及ながら、たがる、すぎる、やすい、にくい、そうだ、ましょう、ている 这些常用补助动词。
+- 日语动词变形新增つつ／つつある、きる／きれる、あう、かける／かかる、そこなう、たがらない、すぎない、そうに／そうな，ておく、てしまう、てみる、てある、てくる、ていく、てください，以及敬体的ませんか／ましょうか。
 
 #### 变更
 

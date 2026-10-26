@@ -478,8 +478,16 @@
 			tei: "辞書", teim: "ます",
 			bad2: "2类要以る结尾", bad3: "3类是する或くる", bad1: "1类词尾要是う段假名",
 			teiru: "ている",
-			aux: "补助动词", ngara: "ながら", tagaru: "たがる", yagaru: "やがる",
-			sugiru: "すぎる", yasui: "やすい", nikui: "にくい", souda: "そうだ", mashou: "ましょう",
+			aux: "补助动词", auxte: "て形＋", auxpol: "敬体",
+			ngara: "ながら", tsutsu: "つつ", tsutsuaru: "つつある",
+			tagaru: "たがる", tagaranai: "たがらない", yagaru: "やがる",
+			sugiru: "すぎる", suginai: "すぎない", yasui: "やすい", nikui: "にくい",
+			souda: "そうだ", souni: "そうに・そうな",
+			kiru: "きる", kireru: "きれる", au: "あう",
+			kakeru: "かける", kakaru: "かかる", sokonau: "そこなう",
+			teoku: "ておく", teshimau: "てしまう", temiru: "てみる", tearu: "てある",
+			tekuru: "てくる", teiku: "ていく", tekudasai: "てください",
+			mashou: "ましょう", mashouka: "ましょうか", masenka: "ませんか",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
@@ -496,8 +504,16 @@
 			tei: "plain", teim: "masu",
 			bad2: "Group 2 must end with る", bad3: "Group 3 is する or くる", bad1: "Group 1 must end with an u-row kana",
 			teiru: "teiru",
-			aux: "Auxiliaries", ngara: "nagara", tagaru: "tagaru", yagaru: "yagaru",
-			sugiru: "sugiru", yasui: "yasui", nikui: "nikui", souda: "souda", mashou: "mashou",
+			aux: "Auxiliaries", auxte: "te-form +", auxpol: "Polite",
+			ngara: "nagara", tsutsu: "tsutsu", tsutsuaru: "tsutsu aru",
+			tagaru: "tagaru", tagaranai: "tagaranai", yagaru: "yagaru",
+			sugiru: "sugiru", suginai: "suginai", yasui: "yasui", nikui: "nikui",
+			souda: "souda", souni: "sou ni / sou na",
+			kiru: "kiru", kireru: "kireru", au: "au",
+			kakeru: "kakeru", kakaru: "kakaru", sokonau: "sokonau",
+			teoku: "teoku", teshimau: "teshimau", temiru: "temiru", tearu: "tearu",
+			tekuru: "tekuru", teiku: "teiku", tekudasai: "tekudasai",
+			mashou: "mashou", mashouka: "mashou ka", masenka: "masen ka",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
@@ -550,23 +566,52 @@
 			rows: rows.concat(auxrows(L, plain, masu, te), keigo(plain, masu, pas, L)) };
 	}
 
-	// 连用形（和て形）后面常接的补助动词，单独一组。ある・いる 是状态动词，不接这些。
+	// 连用形、て形后面常接的补助动词，和敬体的劝诱・疑问，各成一组。
+	// ある・いる 是状态动词，なさる・くださる 本身是敬语，都不接这些。
 	function auxrows(L, plain, masu, te){
-		if (isAru(plain) || isStateIru(plain)) return [];
+		if (isAru(plain) || isStateIru(plain) || isSonkeAru(plain)) return [];
 		var ren = masu.slice(0, -2);
 		var rows = [
 			row(L.ngara, ren + "ながら"),
+			row(L.tsutsu, ren + "つつ"),
+			row(L.tsutsuaru, ren + "つつある"),
 			row(L.tagaru, ren + "たがる"),
+			row(L.tagaranai, ren + "たがらない"),
 			row(L.yagaru, ren + "やがる"),
 			row(L.sugiru, ren + "すぎる"),
+			row(L.suginai, ren + "すぎない"),
 			row(L.yasui, ren + "やすい"),
 			row(L.nikui, ren + "にくい"),
 			row(L.souda, ren + "そうだ"),
-			row(L.mashou, ren + "ましょう"),
-			row(L.teiru, te + "いる")
+			row(L.souni, ren + "そうに、" + ren + "そうな"),
+			row(L.kiru, ren + "きる"),
+			row(L.kireru, ren + "きれる"),
+			row(L.au, ren + "あう"),
+			row(L.kakeru, ren + "かける"),
+			row(L.kakaru, ren + "かかる"),
+			row(L.sokonau, ren + "そこなう")
 		];
+		var teerows = [
+			row(L.teiru, te + "いる"),
+			row(L.teoku, te + "おく"),
+			row(L.teshimau, te + "しまう"),
+			row(L.temiru, te + "みる"),
+			row(L.tearu, te + "ある"),
+			row(L.tekuru, te + "くる"),
+			row(L.teiku, te + "いく"),
+			row(L.tekudasai, te + "ください")
+		];
+		var polrows = [
+			row(L.mashou, ren + "ましょう"),
+			row(L.mashouka, ren + "ましょうか"),
+			row(L.masenka, ren + "ませんか")
+		];
+		return setgroup(rows, L.aux).concat(setgroup(teerows, L.auxte), setgroup(polrows, L.auxpol));
+	}
+
+	function setgroup(rows, g){
 		var i;
-		for (i = 0; i < rows.length; i++) rows[i][2] = L.aux;
+		for (i = 0; i < rows.length; i++) rows[i][2] = g;
 		return rows;
 	}
 
