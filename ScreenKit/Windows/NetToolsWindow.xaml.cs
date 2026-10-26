@@ -135,6 +135,23 @@ public partial class NetToolsWindow : Window {
 		Closing += (_, _) => {
 			try { cts?.Cancel(); } catch { }
 		};
+		lvip.SizeChanged += (_, _) => fitcols();
+		lvps.SizeChanged += (_, _) => fitcols();
+	}
+
+	/// <summary>把最后一列拉到剩余宽度，表头底色才不会只铺一半。</summary>
+	void fitcols() {
+		fitlv(lvip, colipmac, 360);
+		fitlv(lvps, colpsbanner, 240);
+	}
+
+	static void fitlv(ListView lv, GridViewColumn last, double others) {
+		if (lv == null || last == null) return;
+		var avail = lv.ActualWidth - SystemParameters.VerticalScrollBarWidth - 4;
+		if (avail <= 0) return;
+		var w = avail - others;
+		if (w < 80) w = 80;
+		if (last.Width != w) last.Width = w;
 	}
 
 	void applylang() {
@@ -148,6 +165,38 @@ public partial class NetToolsWindow : Window {
 		mnipname.Header = Loc.T("nettool.ip.copy.name");
 		mnipaddr.Header = Loc.T("nettool.ip.copy.ip");
 		mnipmac.Header = Loc.T("nettool.ip.copy.mac");
+		lbhost.Text = Loc.T("nettool.host");
+		lbcount.Text = Loc.T("nettool.count");
+		ehost.ToolTip = Loc.T("nettool.host.tip");
+		lbgrpdiag.Text = Loc.T("nettool.grp.diag");
+		lbgrplocal.Text = Loc.T("nettool.grp.local");
+		lbgrpquery.Text = Loc.T("nettool.grp.query");
+		lbgrplocate.Text = Loc.T("nettool.grp.locate");
+		bping.Content = Loc.T("nettool.ping");
+		bdns.Content = Loc.T("nettool.dns");
+		bdnsrec.Content = Loc.T("nettool.dnsrec");
+		bport.Content = Loc.T("nettool.port");
+		btrace.Content = Loc.T("nettool.trace");
+		blocal.Content = Loc.T("nettool.local");
+		barp.Content = Loc.T("nettool.arp");
+		barprev.Content = Loc.T("nettool.arprev");
+		bwake.Content = Loc.T("nettool.wake");
+		bscan.Content = Loc.T("nettool.scan");
+		bwhois.Content = Loc.T("nettool.whois");
+		bipcity.Content = Loc.T("nettool.ipcity");
+		bmac.Content = Loc.T("nettool.mac");
+		busb.Content = Loc.T("nettool.usb");
+		bdiscover.Content = Loc.T("nettool.discover");
+		blocate.Content = Loc.T("nettool.locate");
+		bproxy.Content = Loc.T("nettool.proxy");
+		bhttp.Content = Loc.T("nettool.http");
+		bgeo.Content = Loc.T("nettool.geo");
+		bmap.Content = Loc.T("nettool.map");
+		bmap.ToolTip = Loc.T("nettool.map.tip");
+		ToolBtnUi.Set(bstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
+		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
+		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
+		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 		ToolBtnUi.Set(bistart, ToolBtnUi.Play, Loc.T("nettool.pscan.start"));
 		ToolBtnUi.Set(bistop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
 		ToolBtnUi.Set(biport, ToolBtnUi.Browse, Loc.T("nettool.scan.toport"));
@@ -163,40 +212,12 @@ public partial class NetToolsWindow : Window {
 		colpsbanner.Header = Loc.T("nettool.pscan.col.banner");
 		lbptimeout.Text = Loc.T("nettool.pscan.timeout");
 		eptimeout.ToolTip = Loc.T("nettool.pscan.timeout.tip");
-		ToolBtnUi.Set(bpcommon, ToolBtnUi.Font, Loc.T("nettool.pscan.common"));
 		ToolBtnUi.Set(bpstart, ToolBtnUi.Play, Loc.T("nettool.pscan.start"));
 		ToolBtnUi.Set(bpstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
+		ToolBtnUi.Set(bpcommon, ToolBtnUi.Font, Loc.T("nettool.pscan.common"));
 		ToolBtnUi.Set(bpsclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
 		ToolBtnUi.Set(bpscopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
 		ToolBtnUi.Set(bpsclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
-		lbhost.Text = Loc.T("nettool.host");
-		lbcount.Text = Loc.T("nettool.count");
-		ehost.ToolTip = Loc.T("nettool.host.tip");
-		ToolBtnUi.Set(bping, ToolBtnUi.Play, Loc.T("nettool.ping"));
-		ToolBtnUi.Set(bdns, ToolBtnUi.Encode, Loc.T("nettool.dns"));
-		ToolBtnUi.Set(bdnsrec, ToolBtnUi.Font, Loc.T("nettool.dnsrec"));
-		ToolBtnUi.Set(bport, ToolBtnUi.Play, Loc.T("nettool.port"));
-		ToolBtnUi.Set(blocal, ToolBtnUi.Browse, Loc.T("nettool.local"));
-		ToolBtnUi.Set(bwake, ToolBtnUi.Up, Loc.T("nettool.wake"));
-		ToolBtnUi.Set(barp, ToolBtnUi.Encode, Loc.T("nettool.arp"));
-		ToolBtnUi.Set(barprev, ToolBtnUi.Browse, Loc.T("nettool.arprev"));
-		ToolBtnUi.Set(bwhois, ToolBtnUi.Font, Loc.T("nettool.whois"));
-		ToolBtnUi.Set(btrace, ToolBtnUi.Up, Loc.T("nettool.trace"));
-		ToolBtnUi.Set(blocate, ToolBtnUi.Encode, Loc.T("nettool.locate"));
-		ToolBtnUi.Set(bproxy, ToolBtnUi.Font, Loc.T("nettool.proxy"));
-		ToolBtnUi.Set(bipcity, ToolBtnUi.Pin, Loc.T("nettool.ipcity"));
-		ToolBtnUi.Set(bmac, ToolBtnUi.Font, Loc.T("nettool.mac"));
-		ToolBtnUi.Set(busb, ToolBtnUi.Font, Loc.T("nettool.usb"));
-		ToolBtnUi.Set(bhttp, ToolBtnUi.Play, Loc.T("nettool.http"));
-		ToolBtnUi.Set(bgeo, ToolBtnUi.Pin, Loc.T("nettool.geo"));
-		ToolBtnUi.Set(bscan, ToolBtnUi.Browse, Loc.T("nettool.scan"));
-		ToolBtnUi.Set(bdiscover, ToolBtnUi.Browse, Loc.T("nettool.discover"));
-		ToolBtnUi.Set(bmap, ToolBtnUi.Browse, Loc.T("nettool.map"));
-		bmap.ToolTip = Loc.T("nettool.map.tip");
-		ToolBtnUi.Set(bstop, ToolBtnUi.Cancel, Loc.T("nettool.stop"));
-		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
-		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("pwgen.copy"));
-		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
 	void setbusy(bool on) {
