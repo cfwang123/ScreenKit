@@ -4646,3 +4646,4 @@ web.kverb.hint = "Saisissez la forme du dictionnaire en 다. Le verbe et l'adjec
 web.kverb.nospeak = "Lecture impossible"
 web.tool.iverb = "Verbes irréguliers anglais"
 web.cat.files = "Fichiers"
+tray.pdf = "Atelier PDF…"

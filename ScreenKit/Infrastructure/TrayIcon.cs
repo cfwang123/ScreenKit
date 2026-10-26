@@ -189,7 +189,7 @@ sealed class TrayIcon : IDisposable {
 			try { DictSelBarChanged?.Invoke(miDictSel.Checked); } catch { }
 		};
 		miClipFile = item("tray.clipfile", () => ClipboardAsFileRequested?.Invoke());
-		miPdf = item("menu.pdf", () => {
+		miPdf = item("tray.pdf", () => {
 			showwindow();
 			PdfRequested?.Invoke();
 		});
@@ -543,7 +543,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miTranslate, "tray.translate");
 			settext(miDictSel, "dict.selbar");
 			settext(miClipFile, "tray.clipfile");
-			settext(miPdf, "menu.pdf");
+			settext(miPdf, "tray.pdf");
 			if (miPdf != null) miPdf.ToolTipText = Loc.T("menu.pdf.tip");
 			settext(miSnapshots, "tray.snapshots");
 			settext(miSnapCopyImg, "tray.snapcopyimg");
