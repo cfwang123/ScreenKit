@@ -142,7 +142,7 @@
 		var hint = F.id("jv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.jverb.hint");
-			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见动词和特殊变化。类型默认自动：先查词典；没有则用示例里的类型；再按词尾（る是 2 类，する、くる是 3 类）。いく的て形、た形是って、った。表的后部是尊敬、谦让、丁重。");
+			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见动词和特殊变化。类型默认自动：先查词典；没有则用示例里的类型；再按词尾（る是 2 类，する、くる是 3 类）。いく的て形、た形是って、った。表的后部是尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
 		}
 		setlab("jv-word", "web.jverb.word", "动词");
 		SK.combofill("jv-in", pickgroups());
@@ -476,7 +476,9 @@
 			son: "になる", sonm: "になります", sonr: "れる", sonrm: "れます", kud: "ください",
 			ken: "する", kenm: "します", itas: "いたす", itasm: "いたします",
 			tei: "辞書", teim: "ます",
-			bad2: "2类要以る结尾", bad3: "3类是する或くる", bad1: "1类词尾要是う段假名"
+			bad2: "2类要以る结尾", bad3: "3类是する或くる", bad1: "1类词尾要是う段假名",
+			teiru: "ている",
+			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
 			dict: "dictionary", masu: "masu", masen: "masen", mashita: "mashita", masend: "masen deshita",
@@ -490,7 +492,9 @@
 			son: "ni naru", sonm: "masu", sonr: "reru", sonrm: "remasu", kud: "kudasai",
 			ken: "suru", kenm: "shimasu", itas: "itasu", itasm: "itashimasu",
 			tei: "plain", teim: "masu",
-			bad2: "Group 2 must end with る", bad3: "Group 3 is する or くる", bad1: "Group 1 must end with an u-row kana"
+			bad2: "Group 2 must end with る", bad3: "Group 3 is する or くる", bad1: "Group 1 must end with an u-row kana",
+			teiru: "teiru",
+			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
 
@@ -505,6 +509,7 @@
 		if (!rows.ok) return rows;
 		var name = kind === "2" ? L.c2 : kind === "3" ? (rows.sub === "kuru" ? L.c3k : L.c3s) : L.c1;
 		if (flag === "iku" || isIku(word) && kind === "1") name += " · " + L.iku;
+		rows.rows = rows.rows.concat(dialectrows(word, kind, rows, L));
 		return { ok: true, head: word, name: name, rows: rows.rows };
 	}
 
@@ -537,7 +542,7 @@
 			row(L.tai, tai),
 			row(L.takunai, tai.slice(0, -2) + "たくない")
 		]);
-		return { ok: true, plain: plain, masu: masu, ta: ta, nai: nai, rows: rows.concat(keigo(plain, masu, pas, L)) };
+		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai, rows: rows.concat(keigo(plain, masu, pas, L)) };
 	}
 
 	// なさい接连用形（行き＋なさい）；な是なさい的省略，同样接连用形（行きな），
@@ -545,6 +550,58 @@
 	function nasairows(L, plain, ren){
 		if (isSonkeAru(plain)) return [];
 		return [row(L.nasai, ren + "なさい"), row(L.na, ren + "な")];
+	}
+
+	// 方言只列和标准语不同的形，按使用人口和知名度的顺序：关西、九州、东北、广岛。
+	// 同一方言内部的细节各地不同，这里取最常见的说法。
+	function dialectrows(word, kind, std, L){
+		if (isSonkeAru(word)) return [];
+		var rows = [];
+		var ren = std.masu.slice(0, -2);
+		var mz = mizen(word, kind, ren);
+		var tes = std.te.slice(0, -1);
+		var kuru = kind === "3" && isKuru(word);
+		var suru = kind === "3" && !kuru;
+		var pre = suru ? ren.slice(0, -1) : "";   // 勉強する → 勉強
+		var aru = isAru(word);
+		var nai = suru ? pre + "せえへん" : kuru ? "けえへん" : kansainai(mz, kind);
+		var n = suru ? pre + "せん" : kuru ? "こん" : mz + "ん";
+		// 关西：ない＝へん，ないで＝んといて，尊敬＝はる，命令＝なはれ
+		rows.push([L.nai, nai, L.dks]);
+		if (!aru) {
+			rows.push([L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks]);
+			rows.push([L.gson, ren + "はる", L.dks]);
+			rows.push([L.cmd, ren + "なはれ", L.dks]);
+		}
+		// 九州（博多）：ない＝ん，ている＝とる，一段とサ変的命令＝れ
+		rows.push([L.nai, n, L.dky]);
+		if (!aru) rows.push([L.teiru, tes + "とる", L.dky]);
+		if (kind === "2" || suru) rows.push([L.cmd, suru ? pre + "せれ" : mz + "れ", L.dky]);
+		// 东北：意向＝べ，一段的命令＝れ
+		rows.push([L.vol, std.plain + "べ", L.dth]);
+		if (kind === "2") rows.push([L.cmd, mz + "れ", L.dth]);
+		// 广岛：ない＝ん，なかった＝んかった，ている＝とる・ちょる，尊敬＝んさる
+		rows.push([L.nai, n, L.dhi]);
+		rows.push([L.nakatta, n + "かった", L.dhi]);
+		if (!aru) {
+			rows.push([L.teiru, tes + "とる、" + tes + "ちょる", L.dhi]);
+			rows.push([L.gson, ren + "んさる", L.dhi]);
+		}
+		return rows;
+	}
+
+	// 方言用的未然形：五段是a段（行か），一段是词干（食べ），する是连用形（勉強し），くる是こ。
+	function mizen(word, kind, ren){
+		if (kind === "3") return isKuru(word) ? "こ" : ren;
+		if (kind === "2") return word.slice(0, -1);
+		var col = COL[last(word)];
+		return col ? word.slice(0, -1) + col[0] : "";
+	}
+
+	// 关西的「ない」。一段で词干只有一拍时（見・寝・出）用「やへん」：見やへん、寝やへん。
+	function kansainai(mz, kind){
+		if (kind === "2" && mz.length === 1) return mz + "やへん";
+		return mz + "へん";
 	}
 
 	function godan(word, flag, L){

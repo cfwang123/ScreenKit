@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The tools page conjugates a Korean verb or adjective from the dictionary form, with a speaker button on each form.
 - Add English irregular verb lookup on the tools page, with every form searchable.
 - Japanese verb conjugation also lists なさい and its short な (行きなさい, 行きな).
+- Japanese verb conjugation lists forms that differ from standard Japanese in Kansai, Kyushu (Hakata), Tohoku and Hiroshima, one group per dialect.
 
 #### Changed
 
@@ -115,6 +116,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页可以输入韩语词典形，列出动词或形容词的变化，每条都能听发音。
 - 工具页新增英文不规则动词查询，任意一种形式都能搜到。
 - 日语动词变形新增「なさい」和它的省略「な」（行きなさい、行きな）。
+- 日语动词变形新增关西、九州（博多）、东北、广岛的方言说法，每个方言一组，只列和标准语不同的形。
 
 #### 变更
 
