@@ -366,8 +366,8 @@
 	var VOW = "аеёиоуыэюя";
 	var LAB = {
 		title: ["俄语词形变化", "Russian word forms"],
-		hint: ["先选类型（自动/动词/形容词/名词），再输入原形。动词列出体、现在时或将来时、过去时、命令式、假定式、语气、分词和副动词；形容词列出长尾变格、短尾、比较级和最高级；名词列出单复数六格、动物性和特殊形式。完成体没有现在时。重音不标；方言/口语形式仅供参考。",
-			"Pick a type (auto, verb, adjective or noun), then enter the base form. Verbs list aspect, present or future, past, imperative, subjunctive, mood, participles and gerunds; adjectives list long declension, short forms, comparative and superlative; nouns list all six cases in both numbers, animacy and special forms. Perfective verbs have no present. Stress is not marked; dialect and colloquial forms are illustrative."],
+		hint: ["先选类型（自动/动词/形容词/名词），再输入原形，所有变化一次列出。动词按自动判断的体列出现在时或将来时、过去时、命令式、假定式、语气、分词、副动词，以及口语和方言形式；形容词列出长尾变格、短尾、比较级、最高级和语体/方言形式；名词列出单复数六格、动物性、特殊形式和方言说明。完成体没有现在时。重音不标，方言形式仅供参考。",
+			"Pick a type (auto, verb, adjective or noun), then enter the base form. Every available form is listed at once: verbs show present or future, past, imperative, subjunctive, mood, participles, gerunds, plus colloquial and dialect forms; adjectives show long declension, short forms, comparative, superlative and register/dialect forms; nouns show all six cases in both numbers, animacy, special forms and dialect notes. Perfective verbs have no present. Stress is not marked; dialect forms are illustrative."],
 		word: ["原形", "Word"],
 		aspect: ["体", "Aspect"],
 		ph: ["动词不定式、形容词阳性单数或名词，如 читать、красивый、книга", "Infinitive, masculine adjective, or noun, e.g. читать, красивый, книга"],
@@ -798,10 +798,13 @@
 		var v = opt.variant || "std";
 		if (v !== "std") {
 			var variants = v === "all" ? ["coll", "north", "south", "arch"] : [v];
+			var dialectAdded = false;
 			for (var v1 = 0; v1 < variants.length; v1++) {
 				var vv = variants[v1];
 				g = L(lang, LAB.g_var);
 				if (vv === "north" || vv === "south") {
+					if (dialectAdded) continue;
+					dialectAdded = true;
 					R(g, L(lang, ["北/南俄 · 属格（方言读音）", "Northern / Southern · genitive (dialect pronunciation)"]), forms[0][1].replace(/ого$/, "ово").replace(/его$/, "ево"));
 				}
 				else if (vv === "coll") {
