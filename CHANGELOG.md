@@ -94,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Chrome model page shows whether the open profile belongs to the program or to the user.
 - The web tools home drops the left category column, and file transfer is now a card in the tool list under Files.
 - A Chrome voice pack shows its speaker count, and Chinese, Traditional Chinese, and Cantonese list every speaker in the pack.
+- Korean moods: show affirmative and negative forms side by side in the same cell
 
 #### Fixed
 
@@ -179,6 +180,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 模型页显示当前打开的配置是程序的还是用户的。
 - web 工具主页去掉左侧分类栏，文件传输改成「文件」分类里的工具卡片。
 - Chrome 语音包说明改为发音人个数。中文、繁体中文和粤语的发音人列表列出这一包里的全部发音人。
+- 韩语语气：肯定形与否定形并列显示在同一格
 
 #### 修复
 
