@@ -112,6 +112,11 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, new JsonObject { ["code"] = 802, ["error"] = "noword", ["data"] = "noword" });
 			return;
 		}
+		// Chrome 发音是这台机器在说话，局域网请求不接；其它引擎照常返回 WAV。
+		if (!fromlocal(ctx) && DictWeb.SpeakUsesChrome(getOpts?.Invoke(), lang)) {
+			writejson(ctx, 403, err(403, "Chrome 语音只允许本机调用"));
+			return;
+		}
 		try {
 			var path = DictWeb.SpeakFile(getOpts?.Invoke(), lang, text);
 			var bytes = File.ReadAllBytes(path);

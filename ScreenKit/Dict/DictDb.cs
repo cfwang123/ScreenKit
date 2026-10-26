@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 namespace ScreenKit;
 
@@ -708,19 +709,102 @@ static class DictDb {
 		if (prel1 == null || q.Length == 0) return;
 		var code = dictcode(dict);
 		var nchars = codepoints(q).Count;
+		// 三字以上走 gram 倒排；一字、两字按块并行扫键段，结果和原来的顺序扫一致。
 		if (nchars >= 3 && nchars >= gramchars) {
 			suffixkeys(q, code, hits, cap);
 			infixkeys(q, code, hits, cap);
 			return;
 		}
-		// 单字：只能用前缀段顺序扫一遍，跳过已经当前缀命中的。
+		scancontains(q, code, hits, cap);
+	}
+
+	/// <summary>
+	/// 单字、两字查询的包含检索：按块并行解压键段，逐键在缓冲里找子串，不逐条建 KeyBlock、不分配键数组。
+	/// 顺序走一遍约半秒，分给几个线程后冷缓存也能压到 100 毫秒上下。
+	/// </summary>
+	static void scancontains(string q, int code, List<DictHit> hits, int cap) {
+		var l1 = prel1;
+		if (l1 == null || l1.Length == 0) return;
 		var qb = encodepoints(q, 0, -1);
-		walk(prefixl1(), null, null, (key, blk, j) => {
-			if (startswith(key, qb)) return true;
-			if (indexof(key, qb) < 0) return true;
-			push(blk, j, key, endswith(key, qb) ? 2 : 3, code, hits, cap, false);
-			return hits.Count < cap;
-		}, cap);
+		var recs = new List<Sec>();
+		for (var g = 0; g < l1.Length; g++) {
+			var part = group(l1, g);
+			if (part != null && part.Length > 0) recs.AddRange(part);
+		}
+		if (recs.Count == 0) return;
+		var n = Environment.ProcessorCount;
+		if (n > 16) n = 16;
+		if (n > recs.Count) n = recs.Count;
+		if (n < 2) {
+			scanrange(recs, 0, recs.Count, qb, code, hits, cap);
+			return;
+		}
+		var bags = new List<DictHit>[n];
+		try {
+			Parallel.For(0, n, t => {
+				var mine = new List<DictHit>();
+				var from = recs.Count * t / n;
+				var to = recs.Count * (t + 1) / n;
+				scanrange(recs, from, to, qb, code, mine, cap);
+				bags[t] = mine;
+			});
+		}
+		catch { }
+		for (var t = 0; t < n; t++) {
+			var mine = bags[t];
+			if (mine != null && mine.Count > 0) hits.AddRange(mine);
+		}
+	}
+
+	static void scanrange(List<Sec> recs, int from, int to, byte[] qb, int code, List<DictHit> hits, int cap) {
+		FileStream f = null;
+		try {
+			f = new FileStream(dbpath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+			for (var i = from; i < to; i++) {
+				if (hits.Count >= cap) return;
+				var raw = readraw(f, recs[i].Off, recs[i].Len);
+				if (raw == null) continue;
+				scanblock(raw, qb, code, hits, cap);
+			}
+		}
+		catch { }
+		finally {
+			if (f != null) f.Dispose();
+		}
+	}
+
+	/// <summary>扫一个键块：键是前缀压缩的，直接在重建缓冲里找，命中才复制键、取倒排。</summary>
+	static void scanblock(byte[] raw, byte[] qb, int code, List<DictHit> hits, int cap) {
+		if (raw == null || raw.Length < 2) return;
+		var n = u16(raw, 0);
+		var p = 2;
+		var kbuf = new byte[128];
+		var klen = 0;
+		for (var i = 0; i < n; i++) {
+			if (p + 4 > raw.Length) return;
+			var shared = u16(raw, p);
+			var nrest = u16(raw, p + 2);
+			p += 4;
+			if (p + nrest + 6 > raw.Length) return;
+			klen = shared;
+			if (klen + nrest > kbuf.Length)
+				Array.Resize(ref kbuf, Math.Max(kbuf.Length * 2, klen + nrest));
+			Buffer.BlockCopy(raw, p, kbuf, klen, nrest);
+			klen += nrest;
+			p += nrest;
+			var np = u16(raw, p + 4);
+			var postAt = p + 6;
+			p += 6;
+			if (p + np * 5 > raw.Length) return;
+			p += np * 5;
+			if (hits.Count >= cap) return;
+			if (klen < qb.Length) continue;
+			if (startswith(kbuf, klen, qb)) continue;
+			if (indexof(kbuf, 0, klen, qb) < 0) continue;
+			var key = new byte[klen];
+			Buffer.BlockCopy(kbuf, 0, key, 0, klen);
+			pushraw(raw, postAt, np, key, endswith(kbuf, klen, qb) ? 2 : 3, code, hits, cap, false);
+		}
 	}
 
 	static void stemkeys(string q, string dict, List<DictHit> hits, int limit) {
@@ -1139,6 +1223,23 @@ static class DictDb {
 		if (s.Length < pre.Length) return false;
 		for (var i = 0; i < pre.Length; i++)
 			if (s[i] != pre[i]) return false;
+		return true;
+	}
+
+	static bool startswith(byte[] s, int len, byte[] pre) {
+		if (pre.Length == 0) return true;
+		if (len < pre.Length) return false;
+		for (var i = 0; i < pre.Length; i++)
+			if (s[i] != pre[i]) return false;
+		return true;
+	}
+
+	static bool endswith(byte[] s, int len, byte[] suf) {
+		if (suf.Length == 0) return true;
+		if (len < suf.Length) return false;
+		var off = len - suf.Length;
+		for (var i = 0; i < suf.Length; i++)
+			if (s[off + i] != suf[i]) return false;
 		return true;
 	}
 

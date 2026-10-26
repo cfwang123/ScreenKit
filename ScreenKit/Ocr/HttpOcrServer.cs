@@ -2666,7 +2666,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			"GET  /chrome  Chrome 模型页",
 			"GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语",
 			"GET  /api/dict/entry  ?id=",
-			"GET  /api/dict/speak  ?text=&lang=  WAV",
+			"GET  /api/dict/speak  ?text=&lang=  WAV；该语言用 Chrome 时仅本机",
 			"GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md",
 			"GET  /api/reader/list  小说阅读器：web/up/reader 下的 txt、md",
 			"GET  /api/reader/file  ?name=&enc=  读一篇的正文",

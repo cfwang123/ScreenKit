@@ -120,6 +120,13 @@ static class DictWeb {
 		};
 	}
 
+	/// <summary>这个语言的发音会不会落在本机 Chrome 上：只在这台机器出声，不返回真实的音频。</summary>
+	public static bool SpeakUsesChrome(OcrOptions o, string lang) {
+		lang = NormLang(lang);
+		var pref = DictTts.For(o, lang);
+		return DictTts.ResolveEngine(pref.Engine, lang) == DictTts.CHROME;
+	}
+
 	public static string SpeakFile(OcrOptions o, string lang, string text) {
 		lang = NormLang(lang);
 		var pref = DictTts.For(o, lang);
