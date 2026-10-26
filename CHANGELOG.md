@@ -71,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Add adjective and noun forms to the English word-forms tool.
 - Korean verbs: add hearsay, conjecture, judgment, obligation, permission and request forms
 - Korean nouns: list the same hearsay, conjecture, judgment, obligation and permission forms as verbs
+- Add register and tone groups to the English word-forms tool.
 
 #### Changed
 
@@ -152,6 +153,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词形工具增加形容词和名词：比较级、最高级、比较句型、副词和名词形式，以及复数、所有格、冠词、可数性和主谓一致。
 - 韩语动词变化：补充传闻、推量、判断、义务、许可、请求等语气
 - 韩语名词：补上与动词对应的传闻、推量、判断、义务、许可等语气
+- 英语词形工具按正式、中性、口语、强调、委婉、感叹、推测等补上语体与语气，动词、形容词、名词各一组。
 
 #### 变更
 

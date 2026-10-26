@@ -142,6 +142,21 @@ static class ChromeHost {
 
 	static int hostpid;
 	static int lasthost;
+	static int pagepid;
+
+	/// <summary>记下可见模型页那个 Chrome 的浏览器进程，安装模型时接上它，别关窗口。</summary>
+	public static void PageOpened(int pid) {
+		Volatile.Write(ref pagepid, pid > 0 ? pid : 0);
+	}
+
+	/// <summary>这个进程是不是可见模型页 Chrome 自己或它的子进程。</summary>
+	public static bool IsPage(int pid) {
+		var root = Volatile.Read(ref pagepid);
+		if (root <= 0 || pid <= 0) return false;
+		if (!alive(root)) return false;
+		if (pid == root) return true;
+		return ChromeTts.InTree(root, pid);
+	}
 
 	static int ownpid() {
 		Process p;

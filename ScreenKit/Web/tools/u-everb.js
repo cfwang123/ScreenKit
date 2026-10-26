@@ -287,7 +287,38 @@
 		reg_a: ["规则形容词", "Regular adjective"],
 		irr_a: ["不规则形容词", "Irregular adjective"],
 		reg_n: ["规则名词", "Regular noun"],
-		irr_n: ["不规则名词", "Irregular noun"]
+		irr_n: ["不规则名词", "Irregular noun"],
+		g_ton: ["语体与语气", "Register & tone"],
+		t_formal: ["正式书面", "Formal"],
+		t_neutral: ["中性", "Neutral"],
+		t_informal: ["口语", "Informal"],
+		t_emph: ["强调（do / does）", "Emphatic do"],
+		t_inv: ["强调倒装", "Emphatic inversion"],
+		t_excl: ["感叹", "Exclamation"],
+		t_hedge: ["委婉、试探", "Hedged"],
+		t_insist: ["坚决、命令", "Insistent"],
+		t_regret: ["后悔、责备", "Regret"],
+		t_wish: ["愿望", "Wish"],
+		t_deduct: ["推测", "Deduction"],
+		t_hear: ["据说、应当", "Hearsay & supposed"],
+		g_deg: ["程度与语气", "Degree & tone"],
+		d_deg: ["程度", "Degree"],
+		d_formal: ["正式", "Formal"],
+		d_informal: ["口语", "Informal"],
+		d_emph: ["强调", "Emphasis"],
+		d_hedge: ["弱化、委婉", "Hedged"],
+		d_excl: ["感叹", "Exclamation"],
+		d_neg: ["否定", "Negation"],
+		d_enough: ["足够、过度", "Enough / too"],
+		g_ntone: ["语体与数量", "Register & quantity"],
+		q_formal: ["正式", "Formal"],
+		q_neutral: ["中性", "Neutral"],
+		q_informal: ["口语", "Informal"],
+		q_small: ["少量", "A few"],
+		q_every: ["强调", "Emphasis"],
+		q_neg: ["否定", "Negation"],
+		q_excl: ["感叹", "Exclamation"],
+		q_ref: ["特指、泛指", "Specific vs generic"]
 	};
 	// 常见形容词和名词，用来自动判断词性，也给输入框下拉用。
 	var ADJS = [
@@ -655,6 +686,20 @@
 		g = L(LAB.g_cau);
 		R(g, L(LAB.c_make), "make him " + b + " · have him " + b + " · get him to " + b);
 		R(g, L(LAB.c_let), "let him " + b + " · allow him to " + b + " · permit him to " + b);
+		// 语体与语气
+		g = L(LAB.g_ton);
+		R(g, L(LAB.t_formal), "I would like to " + b + " · we wish to " + b);
+		R(g, L(LAB.t_neutral), "I want to " + b + " · I'd like to " + b);
+		R(g, L(LAB.t_informal), "I wanna " + b + " · I'm gonna " + b + " · I gotta " + b);
+		R(g, L(LAB.t_emph), isBe ? "I really am · he really is" : "I do " + b + " · I really do " + b + " · he does " + b);
+		R(g, L(LAB.t_inv), isBe ? "Never have I been · Only then was I" : "Never have I " + ppF + " · Only then did I " + b);
+		R(g, L(LAB.t_excl), isBe ? "How he is!" : "How he " + s3F + "!");
+		R(g, L(LAB.t_hedge), "I was wondering if you could " + b + " · it might be better to " + b);
+		R(g, L(LAB.t_insist), "You will " + b + " · you are to " + b + " · you shall " + b);
+		R(g, L(LAB.t_regret), "You should have " + ppF + " · you needn't have " + ppF);
+		R(g, L(LAB.t_wish), "If only I could " + b + " · I wish I could " + b);
+		R(g, L(LAB.t_deduct), "He may have " + ppF + " · he must have " + ppF + " · he can't have " + ppF);
+		R(g, L(LAB.t_hear), "He is said to " + b + " · he is supposed to " + b);
 		// 地区变体：不规则动词的 -t / -ed 写法、gotten / got、dove / dived，以及 -l 双写
 		var ameP = pastF;
 		var amePP = ppF;
@@ -766,6 +811,15 @@
 		R(g, L(LAB.a_less), "less " + base + " than · the least " + base);
 		R(g, L(LAB.a_deg), "much / far / even " + c1);
 		R(g, L(LAB.a_and), /^more /.test(c1) ? "more and more " + base : c1 + " and " + c1);
+		g = L(LAB.g_deg);
+		R(g, L(LAB.d_deg), "very / really / so / quite " + base);
+		R(g, L(LAB.d_formal), "exceedingly / remarkably " + base);
+		R(g, L(LAB.d_informal), "super / pretty / totally " + base);
+		R(g, L(LAB.d_emph), "absolutely / utterly " + base);
+		R(g, L(LAB.d_hedge), "fairly / rather / somewhat " + base + " · not very " + base);
+		R(g, L(LAB.d_excl), "How " + base + "! · So " + base + "!");
+		R(g, L(LAB.d_neg), "not " + base + " at all · far from " + base);
+		R(g, L(LAB.d_enough), base + " enough · too " + base);
 		g = L(LAB.g_a_oth);
 		R(g, L(LAB.a_adv), advform(base));
 		R(g, L(LAB.a_noun), adjnoun(base));
@@ -821,6 +875,17 @@
 			: "this " + base + " · these " + first);
 		R(g, L(LAB.n_pron), uncount ? "it" : "it · they");
 		R(g, L(LAB.n_rule), uncount ? L(LAB.pl_no) : (NOUNIRR[base] ? L(LAB.pl_irr) : (UNCHANGED[base] ? L(LAB.pl_same) : L(pluralrule(base)))));
+		g = L(LAB.g_ntone);
+		R(g, L(LAB.q_formal), uncount ? "a great deal of " + base : "a considerable number of " + first);
+		R(g, L(LAB.q_neutral), "some " + (uncount ? base : first));
+		R(g, L(LAB.q_informal), "a lot of " + (uncount ? base : first) + " · tons of " + (uncount ? base : first));
+		R(g, L(LAB.q_small), uncount ? "a little " + base : "a few " + first);
+		R(g, L(LAB.q_every), uncount ? "every bit of " + base : "every single " + base);
+		R(g, L(LAB.q_neg), "not any " + base + " · no " + base);
+		R(g, L(LAB.q_excl), uncount ? "What " + base + "!" : "What a " + base + "!");
+		R(g, L(LAB.q_ref), uncount
+			? "the " + base + " · " + base + " in general"
+			: article(base) + " " + base + " · the " + base + " · " + first + " in general");
 		var note = NOUNIRR[base] ? L(LAB.irr_n) : L(LAB.reg_n);
 		if (!uncount) note += " · " + plist.join(" / ");
 		else note += " · " + L(LAB.count_no);

@@ -166,6 +166,15 @@ static class ChromeTts {
 		catch { }
 	}
 
+	/// <summary>pid 在 root 的进程树里（含 root）。快照失败时只认同一个 pid。</summary>
+	public static bool InTree(int root, int pid) {
+		if (root <= 0 || pid <= 0) return false;
+		if (root == pid) return true;
+		var ids = treeids(root);
+		if (ids == null) return false;
+		return ids.Contains(pid);
+	}
+
 	/// <summary>pid 下面的子进程个数。快照失败返回 -1。</summary>
 	public static int ChildCount(int pid) {
 		var ids = treeids(pid);

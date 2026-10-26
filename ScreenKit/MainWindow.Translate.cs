@@ -271,6 +271,8 @@ public partial class MainWindow {
 		var px = HttpProxy.ChromeArgs();
 		try {
 			ChromeHost.Stop();
+			// 语音引擎的启用信息要在 Chrome 启动前写进配置，模型页这个 Chrome 才能直接装语音包。
+			ChromePack.PrepareVoice(profile);
 			var left = 80;
 			var top = 60;
 			var width = 1100;
@@ -285,6 +287,7 @@ public partial class MainWindow {
 			});
 			var pid = 0;
 			try { if (proc != null) pid = proc.Id; } catch { }
+			ChromeHost.PageOpened(pid);
 			ChromeHost.NudgeVisible(pid, left, top, width, height);
 		}
 		catch (Exception ex) {
