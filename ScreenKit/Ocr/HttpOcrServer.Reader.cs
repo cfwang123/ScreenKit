@@ -252,20 +252,21 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, err(803, "文件超过 20 MB"));
 			return;
 		}
-		var tmp = dest + ".part";
+		// 先写到自己的临时名，客户端流在锁外读，慢上传不占着 readerlock。
+		var tmp = dest + ".part-" + Guid.NewGuid().ToString("N");
 		long total = 0;
 		try {
-			lock (readerlock) {
-				using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None)) {
-					var buf = new byte[64 * 1024];
-					int n;
-					while ((n = ctx.Request.InputStream.Read(buf, 0, buf.Length)) > 0) {
-						total += n;
-						if (total > READERMAX) throw new InvalidOperationException("文件超过 20 MB");
-						fs.Write(buf, 0, n);
-					}
+			using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None)) {
+				var buf = new byte[64 * 1024];
+				int n;
+				while ((n = ctx.Request.InputStream.Read(buf, 0, buf.Length)) > 0) {
+					total += n;
+					if (total > READERMAX) throw new InvalidOperationException("文件超过 20 MB");
+					fs.Write(buf, 0, n);
 				}
-				if (total == 0) throw new InvalidOperationException("文件是空的");
+			}
+			if (total == 0) throw new InvalidOperationException("文件是空的");
+			lock (readerlock) {
 				if (File.Exists(dest)) File.Delete(dest);
 				File.Move(tmp, dest);
 			}

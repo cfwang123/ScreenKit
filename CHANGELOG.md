@@ -82,6 +82,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - WinRT calendar, Japanese readings and speech synthesis now share one resident STA thread instead of spawning a thread per request
 - HTTP requests never pop the install dialog anymore; a missing runtime library returns error code 953
 - Chrome speech only uses voices installed on this PC and fails at once when the language has none, instead of silently falling back to Google network voices.
+- HTTP concurrency details: fx rates download outside the cache lock with a shared HttpClient, usb.ids loads once, reader uploads read the body outside the file lock, status caches model scans for 2 s, repeated big JSON is gzipped once, and the font/encoding tables initialize under a lock
+- LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
 
 #### Fixed
 
@@ -172,6 +174,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - WinRT 日历换算、日文读音、语音合成改用常驻 STA 线程，不再每个请求新建线程
 - HTTP 请求不再弹安装提示，缺运行库时直接返回错误码 953
 - Chrome 朗读只用装在本机的离线声音，这一语言没有就立即失败，不再回落到 Google 的网络声音。
+- HTTP 并发细节：汇率下载移出缓存锁并复用静态 HttpClient，usb.ids 单飞，reader 上传在锁外读请求体，status 的模型扫描缓存 2 秒，重复大 JSON 只压一次，字体表/编码表加锁初始化
+- LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
 
 #### 修复
 

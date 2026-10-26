@@ -67,8 +67,13 @@ sealed partial class HttpOcrServer : IDisposable {
 	public static int FailedPort { get; private set; }
 	public event Action<string> Logged;
 	const int FONTCACHEMS = 10 * 60 * 1000;
+	/// <summary>status 里的模型/语音扫描结果，短缓存；网页轮询时不必每来一次就扫目录。</summary>
+	const int SCANCACHEMS = 2000;
+	static readonly object scanlock = new();
+	static int scanAsrN, scanTtsN, scanFaceN, lastscan;
 	static string[] fontNames;
 	static int lastfonts;
+	static readonly object fontlock = new();
 	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
 		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
@@ -730,12 +735,29 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	void handlestatus(SockCtx ctx) {
 		var o = getOpts?.Invoke() ?? new OcrOptions();
-		var asrN = 0;
-		var ttsN = 0;
-		var faceN = 0;
-		try { asrN = svc?.ScanAsr?.Invoke()?.Count ?? 0; } catch { }
-		try { ttsN = svc?.ScanTts?.Invoke()?.Count ?? 0; } catch { }
-		try { faceN = FaceModels.ListOnnx().Count; } catch { }
+		int asrN;
+		int ttsN;
+		int faceN;
+		lock (scanlock) {
+			var now = Environment.TickCount;
+			if (lastscan != 0 && unchecked(now - lastscan) < SCANCACHEMS) {
+				asrN = scanAsrN;
+				ttsN = scanTtsN;
+				faceN = scanFaceN;
+			}
+			else {
+				asrN = 0;
+				ttsN = 0;
+				faceN = 0;
+				try { asrN = svc?.ScanAsr?.Invoke()?.Count ?? 0; } catch { }
+				try { ttsN = svc?.ScanTts?.Invoke()?.Count ?? 0; } catch { }
+				try { faceN = FaceModels.ListOnnx().Count; } catch { }
+				scanAsrN = asrN;
+				scanTtsN = ttsN;
+				scanFaceN = faceN;
+				lastscan = Environment.TickCount;
+			}
+		}
 		writejson(ctx, 200, new JsonObject {
 			["code"] = 100,
 			["data"] = new JsonObject {
@@ -1025,22 +1047,24 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	static string[] systemfonts() {
-		var now = Environment.TickCount;
-		if (fontNames != null && unchecked(now - lastfonts) < FONTCACHEMS) return fontNames;
-		var set = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
-		try {
-			using var col = new InstalledFontCollection();
-			foreach (var fam in col.Families) {
-				var name = fam.Name;
-				if (string.IsNullOrWhiteSpace(name) || name[0] == '@') continue;
-				set.Add(name.Trim());
+		lock (fontlock) {
+			var now = Environment.TickCount;
+			if (fontNames != null && unchecked(now - lastfonts) < FONTCACHEMS) return fontNames;
+			var set = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
+			try {
+				using var col = new InstalledFontCollection();
+				foreach (var fam in col.Families) {
+					var name = fam.Name;
+					if (string.IsNullOrWhiteSpace(name) || name[0] == '@') continue;
+					set.Add(name.Trim());
+				}
 			}
+			catch { }
+			if (set.Count == 0) return Array.Empty<string>();
+			fontNames = set.ToArray();
+			lastfonts = now;
+			return fontNames;
 		}
-		catch { }
-		if (set.Count == 0) return Array.Empty<string>();
-		fontNames = set.ToArray();
-		lastfonts = now;
-		return fontNames;
 	}
 
 	void handleenc(SockCtx ctx) {
@@ -2757,7 +2781,10 @@ sealed partial class HttpOcrServer : IDisposable {
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
 		res.Headers["Access-Control-Allow-Headers"] = "Content-Type";
 		res.Headers["Vary"] = "Accept-Encoding";
-		var gz = WebGzip.Accepts(ctx.Request?.Headers?["Accept-Encoding"]) ? WebGzip.Maybe(res.ContentType, bytes) : null;
+		// 大 JSON 反复轮询时只压一次：内容相同（长度 + FNV）就复用上次的 gzip。
+		var gz = WebGzip.Accepts(ctx.Request?.Headers?["Accept-Encoding"])
+			? WebGzip.Cached("res|" + (res.ContentType ?? "") + "|" + WebGzip.Stamp(bytes), res.ContentType, bytes)
+			: null;
 		writebody(ctx, bytes, gz, false);
 	}
 

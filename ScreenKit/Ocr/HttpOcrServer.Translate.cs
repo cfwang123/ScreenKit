@@ -8,6 +8,10 @@ namespace ScreenKit;
 sealed partial class HttpOcrServer {
 	TranslateEngine httpTr;
 
+	/// <summary>同时进行的 LLM 翻译请求数。排队超过 300ms 就回 503，不把线程堆在模型上。</summary>
+	static readonly System.Threading.SemaphoreSlim llmslots = new(2, 2);
+	const int LLMSLOTMS = 300;
+
 	/// <summary>翻译引擎：自动、本地 ONNX、Chrome、LLM。</summary>
 	void handletranslateengines(SockCtx ctx) {
 		var o = getOpts?.Invoke() ?? new OcrOptions();
@@ -187,14 +191,19 @@ sealed partial class HttpOcrServer {
 		chunk = AsrLlmClient.NormBatchChunk(o, chunk);
 
 		var t0 = Environment.TickCount;
+		if (!llmslots.Wait(LLMSLOTMS)) {
+			writejson(ctx, 200, err(503, "翻译请求过多（LLM 同时最多 2 路），请稍后重试"));
+			return;
+		}
 		List<string> outs;
 		try {
-			outs = AsrLlmClient.TranslateBatch(o, items, src, dst, chunk, ep);
+			outs = llmtranslate(o, items, src, dst, chunk, ep);
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(942, "翻译失败: " + ex.Message));
 			return;
 		}
+		finally { llmslots.Release(); }
 		var ms = Math.Max(0, Environment.TickCount - t0);
 
 		var arr = new JsonArray();
@@ -469,6 +478,29 @@ sealed partial class HttpOcrServer {
 	bool idlehttptr(int limitMs) {
 		if (httpTr == null) return false;
 		return httpTr.IdleUnload(limitMs);
+	}
+
+	/// <summary>LLM 翻译：429/503 或被快速拒掉时退避重试两次；已经等了很久的超时不再重试，免得成倍拖长。</summary>
+	static List<string> llmtranslate(OcrOptions o, IList<string> items, string src, string dst, int chunk, LlmEndpoint ep) {
+		for (var attempt = 0; ; attempt++) {
+			var t0 = Environment.TickCount;
+			try {
+				return AsrLlmClient.TranslateBatch(o, items, src, dst, chunk, ep);
+			}
+			catch (Exception ex) when (attempt < 2 && retryable(ex)
+				&& unchecked(Environment.TickCount - t0) < 3000) {
+				Thread.Sleep(300 << attempt);
+			}
+		}
+	}
+
+	static bool retryable(Exception ex) {
+		if (ex is TimeoutException or TaskCanceledException) return true;
+		var msg = ex?.Message ?? "";
+		return msg.IndexOf("503", StringComparison.Ordinal) >= 0
+			|| msg.IndexOf("429", StringComparison.Ordinal) >= 0
+			|| msg.IndexOf("timed out", StringComparison.OrdinalIgnoreCase) >= 0
+			|| msg.IndexOf("超时", StringComparison.Ordinal) >= 0;
 	}
 
 	void disposehttptr() {

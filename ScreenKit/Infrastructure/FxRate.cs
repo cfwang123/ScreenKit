@@ -32,6 +32,9 @@ static class FxRate {
 	};
 
 	static readonly object gate = new();
+	/// <summary>只允许一个请求去下载牌价页，但它不在 <see cref="gate"/> 里，读到缓存的请求不用等。</summary>
+	static readonly object downloadgate = new();
+	static readonly HttpClient http = makehttp();
 	static Dictionary<string, decimal> cached;
 	static string cachedAsof = "";
 	static bool cachedLive;
@@ -69,24 +72,37 @@ static class FxRate {
 	}
 
 	static (Dictionary<string, decimal> Rates, string Asof, bool Live) table() {
+		Func<string> load;
 		lock (gate) {
 			if (cached != null && fresh())
 				return (cached, cachedAsof, cachedLive);
+			load = loader;
+		}
+		// 下载放锁外：慢网络不堵别的请求；同一时间只让一个请求去下，避免并发重复拉同一页。
+		lock (downloadgate) {
+			lock (gate) {
+				if (cached != null && fresh())
+					return (cached, cachedAsof, cachedLive);
+			}
+			Dictionary<string, decimal> rates;
+			string asof;
+			var live = true;
 			try {
-				var html = loader();
-				var parsed = parse(html);
-				cached = parsed.Rates;
-				cachedAsof = parsed.Asof;
-				cachedLive = true;
-				cachedAt = Environment.TickCount;
-				return (cached, cachedAsof, true);
+				var parsed = parse(load());
+				rates = parsed.Rates;
+				asof = parsed.Asof;
 			}
 			catch {
-				cached = defrates();
-				cachedAsof = DEFAULT_ASOF;
-				cachedLive = false;
+				rates = defrates();
+				asof = DEFAULT_ASOF;
+				live = false;
+			}
+			lock (gate) {
+				cached = rates;
+				cachedAsof = asof;
+				cachedLive = live;
 				cachedAt = Environment.TickCount;
-				return (cached, cachedAsof, false);
+				return (cached, cachedAsof, cachedLive);
 			}
 		}
 	}
@@ -228,9 +244,13 @@ static class FxRate {
 		return (neg ? "-" : "") + s;
 	}
 
+	static HttpClient makehttp() {
+		var c = new HttpClient(HttpProxy.CreateHandler()) { Timeout = TimeSpan.FromSeconds(8) };
+		c.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0");
+		return c;
+	}
+
 	static string download() {
-		using var http = new HttpClient(HttpProxy.CreateHandler()) { Timeout = TimeSpan.FromSeconds(8) };
-		http.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "Mozilla/5.0");
 		var bytes = http.GetByteArrayAsync(PAGE).GetAwaiter().GetResult();
 		if (bytes == null || bytes.Length == 0) throw new InvalidOperationException("空页面");
 		var utf = Encoding.UTF8.GetString(bytes);

@@ -25,13 +25,13 @@ sealed class CodePageRow {
 
 /// <summary>文本编解码 / 空白 / 统计。</summary>
 static class TextTools {
-	static bool encReady;
-
-	static void ensureenc() {
-		if (encReady) return;
+	/// <summary>注册代码页提供器只做一次，并发首用时也只跑一遍。</summary>
+	static readonly Lazy<bool> encinit = new(() => {
 		Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-		encReady = true;
-	}
+		return true;
+	});
+
+	static void ensureenc() => _ = encinit.Value;
 
 	public static Encoding Gbk {
 		get {

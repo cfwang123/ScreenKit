@@ -55,6 +55,10 @@ static class ChromePack {
 	const int GWL_EXSTYLE = -20;
 	const long WS_EX_TOOLWINDOW = 0x80;
 	const long WS_EX_APPWINDOW = 0x40000;
+	/// <summary>
+	/// 语音包安装/查询的全局锁。锁序固定为 voiceOp → ChromeHost.gate：
+	/// 持 voiceOp 时只单向调用 ChromeHost（Stop/Sess/Pin），ChromeHost 不能反过来拿 voiceOp。
+	/// </summary>
 	static readonly object voiceOp = new();
 	static Dictionary<string, bool> voiceKnown;
 	static bool wasmProbed;

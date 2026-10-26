@@ -1860,49 +1860,56 @@ static class NetTools {
 	}
 
 	static string usbcached;
+	static readonly System.Threading.SemaphoreSlim usbgate = new(1, 1);
 
 	static async Task<string> loadusbids(Action<string> line, CancellationToken ct) {
 		if (usbcached != null && usbcached.Length > 10000) return usbcached;
-		var path = Path.Combine(TmpStore.Root, "usb.ids");
-		if (File.Exists(path)) {
-			var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(path);
-			if (age < TimeSpan.FromDays(7)) {
-				var cached = File.ReadAllText(path, Encoding.UTF8);
-				if (cached.IndexOf("\n046d  ", StringComparison.OrdinalIgnoreCase) >= 0) {
-					usbcached = cached;
-					line?.Invoke("名单: " + path);
-					return cached;
+		// 并发首用时只让一个请求下载，其余等它写进缓存。
+		await usbgate.WaitAsync(ct).ConfigureAwait(false);
+		try {
+			if (usbcached != null && usbcached.Length > 10000) return usbcached;
+			var path = Path.Combine(TmpStore.Root, "usb.ids");
+			if (File.Exists(path)) {
+				var age = DateTime.UtcNow - File.GetLastWriteTimeUtc(path);
+				if (age < TimeSpan.FromDays(7)) {
+					var cached = File.ReadAllText(path, Encoding.UTF8);
+					if (cached.IndexOf("\n046d  ", StringComparison.OrdinalIgnoreCase) >= 0) {
+						usbcached = cached;
+						line?.Invoke("名单: " + path);
+						return cached;
+					}
 				}
 			}
-		}
-		var urls = new[] {
-			"http://www.linux-usb.org/usb.ids",
-			"https://raw.githubusercontent.com/vcrhonek/hwdata/master/usb.ids",
-		};
-		Exception last = null;
-		foreach (var url in urls) {
-			ct.ThrowIfCancellationRequested();
-			try {
-				line?.Invoke(url);
-				var body = await httpgetproxy(url, 30, ct).ConfigureAwait(false);
-				if (body.IndexOf("\n046d  ", StringComparison.OrdinalIgnoreCase) < 0)
-					throw new InvalidOperationException("usb.ids 内容不对");
+			var urls = new[] {
+				"http://www.linux-usb.org/usb.ids",
+				"https://raw.githubusercontent.com/vcrhonek/hwdata/master/usb.ids",
+			};
+			Exception last = null;
+			foreach (var url in urls) {
+				ct.ThrowIfCancellationRequested();
 				try {
-					var part = path + ".part";
-					File.WriteAllText(part, body, new UTF8Encoding(false));
-					if (File.Exists(path)) File.Delete(path);
-					File.Move(part, path);
+					line?.Invoke(url);
+					var body = await httpgetproxy(url, 30, ct).ConfigureAwait(false);
+					if (body.IndexOf("\n046d  ", StringComparison.OrdinalIgnoreCase) < 0)
+						throw new InvalidOperationException("usb.ids 内容不对");
+					try {
+						var part = path + ".part-" + Guid.NewGuid().ToString("N");
+						File.WriteAllText(part, body, new UTF8Encoding(false));
+						if (File.Exists(path)) File.Delete(path);
+						File.Move(part, path);
+					}
+					catch { }
+					usbcached = body;
+					return body;
 				}
-				catch { }
-				usbcached = body;
-				return body;
+				catch (Exception ex) when (ex is not OperationCanceledException) {
+					last = ex;
+					line?.Invoke(url + "  " + (ex.InnerException?.Message ?? ex.Message));
+				}
 			}
-			catch (Exception ex) when (ex is not OperationCanceledException) {
-				last = ex;
-				line?.Invoke(url + "  " + (ex.InnerException?.Message ?? ex.Message));
-			}
+			throw new IOException(last?.InnerException?.Message ?? last?.Message ?? "无法下载 usb.ids");
 		}
-		throw new IOException(last?.InnerException?.Message ?? last?.Message ?? "无法下载 usb.ids");
+		finally { usbgate.Release(); }
 	}
 
 	static string takehex(string s, int i) {
