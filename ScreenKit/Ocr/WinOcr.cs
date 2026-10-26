@@ -360,16 +360,26 @@ static class WinOcr {
 			var words = new List<WinWord>();
 			foreach (var line in band)
 				words.AddRange(collectwords(zheng, line, px, pw, ph));
-			foreach (var cell in linesfromwords(words, inv)) {
-				if (cell?.Box == null || cell.Box.Length < 4) continue;
+			words.Sort((a, b) => a.Rc.X.CompareTo(b.Rc.X));
+			void putcell(OcrLine cell) {
+				if (cell?.Box == null || cell.Box.Length < 4) return;
 				var l = cell.Box[0].X;
 				var t = cell.Box[0].Y;
 				var r = cell.Box[2].X;
 				var btm = cell.Box[2].Y;
 				cell.Text = fixmixline(tidy(pickcellmix(words, l, t, r, btm, etok)));
-				if (string.IsNullOrEmpty(cell.Text)) continue;
+				if (string.IsNullOrEmpty(cell.Text)) return;
 				lines.Add(cell);
 			}
+			var sep = repeatedsep(words.Select(w => w.Text));
+			var parts = sep == null ? null : splitbysep(words, w => w.Text, sep);
+			if (parts == null) {
+				foreach (var cell in linesfromwords(words, inv))
+					putcell(cell);
+				continue;
+			}
+			foreach (var grp in parts)
+				putcell(cellfromwords(grp, inv));
 		}
 		sortlines(lines);
 		return lines;
@@ -1134,6 +1144,16 @@ static class WinOcr {
 	static List<OcrLine> mixrowcells(List<MixTok> row, float inv) {
 		if (row == null || row.Count == 0) return new List<OcrLine>();
 		row.Sort((a, b) => a.L.CompareTo(b.L));
+		var sep = repeatedsep(row.Select(t => t.Text));
+		var parts = splitbysep(row, t => t.Text, sep);
+		if (parts != null) {
+			var outLines = new List<OcrLine>();
+			foreach (var grp in parts) {
+				var ln = mixrowone(grp, inv);
+				if (ln != null) outLines.Add(ln);
+			}
+			return outLines;
+		}
 		var gaps = new List<float>();
 		float hsum = 0, wsum = 0;
 		int chars = 0;
@@ -1671,12 +1691,14 @@ static class WinOcr {
 	}
 
 	/// <summary>一排卡片、按钮里常夹着图标，OCR 会把图标认成一个反复出现的字。取出现最多的那个单字。</summary>
-	static string repeatedsep(List<Seg> row) {
+	static string repeatedsep(IEnumerable<string> texts) {
 		var cnt = new Dictionary<string, int>(StringComparer.Ordinal);
-		foreach (var s in row) {
-			var t = (s.Line.Text ?? "").Trim();
-			if (t.Length != 1 || !iscjk(t[0])) continue;
-			cnt[t] = cnt.TryGetValue(t, out var n) ? n + 1 : 1;
+		if (texts != null) {
+			foreach (var raw in texts) {
+				var t = (raw ?? "").Trim();
+				if (t.Length != 1 || !iscjk(t[0])) continue;
+				cnt[t] = cnt.TryGetValue(t, out var n) ? n + 1 : 1;
+			}
 		}
 		string best = null;
 		var max = 0;
@@ -1687,27 +1709,25 @@ static class WinOcr {
 	}
 
 	/// <summary>按这个单字切开。切出来每段都至少两个字才认，否则当普通一行处理。</summary>
-	static bool splitbysep(List<Seg> row, string sep, out List<List<Seg>> parts) {
-		parts = null;
-		var groups = new List<List<Seg>>();
-		var cur = new List<Seg>();
-		foreach (var s in row) {
-			var t = (s.Line.Text ?? "").Trim();
-			if (string.Equals(t, sep, StringComparison.Ordinal)) {
-				if (cur.Count > 0) { groups.Add(cur); cur = new List<Seg>(); }
+	static List<List<T>> splitbysep<T>(List<T> row, Func<T, string> textof, string sep) {
+		if (row == null || string.IsNullOrEmpty(sep)) return null;
+		var groups = new List<List<T>>();
+		var cur = new List<T>();
+		foreach (var it in row) {
+			if (string.Equals((textof(it) ?? "").Trim(), sep, StringComparison.Ordinal)) {
+				if (cur.Count > 0) { groups.Add(cur); cur = new List<T>(); }
 				continue;
 			}
-			cur.Add(s);
+			cur.Add(it);
 		}
 		if (cur.Count > 0) groups.Add(cur);
-		if (groups.Count < 3) return false;
+		if (groups.Count < 3) return null;
 		foreach (var g in groups) {
 			var n = 0;
-			foreach (var s in g) n += (s.Line.Text ?? "").Trim().Length;
-			if (n < 2) return false;
+			foreach (var it in g) n += (textof(it) ?? "").Trim().Length;
+			if (n < 2) return null;
 		}
-		parts = groups;
-		return true;
+		return groups;
 	}
 
 	static List<List<Seg>> splitgaps(List<Seg> row) {
@@ -1715,8 +1735,9 @@ static class WinOcr {
 		var cur = new List<Seg> { row[0] };
 		groups.Add(cur);
 		if (row.Count == 1) return groups;
-		var sep = repeatedsep(row);
-		if (sep != null && splitbysep(row, sep, out var parts)) return parts;
+		var sep = repeatedsep(row.Select(s => s.Line.Text));
+		var parts = splitbysep(row, s => s.Line.Text, sep);
+		if (parts != null) return parts;
 		var cw = charw(row);
 		var span = row[row.Count - 1].R - row[0].L;
 		var cut = Math.Max(cw * 10f, span * 0.12f);
