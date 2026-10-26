@@ -598,7 +598,7 @@
 			cop: "丁重・尊敬（だ・です）", degozaru: "でござる", degozaimasu: "でございます",
 			degozaimashita: "でございました", degozaimashou: "でございましょう",
 			deirassharu: "でいらっしゃる", deirasshaimasu: "でいらっしゃいます",
-			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
+			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛", term: "终止形"
 		};
 		return {
 			dict: "dictionary", masu: "masu", masen: "masen", mashita: "mashita", masend: "masen deshita",
@@ -643,7 +643,7 @@
 			cop: "Deferential / honorific copula", degozaru: "de gozaru", degozaimasu: "de gozaimasu",
 			degozaimashita: "de gozaimashita", degozaimashou: "de gozaimashou",
 			deirassharu: "de irassharu", deirasshaimasu: "de irasshaimasu",
-			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
+			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect", term: "terminal form"
 		};
 	}
 
@@ -700,7 +700,7 @@
 			plain: word, pred: word, drop: word, attrib: word, attribN: word,
 			ren: s + "く", ta: s + "かった", stem: s,
 			neg: s + "くない", negta: s + "くなかった"
-		}, "ai"), naihaseirows(L, s + "くない")) };
+		}, "ai"), naihaseirows(L, s + "くない"), dialectiadj(L, s)) };
 	}
 
 	function iadjstem(word){
@@ -750,7 +750,7 @@
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "な",
 			ren: word + "に", ta: word + "だった", stem: word,
 			neg: word + "ではない", negta: word + "ではなかった"
-		}, "an"), naihaseirows(L, word + "じゃない"), copularows(L, word)) };
+		}, "an"), naihaseirows(L, word + "じゃない"), copularows(L, word), dialectnounrows(L, word)) };
 	}
 
 	// 名词：学生だ、学生だった。和な形容词一样接だ・で・だった，连体形用の。
@@ -784,7 +784,7 @@
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "の",
 			ren: word + "に", ta: word + "だった", stem: word,
 			neg: word + "ではない", negta: word + "ではなかった"
-		}, "n"), naihaseirows(L, word + "じゃない"), copularows(L, word)) };
+		}, "n"), naihaseirows(L, word + "じゃない"), copularows(L, word), dialectnounrows(L, word)) };
 	}
 
 	function row(lab, val){ return [lab, val]; }
@@ -841,6 +841,27 @@
 			[L.nasa, s + "さ", L.naihasei],
 			[L.nasage, s + "さげ", L.naihasei],
 			[L.nasasugiru, s + "さすぎる", L.naihasei]
+		];
+	}
+
+	// い形容词的方言：关西 高うない／高うて／高うなる，九州（博多）高か／高うなか／高うて。
+	function dialectiadj(L, s){
+		return [
+			[L.nai, s + "うない", L.dks],
+			[L.te, s + "うて", L.dks],
+			[L.naru, s + "うなる", L.dks],
+			[L.term, s + "か", L.dky],
+			[L.nai, s + "うなか", L.dky],
+			[L.te, s + "うて", L.dky]
+		];
+	}
+
+	// な形容词、名词的方言：关西的断定是 や，否定 やない，过去 やった。
+	function dialectnounrows(L, word){
+		return [
+			[L.dict, word + "や", L.dks],
+			[L.nai, word + "やない", L.dks],
+			[L.ta, word + "やった", L.dks]
 		];
 	}
 
