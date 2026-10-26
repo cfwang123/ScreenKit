@@ -426,6 +426,17 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #ev-out .ev-line { display: flex; align-items: flex-start; gap: 2px; }
 #ev-out .ev-line > span { flex: 1; min-width: 0; }
 #ev-out .ev-line .jv-spk { flex: 0 0 auto; margin-top: 1px; }
+#cv-out { overflow-x: auto; }
+#cv-row { align-items: flex-end; }
+#cv-row > label { width: auto; }
+#cv-row > #cv-word { flex: 0 1 320px; width: 320px; max-width: 320px; min-width: 180px; }
+#cv-row > #cv-type { flex: 0 0 112px; }
+#cv-out .jv-tab { width: 100%; }
+#cv-out .jv-tab .jv-k { width: 12em; white-space: normal; }
+#cv-out .jv-tab .jv-v { white-space: normal; padding-right: 0; }
+#cv-out .cv-line { display: flex; align-items: flex-start; gap: 2px; }
+#cv-out .cv-line > span { flex: 1; min-width: 0; }
+#cv-out .cv-line .jv-spk { flex: 0 0 auto; margin-top: 1px; }
 .combo { position: relative; margin-top: 6px; }
 .combo input { margin-top: 0; padding-right: 36px; }
 .combo .combo-btn {
