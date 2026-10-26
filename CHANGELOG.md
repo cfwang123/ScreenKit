@@ -107,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean moods: add past affirmative and negative variants, listed one per line
 - Multiple forms in a Japanese table cell now stack vertically, and the table falls back to one pair per line instead of scrolling sideways.
 - Simplify the Russian word-forms tool to a type selector and one input, listing all forms without aspect or register selectors.
+- The build merges and minifies web scripts and styles; the slim package ships only merged, minified js/css.
 
 #### Fixed
 
@@ -209,6 +210,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语语气：增加过去肯定、否定变体，每行一种说法
 - 日语表格同一格的多个形式改为竖排，宽度不够时从两列退回一列，尽量不出现横向滚动条。
 - 简化俄语词形变化工具：只保留类型选择和输入框，不再选择体或语体，所有变化一次列出。
+- 编译时合并并压缩 web 的 js/css；精简包只带合并、压缩后的 js/css。
 
 #### 修复
 

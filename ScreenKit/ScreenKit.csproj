@@ -242,12 +242,18 @@
     <Delete Files="@(_DupGpu)" TreatErrorsAsWarnings="true" />
   </Target>
 
+  <!-- 输出目录 web：给 js/css 生成 minify 副本，源文件较新才重做。精简包随后只带走压缩后的文件。 -->
+  <Target Name="MinifyWebOutput" AfterTargets="CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="python -X utf8 &quot;$(MSBuildProjectDirectory)\..\scripts\minify-web.py&quot; &quot;$(OutputPath)web&quot;"
+          Condition="Exists('$(OutputPath)web')" />
+  </Target>
+
   <!--
     精简发布包：bin\Release\ScreenKit\
     仅托管程序 + wetext/Assets/许可证 + 7za.dll；不含安卓 APK。模型与 ORT/OpenCV/Sherpa/FFmpeg 等通过应用内「安装功能」获取。
     翻译模型需自行放到 translatemodels/（不在安装窗内）。
   -->
-  <Target Name="PackageSlimRelease" AfterTargets="CleanupOnnxRuntimeDupes" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="PackageSlimRelease" AfterTargets="MinifyWebOutput" Condition="'$(Configuration)' == 'Release'">
     <PropertyGroup>
       <_SlimOut>$(MSBuildProjectDirectory)\bin\Release\ScreenKit</_SlimOut>
       <_SlimOutLegacy>$(MSBuildProjectDirectory)\bin\Release\WpfOCR</_SlimOutLegacy>
@@ -319,6 +325,9 @@
     <RemoveDir Directories="$(_SlimOut)\web\tools" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Web\tools.js" DestinationFolder="$(_SlimOut)\web" SkipUnchangedFiles="true"
           Condition="Exists('$(MSBuildProjectDirectory)\Web\tools.js')" />
+    <!-- 精简包只留合并、压缩后的 js/css：原地覆盖，不保留源码和 *.min.* 副本 -->
+    <Exec Command="python -X utf8 &quot;$(MSBuildProjectDirectory)\..\scripts\minify-web.py&quot; --slim &quot;$(_SlimOut)\web&quot;"
+          Condition="Exists('$(_SlimOut)\web')" />
     <MakeDir Directories="$(_SlimOut)\lang" Condition="'@(_SlimLang)' != ''" />
     <Copy SourceFiles="@(_SlimLang)" DestinationFolder="$(_SlimOut)\lang" SkipUnchangedFiles="true"
           Condition="'@(_SlimLang)' != ''" />
