@@ -114,6 +114,37 @@ button, input, select { font: inherit; }
 #detail .exlab { color: #148246; }
 #detail .ex { color: #2d784b; }
 #detail .gap { height: 8px; }
+.dtabs {
+	display: flex;
+	gap: 4px;
+	margin: 0 0 10px;
+	border-bottom: 1px solid var(--line);
+}
+.dtab {
+	border: 0;
+	border-bottom: 2px solid transparent;
+	background: transparent;
+	padding: 6px 10px;
+	color: var(--muted);
+	cursor: pointer;
+}
+.dtab:hover { color: var(--ink); }
+.dtab.on { color: var(--ink); font-weight: 600; border-bottom-color: #b4532a; }
+.cbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cq {
+	flex: 1;
+	min-width: 120px;
+	height: 30px;
+	padding: 0 8px;
+	border: 1px solid var(--line);
+	border-radius: 8px;
+}
+.ccnt { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.ctab { width: 100%; border-collapse: collapse; }
+.ctab td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid #f0ebe4; }
+.ctab .cgrp { background: #f6f3ee; color: #8830a8; font-weight: 600; }
+.ctab .clab { width: 40%; color: #285aaa; }
+.ctab .cval { color: var(--ink); }
 #detail button.link {
 	border: 0;
 	padding: 0;

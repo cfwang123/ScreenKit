@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR splits a row of icon-separated segments into one result per segment instead of joining them into one line.
 - Korean verbs: North Korean (Munhwao), DPRK broadcast and Yanbian Korean endings, including -ㅂ네다, -습네다, hapsyo -ㅂ니다, -시였습니다, -리라, -ㅁ다/슴다 and -ㄴ다이.
 - The Japanese word-form tool now lists N5 to N1 verb patterns, classical (N0) forms and compound verbs, such as てもいい, てあげる, ざるを得ない and んばかり
+- Web dictionary: the detail pane now has tabs; verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English)
 
 #### Changed
 
@@ -152,6 +153,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows OCR 把一行里用图标隔开的多段文字拆成多条结果，不再拼成一行。
 - 韩语动词变化：新增朝鲜文化语、朝鲜播音体和延边朝鲜语词尾，如 -ㅂ네다、-습네다、합쇼체 -ㅂ니다、-시였습니다、-리라、-ㅁ다/슴다、-ㄴ다이。
 - 日语词形变化新增 N5～N1 句型、文语（N0）和复合动词，如 てもいい、てあげる、ざるを得ない、んばかり
+- 网页词典：详情栏改为多标签，动词/形容词/名词词条多出可搜索的「形态变化」页（日、韩、英）
 
 #### 变更
 

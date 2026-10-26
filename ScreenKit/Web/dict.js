@@ -4,6 +4,7 @@
 	var gen = 0;
 	var dgen = 0;
 	var sgen = 0;
+	var cgen = 0;
 	var timer = 0;
 	var wantId = 0;
 	var cur = null;
@@ -304,6 +305,195 @@
 	function paint(e){
 		var box = $("detail");
 		box.innerHTML = "";
+		var tabs = document.createElement("div");
+		tabs.className = "dtabs";
+		box.appendChild(tabs);
+		var panes = [];
+		var i;
+
+		function mk(label){
+			var b = document.createElement("button");
+			b.type = "button";
+			b.className = "dtab";
+			b.textContent = label;
+			tabs.appendChild(b);
+			var pn = document.createElement("div");
+			pn.className = "dpane";
+			pn.hidden = panes.length > 0;
+			box.appendChild(pn);
+			panes.push({ b: b, p: pn, on: false });
+			return panes.length - 1;
+		}
+		function show(n){
+			var k;
+			for (k = 0; k < panes.length; k++) {
+				panes[k].p.hidden = k !== n;
+				panes[k].b.classList.toggle("on", k === n);
+			}
+			box.scrollTop = 0;
+		}
+		var cats = concats(e);
+		var first = mk(t("dict.tab.info") || "词条详情");
+		paintinfo(panes[first].p, e);
+		for (i = 0; i < cats.length; i++) mk(conlabel(cats[i]));
+		for (i = 0; i < panes.length; i++) {
+			(function(n){
+				panes[n].b.onclick = function(){
+					show(n);
+					if (n > 0 && !panes[n].on) {
+						panes[n].on = true;
+						loadconj(panes[n].p, e, cats[n - 1]);
+					}
+				};
+			})(i);
+		}
+		show(0);
+	}
+
+	// 词条有哪些能变形的词性：动词、形容词、名词。日语的动词还分五段/一段/サ変/カ変。
+	function concats(e){
+		var lang = e.dict || "";
+		var texts = [];
+		var i, out = [];
+		if (e.pos) texts.push(e.pos);
+		for (i = 0; e.senses && i < e.senses.length; i++) if (e.senses[i].pos) texts.push(e.senses[i].pos);
+
+		function put(v){
+			var k;
+			for (k = 0; k < out.length; k++) {
+				if (out[k].cat !== v.cat) continue;
+				if (!out[k].kind && v.kind) { out[k].kind = v.kind; out[k].sub = v.sub; }
+				return;
+			}
+			out.push(v);
+		}
+		for (i = 0; i < texts.length; i++) {
+			var s = texts[i];
+			if (lang === "ja") {
+				if (/kuru verb/i.test(s)) put({ cat: "v", kind: "3", sub: "kuru" });
+				else if (/suru verb|aux\. verb suru/i.test(s)) put({ cat: "v", kind: "3", sub: "suru" });
+				else if (/ichidan verb/i.test(s)) put({ cat: "v", kind: "2", sub: "" });
+				else if (/godan verb/i.test(s)) put({ cat: "v", kind: "1", sub: "" });
+				if (/adjectival nouns/i.test(s)) put({ cat: "a", kind: "an", sub: "" });
+				else if (/adjective/i.test(s)) put({ cat: "a", kind: "ai", sub: "" });
+				if (/\bnoun\b/i.test(s)) put({ cat: "n", kind: "n", sub: "" });
+			}
+			else if (lang === "ko") {
+				if (/verb|동사/i.test(s)) put({ cat: "v" });
+				if (/adjective|형용사/i.test(s)) put({ cat: "a" });
+				if (/noun|명사/i.test(s)) put({ cat: "n" });
+			}
+			else if (lang === "en") {
+				var paren = /^\s*\(/.test(s);
+				var part = /past|participle|present/i.test(s);
+				if (/\bverb\b/i.test(s) || (paren && part)) put({ cat: "v" });
+				if (/\badjective\b/i.test(s) || (paren && !part)) put({ cat: "a" });
+				if (/\bnoun\b/i.test(s)) put({ cat: "n" });
+			}
+		}
+		return out;
+	}
+
+	function conlabel(cat){
+		if (cat.cat === "v") return t("dict.tab.verb") || "动词变化";
+		if (cat.cat === "a") return t("dict.tab.adj") || "形容词变化";
+		return t("dict.tab.noun") || "名词变化";
+	}
+
+	// 形态变化页：拉 /api/conj，表格按组显示，上面带一个过滤框。
+	function loadconj(pane, e, cat){
+		pane.innerHTML = "";
+		var bar = document.createElement("div");
+		bar.className = "cbar";
+		var q = document.createElement("input");
+		q.type = "search";
+		q.className = "cq";
+		q.placeholder = t("dict.conj.search") || "搜索形态变化";
+		var cnt = document.createElement("span");
+		cnt.className = "ccnt";
+		bar.appendChild(q);
+		bar.appendChild(cnt);
+		pane.appendChild(bar);
+		var host = document.createElement("div");
+		pane.appendChild(host);
+
+		var lang = e.dict || "";
+		var word = e.word || "";
+		var params = { lang: lang, q: word, ui: langs()[langAt] || "zh" };
+		if (lang === "ja") {
+			if (cat.kind) params.kind = cat.kind;
+			if (cat.sub) params.sub = cat.sub;
+			if (cat.kind === "3" && cat.sub === "suru" && !/する$/.test(word)) params.q = word + "する";
+		}
+		else params.type = cat.cat;
+
+		var g = ++cgen;
+		fetch("/api/conj?" + qs(params)).then(function(r){ return r.json(); }).then(function(j){
+			if (g !== cgen) return;
+			var d = j && j.code === 100 ? j.data : null;
+			if (!d || !d.ok || !(d.rows || []).length) {
+				host.appendChild(one((d && d.err) || t("dict.conj.fail") || "算不出形态变化", "pron", ""));
+				return;
+			}
+			var rows = d.rows;
+			function draw(){
+				var k = String(q.value || "").toLowerCase();
+				var vis = [], i2;
+				for (i2 = 0; i2 < rows.length; i2++) {
+					var r = rows[i2];
+					if (k && (r.l + " " + r.v).toLowerCase().indexOf(k) < 0) continue;
+					vis.push(r);
+				}
+				cnt.textContent = fmt(t("dict.conj.count") || "{0} / {1} 条", vis.length, rows.length);
+				host.innerHTML = "";
+				if (!vis.length) {
+					host.appendChild(one(t("dict.conj.empty") || "没有匹配的形态", "pron", ""));
+					return;
+				}
+				var tb = document.createElement("table");
+				tb.className = "ctab";
+				var last = null, tr, td;
+				for (i2 = 0; i2 < vis.length; i2++) {
+					if (vis[i2].g !== last) {
+						last = vis[i2].g;
+						tr = document.createElement("tr");
+						td = document.createElement("td");
+						td.className = "cgrp";
+						td.colSpan = 2;
+						td.textContent = last;
+						tr.appendChild(td);
+						tb.appendChild(tr);
+					}
+					tr = document.createElement("tr");
+					td = document.createElement("td");
+					td.className = "clab";
+					td.textContent = vis[i2].l;
+					tr.appendChild(td);
+					td = document.createElement("td");
+					td.className = "cval";
+					td.textContent = vis[i2].v;
+					tr.appendChild(td);
+					tb.appendChild(tr);
+				}
+				host.appendChild(tb);
+			}
+			q.addEventListener("input", draw);
+			draw();
+		}).catch(function(){
+			if (g === cgen) pane.appendChild(one(t("dict.conj.fail") || "算不出形态变化", "pron", ""));
+		});
+	}
+
+	function qs(params){
+		var out = [], k;
+		for (k in params) {
+			if (params[k] === undefined || params[k] === null || params[k] === "") continue;
+			out.push(k + "=" + encodeURIComponent(params[k]));
+		}
+		return out.join("&");
+	}
+
+	function paintinfo(box, e){
 		var word = e.word || "";
 		var lang = e.dict || "en";
 		var head = p("title");
