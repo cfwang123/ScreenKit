@@ -1256,6 +1256,10 @@
 			F.seta(out, "data-bind", "1");
 			out.onclick = onout;
 		}
+		if (!bound) {
+			bound = true;
+			window.addEventListener("resize", onresize);
+		}
 		run();
 	}
 
@@ -1355,33 +1359,86 @@
 		SK.msg("box-msg", "");
 	}
 
+	var perline = 2;
+	var lastpaint = null;
+	var rtimer = 0;
+	var bound = false;
+
 	function paint(head, note, rows){
 		var out = F.id("ev-out");
 		if (!out) return;
-		if (!rows || !rows.length) { out.innerHTML = ""; return; }
+		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
+		lastpaint = { head: head, note: note, rows: rows };
+		perline = 2;
+		out.innerHTML = tablehtml(head, note, rows);
+		fit(out);
+	}
+
+	// 两栏排不下就退回一栏，尽量不出现横向滚动条。
+	function fit(out){
+		if (perline === 2 && out.scrollWidth > out.clientWidth + 2 && lastpaint) {
+			perline = 1;
+			out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
+		}
+	}
+
+	function onresize(){
+		if (rtimer) clearTimeout(rtimer);
+		rtimer = setTimeout(refit, 150);
+	}
+
+	function refit(){
+		var out = F.id("ev-out");
+		if (!out || !lastpaint) return;
+		perline = 2;
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows);
+		fit(out);
+	}
+
+	// 一行两组「名称 + 词形」。
+	function tablehtml(head, note, rows){
 		var tip = esc(tx("dict.speak", "发音"));
 		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(note) + "</span></div>"
 			+ '<table class="jv-tab ev-tab">';
 		var g = null;
+		var buf = [];
 		var i;
 		for (i = 0; i < rows.length; i++) {
 			if (rows[i].g !== g) {
+				html += flushrows(buf, tip);
+				buf = [];
 				g = rows[i].g;
-				html += '<tr><td class="kv-g" colspan="2">' + esc(g) + "</td></tr>";
+				if (g) html += '<tr><td class="kv-g" colspan="' + perline * 2 + '">' + esc(g) + "</td></tr>";
 			}
-			html += '<tr><td class="jv-k">' + esc(rows[i].name) + '</td><td class="jv-v">';
-			var lines = String(rows[i].text).split(/\s*(?:\n|·)\s*/);
-			var j;
-			for (j = 0; j < lines.length; j++) {
-				if (!lines[j]) continue;
-				html += '<div class="ev-line"><span>' + esc(lines[j]) + "</span>"
-					+ '<button type="button" class="jv-spk" data-v="' + esc(saytext(speech(lines[j]))) + '" title="' + tip + '">'
-					+ '<i class="fa-solid fa-volume-high"></i></button></div>';
-			}
-			html += "</td></tr>";
+			buf.push(rows[i]);
 		}
-		html += "</table>";
-		out.innerHTML = html;
+		return html + flushrows(buf, tip) + "</table>";
+	}
+
+	function flushrows(buf, tip){
+		var html = "";
+		var j, k;
+		for (j = 0; j < buf.length; j += perline) {
+			html += "<tr>";
+			for (k = 0; k < perline; k++) {
+				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+			}
+			html += "</tr>";
+		}
+		return html;
+	}
+
+	function cellhtml(item, tip){
+		var html = '<td class="jv-k">' + esc(item.name) + '</td><td class="jv-v">';
+		var lines = String(item.text).split(/\s*(?:\n|·)\s*/);
+		var j;
+		for (j = 0; j < lines.length; j++) {
+			if (!lines[j]) continue;
+			html += '<div class="ev-line"><span>' + esc(lines[j]) + "</span>"
+				+ '<button type="button" class="jv-spk" data-v="' + esc(saytext(speech(lines[j]))) + '" title="' + tip + '">'
+				+ '<i class="fa-solid fa-volume-high"></i></button></div>';
+		}
+		return html + "</td>";
 	}
 
 	function esc(s){
