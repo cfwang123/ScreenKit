@@ -178,7 +178,9 @@ static class ChromePack {
 			if (wasmProbed && !wasmHave) return;
 			ct.ThrowIfCancellationRequested();
 			progress?.Invoke(Loc.T("tts.chrome.voice.check"), -1, 0, 0);
-			using var sess = voicechrome(proxyMode, proxyAddr, null, ct, exe);
+			ChromeTts.Stop();
+			preparevoice(ChromeTts.ProfileDir());
+			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, null, ct, exe);
 			if (!sess.TryWaitExt(15000, ct)) {
 				wasmProbed = true;
 				wasmHave = false;
@@ -236,7 +238,9 @@ static class ChromePack {
 			if (known == true) return;
 			if (known == false) throw new ChromeVoiceMissingException(lang);
 			ct.ThrowIfCancellationRequested();
-			using var sess = voicechrome(proxyMode, proxyAddr, null, ct, exe);
+			ChromeTts.Stop();
+			preparevoice(ChromeTts.ProfileDir());
+			using var sess = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, null, ct, exe);
 			sess.WaitExt(15000, ct);
 			var on = onestatus(sess, lang, ct) == FeatureInstallState.Installed;
 			remember(lang, on);
@@ -344,23 +348,6 @@ static class ChromePack {
 		return list;
 	}
 
-	/// <summary>语音包安装用的 Chrome。模型页开着就接上它，界面不关；没开才起一个隐藏的。</summary>
-	static Sess voicechrome(string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct, string exe = null) {
-		var page = Sess.AttachPage(ChromeTts.ProfileDir());
-		if (page != null) return page;
-		ChromeTts.Stop();
-		preparevoice(ChromeTts.ProfileDir());
-		return Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct, exe);
-	}
-
-	/// <summary>翻译包安装用的 Chrome。同样先接模型页那个。</summary>
-	static Sess trchrome(string proxyMode, string proxyAddr, Action<string> log, CancellationToken ct) {
-		var page = Sess.AttachPage(ChromeTr.ProfileDir());
-		if (page != null) return page;
-		ChromeTr.Stop();
-		return Sess.Open(ChromeTr.ProfileDir(), proxyMode, proxyAddr, log, ct);
-	}
-
 	public static void Apply(IReadOnlyList<ChromePackItem> items, bool install, string proxyMode, string proxyAddr, Action<string> log, Action<double> progress, Action<string> status, Action<string> bytes, CancellationToken ct) {
 		var tr = new List<ChromePackItem>();
 		var tts = new List<ChromePackItem>();
@@ -387,7 +374,8 @@ static class ChromePack {
 			bytes?.Invoke(byteLine ?? "");
 		}
 		if (tr.Count > 0) {
-			using var sess = trchrome(proxyMode, proxyAddr, log, ct);
+			ChromeTr.Stop();
+			using var sess = Sess.Open(ChromeTr.ProfileDir(), proxyMode, proxyAddr, log, ct);
 			var web = false;
 			if (install) {
 				try { web = sess.TryTranslator(ct); }
@@ -407,7 +395,9 @@ static class ChromePack {
 			return;
 		}
 		lock (voiceOp) {
-			using var voice = voicechrome(proxyMode, proxyAddr, log, ct);
+			ChromeTts.Stop();
+			preparevoice(ChromeTts.ProfileDir());
+			using var voice = Sess.Open(ChromeTts.ProfileDir(), proxyMode, proxyAddr, log, ct);
 			voice.WaitExt(15000, ct);
 			foreach (var it in tts) {
 				ct.ThrowIfCancellationRequested();
@@ -793,9 +783,6 @@ static class ChromePack {
 			savevoice();
 		}
 	}
-
-	/// <summary>打开模型页前先把语音引擎的启用信息写进配置。</summary>
-	public static void PrepareVoice(string profile) => preparevoice(profile);
 
 	static void preparevoice(string profile) {
 		ensurevoices(profile);
@@ -1383,8 +1370,6 @@ return 'started';
 		Process proc;
 		int port;
 		bool own = true;
-		bool pagewin;
-		readonly List<string> tabs = new();
 		Sock page;
 		Sock web;
 		Sock ext;
@@ -1449,23 +1434,9 @@ return 'started';
 				var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/version");
 				req.Timeout = 400;
 				using (req.GetResponse()) { }
-				var owner = PortUse.ListenerPid(port);
-				return new Sess { own = false, port = port, pagewin = owner > 0 && ChromeHost.IsPage(owner) };
+				return new Sess { own = false, port = port };
 			}
 			catch { return null; }
-		}
-
-		/// <summary>可见模型页的 Chrome 还开着就接上它，安装时别关窗口。不是它或没开时返回 null。</summary>
-		public static Sess AttachPage(string profile) {
-			var sess = tryattach(profile);
-			if (sess == null) return null;
-			if (!sess.pagewin) {
-				try { sess.Dispose(); } catch { }
-				return null;
-			}
-			// 换个 Chrome 实例了，语音引擎要重新加载，合并进去的语音目录才生效。
-			voiceReady = false;
-			return sess;
 		}
 
 		/// <summary>在已打开的页面里创建翻译器。boot 为真时只用朗读页，不另开窗口。</summary>
@@ -1559,32 +1530,7 @@ return 'started';
 			req.Timeout = 8000;
 			using var resp = req.GetResponse();
 			using var rd = new StreamReader(resp.GetResponseStream());
-			remembertab(rd.ReadToEnd());
-		}
-
-		/// <summary>模型页那个窗口里开的标签，用完要关掉，别留在用户眼前。</summary>
-		void remembertab(string json) {
-			if (!pagewin || string.IsNullOrWhiteSpace(json)) return;
-			try {
-				using var doc = JsonDocument.Parse(json);
-				if (!doc.RootElement.TryGetProperty("id", out var id)) return;
-				var s = id.GetString();
-				if (!string.IsNullOrEmpty(s)) tabs.Add(s);
-			}
-			catch { }
-		}
-
-		void closetabs() {
-			if (tabs.Count == 0) return;
-			foreach (var id in tabs) {
-				try {
-					var req = WebRequest.Create("http://127.0.0.1:" + port + "/json/close/" + Uri.EscapeDataString(id));
-					req.Timeout = 2000;
-					using (req.GetResponse()) { }
-				}
-				catch { }
-			}
-			tabs.Clear();
+			rd.ReadToEnd();
 		}
 
 		public void WaitPage(string part, int ms, CancellationToken ct) {
@@ -1608,7 +1554,6 @@ return 'started';
 		}
 
 		public bool TryWaitExt(int ms, CancellationToken ct) {
-			if (pagewin) return waitpageext(ms, ct);
 			var start = Environment.TickCount;
 			var prev = GetForegroundWindow();
 			var taps = 0;
@@ -1649,18 +1594,6 @@ return 'started';
 				Thread.Sleep(200);
 			}
 			finishwait(prev, ct);
-			return false;
-		}
-
-		/// <summary>模型页那个窗口是用户的，不能搬、不能藏、不能抢焦点。只等扩展接口出来。</summary>
-		bool waitpageext(int ms, CancellationToken ct) {
-			var start = Environment.TickCount;
-			while (unchecked(Environment.TickCount - start) < ms) {
-				ct.ThrowIfCancellationRequested();
-				ext ??= connectext();
-				if (ext != null) return true;
-				Thread.Sleep(200);
-			}
 			return false;
 		}
 
@@ -1942,17 +1875,6 @@ return 'started';
 		}
 
 		public bool TryTranslator(CancellationToken ct) {
-			if (pagewin) {
-				web ??= connect("page", "127.0.0.1");
-				if (web == null) return false;
-				try {
-					if (web.Eval("(function(){return (window.Translator&&window.isSecureContext)?'yes':'no';})()", false, 5000, ct) == "yes")
-						return true;
-				}
-				catch (OperationCanceledException) { throw; }
-				catch { }
-				return false;
-			}
 			var portNo = 1224;
 			try {
 				var o = new OcrOptions();
@@ -2177,7 +2099,6 @@ return JSON.stringify(out);
 		}
 
 		public void Dispose() {
-			closetabs();
 			try { page?.Dispose(); } catch { }
 			try { web?.Dispose(); } catch { }
 			try { ext?.Dispose(); } catch { }

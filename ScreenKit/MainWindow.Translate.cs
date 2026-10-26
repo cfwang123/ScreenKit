@@ -287,6 +287,7 @@ public partial class MainWindow {
 			});
 			var pid = 0;
 			try { if (proc != null) pid = proc.Id; } catch { }
+			ChromeHost.PageOpened(pid);
 			ChromeHost.NudgeVisible(pid, left, top, width, height);
 		}
 		catch (Exception ex) {

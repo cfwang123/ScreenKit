@@ -75,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean: add negative-mood combinations such as hearsay, conjecture, judgment and need not
 - Add negative counterparts to every tone in the English word-forms tool.
 - Japanese modality rows now show the affirmative and negative side by side, e.g. 学生だそうだ / 学生ではないそうだ.
+- The te, ba, tara, darou, deshou, nda and tte rows also show their negative forms, and na-adjectives and nouns list the polite でござる and honorific でいらっしゃる copulas.
 
 #### Changed
 
@@ -161,6 +162,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语：补充否定形叠加语气（传闻、推量、判断、不必、否定请求等）
 - 英语词形工具的每种语气补上否定形，含情态动词否定和 it is said not to walk、isn't it beautiful 等组合。
 - 日语语气句型的肯定和否定并列显示，如 学生だそうだ / 学生ではないそうだ。
+- て形、ば形、たら、だろう、でしょう、なんだ、って 这些行也并列给出否定形；な形容词和名词补上「でござる」（丁重）和「でいらっしゃる」（尊敬）的说法。
 
 #### 变更
 

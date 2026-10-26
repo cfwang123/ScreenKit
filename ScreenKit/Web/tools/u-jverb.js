@@ -556,6 +556,9 @@
 			tokoro1: "ところだ（即将）", tokoro2: "ところだ（刚刚）", tokoro3: "ところだ（正在）",
 			confirm: "疑问・确认", kana: "かな", kashira: "かしら", deshoune: "でしょうね", janai: "んじゃないか",
 			reason: "原因・理由", nodakara: "のだから", monode: "もので", okage: "おかげで",
+			cop: "丁重・尊敬（だ・です）", degozaru: "でござる", degozaimasu: "でございます",
+			degozaimashita: "でございました", degozaimashou: "でございましょう",
+			deirassharu: "でいらっしゃる", deirasshaimasu: "でいらっしゃいます",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
@@ -597,6 +600,9 @@
 			tokoro1: "tokoro da (about to)", tokoro2: "tokoro da (just did)", tokoro3: "tokoro da (doing)",
 			confirm: "Question / confirmation", kana: "kana", kashira: "kashira", deshoune: "deshou ne", janai: "n ja nai ka",
 			reason: "Reason", nodakara: "no dakara", monode: "mono de", okage: "okage de",
+			cop: "Deferential / honorific copula", degozaru: "de gozaru", degozaimasu: "de gozaimasu",
+			degozaimashita: "de gozaimashita", degozaimashou: "de gozaimashou",
+			deirassharu: "de irassharu", deirasshaimasu: "de irasshaimasu",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
@@ -633,18 +639,18 @@
 			row(L.polpast, s + "かったです"),
 			row(L.nakatta, s + "くなかった"),
 			row(L.polpastneg, s + "くありませんでした"),
-			row(L.te, s + "くて"),
+			row(L.te, s + "くて、" + s + "くなくて"),
 			row(L.adv, s + "く"),
-			row(L.ba, s + "ければ"),
-			row(L.tara, s + "かったら"),
+			row(L.ba, s + "ければ、" + s + "くなければ"),
+			row(L.tara, s + "かったら、" + s + "くなかったら"),
 			row(L.naru, s + "くなる"),
 			row(L.souda, irri(word) ? s + "さそうだ" : s + "そうだ"),
 			row(L.sugiru, s + "すぎる"),
 			row(L.sa, s + "さ"),
-			row(L.darou, word + "だろう"),
-			row(L.deshou, word + "でしょう"),
-			row(L.nda, word + "んだ"),
-			row(L.tte, word + "って")
+			row(L.darou, word + "だろう、" + s + "くないだろう"),
+			row(L.deshou, word + "でしょう、" + s + "くないでしょう"),
+			row(L.nda, word + "んだ、" + s + "くないんだ"),
+			row(L.tte, word + "って、" + s + "くないって")
 		].concat(evidrows(L, {
 			plain: word, pred: word, drop: word, attrib: word, attribN: word,
 			ren: s + "く", ta: s + "かった", stem: s,
@@ -680,20 +686,20 @@
 			row(L.polpast, word + "でした"),
 			row(L.nakatta, word + "ではなかった、" + word + "じゃなかった"),
 			row(L.polpastneg, word + "ではありませんでした"),
-			row(L.te, word + "で"),
-			row(L.rentai, word + "な"),
+			row(L.te, word + "で、" + word + "ではなくて"),
+			row(L.rentai, word + "な、" + word + "でない"),
 			row(L.adv, word + "に"),
-			row(L.ba, word + "なら"),
-			row(L.tara, word + "だったら"),
+			row(L.ba, word + "なら、" + word + "でなければ"),
+			row(L.tara, word + "だったら、" + word + "ではなかったら"),
 			row(L.naru, word + "になる"),
-			row(L.dearu, word + "である"),
+			row(L.dearu, word + "である、" + word + "ではない"),
 			row(L.souda, word + "そうだ"),
 			row(L.sugiru, word + "すぎる"),
 			row(L.sa, word + "さ"),
-			row(L.darou, word + "だろう"),
-			row(L.deshou, word + "でしょう"),
-			row(L.nanda, word + "なんだ"),
-			row(L.tte, word + "だって")
+			row(L.darou, word + "だろう、" + word + "ではないだろう"),
+			row(L.deshou, word + "でしょう、" + word + "ではないでしょう"),
+			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
+			row(L.tte, word + "だって、" + word + "ではないって")
 		].concat(evidrows(L, {
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "な",
 			ren: word + "に", ta: word + "だった", stem: word,
@@ -702,7 +708,7 @@
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "な",
 			ren: word + "に", ta: word + "だった", stem: word,
 			neg: word + "ではない", negta: word + "ではなかった"
-		}, "an")) };
+		}, "an"), copularows(L, word)) };
 	}
 
 	// 名词：学生だ、学生だった。和な形容词一样接だ・で・だった，连体形用の。
@@ -718,15 +724,15 @@
 			row(L.polpast, word + "でした"),
 			row(L.nakatta, word + "ではなかった、" + word + "じゃなかった"),
 			row(L.polpastneg, word + "ではありませんでした"),
-			row(L.te, word + "で"),
-			row(L.rentai, word + "の"),
-			row(L.ba, word + "なら"),
-			row(L.tara, word + "だったら"),
-			row(L.dearu, word + "である"),
-			row(L.darou, word + "だろう"),
-			row(L.deshou, word + "でしょう"),
-			row(L.nanda, word + "なんだ"),
-			row(L.tte, word + "だって")
+			row(L.te, word + "で、" + word + "ではなくて"),
+			row(L.rentai, word + "の、" + word + "でない"),
+			row(L.ba, word + "なら、" + word + "でなければ"),
+			row(L.tara, word + "だったら、" + word + "ではなかったら"),
+			row(L.dearu, word + "である、" + word + "ではない"),
+			row(L.darou, word + "だろう、" + word + "ではないだろう"),
+			row(L.deshou, word + "でしょう、" + word + "ではないでしょう"),
+			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
+			row(L.tte, word + "だって、" + word + "ではないって")
 		].concat(evidrows(L, {
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "の",
 			ren: word + "に", ta: word + "だった", stem: word,
@@ -735,7 +741,7 @@
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "の",
 			ren: word + "に", ta: word + "だった", stem: word,
 			neg: word + "ではない", negta: word + "ではなかった"
-		}, "n")) };
+		}, "n"), copularows(L, word)) };
 	}
 
 	function row(lab, val){ return [lab, val]; }
@@ -754,8 +760,8 @@
 			row(L.naide, nai.slice(0, -2) + "ないで"),
 			row(L.te, te),
 			row(L.ta, ta),
-			row(L.tara, ta + "ら"),
-			row(L.ba, ba),
+			row(L.tara, ta + "ら、" + nai.slice(0, -2) + "なかったら"),
+			row(L.ba, ba + "、" + nai.slice(0, -1) + "ければ"),
 			row(L.cmd, cmd)
 		].concat(nasairows(L, plain, masu.slice(0, -2)), [
 			row(L.stop, plain + "な"),
@@ -766,8 +772,8 @@
 			row(L.cap, cap),
 			row(L.tai, tai),
 			row(L.takunai, tai.slice(0, -2) + "たくない"),
-			row(L.nda, plain + "んだ"),
-			row(L.tte, plain + "って")
+			row(L.nda, plain + "んだ、" + nai + "んだ"),
+			row(L.tte, plain + "って、" + nai + "って")
 		]);
 		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
 			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, verbforms(plain, masu, nai, te, ta)),
@@ -849,6 +855,18 @@
 		if (verb) rows = rows.concat(pair(L, L.okage, k.ta + "おかげで", "", L.reason));
 		if (noun) rows = rows.concat(pair(L, L.okage, k.attribN + "おかげで", "", L.reason));
 		return rows;
+	}
+
+	// だ・です的敬语说法：丁重的 でござる、尊敬的 でいらっしゃる。な形容词和名词都能接。
+	function copularows(L, word){
+		return [
+			[L.degozaru, word + "でござる", L.cop],
+			[L.degozaimasu, word + "でございます、" + word + "ではございません", L.cop],
+			[L.degozaimashita, word + "でございました、" + word + "ではございませんでした", L.cop],
+			[L.degozaimashou, word + "でございましょう", L.cop],
+			[L.deirassharu, word + "でいらっしゃる", L.cop],
+			[L.deirasshaimasu, word + "でいらっしゃいます", L.cop]
+		];
 	}
 
 	// 连用形、て形后面常接的补助动词，和敬体的劝诱・疑问，各成一组。
