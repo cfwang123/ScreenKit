@@ -784,9 +784,9 @@
 		};
 	}
 
-	// 一条语气句型和它的否定形，两条连着放，表格里正好左右并排。
+	// 一条语气句型：肯定和否定并列放在同一格里，各带一个发音按钮。
 	function pair(L, label, pos, neg, group){
-		return neg ? [[label, pos, group], [label, neg, group]] : [[label, pos, group]];
+		return [[label, neg ? pos + "、" + neg : pos, group]];
 	}
 
 	// 传闻・推量：pred 是普通形现在的说法（な形容词、名词带だ），plain 去掉だ的形，
@@ -796,10 +796,10 @@
 			.concat(pair(L, L.souda, k.pred + "そうだ", k.neg + "そうだ", L.evid))
 			.concat(pair(L, L.tasouda, k.ta + "そうだ", k.negta + "そうだ", L.evid))
 			.concat(pair(L, L.rashii, k.plain + "らしい", k.neg + "らしい", L.evid))
-			.concat(pair(L, L.youda, k.attrib + "ようだ", k.neg + "ようだ", L.evid))
+			.concat(pair(L, L.youda, k.attribN + "ようだ", k.neg + "ようだ", L.evid))
 			.concat(pair(L, L.mitaida, k.plain + "みたいだ", k.neg + "みたいだ", L.evid))
 			.concat(pair(L, L.kamoshirenai, k.plain + "かもしれない", k.neg + "かもしれない", L.evid))
-			.concat(pair(L, L.hazuda, k.attrib + "はずだ", k.neg + "はずだ", L.evid));
+			.concat(pair(L, L.hazuda, k.attribN + "はずだ", k.neg + "はずだ", L.evid));
 	}
 
 	// 判断・义务、程度・倾向、疑问・确认、原因・理由这些句型。
