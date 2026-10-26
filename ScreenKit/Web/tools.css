@@ -407,6 +407,13 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #kv-row > #kv-word, #jv-row > #jv-word { flex: 0 1 340px; width: 340px; max-width: 340px; min-width: 200px; }
 #kv-row > #kv-type { flex: 0 0 112px; }
 #jv-row > #jv-type { flex: 0 0 200px; }
+#ev-out { overflow-x: auto; }
+#ev-row { align-items: flex-end; }
+#ev-row > label { width: auto; }
+#ev-row > #ev-word { flex: 0 1 340px; width: 340px; max-width: 340px; min-width: 200px; }
+#ev-out .jv-tab { width: 100%; }
+#ev-out .jv-tab .jv-k { width: 11em; white-space: normal; }
+#ev-out .jv-tab .jv-v { white-space: normal; }
 .combo { position: relative; margin-top: 6px; }
 .combo input { margin-top: 0; padding-right: 36px; }
 .combo .combo-btn {

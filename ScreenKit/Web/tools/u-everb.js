@@ -355,6 +355,7 @@
 	function s3(w){
 		if (w === "be") return "is";
 		if (w === "have") return "has";
+		if (syll(w) === 1 && /[aeiou]z$/.test(w)) return w + "zes";
 		if (/(s|x|z|ch|sh|o)$/.test(w)) return w + "es";
 		if (/[^aeiou]y$/.test(w)) return w.slice(0, -1) + "ies";
 		return w + "s";
@@ -423,35 +424,24 @@
 	}
 
 	function body(){
-		return '<p class="hint" id="ev-hint"></p>'
+		return '<p class="hint" id="ev-hint" data-k="web.everb.hint">' + esc(tr(LAB.hint)) + "</p>"
 			+ '<div class="row" id="ev-row">'
-			+ '<label id="ev-word">' + SK.combo("ev-in", "walk", "动词原形，如 walk、go、study") + "</label>"
+			+ '<label id="ev-word"><span data-k="web.everb.word">' + esc(tr(LAB.word)) + "</span>"
+			+ SK.combo("ev-in", "walk", LAB.ph[0]) + "</label>"
 			+ "</div>"
 			+ '<div id="ev-out"></div>';
 	}
 
 	function open(){
-		var hint = F.id("ev-hint");
-		if (hint) hint.textContent = tr(LAB.hint);
 		var title = F.id("box-title");
 		if (title) title.textContent = tx("web.tool.everb", LAB.title[0]);
-		setlab("ev-word", tr(LAB.word));
 		SK.combofill("ev-in", pickgroups());
-		var box = F.id("ev-in");
-		if (box) box.placeholder = tr(LAB.ph);
 		var out = F.id("ev-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = onout;
 		}
 		run();
-	}
-
-	function setlab(id, text){
-		var el = F.id(id);
-		if (!el) return;
-		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
-		else el.insertBefore(document.createTextNode(text), el.firstChild);
 	}
 
 	function pickgroups(){

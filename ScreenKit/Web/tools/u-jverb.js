@@ -15,7 +15,10 @@
 	};
 	var PICKG = {
 		sp: ["特殊变化", "Irregular"],
-		cm: ["常见动词", "Common"]
+		cm: ["常见动词", "Common"],
+		ai: ["常见い形容词", "Common i-adjectives"],
+		an: ["常见な形容词", "Common na-adjectives"],
+		nn: ["常见名词", "Common nouns"]
 	};
 	// g, 辞书形, 读音, 类, flag, sub, 中文, English
 	var PICKS = [
@@ -85,7 +88,25 @@
 		["cm", "住む", "すむ", "1", "", "", "住", "live"],
 		["cm", "呼ぶ", "よぶ", "1", "", "", "叫", "call"],
 		["cm", "使う", "つかう", "1", "", "", "用", "use"],
-		["cm", "見せる", "みせる", "2", "", "", "给看", "show"]
+		["cm", "見せる", "みせる", "2", "", "", "给看", "show"],
+		["ai", "高い", "たかい", "ai", "", "", "高", "high"],
+		["ai", "安い", "やすい", "ai", "", "", "便宜", "cheap"],
+		["ai", "いい", "いい", "ai", "", "", "好 · 否定＝よくない", "good · nai=yokunai"],
+		["ai", "大きい", "おおきい", "ai", "", "", "大", "big"],
+		["ai", "小さい", "ちいさい", "ai", "", "", "小", "small"],
+		["ai", "新しい", "あたらしい", "ai", "", "", "新", "new"],
+		["ai", "暑い", "あつい", "ai", "", "", "热", "hot"],
+		["ai", "かわいい", "かわいい", "ai", "", "", "可爱 · 规则变化", "cute · regular"],
+		["an", "静か", "しずか", "an", "", "", "安静", "quiet"],
+		["an", "便利", "べんり", "an", "", "", "方便", "convenient"],
+		["an", "きれい", "きれい", "an", "", "", "漂亮 · 不是い形容词", "pretty · not i-adj"],
+		["an", "元気", "げんき", "an", "", "", "精神", "healthy"],
+		["an", "有名", "ゆうめい", "an", "", "", "有名", "famous"],
+		["an", "好き", "すき", "an", "", "", "喜欢", "like"],
+		["nn", "学生", "がくせい", "n", "", "", "学生", "student"],
+		["nn", "先生", "せんせい", "n", "", "", "老师", "teacher"],
+		["nn", "日本人", "にほんじん", "n", "", "", "日本人", "Japanese"],
+		["nn", "本", "ほん", "n", "", "", "书", "book"]
 	];
 	var timer = 0;
 	var clip = null;
@@ -128,6 +149,9 @@
 			+ '<option value="1"></option>'
 			+ '<option value="2"></option>'
 			+ '<option value="3"></option>'
+			+ '<option value="ai"></option>'
+			+ '<option value="an"></option>'
+			+ '<option value="n"></option>'
 			+ "</select></label>"
 			+ "</div>"
 			+ '<div id="jv-out"></div>';
@@ -144,17 +168,20 @@
 			F.seta(hint, "data-k", "web.jverb.hint");
 			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见动词和特殊变化。类型默认自动：先查词典；没有则用示例里的类型；再按词尾（る是 2 类，する、くる是 3 类）。いく的て形、た形是って、った。表的后部是补助动词（ながら、やがる、ている 等）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
 		}
-		setlab("jv-word", "web.jverb.word", "动词");
+		setlab("jv-word", "web.jverb.word", "辞书形");
 		SK.combofill("jv-in", pickgroups());
 		setlab("jv-type", "web.jverb.type", "类型");
 		setopt("auto", "web.jverb.auto", "自动");
 		setopt("1", "web.jverb.t1", "1类（五段）");
 		setopt("2", "web.jverb.t2", "2类（一段）");
 		setopt("3", "web.jverb.t3", "3类（する・くる）");
+		setopt("ai", "web.jverb.tai", "い形容词");
+		setopt("an", "web.jverb.tan", "な形容词");
+		setopt("n", "web.jverb.tn", "名词");
 		var box = F.id("jv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.jverb.ph");
-			box.placeholder = tx("web.jverb.ph", "辞书形，如 食べる、行く");
+			box.placeholder = tx("web.jverb.ph", "辞书形，如 食べる、高い、学生");
 		}
 		var out = F.id("jv-out");
 		if (out && !F.attr(out, "data-bind")) {

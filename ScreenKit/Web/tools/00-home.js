@@ -327,6 +327,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-everb",
+						"data-cat":"text",
+						"data-name":"英语 英文 动词 时态 一般现在时 一般过去时 一般将来时 现在进行时 现在完成时 过去完成时 将来完成时 过去将来 被动语态 否定 疑问 变形 conjugation tense verb",
+						"title":"输入英语动词原形，列出十六种时态、否定、疑问、被动和基本形式，每项可以发音",
+						c:[
+						{x:"i.fa-solid.fa-clock"},
+						{x:"span","data-k":"web.tool.everb",c:"英语动词时态"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-everb","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-mdread",
 						"data-cat":"text",
 						"data-name":"md 阅读器 markdown 预览 拖入",
