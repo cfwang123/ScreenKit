@@ -4,7 +4,7 @@ using System.IO.Compression;
 
 namespace ScreenKit;
 
-/// <summary>网页和接口响应的 gzip：只压文本，客户端接受才压，太小的不压。</summary>
+/// <summary>网页静态资源（html / js / css）的 gzip：客户端接受才压，太小的不压。接口响应不压。</summary>
 static class WebGzip {
 	/// <summary>小于这么多字节不压，省不下什么还可能更大。</summary>
 	public const int MINSIZE = 512;
@@ -47,9 +47,9 @@ static class WebGzip {
 		var semi = ct.IndexOf(';');
 		if (semi >= 0) ct = ct.Substring(0, semi).Trim();
 		if (ct.Length == 0) return false;
-		if (ct.StartsWith("text/", StringComparison.Ordinal)) return true;
-		return ct is "application/json" or "application/javascript" or "application/x-javascript"
-			or "application/xml" or "application/xhtml+xml" or "image/svg+xml" or "application/manifest+json";
+		// 只压网页三件套；接口 JSON、图片、字体、SVG 都不压。
+		return ct is "text/html" or "text/css" or "text/javascript"
+			or "application/javascript" or "application/x-javascript";
 	}
 
 	/// <summary>该压就压，不够大或者类型不该压返回 null。</summary>

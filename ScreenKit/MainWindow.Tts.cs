@@ -58,7 +58,11 @@ public partial class MainWindow {
 			IsEnabled = winRtTts != null && winRtTts.Voices.Count > 0,
 		});
 		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.edge"), Tag = TtsEngineKind.Edge });
-		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.chrome"), Tag = TtsEngineKind.Chrome });
+		ettsengine.Items.Add(new ComboBoxItem {
+			Content = Loc.T("tts.engine.chrome"),
+			ToolTip = Loc.T("tts.engine.chrome.tip"),
+			Tag = TtsEngineKind.Chrome,
+		});
 		ettsengine.Items.Add(new ComboBoxItem { Content = Loc.T("tts.engine.sherpa"), Tag = TtsEngineKind.Sherpa });
 		// 未保存引擎：有 Windows 语音用 WinRT，否则 Edge 在线
 		ettsengine.SelectedIndex = ttsfallbackengine() == TtsEngineKind.WinRt ? 1 : 2;
@@ -722,6 +726,8 @@ public partial class MainWindow {
 
 		var eng2 = currentttsengine();
 		lkttschromeinstall.Visibility = eng2 == TtsEngineKind.Chrome ? Visibility.Visible : Visibility.Collapsed;
+		// Chrome 的 Google 声音是联网合成的，提示可能要开代理
+		ettsengine.ToolTip = eng2 == TtsEngineKind.Chrome ? Loc.T("tts.engine.chrome.tip") : null;
 		if (eng2 == TtsEngineKind.Sherpa) {
 			applyttsfilter();
 			var cuda = TtsEngine.ProbeCuda(out var cudaReason);
@@ -1868,7 +1874,7 @@ public partial class MainWindow {
 		bttsreload.Content = Loc.T("reload.models");
 		bttsreload.ToolTip = Loc.T("tts.reload.tip");
 		foreach (var o in ettsengine.Items) {
-			if (o is ComboBoxItem it && it.Tag is TtsEngineKind k)
+			if (o is ComboBoxItem it && it.Tag is TtsEngineKind k) {
 				it.Content = k switch {
 					TtsEngineKind.Sapi => Loc.T("tts.engine.sapi"),
 					TtsEngineKind.WinRt => Loc.T("tts.engine.winrt"),
@@ -1876,6 +1882,8 @@ public partial class MainWindow {
 					TtsEngineKind.Chrome => Loc.T("tts.engine.chrome"),
 					_ => Loc.T("tts.engine.sherpa"),
 				};
+				it.ToolTip = k == TtsEngineKind.Chrome ? Loc.T("tts.engine.chrome.tip") : null;
+			}
 		}
 		applycomputebox(ettscompute);
 		foreach (var o in ettsgender.Items) {

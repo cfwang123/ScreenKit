@@ -342,6 +342,7 @@ public sealed partial class SendFileServer {
 	static string webmime(string rel) {
 		var ext = Path.GetExtension(rel ?? "").ToLowerInvariant();
 		return ext switch {
+			".html" or ".htm" => "text/html; charset=utf-8",
 			".js" => "application/javascript; charset=utf-8",
 			".css" => "text/css; charset=utf-8",
 			".png" => "image/png",

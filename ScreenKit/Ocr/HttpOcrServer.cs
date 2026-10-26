@@ -2781,11 +2781,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
 		res.Headers["Access-Control-Allow-Headers"] = "Content-Type";
 		res.Headers["Vary"] = "Accept-Encoding";
-		// 大 JSON 反复轮询时只压一次：内容相同（长度 + FNV）就复用上次的 gzip。
-		var gz = WebGzip.Accepts(ctx.Request?.Headers?["Accept-Encoding"])
-			? WebGzip.Cached("res|" + (res.ContentType ?? "") + "|" + WebGzip.Stamp(bytes), res.ContentType, bytes)
-			: null;
-		writebody(ctx, bytes, gz, false);
+		// 接口响应不压缩：JSON 多是小包，压了省不了多少还要多耗 CPU。
+		writebody(ctx, bytes, null, false);
 	}
 
 	/// <summary>写正文：有压缩结果且客户端接受就发 gzip，否则发原文。写完关响应。</summary>

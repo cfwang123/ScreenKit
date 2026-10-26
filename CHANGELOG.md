@@ -54,7 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English word forms: verb tenses and moods, irregular verbs, adjectives and nouns, with British, American and Australian variants, and a speak button on each form.
 - Russian word forms: verb conjugation, adjective and noun declension, with colloquial and dialect variants, and a speak button on each form.
 - Chrome translation can now pick non-English language pairs such as Chinese to Japanese; Chrome pivots through English, so both the English to Chinese and English to Japanese models are needed.
-- The local web server now gzips JSON API responses and text web files (HTML, JS, CSS, SVG) when the client asks for it, and caches the compressed static files instead of recompressing them on every request.
+- The local web server gzips only HTML, JS and CSS files when the client asks for it, and caches the compressed static files instead of recompressing them on every request. JSON API responses are no longer compressed.
 - The HTTP API supports Keep-Alive: HTTP/1.1 reuses connections and an idle connection is held for at most 10 seconds (configurable with http_keepalive).
 - Windows OCR splits a row of icon-separated segments into one result per segment instead of joining them into one line.
 - Korean verbs: North Korean (Munhwao), DPRK broadcast and Yanbian Korean endings, including -ㅂ네다, -습네다, hapsyo -ㅂ니다, -시였습니다, -리라, -ㅁ다/슴다 and -ㄴ다이.
@@ -81,8 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary: one- and two-character lookups scan key blocks in parallel instead of one single-threaded pass, about 0.5 s down to under 0.1 s
 - WinRT calendar, Japanese readings and speech synthesis now share one resident STA thread instead of spawning a thread per request
 - HTTP requests never pop the install dialog anymore; a missing runtime library returns error code 953
-- Chrome speech only uses voices installed on this PC and fails at once when the language has none, instead of silently falling back to Google network voices.
-- HTTP concurrency details: fx rates download outside the cache lock with a shared HttpClient, usb.ids loads once, reader uploads read the body outside the file lock, status caches model scans for 2 s, repeated big JSON is gzipped once, and the font/encoding tables initialize under a lock
+- HTTP concurrency details: fx rates download outside the cache lock with a shared HttpClient, usb.ids loads once, reader uploads read the body outside the file lock, status caches model scans for 2 s, and the font/encoding tables initialize under a lock
 - LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
 
 #### Fixed
@@ -146,7 +145,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词形变化：动词时态与语气、不规则动词、形容词和名词，含英美澳写法差异，每项可发音。
 - 俄语词形变化：动词变位、形容词和名词变格，含口语和方言说法，每项可发音。
 - Chrome 翻译可以选中文 ↔ 日文这类非英文语言对。Chrome 内部经英文中转，需要同时装好英文 ↔ 中文和英文 ↔ 日文的模型。
-- 本机网页服务对 JSON 接口和 HTML、JS、CSS、SVG 等文本文件按 gzip 压缩，客户端支持才压；静态文件的压缩结果会缓存，文件没改不会重复压缩。
+- 本机网页服务只对 HTML、JS、CSS 按 gzip 压缩，客户端支持才压；静态文件的压缩结果会缓存，文件没改不会重复压缩。JSON 接口不再压缩。
 - HTTP 接口支持 Keep-Alive：HTTP/1.1 默认复用连接，空闲连接最多保持 10 秒（可用 http_keepalive 调整）。
 - Windows OCR 把一行里用图标隔开的多段文字拆成多条结果，不再拼成一行。
 - 韩语动词变化：新增朝鲜文化语、朝鲜播音体和延边朝鲜语词尾，如 -ㅂ네다、-습네다、합쇼체 -ㅂ니다、-시였습니다、-리라、-ㅁ다/슴다、-ㄴ다이。
@@ -173,8 +172,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典：一字、两字查询改成分块并行扫键段，不再单线程全表走一遍，约 0.5 秒降到 0.1 秒内
 - WinRT 日历换算、日文读音、语音合成改用常驻 STA 线程，不再每个请求新建线程
 - HTTP 请求不再弹安装提示，缺运行库时直接返回错误码 953
-- Chrome 朗读只用装在本机的离线声音，这一语言没有就立即失败，不再回落到 Google 的网络声音。
-- HTTP 并发细节：汇率下载移出缓存锁并复用静态 HttpClient，usb.ids 单飞，reader 上传在锁外读请求体，status 的模型扫描缓存 2 秒，重复大 JSON 只压一次，字体表/编码表加锁初始化
+- HTTP 并发细节：汇率下载移出缓存锁并复用静态 HttpClient，usb.ids 单飞，reader 上传在锁外读请求体，status 的模型扫描缓存 2 秒，字体表/编码表加锁初始化
 - LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
 
 #### 修复
