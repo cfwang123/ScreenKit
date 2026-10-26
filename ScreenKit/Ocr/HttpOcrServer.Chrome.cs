@@ -14,6 +14,9 @@ sealed partial class HttpOcrServer {
 		}
 		var log = new StringBuilder();
 		try {
+			ChromeTts.ClientProfile(ctx.Request?.RemoteEndPoint?.Port ?? 0, out var profile, out var profileKind, out var browserPid);
+			// 模型页就在程序这份配置的 Chrome 里开着时，装包要接上它，不能把窗口关掉。
+			if (browserPid > 0 && profileKind == "app") ChromeHost.PageOpened(browserPid);
 			var probe = false;
 			if (ispost(ctx.Request)) {
 				var op = (field(ctx, jo, "op") ?? "install").Trim().ToLowerInvariant();
@@ -34,7 +37,6 @@ sealed partial class HttpOcrServer {
 			var list = ChromePack.Catalog(probe, HttpProxy.Mode, HttpProxy.Addr,
 				line => { if (!string.IsNullOrWhiteSpace(line)) log.AppendLine(line); },
 				CancellationToken.None);
-			ChromeTts.ClientProfile(ctx.Request?.RemoteEndPoint?.Port ?? 0, out var profile, out var profileKind);
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
 				["data"] = new JsonObject {

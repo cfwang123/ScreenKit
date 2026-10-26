@@ -312,11 +312,37 @@
 		["irr", "проснуться", "醒来", "wake up"],
 		["irr", "вернуться", "返回", "return"],
 		["irr", "улыбнуться", "微笑", "smile"],
-		["irr", "забыть", "忘记", "forget"]
+		["irr", "забыть", "忘记", "forget"],
+		["adj", "красивый", "美丽的", "beautiful"],
+		["adj", "новый", "新的", "new"],
+		["adj", "большой", "大的", "big"],
+		["adj", "маленький", "小的", "small"],
+		["adj", "хороший", "好的", "good"],
+		["adj", "плохой", "坏的", "bad"],
+		["adj", "синий", "蓝色的", "blue"],
+		["adj", "русский", "俄罗斯的", "Russian"],
+		["adj", "молодой", "年轻的", "young"],
+		["adj", "старый", "老的", "old"],
+		["adj", "важный", "重要的", "important"],
+		["adj", "интересный", "有趣的", "interesting"],
+		["noun", "книга", "书", "book"],
+		["noun", "стол", "桌子", "table"],
+		["noun", "окно", "窗户", "window"],
+		["noun", "дверь", "门", "door"],
+		["noun", "ночь", "夜晚", "night"],
+		["noun", "дом", "房子", "house"],
+		["noun", "город", "城市", "city"],
+		["noun", "человек", "人", "person"],
+		["noun", "студент", "大学生", "student"],
+		["noun", "мама", "妈妈", "mom"],
+		["noun", "время", "时间", "time"],
+		["noun", "путь", "道路", "way"]
 	];
 	var PICKG = {
-		cm: ["常见动词", "Common"],
-		irr: ["不规则 / 特殊变化", "Irregular"]
+		cm: ["常见动词", "Common verbs"],
+		irr: ["不规则 / 特殊变化", "Irregular verbs"],
+		adj: ["常见形容词", "Common adjectives"],
+		noun: ["常见名词", "Common nouns"]
 	};
 	var PREFIXES = ["противо", "пере", "пред", "подо", "разо", "обо", "ото", "изо", "произо", "во", "со", "взо", "недо", "полу", "сверх", "около", "про", "при", "за", "на", "вы", "от", "до", "под", "над", "об", "раз", "рас", "из", "ис", "воз", "вос", "вз", "вс", "без", "бес", "пре", "съ", "въ", "объ", "отъ", "подъ", "надъ", "разъ", "в", "с", "по", "о", "у", "не"];
 	var MUT_A = {
@@ -339,12 +365,12 @@
 	var IMPF_NUT = { "тянуть": 1, "тонуть": 1, "вянуть": 1, "гнуть": 1, "льнуть": 1, "стынуть": 1, "мерзнуть": 1, "мокнуть": 1, "сохнуть": 1, "киснуть": 1, "слепнуть": 1, "глохнуть": 1, "крепнуть": 1, "пухнуть": 1, "виснуть": 1, "липнуть": 1, "зябнуть": 1, "гаснуть": 1 };
 	var VOW = "аеёиоуыэюя";
 	var LAB = {
-		title: ["俄语动词变形", "Russian verb conjugation"],
-		hint: ["输入俄语动词不定式（-ть / -ти / -чь，可带 -ся），按体列出现在时或将来时、过去时、命令式、假定式、分词和副动词。完成体没有现在时，第一组是将来时。重音不标；分词只给阳性单数完整形式，另有短尾。体默认按词尾和前缀推断，可以手动改。",
-			"Enter a Russian infinitive (-ть / -ти / -чь, optionally with -ся). The table lists present or future, past, imperative, subjunctive, participles and gerunds. Perfective verbs have no present, so their finite forms are future. Stress is not marked. Participles are given in the masculine nominative, with short forms where available. Aspect is inferred from the ending and prefix and can be overridden."],
-		word: ["动词", "Verb"],
+		title: ["俄语词形变化", "Russian word forms"],
+		hint: ["先选类型（自动/动词/形容词/名词），再输入原形。动词列出体、现在时或将来时、过去时、命令式、假定式、语气、分词和副动词；形容词列出长尾变格、短尾、比较级和最高级；名词列出单复数六格、动物性和特殊形式。完成体没有现在时。重音不标；方言/口语形式仅供参考。",
+			"Pick a type (auto, verb, adjective or noun), then enter the base form. Verbs list aspect, present or future, past, imperative, subjunctive, mood, participles and gerunds; adjectives list long declension, short forms, comparative and superlative; nouns list all six cases in both numbers, animacy and special forms. Perfective verbs have no present. Stress is not marked; dialect and colloquial forms are illustrative."],
+		word: ["原形", "Word"],
 		aspect: ["体", "Aspect"],
-		ph: ["不定式，如 читать、говорить、идти", "Infinitive, e.g. читать, говорить, идти"],
+		ph: ["动词不定式、形容词阳性单数或名词，如 читать、красивый、книга", "Infinitive, masculine adjective, or noun, e.g. читать, красивый, книга"],
 		auto: ["自动", "Auto"],
 		impf: ["未完成体", "Imperfective"],
 		pf: ["完成体", "Perfective"],
@@ -401,6 +427,7 @@
 		adj_bad: ["请输入形容词阳性单数，如 красивый、синий、большой", "Enter a masculine singular adjective, e.g. красивый, синий, большой"],
 		noun_bad: ["请输入名词，如 книга、стол、окно、ночь", "Enter a noun, e.g. книга, стол, окно, ночь"],
 		f_adj: ["形容词", "Adjective"],
+		f_noun: ["名词", "Noun"],
 		f_adjtype: ["变化类型", "Declension"],
 		f_comp: ["比较级", "Comparative"],
 		f_super: ["最高级", "Superlative"],
@@ -732,7 +759,7 @@
 		R(g, L(lang, LAB.f_adj), w);
 		R(g, L(lang, LAB.f_adjtype), adjTypeName(info.type, lang));
 		var cmp = ADJ_COMP[w] || adjComp(info);
-		R(g, L(lang, LAB.f_comp), cmp + " / более " + w);
+		R(g, L(lang, LAB.f_comp), cmp ? cmp + " / более " + w : "более " + w);
 		R(g, L(lang, LAB.f_super), "самый " + w + " / наиболее " + w);
 		var forms = adjForms(info, anim);
 		var gl = [LAB.g_m, LAB.g_f, LAB.g_n, LAB.g_pl];
@@ -776,7 +803,7 @@
 		var rows = [];
 		function R(g, name, text){ rows.push({ g: g, name: name, text: text }); }
 		var g = L(lang, LAB.g_basic);
-		R(g, L(lang, LAB.f_adj), w);
+		R(g, L(lang, LAB.f_noun), w);
 		R(g, L(lang, LAB.f_gender), nounGenderName(info.g, lang));
 		R(g, L(lang, LAB.f_decl), nounDeclName(info, lang));
 		R(g, L(lang, LAB.f_anim), anim ? L(lang, LAB.anim_yes) : L(lang, LAB.anim_no));
@@ -819,7 +846,10 @@
 
 	function adjInfo(w){
 		if (ADJ_POSS[w]) return { type: "poss", stem: w.slice(0, -2) };
-		if (/ой$/.test(w)) return { type: "hard", stem: w.slice(0, -2), stressed: 1 };
+		if (/ой$/.test(w)) {
+			var st = w.slice(0, -2);
+			return { type: sibilant(last(st)) ? "sibh" : "hard", stem: st, stressed: 1 };
+		}
 		if (/ый$/.test(w)) return { type: "hard", stem: w.slice(0, -2) };
 		if (/ий$/.test(w)) {
 			var stem = w.slice(0, -2);
@@ -834,7 +864,7 @@
 	function adjTypeName(type, lang){
 		if (type === "soft") return L(lang, LAB.adj_soft);
 		if (type === "velar") return L(lang, LAB.adj_velar);
-		if (type === "sib") return L(lang, LAB.adj_sib);
+		if (type === "sib" || type === "sibh") return L(lang, LAB.adj_sib);
 		if (type === "poss") return L(lang, LAB.adj_poss);
 		return L(lang, LAB.adj_hard);
 	}
@@ -858,6 +888,12 @@
 			n: ["ее", "его", "ему", "ее", "им", "ем"],
 			pl: ["ие", "их", "им", "ие", "ими", "их"]
 		};
+		var sibh = {
+			m: ["ой", "ого", "ому", "ой", "им", "ом"],
+			f: ["ая", "ой", "ой", "ую", "ой", "ой"],
+			n: ["ое", "ого", "ому", "ое", "им", "ом"],
+			pl: ["ие", "их", "им", "ие", "ими", "их"]
+		};
 		var soft = {
 			m: ["ий", "его", "ему", "ий", "им", "ем"],
 			f: ["яя", "ей", "ей", "юю", "ей", "ей"],
@@ -872,6 +908,7 @@
 		};
 		if (type === "velar") return velar;
 		if (type === "sib") return sib;
+		if (type === "sibh") return sibh;
 		if (type === "soft") return soft;
 		if (type === "poss") return poss;
 		return hard;
@@ -887,7 +924,7 @@
 			for (var i = 0; i < 6; i++) arr.push(stem + e[keys[k]][i]);
 			out.push(arr);
 		}
-		if (info.type === "hard" && info.stressed) {
+		if (info.stressed) {
 			out[0][0] = stem + "ой";
 			out[0][3] = stem + "ой";
 		}
@@ -898,6 +935,7 @@
 	}
 
 	function adjComp(info){
+		if (info.type === "sibh") return null;
 		if (info.type === "velar" && /к$/.test(info.stem)) return info.stem.slice(0, -1) + "че";
 		return info.stem + "ее";
 	}
@@ -987,7 +1025,8 @@
 		if (info.type === "i") {
 			var pl8 = st + "и";
 			var gp8 = st + "ей";
-			return [st + "ь", st + "и", st + "и", st + "ь", st + "ью", st + "и", pl8, gp8, st + "ям", anim ? gp8 : pl8, st + "ями", st + "ях"];
+			var soft = !sibilant(last(st));
+			return [st + "ь", st + "и", st + "и", st + "ь", st + "ью", st + "и", pl8, gp8, st + (soft ? "ям" : "ам"), anim ? gp8 : pl8, st + (soft ? "ями" : "ами"), st + (soft ? "ях" : "ах")];
 		}
 		return null;
 	}
@@ -1019,6 +1058,8 @@
 		if (info.type === "indek") return L(lang, LAB.n_indek);
 		if (info.type === "mya") return L(lang, LAB.n_mya);
 		var d = info.type === "irr" ? info.decl : (info.type === "a" || info.type === "ya" || info.type === "ia" ? "1" : (info.type === "i" ? "3" : "2"));
+		if (d === "mya") return L(lang, LAB.n_mya);
+		if (d === "indek") return L(lang, LAB.n_indek);
 		if (d === "1") return L(lang, LAB.n_1);
 		if (d === "3") return L(lang, LAB.n_3);
 		return L(lang, LAB.n_2);
@@ -1490,13 +1531,13 @@
 	}
 
 	if (typeof module !== "undefined" && module.exports) {
-		module.exports = { build: build, conf: CONF, picks: PICKS, derive: derive };
+		module.exports = { build: build, buildVerb: buildVerb, buildAdj: buildAdj, buildNoun: buildNoun, conf: CONF, picks: PICKS, derive: derive };
 		return;
 	}
 	if (typeof SK === "undefined" || !SK.regutil) return;
 
 	SK.regutil("u-rverb", {
-		title: "俄语动词变化",
+		title: "俄语词形变化",
 		go: "变形",
 		live: true,
 		own: true,
@@ -1522,11 +1563,31 @@
 	function body(){
 		return '<p class="hint" id="rv-hint"></p>'
 			+ '<div class="row" id="rv-row">'
-			+ '<label id="rv-word">' + SK.combo("rv-in", "читать", "不定式，如 читать、говорить、идти") + "</label>"
+			+ '<label id="rv-kind"><select id="rv-sel-kind">'
+			+ '<option value="auto"></option>'
+			+ '<option value="verb"></option>'
+			+ '<option value="adj"></option>'
+			+ '<option value="noun"></option>'
+			+ "</select></label>"
+			+ '<label id="rv-word">' + SK.combo("rv-in", "читать", "不定式、形容词或名词") + "</label>"
+			+ "</div>"
+			+ '<div class="row" id="rv-row2">'
 			+ '<label id="rv-aspect"><select id="rv-sel">'
 			+ '<option value="auto"></option>'
 			+ '<option value="impf"></option>'
 			+ '<option value="pf"></option>'
+			+ "</select></label>"
+			+ '<label id="rv-anim"><select id="rv-sel-anim">'
+			+ '<option value="auto"></option>'
+			+ '<option value="anim"></option>'
+			+ '<option value="inan"></option>'
+			+ "</select></label>"
+			+ '<label id="rv-var"><select id="rv-sel-var">'
+			+ '<option value="std"></option>'
+			+ '<option value="coll"></option>'
+			+ '<option value="north"></option>'
+			+ '<option value="south"></option>'
+			+ '<option value="arch"></option>'
 			+ "</select></label>"
 			+ "</div>"
 			+ '<div id="rv-out"></div>';
@@ -1541,23 +1602,61 @@
 		}
 		var title = F.id("box-title");
 		if (title) title.textContent = tx("web.tool.rverb", L(lang, LAB.title));
+		setlab("rv-kind", "web.rverb.kind", L(lang, LAB.kind));
 		setlab("rv-word", "web.rverb.word", L(lang, LAB.word));
 		setlab("rv-aspect", "web.rverb.aspect", L(lang, LAB.aspect));
+		setlab("rv-anim", "web.rverb.anim", L(lang, LAB.anim));
+		setlab("rv-var", "web.rverb.variant", L(lang, LAB.variant));
 		SK.combofill("rv-in", pickgroups(lang));
-		setopt("auto", "web.rverb.auto", L(lang, LAB.auto));
-		setopt("impf", "web.rverb.impf", L(lang, LAB.impf));
-		setopt("pf", "web.rverb.pf", L(lang, LAB.pf));
+		setopt("rv-sel-kind", "auto", "web.rverb.auto", L(lang, LAB.auto));
+		setopt("rv-sel-kind", "verb", "web.rverb.verb", L(lang, LAB.verb));
+		setopt("rv-sel-kind", "adj", "web.rverb.adj", L(lang, LAB.adj));
+		setopt("rv-sel-kind", "noun", "web.rverb.noun", L(lang, LAB.noun));
+		setopt("rv-sel", "auto", "web.rverb.auto", L(lang, LAB.auto));
+		setopt("rv-sel", "impf", "web.rverb.impf", L(lang, LAB.impf));
+		setopt("rv-sel", "pf", "web.rverb.pf", L(lang, LAB.pf));
+		setopt("rv-sel-anim", "auto", "web.rverb.auto", L(lang, LAB.auto));
+		setopt("rv-sel-anim", "anim", "web.rverb.anim_yes", L(lang, LAB.anim_yes));
+		setopt("rv-sel-anim", "inan", "web.rverb.anim_no", L(lang, LAB.anim_no));
+		setopt("rv-sel-var", "std", "web.rverb.std", L(lang, LAB.std));
+		setopt("rv-sel-var", "coll", "web.rverb.coll", L(lang, LAB.coll));
+		setopt("rv-sel-var", "north", "web.rverb.north", L(lang, LAB.north));
+		setopt("rv-sel-var", "south", "web.rverb.south", L(lang, LAB.south));
+		setopt("rv-sel-var", "arch", "web.rverb.arch", L(lang, LAB.arch));
 		var box = F.id("rv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.rverb.ph");
 			box.placeholder = tx("web.rverb.ph", L(lang, LAB.ph));
 		}
+		bind("rv-sel-kind", function(){ syncui(); run(); });
+		bind("rv-sel", run);
+		bind("rv-sel-anim", run);
+		bind("rv-sel-var", run);
 		var out = F.id("rv-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = onout;
 		}
+		syncui();
 		run();
+	}
+
+	function bind(id, fn){
+		var el = F.id(id);
+		if (!el || F.attr(el, "data-bind")) return;
+		F.seta(el, "data-bind", "1");
+		el.onchange = fn;
+	}
+
+	function syncui(){
+		var kind = F.id("rv-sel-kind");
+		var v = kind ? kind.value : "auto";
+		show(F.id("rv-aspect"), v === "verb" || v === "auto");
+		show(F.id("rv-anim"), v === "adj" || v === "noun" || v === "auto");
+	}
+
+	function show(el, on){
+		if (el) el.style.display = on ? "" : "none";
 	}
 
 	function setlab(id, key, fb){
@@ -1568,8 +1667,8 @@
 		else el.insertBefore(document.createTextNode(text), el.firstChild);
 	}
 
-	function setopt(value, key, fb){
-		var sel = F.id("rv-sel");
+	function setopt(selId, value, key, fb){
+		var sel = F.id(selId);
 		if (!sel) return;
 		for (var i = 0; i < sel.options.length; i++) {
 			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
@@ -1613,12 +1712,20 @@
 		var word = box ? box.value : "";
 		var sel = F.id("rv-sel");
 		var manual = sel ? sel.value : "auto";
+		var kind = F.id("rv-sel-kind");
+		var anim = F.id("rv-sel-anim");
+		var vari = F.id("rv-sel-var");
 		if (!norm(word)) {
 			paint("", "", []);
 			SK.msg("box-msg", "");
 			return;
 		}
-		var built = build(word, langcode(), { aspect: manual });
+		var built = build(word, langcode(), {
+			kind: kind ? kind.value : "auto",
+			aspect: manual,
+			anim: anim ? anim.value : "auto",
+			variant: vari ? vari.value : "std"
+		});
 		if (!built.ok) {
 			paint("", "", []);
 			SK.msg("box-msg", built.err, true);

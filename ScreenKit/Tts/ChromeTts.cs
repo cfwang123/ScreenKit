@@ -315,19 +315,26 @@ static class ChromeTts {
 		return profile;
 	}
 
-	/// <summary>看这次请求来自哪个 Chrome。kind 为 app（程序的）或 user（用户的），认不出则为空。</summary>
-	public static void ClientProfile(int clientPort, out string path, out string kind) {
+	/// <summary>看这次请求来自哪个 Chrome。kind 为 app（程序的）或 user（用户的），认不出则为空。browserPid 是浏览器主进程。</summary>
+	public static void ClientProfile(int clientPort, out string path, out string kind, out int browserPid) {
 		path = "";
 		kind = "";
+		browserPid = 0;
 		var pid = ownerpid(clientPort);
 		if (pid <= 0) return;
 		var seen = new HashSet<int>();
 		var mine = normdir(ProfileDir());
 		for (var n = 0; n < 8 && pid > 0 && seen.Add(pid); n++) {
 			if (!procinfo(pid, out var cmd, out var parent)) break;
-			path = userdatadir(cmd);
-			if (path.Length == 0 && browserchrome(cmd)) path = userchrome();
-			if (path.Length > 0) break;
+			if (path.Length == 0) {
+				var dir = userdatadir(cmd);
+				if (dir.Length > 0) path = dir;
+			}
+			if (browserchrome(cmd)) {
+				if (path.Length == 0) path = userchrome();
+				browserPid = pid;
+				break;
+			}
 			pid = parent;
 		}
 		if (path.Length == 0) return;

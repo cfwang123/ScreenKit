@@ -408,10 +408,13 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #kv-row > #kv-type { flex: 0 0 112px; }
 #jv-row > #jv-type { flex: 0 0 200px; }
 #rv-out { overflow-x: auto; }
-#rv-row { align-items: flex-end; }
-#rv-row > label { width: auto; }
-#rv-row > #rv-word { flex: 0 1 340px; width: 340px; max-width: 340px; min-width: 200px; }
-#rv-row > #rv-aspect { flex: 0 0 132px; }
+#rv-row, #rv-row2 { align-items: flex-end; flex-wrap: wrap; }
+#rv-row > label, #rv-row2 > label { width: auto; }
+#rv-row > #rv-kind { flex: 0 0 118px; }
+#rv-row > #rv-word { flex: 0 1 320px; width: 320px; max-width: 320px; min-width: 200px; }
+#rv-row2 > #rv-aspect { flex: 0 0 112px; }
+#rv-row2 > #rv-anim { flex: 0 0 142px; }
+#rv-row2 > #rv-var { flex: 0 0 168px; }
 #rv-out .jv-tab { width: 100%; }
 #rv-out .jv-tab .jv-k { width: 12.5em; white-space: normal; }
 #rv-out .jv-tab .jv-v { white-space: normal; }

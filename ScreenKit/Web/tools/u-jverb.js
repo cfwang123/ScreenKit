@@ -645,9 +645,14 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nda, word + "んだ"),
 			row(L.tte, word + "って")
-		].concat(evidrows(L, word, word, s + "かった", word), patternrows(L, {
+		].concat(evidrows(L, {
 			plain: word, pred: word, drop: word, attrib: word, attribN: word,
-			ren: s + "く", ta: s + "かった", stem: s
+			ren: s + "く", ta: s + "かった", stem: s,
+			neg: s + "くない", negta: s + "くなかった"
+		}), patternrows(L, {
+			plain: word, pred: word, drop: word, attrib: word, attribN: word,
+			ren: s + "く", ta: s + "かった", stem: s,
+			neg: s + "くない", negta: s + "くなかった"
 		}, "ai")) };
 	}
 
@@ -689,9 +694,14 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nanda, word + "なんだ"),
 			row(L.tte, word + "だって")
-		].concat(evidrows(L, word + "だ", word, word + "だった", word + "な"), patternrows(L, {
+		].concat(evidrows(L, {
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "な",
-			ren: word + "に", ta: word + "だった", stem: word
+			ren: word + "に", ta: word + "だった", stem: word,
+			neg: word + "ではない", negta: word + "ではなかった"
+		}), patternrows(L, {
+			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "な",
+			ren: word + "に", ta: word + "だった", stem: word,
+			neg: word + "ではない", negta: word + "ではなかった"
 		}, "an")) };
 	}
 
@@ -717,9 +727,14 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nanda, word + "なんだ"),
 			row(L.tte, word + "だって")
-		].concat(evidrows(L, word + "だ", word, word + "だった", word + "の"), patternrows(L, {
+		].concat(evidrows(L, {
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "の",
-			ren: word + "に", ta: word + "だった", stem: word
+			ren: word + "に", ta: word + "だった", stem: word,
+			neg: word + "ではない", negta: word + "ではなかった"
+		}), patternrows(L, {
+			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "の",
+			ren: word + "に", ta: word + "だった", stem: word,
+			neg: word + "ではない", negta: word + "ではなかった"
 		}, "n")) };
 	}
 
@@ -755,26 +770,36 @@
 			row(L.tte, plain + "って")
 		]);
 		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
-			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, plain, plain, ta, plain),
-				patternrows(L, {
-					plain: plain, pred: plain, drop: plain, attrib: plain, attribN: plain,
-					ren: masu.slice(0, -2), ta: ta, teiru: te + "いる", stem: masu.slice(0, -2)
-				}, "v"),
+			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, verbforms(plain, masu, nai, te, ta)),
+				patternrows(L, verbforms(plain, masu, nai, te, ta), "v"),
 				keigo(plain, masu, pas, L)) };
 	}
 
+	// 语气句型用的接续形（动词）。
+	function verbforms(plain, masu, nai, te, ta){
+		return {
+			plain: plain, pred: plain, drop: plain, attrib: plain, attribN: plain,
+			ren: masu.slice(0, -2), ta: ta, teiru: te + "いる", stem: masu.slice(0, -2),
+			neg: nai, negta: nai.slice(0, -2) + "なかった"
+		};
+	}
+
+	// 一条语气句型和它的否定形，两条连着放，表格里正好左右并排。
+	function pair(L, label, pos, neg, group){
+		return neg ? [[label, pos, group], [label, neg, group]] : [[label, pos, group]];
+	}
+
 	// 传闻・推量：pred 是普通形现在的说法（な形容词、名词带だ），plain 去掉だ的形，
-	// past 是普通形过去，attrib 是接ようだ・はずだ时的形（な形容词加な，名词加の）。
-	function evidrows(L, pred, plain, past, attrib){
-		return [
-			[L.souda, pred + "そうだ", L.evid],
-			[L.tasouda, past + "そうだ", L.evid],
-			[L.rashii, plain + "らしい", L.evid],
-			[L.youda, attrib + "ようだ", L.evid],
-			[L.mitaida, plain + "みたいだ", L.evid],
-			[L.kamoshirenai, plain + "かもしれない", L.evid],
-			[L.hazuda, attrib + "はずだ", L.evid]
-		];
+	// ta 是普通形过去，attrib 是接ようだ・はずだ时的形（な形容词な，名词の），neg／negta 是它们的否定。
+	function evidrows(L, k){
+		return []
+			.concat(pair(L, L.souda, k.pred + "そうだ", k.neg + "そうだ", L.evid))
+			.concat(pair(L, L.tasouda, k.ta + "そうだ", k.negta + "そうだ", L.evid))
+			.concat(pair(L, L.rashii, k.plain + "らしい", k.neg + "らしい", L.evid))
+			.concat(pair(L, L.youda, k.attrib + "ようだ", k.neg + "ようだ", L.evid))
+			.concat(pair(L, L.mitaida, k.plain + "みたいだ", k.neg + "みたいだ", L.evid))
+			.concat(pair(L, L.kamoshirenai, k.plain + "かもしれない", k.neg + "かもしれない", L.evid))
+			.concat(pair(L, L.hazuda, k.attrib + "はずだ", k.neg + "はずだ", L.evid));
 	}
 
 	// 判断・义务、程度・倾向、疑问・确认、原因・理由这些句型。
@@ -786,43 +811,43 @@
 		var verb = cat === "v";
 		var adj = cat === "ai" || cat === "an";
 		var noun = cat === "n";
-		var rows = [
-			[L.kchigai, k.drop + "に違いない", L.evid],
-			[L.ktono, k.pred + "とのことだ", L.evid],
-			[L.ktoka, k.pred + "とか", L.evid],
-			[L.kktite, k.pred + "って聞いた", L.evid],
-			[L.kppoi, k.stem + "っぽい", L.evid]
-		];
-		if (adj) rows.push([L.kge, k.stem + "げ", L.evid]);
-		if (verb) rows.push([L.kkehai, k.plain + "気配だ", L.evid]);
-		rows.push([L.wake, k.attrib + "わけだ", L.duty]);
-		rows.push([L.wakenai, k.attrib + "わけがない", L.duty]);
-		if (verb) {
-			rows.push([L.beki, k.plain + "べきだ", L.duty]);
-			rows.push([L.bekinai, k.plain + "べきではない", L.duty]);
-		}
-		if (!noun) rows.push([L.monoda, k.attrib + "ものだ", L.duty]);
-		if (verb) {
-			rows.push([L.kotoda, k.plain + "ことだ", L.duty]);
-			rows.push([L.tsumori, k.plain + "つもりだ", L.duty]);
-			rows.push([L.yotei, k.plain + "予定だ", L.duty]);
-			rows.push([L.gachi, k.ren + "がちだ", L.degree]);
-			rows.push([L.kimi, k.ren + "気味だ", L.degree]);
-			rows.push([L.ippou, k.plain + "一方だ", L.degree]);
-			rows.push([L.bakari, k.plain + "ばかりだ", L.degree]);
+		var rows = []
+			.concat(pair(L, L.kchigai, k.drop + "に違いない", k.neg + "に違いない", L.evid))
+			.concat(pair(L, L.ktono, k.pred + "とのことだ", k.neg + "とのことだ", L.evid))
+			.concat(pair(L, L.ktoka, k.pred + "とか", k.neg + "とか", L.evid))
+			.concat(pair(L, L.kktite, k.pred + "って聞いた", k.neg + "って聞いた", L.evid))
+			.concat(pair(L, L.kppoi, k.stem + "っぽい", "", L.evid));
+		if (adj) rows = rows.concat(pair(L, L.kge, k.stem + "げ", "", L.evid));
+		if (verb) rows = rows.concat(pair(L, L.kkehai, k.plain + "気配だ", k.neg + "気配だ", L.evid));
+		rows = rows.concat(
+			pair(L, L.wake, k.attrib + "わけだ", k.neg + "わけだ", L.duty),
+			pair(L, L.wakenai, k.attrib + "わけがない", k.neg + "わけがない", L.duty));
+		if (verb) rows = rows.concat(
+			pair(L, L.beki, k.plain + "べきだ", "", L.duty),
+			pair(L, L.bekinai, k.plain + "べきではない", "", L.duty));
+		if (!noun) rows = rows.concat(pair(L, L.monoda, k.attrib + "ものだ", k.neg + "ものだ", L.duty));
+		if (verb) rows = rows.concat(
+			pair(L, L.kotoda, k.plain + "ことだ", k.neg + "ことだ", L.duty),
+			pair(L, L.tsumori, k.plain + "つもりだ", k.neg + "つもりだ", L.duty),
+			pair(L, L.yotei, k.plain + "予定だ", k.neg + "予定だ", L.duty),
+			pair(L, L.gachi, k.ren + "がちだ", "", L.degree),
+			pair(L, L.kimi, k.ren + "気味だ", "", L.degree),
+			pair(L, L.ippou, k.plain + "一方だ", "", L.degree),
+			pair(L, L.bakari, k.plain + "ばかりだ", "", L.degree),
 			// ところだ 有三种：辞書形＝即将，た形＝刚刚，ている＝正在。
-			rows.push([L.tokoro1, k.plain + "ところだ", L.degree]);
-			rows.push([L.tokoro2, k.ta + "ところだ", L.degree]);
-			rows.push([L.tokoro3, k.teiru + "ところだ", L.degree]);
-		}
-		rows.push([L.kana, k.drop + "かな", L.confirm]);
-		rows.push([L.kashira, k.drop + "かしら", L.confirm]);
-		rows.push([L.deshoune, k.drop + "でしょうね", L.confirm]);
-		rows.push([L.janai, k.attrib + "んじゃないか", L.confirm]);
-		rows.push([L.nodakara, k.attrib + "のだから", L.reason]);
-		rows.push([L.monode, k.attrib + "もので", L.reason]);
-		if (verb) rows.push([L.okage, k.ta + "おかげで", L.reason]);
-		if (noun) rows.push([L.okage, k.attribN + "おかげで", L.reason]);
+			pair(L, L.tokoro1, k.plain + "ところだ", "", L.degree),
+			pair(L, L.tokoro2, k.ta + "ところだ", "", L.degree),
+			pair(L, L.tokoro3, k.teiru + "ところだ", "", L.degree));
+		rows = rows.concat(
+			pair(L, L.kana, k.drop + "かな", k.neg + "かな", L.confirm),
+			pair(L, L.kashira, k.drop + "かしら", k.neg + "かしら", L.confirm),
+			pair(L, L.deshoune, k.drop + "でしょうね", k.neg + "でしょうね", L.confirm),
+			pair(L, L.janai, k.attrib + "んじゃないか", k.neg + "んじゃないか", L.confirm));
+		rows = rows.concat(
+			pair(L, L.nodakara, k.attrib + "のだから", k.neg + "のだから", L.reason),
+			pair(L, L.monode, k.attrib + "もので", k.neg + "もので", L.reason));
+		if (verb) rows = rows.concat(pair(L, L.okage, k.ta + "おかげで", "", L.reason));
+		if (noun) rows = rows.concat(pair(L, L.okage, k.attribN + "おかげで", "", L.reason));
 		return rows;
 	}
 

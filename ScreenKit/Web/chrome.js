@@ -231,40 +231,79 @@
 
 	function testvoice(lang){
 		if (busy || testing) return;
+		if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+			say("这个浏览器不支持试听", true);
+			return;
+		}
 		testing = true;
 		paint();
 		say("正在试听…", false);
-		var xhr = new XMLHttpRequest();
-		xhr.open("POST", "/api/tts/speak", true);
-		xhr.setRequestHeader("Content-Type", "application/json;charset=utf-8");
-		xhr.onload = function(){
-			testing = false;
-			var jo;
-			try { jo = JSON.parse(xhr.responseText); }
-			catch (e) {
-				say("响应不是 JSON", true);
+		// 就在这个浏览器里念，不再让后台另开一个 Chrome，模型页窗口不会被关掉。
+		waitvoice(lang, function(v){
+			if (!v) {
+				testing = false;
+				say("这个浏览器里还没有这个语音，刷新页面后再试", true);
 				paint();
 				return;
 			}
-			if (!jo || jo.code !== 100) {
-				var err = jo && jo.data;
-				say(typeof err === "string" && err ? err : "试听失败", true);
+			var u = new SpeechSynthesisUtterance(testline(lang));
+			u.voice = v;
+			u.lang = v.lang;
+			var end = function(ok){
+				testing = false;
+				say(ok ? "已试听" : "试听失败", !ok);
 				paint();
+			};
+			u.onend = function(){ end(true); };
+			u.onerror = function(){ end(false); };
+			try {
+				speechSynthesis.cancel();
+				speechSynthesis.speak(u);
+			}
+			catch (e) { end(false); }
+		});
+	}
+
+	// 刚装好的语音可能要等扩展重载完才出现在列表里，最多等两秒。
+	function waitvoice(lang, cb){
+		var hit = pickvoice(lang);
+		if (hit) {
+			cb(hit);
+			return;
+		}
+		var start = Date.now();
+		var timer = null;
+		function tick(){
+			var v = pickvoice(lang);
+			if (v) {
+				stop();
+				cb(v);
 				return;
 			}
-			say("已试听", false);
-			paint();
-		};
-		xhr.onerror = function(){
-			testing = false;
-			say("网络错误", true);
-			paint();
-		};
-		xhr.send(JSON.stringify({
-			engine: "chrome",
-			lang: lang,
-			text: testline(lang)
-		}));
+			if (Date.now() - start > 2000) {
+				stop();
+				cb(null);
+			}
+		}
+		function stop(){
+			if (timer) clearInterval(timer);
+			timer = null;
+			speechSynthesis.onvoiceschanged = null;
+		}
+		timer = setInterval(tick, 200);
+		speechSynthesis.onvoiceschanged = tick;
+	}
+
+	function pickvoice(lang){
+		var voices = [];
+		try { voices = speechSynthesis.getVoices() || []; } catch (e) { }
+		var i;
+		for (i = 0; i < voices.length; i++) {
+			var v = voices[i];
+			if (!googlelocal(v)) continue;
+			if (samelang(v.lang, lang)) return v;
+		}
+		return null;
 	}
 
 	function testline(lang){
