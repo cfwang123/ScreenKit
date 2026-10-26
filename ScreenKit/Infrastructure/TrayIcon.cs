@@ -123,6 +123,8 @@ sealed class TrayIcon : IDisposable {
 		};
 
 		menu = new Forms.ContextMenuStrip();
+		// 与主窗菜单一致：悬停显示功能说明
+		menu.ShowItemToolTips = true;
 		// 勾选项用圆点（radio）而非对勾
 		menu.Renderer = new RadioMenuRenderer();
 		menu.Opening += (_, _) => {
@@ -187,10 +189,11 @@ sealed class TrayIcon : IDisposable {
 			try { DictSelBarChanged?.Invoke(miDictSel.Checked); } catch { }
 		};
 		miClipFile = item("tray.clipfile", () => ClipboardAsFileRequested?.Invoke());
-		miPdf = item("tray.pdf", () => {
+		miPdf = item("menu.pdf", () => {
 			showwindow();
 			PdfRequested?.Invoke();
 		});
+		miPdf.ToolTipText = Loc.T("menu.pdf.tip");
 		// 截图历史：打开 screenshots 文件夹，不唤起主窗
 		miSnapshots = item("tray.snapshots", () => SnapshotsRequested?.Invoke());
 		// 录屏 / GIF 录屏 / 参数 / 系统参数：只开功能窗，不唤起主窗
@@ -258,6 +261,7 @@ sealed class TrayIcon : IDisposable {
 		miCatTime = new Forms.ToolStripMenuItem(Loc.T("web.cat.time"));
 		miCatTime.DropDownItems.Add(miWinCal);
 		miCatImage = new Forms.ToolStripMenuItem(Loc.T("web.cat.image"));
+		miCatImage.DropDownItems.Add(miPdf);
 		miCatImage.DropDownItems.Add(miImgConv);
 		miCatImage.DropDownItems.Add(miCharArt);
 		miCatImage.DropDownItems.Add(miPixel);
@@ -317,7 +321,6 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miTranslate);
 		menu.Items.Add(miDictSel);
 		menu.Items.Add(miClipFile);
-		menu.Items.Add(miPdf);
 		menu.Items.Add(miSnapshots);
 		menu.Items.Add(new Forms.ToolStripSeparator());
 		menu.Items.Add(miSnapCopyImg);
@@ -540,7 +543,8 @@ sealed class TrayIcon : IDisposable {
 			settext(miTranslate, "tray.translate");
 			settext(miDictSel, "dict.selbar");
 			settext(miClipFile, "tray.clipfile");
-			settext(miPdf, "tray.pdf");
+			settext(miPdf, "menu.pdf");
+			if (miPdf != null) miPdf.ToolTipText = Loc.T("menu.pdf.tip");
 			settext(miSnapshots, "tray.snapshots");
 			settext(miSnapCopyImg, "tray.snapcopyimg");
 			settext(miSnapCopyFile, "tray.snapcopyfile");
