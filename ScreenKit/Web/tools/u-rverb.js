@@ -1712,8 +1712,10 @@
 			});
 		}).catch(function(j){
 			if (seq !== speakSeq) return;
-			if (j && j.error === "novoice") {
-				SK.msg("box-msg", tx("web.rverb.novoice", "未安装俄语语音，无法发音。请打开「安装功能 → Windows语音合成」，勾选俄语并安装，装好后重启 ScreenKit。"), true);
+			if (j && (j.error === "novoice" || (j.code === 802 && j.error !== "noword"))) {
+				var need = tx("web.rverb.novoice", "未安装俄语语音，无法发音。请打开「安装功能 → Windows语音合成」，勾选俄语并安装，装好后重启 ScreenKit。");
+				SK.msg("box-msg", need, true);
+				try { window.alert(need); } catch (e) {}
 				return;
 			}
 			SK.msg("box-msg", (j && (j.data || j.message)) || tx("web.rverb.nospeak", "无法发音"), true);
