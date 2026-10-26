@@ -1321,6 +1321,7 @@
 		}
 		var q = qPlain(syls, irr, kind);
 		var haps = hapsho(syls);
+		var verbOnly = kind === "v";
 		// 경상도：해요체 -예、합쇼체 -ㅁ니더、판단 -나 / 의문사 -노
 		add("gs", "hey", f.hey.replace(/요$/, "예"));
 		add("gs", "prpy", f.past + "어예");
@@ -1332,7 +1333,7 @@
 		add("jl", "prph", f.past + "지라우");
 		add("jl", "qplain", qdial(q, "냐") + "?");
 		add("jl", "cpast", f.past + "당께");
-		add("jl", "fcmd", plusEu(f.st, "시소", true));
+		if (verbOnly) add("jl", "fcmd", plusEu(f.st, "시소", true));
 		// 충청도：해요체 -유/-슈、의문 -냐、将来 -ㄹ겨、轻问 -남
 		add("cc", "hey", f.hey.replace(/요$/, "유"));
 		add("cc", "prpy", f.past + "슈");
@@ -1349,14 +1350,43 @@
 		add("hg", "prph", f.past + "슴다");
 		add("hg", "peqp", f.past + "슴메");
 		add("hg", "cpast", f.past + "지비");
-		add("hg", "sug", jn(syls) + "기요");
-		add("hg", "fcmd", hapN(syls, "소"));
+		if (verbOnly) {
+			add("hg", "sug", jn(syls) + "기요");
+			add("hg", "fcmd", hapN(syls, "소"));
+		}
 		// 평안도：敬语 -ㅂ네다/-ㅂ네까、劝诱 -ㅂ세다、命令 -라우、敬语过去 -수다
 		add("pg", "hap", hapN(syls, "네다"));
 		add("pg", "qhap", hapN(syls, "네까?"));
-		add("pg", "sug", hapN(syls, "세다"));
-		add("pg", "cmd", plusEu(f.st, "라우", true));
+		if (verbOnly) {
+			add("pg", "sug", hapN(syls, "세다"));
+			add("pg", "cmd", plusEu(f.st, "라우", true));
+		}
 		add("pg", "prph", f.past + "수다");
+		return rows;
+	}
+
+	// 名词（이다）的方言说法：只列证据明确的四种
+	function copulaDialect(noun, bat, lang){
+		var rows = [];
+		var g = function(id){ return lp(lang, GRP[id]); };
+		function add(gid, key, text){
+			if (text) rows.push({ id: "dia." + gid + "." + key, g: g(gid), name: rowName(key, key, lang), text: text });
+		}
+		// 경상도：-데이 / -이었데이 / -이가?
+		add("gs", "hey", noun + (bat ? "이데이" : "데이"));
+		add("gs", "prpy", noun + (bat ? "이었데이" : "였데이"));
+		add("gs", "qyes", noun + (bat ? "이가?" : "가?"));
+		// 전라도：-라우 / -이었지라우 / -이냐?
+		add("jl", "hey", noun + (bat ? "이라우" : "라우"));
+		add("jl", "prph", noun + (bat ? "이었지라우" : "였지라우"));
+		add("jl", "qplain", noun + (bat ? "이냐?" : "냐?"));
+		// 충청도：-유 / -이었슈 / -이냐?
+		add("cc", "hey", noun + (bat ? "이유" : "유"));
+		add("cc", "prpy", noun + (bat ? "이었슈" : "였슈"));
+		add("cc", "qplain", noun + (bat ? "이냐?" : "냐?"));
+		// 제주：-이우다 / -이우꽈?
+		add("jj", "hap", noun + (bat ? "이우다" : "우다"));
+		add("jj", "qhap", noun + (bat ? "이우꽈?" : "우꽈?"));
 		return rows;
 	}
 
@@ -1425,6 +1455,8 @@
 		add("prohibit", "으면 안 돼요", noun + (bat ? "이면" : "면") + " 안 돼요");
 		add("excl", "군요", quad(noun + (bat ? "이군요" : "군요"), nop + "군요", noun + (bat ? "이었군요" : "였군요"), nop + "었군요"));
 		add("confirm", "다면서요?", quad(noun + (bat ? "이라면서요?" : "라면서요?"), nop + "라면서요?", noun + (bat ? "이었다면서요?" : "였다면서요?"), nop + "었다면서요?"));
+		var dia = copulaDialect(noun, bat, lang);
+		for (var i = 0; i < dia.length; i++) rows.push(dia[i]);
 		return rows;
 	}
 

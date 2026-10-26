@@ -82,6 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - A group derived from ない lists なさ, なさげ and なさすぎる (食べなさすぎる, 高くなさすぎる, 静かじゃなさすぎる).
 - Chrome translation can now pick non-English language pairs such as Chinese to Japanese; Chrome pivots through English, so both the English to Chinese and English to Japanese models are needed.
 - Japanese adjectives and nouns now list dialect forms too: Kansai 高うない / 静かや / 学生や, and Kyushu 高か / 高うなか for i-adjectives.
+- Korean nouns: add dialect forms for Gyeongsang, Jeolla, Chungcheong and Jeju; keep command and suggestion dialect forms to verbs
 
 #### Changed
 
@@ -180,6 +181,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增一组「ない的派生」：なさ、なさげ、なさすぎる（食べなさすぎる、高くなさすぎる、静かじゃなさすぎる）。
 - Chrome 翻译可以选中文 ↔ 日文这类非英文语言对。Chrome 内部经英文中转，需要同时装好英文 ↔ 中文和英文 ↔ 日文的模型。
 - 日语形容词和名词也列出方言说法：关西 高うない、静かや、学生や；い形容词另有九州 高か、高うなか。
+- 韩语名词：补充庆尚道、全罗道、忠清道、济州方言；方言命令/劝诱只对动词显示
 
 #### 变更
 
