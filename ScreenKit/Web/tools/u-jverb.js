@@ -13,12 +13,15 @@
 		"む": ["ま", "み", "む", "め", "も", "んで", "んだ"],
 		"る": ["ら", "り", "る", "れ", "ろ", "って", "った"]
 	};
-	var PICKG = {
-		sp: ["特殊变化", "Irregular"],
-		cm: ["常见动词", "Common"],
-		ai: ["常见い形容词", "Common i-adjectives"],
-		an: ["常见な形容词", "Common na-adjectives"],
-		nn: ["常见名词", "Common nouns"]
+	var PICKORD = ["sp", "1", "2", "3", "ai", "an", "n"];
+	var PICKNAME = {
+		sp: ["特殊", "Irregular"],
+		"1": ["1类动词（五段）", "Group 1 verbs"],
+		"2": ["2类动词（一段）", "Group 2 verbs"],
+		"3": ["3类动词（する・くる）", "Group 3 verbs"],
+		ai: ["い形容词", "i-adjectives"],
+		an: ["な形容词", "na-adjectives"],
+		n: ["名词", "nouns"]
 	};
 	// g, 辞书形, 读音, 类, flag, sub, 中文, English
 	var PICKS = [
@@ -277,7 +280,7 @@
 			items = [];
 			for (j = 0; j < PICKS.length; j++) {
 				p = PICKS[j];
-				if (p[3] !== key) continue;
+				if (pick === "auto" ? pickkey(p) !== key : p[3] !== key) continue;
 				gloss = lang === "zh" ? p[6] : p[7];
 				show = p[1];
 				if (p[2] && p[2] !== p[1]) show += "  " + p[2];
@@ -288,6 +291,11 @@
 			groups.push({ g: lang === "zh" ? PICKNAME[key][0] : PICKNAME[key][1], items: items });
 		}
 		return groups;
+	}
+
+	function pickkey(p){
+		if (p[0] === "sp" && p[3] !== "3") return "sp";
+		return p[3];
 	}
 
 	function cellhtml(item, tip){
