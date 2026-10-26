@@ -647,8 +647,8 @@
 			row(L.souda, irri(word) ? s + "さそうだ" : s + "そうだ"),
 			row(L.sugiru, s + "すぎる"),
 			row(L.sa, s + "さ"),
-			row(L.darou, word + "だろう、" + s + "くないだろう"),
-			row(L.deshou, word + "でしょう、" + s + "くないでしょう"),
+			row(L.darou, word + "だろう、" + s + "くないだろう、" + s + "かっただろう、" + s + "くなかっただろう"),
+			row(L.deshou, word + "でしょう、" + s + "くないでしょう、" + s + "かったでしょう、" + s + "くなかったでしょう"),
 			row(L.nda, word + "んだ、" + s + "くないんだ"),
 			row(L.tte, word + "って、" + s + "くないって")
 		].concat(evidrows(L, {
@@ -696,8 +696,8 @@
 			row(L.souda, word + "そうだ"),
 			row(L.sugiru, word + "すぎる"),
 			row(L.sa, word + "さ"),
-			row(L.darou, word + "だろう、" + word + "ではないだろう"),
-			row(L.deshou, word + "でしょう、" + word + "ではないでしょう"),
+			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
+			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
 			row(L.tte, word + "だって、" + word + "ではないって")
 		].concat(evidrows(L, {
@@ -729,8 +729,8 @@
 			row(L.ba, word + "なら、" + word + "でなければ"),
 			row(L.tara, word + "だったら、" + word + "ではなかったら"),
 			row(L.dearu, word + "である、" + word + "ではない"),
-			row(L.darou, word + "だろう、" + word + "ではないだろう"),
-			row(L.deshou, word + "でしょう、" + word + "ではないでしょう"),
+			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
+			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
 			row(L.tte, word + "だって、" + word + "ではないって")
 		].concat(evidrows(L, {
