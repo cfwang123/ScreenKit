@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English verb tenses also list modals, subjunctive and conditionals, imperative and requests, tag questions, causative and permission, and British, American and Australian/NZ forms such as learnt/learned, gotten/got and travelling/traveling.
 - Korean verbs: choose verb, adjective or noun type first, with adjective and noun word lists
 - Japanese conjugation also lists んだ / なんだ and the quotative って (行くんだ, 静かなんだ, 学生だって).
+- Japanese conjugation also lists たそうだ and a hearsay / conjecture group: そうだ, らしい, ようだ, みたいだ, かもしれない, はずだ.
 
 #### Changed
 
@@ -138,6 +139,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语动词时态新增情态动词、虚拟与条件、祈使与请求、附加疑问、使役与允许等语气，以及英式、美式、澳新的 learnt/learned、gotten/got、travelling/traveling 等地区写法。
 - 韩语动词变化：先选动词/形容词/名词类型，词表补充形容词和名词
 - 日语词形变化新增「んだ」「なんだ」和引用「って」（行くんだ、静かなんだ、学生だって）。
+- 日语词形变化新增「たそうだ」，并加了一组传闻・推量：そうだ、らしい、ようだ、みたいだ、かもしれない、はずだ。
 
 #### 变更
 

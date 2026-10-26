@@ -535,6 +535,8 @@
 			adv: "副词形", naru: "なる", sa: "さ", rentai: "连体形",
 			darou: "だろう", deshou: "でしょう", dearu: "である",
 			nda: "んだ", nanda: "なんだ", tte: "って",
+			evid: "传闻・推量", tasouda: "たそうだ", rashii: "らしい", youda: "ようだ",
+			mitaida: "みたいだ", kamoshirenai: "かもしれない", hazuda: "はずだ",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
@@ -566,6 +568,8 @@
 			adv: "adverbial", naru: "naru", sa: "sa", rentai: "attributive",
 			darou: "darou", deshou: "deshou", dearu: "dearu",
 			nda: "nda", nanda: "nanda", tte: "tte",
+			evid: "Hearsay / conjecture", tasouda: "ta + souda", rashii: "rashii", youda: "youda",
+			mitaida: "mitaida", kamoshirenai: "kamoshirenai", hazuda: "hazuda",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
@@ -614,7 +618,7 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nda, word + "んだ"),
 			row(L.tte, word + "って")
-		] };
+		].concat(evidrows(L, word, word, s + "かった", word)) };
 	}
 
 	function iadjstem(word){
@@ -655,7 +659,7 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nanda, word + "なんだ"),
 			row(L.tte, word + "だって")
-		] };
+		].concat(evidrows(L, word + "だ", word, word + "だった", word + "な")) };
 	}
 
 	// 名词：学生だ、学生だった。和な形容词一样接だ・で・だった，连体形用の。
@@ -680,7 +684,7 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nanda, word + "なんだ"),
 			row(L.tte, word + "だって")
-		] };
+		].concat(evidrows(L, word + "だ", word, word + "だった", word + "の")) };
 	}
 
 	function row(lab, val){ return [lab, val]; }
@@ -715,7 +719,21 @@
 			row(L.tte, plain + "って")
 		]);
 		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
-			rows: rows.concat(auxrows(L, plain, masu, te), keigo(plain, masu, pas, L)) };
+			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, plain, plain, ta, plain), keigo(plain, masu, pas, L)) };
+	}
+
+	// 传闻・推量：pred 是普通形现在的说法（な形容词、名词带だ），plain 去掉だ的形，
+	// past 是普通形过去，attrib 是接ようだ・はずだ时的形（な形容词加な，名词加の）。
+	function evidrows(L, pred, plain, past, attrib){
+		return [
+			[L.souda, pred + "そうだ", L.evid],
+			[L.tasouda, past + "そうだ", L.evid],
+			[L.rashii, plain + "らしい", L.evid],
+			[L.youda, attrib + "ようだ", L.evid],
+			[L.mitaida, plain + "みたいだ", L.evid],
+			[L.kamoshirenai, plain + "かもしれない", L.evid],
+			[L.hazuda, attrib + "はずだ", L.evid]
+		];
 	}
 
 	// 连用形、て形后面常接的补助动词，和敬体的劝诱・疑问，各成一组。
