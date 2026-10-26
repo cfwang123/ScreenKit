@@ -79,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - だろう / でしょう now also list the past affirmative and negative (学生だっただろう, 学生ではなかっただろう).
 - だろう also lists the contracted past presumptive 〜たろう (学生だったろう, 学生ではなかったろう).
 - The appearance そうだ rows now also list なさそうだ (食べなさそうだ, 高くなさそうだ, 静かじゃなさそうだ).
+- A group derived from ない lists なさ, なさげ and なさすぎる (食べなさすぎる, 高くなさすぎる, 静かじゃなさすぎる).
 
 #### Changed
 
@@ -173,6 +174,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - だろう / でしょう 也列出过去肯定和否定（学生だっただろう、学生ではなかっただろう）。
 - だろう 补上缩略的过去推量「〜たろう」（学生だったろう、学生ではなかったろう）。
 - 样态「そうだ」行并列给出「なさそうだ」（食べなさそうだ、高くなさそうだ、静かじゃなさそうだ）。
+- 新增一组「ない的派生」：なさ、なさげ、なさすぎる（食べなさすぎる、高くなさすぎる、静かじゃなさすぎる）。
 
 #### 变更
 

@@ -594,6 +594,7 @@
 			tokoro1: "ところだ（即将）", tokoro2: "ところだ（刚刚）", tokoro3: "ところだ（正在）",
 			confirm: "疑问・确认", kana: "かな", kashira: "かしら", deshoune: "でしょうね", janai: "んじゃないか",
 			reason: "原因・理由", nodakara: "のだから", monode: "もので", okage: "おかげで",
+			naihasei: "ない的派生", nasa: "なさ", nasage: "なさげ", nasasugiru: "なさすぎる",
 			cop: "丁重・尊敬（だ・です）", degozaru: "でござる", degozaimasu: "でございます",
 			degozaimashita: "でございました", degozaimashou: "でございましょう",
 			deirassharu: "でいらっしゃる", deirasshaimasu: "でいらっしゃいます",
@@ -638,6 +639,7 @@
 			tokoro1: "tokoro da (about to)", tokoro2: "tokoro da (just did)", tokoro3: "tokoro da (doing)",
 			confirm: "Question / confirmation", kana: "kana", kashira: "kashira", deshoune: "deshou ne", janai: "n ja nai ka",
 			reason: "Reason", nodakara: "no dakara", monode: "mono de", okage: "okage de",
+			naihasei: "Derived from nai", nasa: "nasa", nasage: "nage", nasasugiru: "nasa sugiru",
 			cop: "Deferential / honorific copula", degozaru: "de gozaru", degozaimasu: "de gozaimasu",
 			degozaimashita: "de gozaimashita", degozaimashou: "de gozaimashou",
 			deirassharu: "de irassharu", deirasshaimasu: "de irasshaimasu",
@@ -698,7 +700,7 @@
 			plain: word, pred: word, drop: word, attrib: word, attribN: word,
 			ren: s + "く", ta: s + "かった", stem: s,
 			neg: s + "くない", negta: s + "くなかった"
-		}, "ai")) };
+		}, "ai"), naihaseirows(L, s + "くない")) };
 	}
 
 	function iadjstem(word){
@@ -748,7 +750,7 @@
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "な",
 			ren: word + "に", ta: word + "だった", stem: word,
 			neg: word + "ではない", negta: word + "ではなかった"
-		}, "an"), copularows(L, word)) };
+		}, "an"), naihaseirows(L, word + "じゃない"), copularows(L, word)) };
 	}
 
 	// 名词：学生だ、学生だった。和な形容词一样接だ・で・だった，连体形用の。
@@ -782,7 +784,7 @@
 			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "の",
 			ren: word + "に", ta: word + "だった", stem: word,
 			neg: word + "ではない", negta: word + "ではなかった"
-		}, "n"), copularows(L, word)) };
+		}, "n"), naihaseirows(L, word + "じゃない"), copularows(L, word)) };
 	}
 
 	function row(lab, val){ return [lab, val]; }
@@ -819,6 +821,7 @@
 		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
 			rows: rows.concat(auxrows(L, plain, masu, te, nai), evidrows(L, verbforms(plain, masu, nai, te, ta)),
 				patternrows(L, verbforms(plain, masu, nai, te, ta), "v"),
+				naihaseirows(L, nai),
 				keigo(plain, masu, pas, L)) };
 	}
 
@@ -829,6 +832,16 @@
 			ren: masu.slice(0, -2), ta: ta, teiru: te + "いる", stem: masu.slice(0, -2),
 			neg: nai, negta: nai.slice(0, -2) + "なかった"
 		};
+	}
+
+	// ない 的派生：なさ（名词化）、なさげ、なさすぎる。都是 ない 去掉い再加。
+	function naihaseirows(L, neg){
+		var s = neg.slice(0, -1);
+		return [
+			[L.nasa, s + "さ", L.naihasei],
+			[L.nasage, s + "さげ", L.naihasei],
+			[L.nasasugiru, s + "さすぎる", L.naihasei]
+		];
 	}
 
 	// 一条语气句型：肯定和否定并列放在同一格里，各带一个发音按钮。
