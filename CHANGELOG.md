@@ -73,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web tools home drops the left category column, and file transfer is now a card in the tool list under Files.
 - A Chrome voice pack shows its speaker count, and Chinese, Traditional Chinese, and Cantonese list every speaker in the pack.
 - The build merges and minifies web scripts and styles; the slim package ships only merged, minified js/css.
+- In Chinese + English recognition, numbers and Latin runs now come from the English pass, and the two results are no longer pasted twice; a line with one wide gap stays a single line instead of being split into columns.
 
 #### Fixed
 
@@ -141,6 +142,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具主页去掉左侧分类栏，文件传输改成「文件」分类里的工具卡片。
 - Chrome 语音包说明改为发音人个数。中文、繁体中文和粤语的发音人列表列出这一包里的全部发音人。
 - 编译时合并并压缩 web 的 js/css；精简包只带合并、压缩后的 js/css。
+- 中英混合识别时，数字和英文改用英文引擎的结果，不再和中文结果重复拼接；只有一个大空档的行仍是一整行，不当成分栏切开。
 
 #### 修复
 

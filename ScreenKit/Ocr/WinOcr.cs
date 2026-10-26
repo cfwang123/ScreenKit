@@ -466,6 +466,8 @@ static class WinOcr {
 	static string pickcellmix(List<WinWord> rowWords, float l, float t, float r, float btm, List<MixTok> etok) {
 		var sb = new StringBuilder();
 		WinWord prev = null;
+		var used = new List<MixTok>();
+		var spans = new List<Windows.Foundation.Rect>();
 		foreach (var wd in rowWords) {
 			var rc = wd.Rc;
 			var cx = rc.X + rc.Width * 0.5;
@@ -473,9 +475,18 @@ static class WinOcr {
 			if (cx < l - 2 || cx > r + 2 || cy < t - 2 || cy > btm + 2) continue;
 			var zh = wd.Text ?? "";
 			if (zh.Length == 0) continue;
+			// 整段被一个英文词框替掉过（0.09s 盖住 0、℃、9s），后面的字不再重复输出
+			var covered = false;
+			foreach (var sp in spans) {
+				if (cx < sp.X - 1 || cx > sp.X + sp.Width + 1) continue;
+				if (cy < sp.Y - 1 || cy > sp.Y + sp.Height + 1) continue;
+				covered = true;
+				break;
+			}
+			if (covered) continue;
 			var enHits = new List<MixTok>();
 			foreach (var e in etok) {
-				if (e == null || string.IsNullOrEmpty(e.Text)) continue;
+				if (e == null || string.IsNullOrEmpty(e.Text) || used.Contains(e)) continue;
 				if (!overlapsrect(e, rc)) continue;
 				enHits.Add(e);
 			}
@@ -483,6 +494,11 @@ static class WinOcr {
 			if (enHits.Count > 0 && (preferen(zh) || cjklatinmisread(zh))) {
 				enHits.Sort((a, b) => a.L.CompareTo(b.L));
 				piece = picklatin(zh, jointoks(enHits));
+				var changed = !string.Equals(piece, zh, StringComparison.Ordinal);
+				foreach (var e in enHits) {
+					used.Add(e);
+					if (changed) spans.Add(new Windows.Foundation.Rect(e.L, e.T, e.W, e.H));
+				}
 			}
 			if (prev != null && sb.Length > 0 && piece.Length > 0) {
 				var gap = rc.X - (prev.Rc.X + prev.Rc.Width);
@@ -1056,7 +1072,6 @@ static class WinOcr {
 
 	static bool likestable(List<WinWord> words, float cut) {
 		if (words == null || words.Count < 2 || cut >= float.MaxValue * 0.5f) return false;
-		if (cjkchars(words) > 18) return false;
 		int big = 0, num = 0, maxI = 1;
 		float maxG = 0;
 		for (int i = 0; i < words.Count; i++) {
@@ -1068,6 +1083,9 @@ static class WinOcr {
 			if (g > cut) big++;
 			if (g > maxG) { maxG = g; maxI = i; }
 		}
+		var cjk = cjkchars(words);
+		if (cjk > 18) return false;
+		if (cjk > 8 && big < 2) return false;
 		if (big >= 2) return true;
 		if (big != 1 || words.Count < 4 || num < 2) return false;
 		var left = new List<WinWord>();
@@ -1076,7 +1094,7 @@ static class WinOcr {
 			if (i < maxI) left.Add(words[i]);
 			else right.Add(words[i]);
 		}
-		if (cjkchars(left) > 10 || cjkchars(right) > 10) return false;
+		if (cjkchars(left) > 0 && cjkchars(right) > 0) return false;
 		return true;
 	}
 
