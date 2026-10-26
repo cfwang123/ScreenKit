@@ -252,6 +252,10 @@ static class ChromeTts {
 			var zh = Voices.Find(v => v.Lang == TtsLang.Zh && v.Source == "chrome");
 			if (zh == null || string.IsNullOrEmpty(zh.Key) || !zh.Key.StartsWith("chrome:", StringComparison.Ordinal))
 				return 2;
+			// 语音包里的 Chrome OS 发音人 speechSynthesis 用不了，不能列成多个中文声音。
+			if (Voices.FindAll(v => v.Source == "chrome" && v.Culture == "zh-CN").Count != 1) return 2;
+			foreach (var v in Voices)
+				if (v.Source == "chrome" && (v.Name ?? "").StartsWith("Chrome OS", StringComparison.OrdinalIgnoreCase)) return 2;
 			if (ChildCount(Process.GetCurrentProcess().Id) < 0) return 2;
 			if (TryRun(out _)) return 2;
 			return 0;
@@ -360,32 +364,16 @@ static class ChromeTts {
 			("Google Nederlands", "nl-NL", "female"),
 			("Google polski", "pl-PL", "female"),
 		};
-		var packs = ChromePack.BaseSpeakers();
-		var cover = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-		foreach (var s in packs)
-			if (chinesepack(s.lang)) cover.Add(s.lang);
+		// 只列 Chrome 的 speechSynthesis 真正返回的声音。语音包里的 Chrome OS 多发音人
+		// 走不到 speechSynthesis，列出来也只会落到同一个默认声音。
 		var list = new List<SapiVoiceItem>();
 		foreach (var row in rows) {
-			if (cover.Contains(ChromePack.SpeakLang(row.culture))) continue;
 			var lang = row.culture.StartsWith("zh-HK", StringComparison.OrdinalIgnoreCase)
 				? TtsLang.Yue
 				: SapiVoiceItem.LangOf(row.culture);
 			list.Add(voiceitem(row.name, row.culture, lang, row.gender));
 		}
-		foreach (var s in packs) {
-			if (!cover.Contains(s.lang)) continue;
-			var lang = s.lang.Equals("yue-HK", StringComparison.OrdinalIgnoreCase)
-				? TtsLang.Yue
-				: SapiVoiceItem.LangOf(s.lang);
-			list.Add(voiceitem(s.name, s.lang, lang, s.gender));
-		}
 		return list;
-	}
-
-	static bool chinesepack(string lang) {
-		return lang.Equals("zh-CN", StringComparison.OrdinalIgnoreCase)
-			|| lang.Equals("zh-TW", StringComparison.OrdinalIgnoreCase)
-			|| lang.Equals("yue-HK", StringComparison.OrdinalIgnoreCase);
 	}
 
 	static SapiVoiceItem voiceitem(string name, string culture, string lang, string gender) {
