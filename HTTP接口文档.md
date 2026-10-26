@@ -386,9 +386,29 @@ ScreenKit --jpyomi "東京" --mono
 
 **响应 `data`：** `text` 是结果（上例为 `aGk=`）。`op` 回显操作。`stats` 把简短的多行统计放进 `text`。
 
+## 5.5.1 GET/POST `/api/conj`
+
+日/韩/英动词、形容词、名词的变形表。纯计算，不查词典，不随模块开关关闭。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `lang` | string | `ja`（默认）、`ko`、`en` |
+| `q` / `word` | string | 辞书形，如 `食べる`、`하다`、`go`。为空返回 802 |
+| `kind` | string | 日语词性：`1` `2` `3` `ai` `an` `n`；省略时按词尾猜 |
+| `flag` | string | 日语特例：`iku` `kure` `aru` `arunai` `ute` |
+| `sub` | string | 日语 3 类：`suru` `kuru` |
+| `type` | string | 韩/英的类型或词性：`auto` `v` `a` `n` 等 |
+| `ui` | string | 标签语言，`zh` 开头用中文，否则英文；默认跟随界面语言 |
+
+```json
+{ "lang": "ja", "q": "食べる", "kind": "2", "ui": "zh" }
+```
+
+**响应 `data`：** `ok`、`err`、`head`、`name`、`note`、`irr`、`rows`。`rows` 每项 `{ "l": 标签, "v": 变形结果（多个用、分隔）, "g": 分组 }`。
+
 ---
 
-## 5.5.1 GET/POST `/api/fx`
+## 5.5.2 GET/POST `/api/fx`
 
 货币换算。不随模块开关关闭。外币用中国银行中间价（中行折算价为每 100 外币，再除以 100）。成功取到的页面缓存 10 分钟。超时、空页面或缺币种时用内置的 2026-10-10 牌价，这次失败也缓存 10 分钟。没有角和分。未知单位或不是数字返回 802。
 
@@ -406,7 +426,7 @@ ScreenKit --jpyomi "東京" --mono
 
 ---
 
-## 5.5.2 GET/POST `/api/ipcity`
+## 5.5.3 GET/POST `/api/ipcity`
 
 查 IP 或域名所在城市。不随模块开关关闭。`ip` 留空时查本机出口。请求走程序里的 HTTP 代理，依次试 ip-api.com、ipinfo.io、api.ip.sb。内网或无效地址返回 802。
 
@@ -422,7 +442,7 @@ ScreenKit --jpyomi "東京" --mono
 
 ---
 
-## 5.5.3 GET/POST `/api/mac`
+## 5.5.4 GET/POST `/api/mac`
 
 查 MAC 在 IEEE 登记的厂家。不随模块开关关闭。冒号、减号、点号或纯十六进制都可以，前 6 位到完整地址都行。请求走程序里的 HTTP 代理，依次试 macaddresslookup.app、api.macvendors.com、macverify.com。第一字节次低位为 1 的是本地管理地址，没有厂家登记，直接返回 802，不访问网络。查不到前缀也返回 802。
 
@@ -438,7 +458,7 @@ ScreenKit --jpyomi "東京" --mono
 
 ---
 
-## 5.5.4 GET/POST `/api/usb`
+## 5.5.5 GET/POST `/api/usb`
 
 查 USB 的厂家和产品名。不随模块开关关闭。名单是公开的 `usb.ids`。经程序里的 HTTP 代理下载，存成程序目录下的 `tmp/usb.ids`，7 天内重复使用。可写 `046d`、`046d:c52b`、`0x046d` 或 `VID_046D&PID_C52B`。厂家未登记返回 802。产品未登记时仍返回厂家。
 
