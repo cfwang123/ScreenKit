@@ -334,7 +334,7 @@
 						c:[
 						{x:"i.fa-solid.fa-language"},
 						{x:"span","data-k":"web.tool.rverb",c:"俄语词形变化"},
-						{x:"i.fa-solid.fa-star","data-fav":"u-rverb","title":"收藏"}
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-rverb","title":"收藏"}
 					]
 					},
 					{
