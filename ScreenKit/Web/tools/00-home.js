@@ -327,6 +327,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-rverb",
+						"data-cat":"text",
+						"data-name":"俄语 俄文 动词 变化 变位 活用 читать говорить идти 完成体 未完成体 分词 副动词 conjugation russian verb",
+						"title":"输入俄语动词不定式，列出体、现在时或将来时、过去时、命令式、假定式、分词和副动词",
+						c:[
+						{x:"i.fa-solid.fa-language"},
+						{x:"span","data-k":"web.tool.rverb",c:"俄语动词变化"},
+						{x:"i.fa-solid.fa-star","data-fav":"u-rverb","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-everb",
 						"data-cat":"text",
 						"data-name":"英语 英文 动词 时态 一般现在时 一般过去时 一般将来时 现在进行时 现在完成时 过去完成时 将来完成时 过去将来 被动语态 否定 疑问 变形 conjugation tense verb",
