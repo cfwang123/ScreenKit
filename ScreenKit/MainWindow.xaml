@@ -2309,6 +2309,11 @@
 		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0"
 		        Padding="10,5">
 			<StackPanel Orientation="Horizontal">
+				<TextBlock x:Name="lbelev" Text="" FontSize="12" Visibility="Collapsed"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+				           AutomationProperties.AutomationId="status.elev"/>
+				<TextBlock x:Name="lstelevsep" Text=" · " FontSize="12" Visibility="Collapsed"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
 				<TextBlock x:Name="lbuse" Text="" FontSize="12" Cursor="Hand"
 				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
 				           AutomationProperties.AutomationId="status.use"/>

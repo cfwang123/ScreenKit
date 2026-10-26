@@ -10,11 +10,13 @@ public partial class MainWindow {
 	static long ortBytesCached;
 	static int ortBytesAt;
 	static bool ortBytesOk;
+	static readonly bool elevAdmin = SysDeviceAdmin.IsAdmin();
 
 	void initstbar() {
 		bindstclick(lbuse, openmem);
 		bindstclick(bstbar, openmem);
 		bindstclick(bsthttp, () => openhttptools(fromTray: true));
+		refreshelev();
 		refreshstbar();
 		stbarTimer = new System.Windows.Threading.DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(2),
@@ -47,6 +49,7 @@ public partial class MainWindow {
 	void refreshstbar() {
 		if (bstbar == null) return;
 		try {
+			refreshelev();
 			if (windowshown()) refreshuse();
 			refreshchrome();
 			bstbar.Text = statusbarmem();
@@ -60,6 +63,17 @@ public partial class MainWindow {
 			}
 		}
 		catch { }
+	}
+
+	/// <summary>以管理员身份运行时，状态栏最前面标一下。提权状态不会变，文字随界面语言刷新。</summary>
+	void refreshelev() {
+		if (lbelev == null) return;
+		var on = elevAdmin;
+		lbelev.Text = on ? Loc.T("stbar.admin") : "";
+		lbelev.ToolTip = on ? Loc.T("stbar.admin.tip") : null;
+		lbelev.Visibility = on ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+		if (lstelevsep != null)
+			lstelevsep.Visibility = on ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
 	}
 
 	void refreshuse() {
