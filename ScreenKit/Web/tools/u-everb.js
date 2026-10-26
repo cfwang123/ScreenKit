@@ -386,6 +386,7 @@
 	for (i = 0; i < NOUNS.length; i++) NOUNSET[NOUNS[i][0]] = 1;
 	for (i = 0; i < VERBS.length; i++) VERBSET[VERBS[i]] = 1;
 	var timer = 0;
+	var gen = 0;
 	var clip = null;
 
 		// 旧实现：计算已移到 C# 端（/api/conj），保留仅供对照，勿再调用。
@@ -556,6 +557,7 @@
 
 	function go(){
 		timer = 0;
+		var n = ++gen;
 		var box = F.id("ev-in");
 		var sel = F.id("ev-sel");
 		var word = norm(box ? box.value : "");
@@ -565,21 +567,35 @@
 			return;
 		}
 		var t0 = now();
-		conjreq({ lang: "en", q: word, type: sel ? sel.value : "auto", ui: langcode() }, function(d){
-			var tcalc = now() - t0;
-			if (!d) {
-				paint("", "", []);
-				SK.msg("box-msg", tx("web.everb.down", "变形接口不可用"), true);
-				return;
-			}
-			if (!d.ok) {
-				paint("", "", []);
-				SK.msg("box-msg", d.err, true);
-				return;
-			}
-			paint(d.head, d.note, objrows(d.rows), timestr(-1, tcalc));
-			SK.msg("box-msg", "");
+		lookup(word, function(hits){
+			if (n !== gen) return;
+			var tdict = hits ? now() - t0 : -1;
+			var miss = hits && !hits.length ? tx("web.everb.miss", "词典里没有这个词，已按词形判断。") : "";
+			var t1 = now();
+			conjreq({ lang: "en", q: word, type: sel ? sel.value : "auto", ui: langcode() }, function(d){
+				if (n !== gen) return;
+				var tcalc = now() - t1;
+				if (!d) {
+					paint("", "", []);
+					SK.msg("box-msg", tx("web.everb.down", "变形接口不可用"), true);
+					return;
+				}
+				if (!d.ok) {
+					paint("", "", []);
+					SK.msg("box-msg", d.err, true);
+					return;
+				}
+				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc, miss));
+				SK.msg("box-msg", "");
+			});
 		});
+	}
+
+	// 查词只用来算耗时、提示词条在不在；类型仍按词形判断。
+	function lookup(word, done){
+		fetch("/api/dict?dict=en&limit=8&q=" + encodeURIComponent(word)).then(function(r){ return r.json(); }).then(function(jo){
+			done(jo && jo.code === 100 && jo.data ? (jo.data.hits || []) : null);
+		}, function(){ done(null); });
 	}
 
 	// 变形算在 C# 端（/api/conj），这里只取结果和渲染。
@@ -703,10 +719,11 @@
 	}
 
 	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
-	function timestr(dictms, calcms){
+	function timestr(dictms, calcms, extra){
 		var a = "";
 		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
 		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		if (extra) a += (a ? " · " : "") + extra;
 		return a;
 	}
 

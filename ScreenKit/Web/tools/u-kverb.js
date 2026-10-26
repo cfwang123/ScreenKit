@@ -418,8 +418,8 @@
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
-				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc));
-				SK.msg("box-msg", miss);
+				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc, miss));
+				SK.msg("box-msg", "");
 			});
 		});
 	}
@@ -595,10 +595,11 @@
 	// 名词（이다）的方言说法：只列证据明确的四种
 
 	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
-	function timestr(dictms, calcms){
+	function timestr(dictms, calcms, extra){
 		var a = "";
 		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
 		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		if (extra) a += (a ? " · " : "") + extra;
 		return a;
 	}
 
