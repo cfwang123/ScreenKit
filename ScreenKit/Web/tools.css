@@ -411,10 +411,14 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .combo input { margin-top: 0; padding-right: 36px; }
 .combo .combo-btn {
 	position: absolute; top: 1px; right: 1px; width: 34px; height: calc(100% - 2px);
-	margin: 0; padding: 0; border: 0; border-radius: 0 11px 11px 0;
-	background: transparent; color: var(--muted); cursor: pointer;
+	margin: 0; padding: 0; border: 0; background: transparent;
+	color: var(--muted); cursor: pointer;
 }
-.combo .combo-btn:hover { color: var(--ink); background: #fff1e8; }
+/* 悬停高亮画在输入框自身的背景上，跟着它的圆角和边框裁切，避免按钮那块和边框之间露白 */
+.combo:has(> .combo-btn:hover) > input {
+	background-image: linear-gradient(to right, rgba(255, 241, 232, 0) calc(100% - 34px), #fff1e8 calc(100% - 34px));
+}
+.combo .combo-btn:hover { color: var(--ink); }
 .combo-pop {
 	position: fixed; z-index: 80; overflow: auto;
 	margin: 0; padding: 0;
