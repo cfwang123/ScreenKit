@@ -537,6 +537,13 @@
 			nda: "んだ", nanda: "なんだ", tte: "って",
 			evid: "传闻・推量", tasouda: "たそうだ", rashii: "らしい", youda: "ようだ",
 			mitaida: "みたいだ", kamoshirenai: "かもしれない", hazuda: "はずだ",
+			kchigai: "に違いない", ktono: "とのことだ", ktoka: "とか", kktite: "って聞いた",
+			kppoi: "っぽい", kge: "げ", kkehai: "気配だ",
+			duty: "判断・义务", wake: "わけだ", wakenai: "わけがない", beki: "べきだ",
+			bekinai: "べきではない", monoda: "ものだ", kotoda: "ことだ", tsumori: "つもりだ", yotei: "予定だ",
+			degree: "程度・倾向", gachi: "がちだ", kimi: "気味だ", ippou: "一方だ", bakari: "ばかりだ", tokoro: "ところだ",
+			confirm: "疑问・确认", kana: "かな", kashira: "かしら", deshoune: "でしょうね", janai: "んじゃないか",
+			reason: "原因・理由", nodakara: "のだから", monode: "もので", okage: "おかげで",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
@@ -570,6 +577,13 @@
 			nda: "nda", nanda: "nanda", tte: "tte",
 			evid: "Hearsay / conjecture", tasouda: "ta + souda", rashii: "rashii", youda: "youda",
 			mitaida: "mitaida", kamoshirenai: "kamoshirenai", hazuda: "hazuda",
+			kchigai: "ni chigai nai", ktono: "to no koto da", ktoka: "toka", kktite: "tte kiita",
+			kppoi: "ppoi", kge: "ge", kkehai: "kehai da",
+			duty: "Judgement / duty", wake: "wake da", wakenai: "wake ga nai", beki: "beki da",
+			bekinai: "beki dewa nai", monoda: "mono da", kotoda: "koto da", tsumori: "tsumori da", yotei: "yotei da",
+			degree: "Degree / tendency", gachi: "gachi da", kimi: "gimi da", ippou: "ippou da", bakari: "bakari da", tokoro: "tokoro da",
+			confirm: "Question / confirmation", kana: "kana", kashira: "kashira", deshoune: "deshou ne", janai: "n ja nai ka",
+			reason: "Reason", nodakara: "no dakara", monode: "mono de", okage: "okage de",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
@@ -618,7 +632,10 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nda, word + "んだ"),
 			row(L.tte, word + "って")
-		].concat(evidrows(L, word, word, s + "かった", word)) };
+		].concat(evidrows(L, word, word, s + "かった", word), patternrows(L, {
+			plain: word, pred: word, drop: word, attrib: word, attribN: word,
+			ren: s + "く", ta: s + "かった", stem: s
+		}, "ai")) };
 	}
 
 	function iadjstem(word){
@@ -659,7 +676,10 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nanda, word + "なんだ"),
 			row(L.tte, word + "だって")
-		].concat(evidrows(L, word + "だ", word, word + "だった", word + "な")) };
+		].concat(evidrows(L, word + "だ", word, word + "だった", word + "な"), patternrows(L, {
+			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "な",
+			ren: word + "に", ta: word + "だった", stem: word
+		}, "an")) };
 	}
 
 	// 名词：学生だ、学生だった。和な形容词一样接だ・で・だった，连体形用の。
@@ -684,7 +704,10 @@
 			row(L.deshou, word + "でしょう"),
 			row(L.nanda, word + "なんだ"),
 			row(L.tte, word + "だって")
-		].concat(evidrows(L, word + "だ", word, word + "だった", word + "の")) };
+		].concat(evidrows(L, word + "だ", word, word + "だった", word + "の"), patternrows(L, {
+			plain: word, pred: word + "だ", drop: word, attrib: word + "な", attribN: word + "の",
+			ren: word + "に", ta: word + "だった", stem: word
+		}, "n")) };
 	}
 
 	function row(lab, val){ return [lab, val]; }
@@ -719,7 +742,12 @@
 			row(L.tte, plain + "って")
 		]);
 		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
-			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, plain, plain, ta, plain), keigo(plain, masu, pas, L)) };
+			rows: rows.concat(auxrows(L, plain, masu, te), evidrows(L, plain, plain, ta, plain),
+				patternrows(L, {
+					plain: plain, pred: plain, drop: plain, attrib: plain, attribN: plain,
+					ren: masu.slice(0, -2), ta: ta, stem: masu.slice(0, -2)
+				}, "v"),
+				keigo(plain, masu, pas, L)) };
 	}
 
 	// 传闻・推量：pred 是普通形现在的说法（な形容词、名词带だ），plain 去掉だ的形，
@@ -734,6 +762,52 @@
 			[L.kamoshirenai, plain + "かもしれない", L.evid],
 			[L.hazuda, attrib + "はずだ", L.evid]
 		];
+	}
+
+	// 判断・义务、程度・倾向、疑问・确认、原因・理由这些句型。
+	// k 是这个词性对应的接续形：
+	//   plain 普通形、pred 带だ的普通形、drop 去掉だ、attrib 接わけだ等的连体形（な形容词な、名词な）、
+	//   attribN 接ようだ等的连体形（名词の）、ren 连用形、ta 过去、stem 词干。
+	// 只有动词能接的（べきだ、がちだ 等）和只有形容词能接的（げ）在这里按词性取舍。
+	function patternrows(L, k, cat){
+		var verb = cat === "v";
+		var adj = cat === "ai" || cat === "an";
+		var noun = cat === "n";
+		var rows = [
+			[L.kchigai, k.drop + "に違いない", L.evid],
+			[L.ktono, k.pred + "とのことだ", L.evid],
+			[L.ktoka, k.pred + "とか", L.evid],
+			[L.kktite, k.pred + "って聞いた", L.evid],
+			[L.kppoi, k.stem + "っぽい", L.evid]
+		];
+		if (adj) rows.push([L.kge, k.stem + "げ", L.evid]);
+		if (verb) rows.push([L.kkehai, k.plain + "気配だ", L.evid]);
+		rows.push([L.wake, k.attrib + "わけだ", L.duty]);
+		rows.push([L.wakenai, k.attrib + "わけがない", L.duty]);
+		if (verb) {
+			rows.push([L.beki, k.plain + "べきだ", L.duty]);
+			rows.push([L.bekinai, k.plain + "べきではない", L.duty]);
+		}
+		if (!noun) rows.push([L.monoda, k.attrib + "ものだ", L.duty]);
+		if (verb) {
+			rows.push([L.kotoda, k.plain + "ことだ", L.duty]);
+			rows.push([L.tsumori, k.plain + "つもりだ", L.duty]);
+			rows.push([L.yotei, k.plain + "予定だ", L.duty]);
+			rows.push([L.gachi, k.ren + "がちだ", L.degree]);
+			rows.push([L.kimi, k.ren + "気味だ", L.degree]);
+			rows.push([L.ippou, k.plain + "一方だ", L.degree]);
+			rows.push([L.bakari, k.plain + "ばかりだ", L.degree]);
+			rows.push([L.tokoro, k.plain + "ところだ", L.degree]);
+		}
+		rows.push([L.kana, k.drop + "かな", L.confirm]);
+		rows.push([L.kashira, k.drop + "かしら", L.confirm]);
+		rows.push([L.deshoune, k.drop + "でしょうね", L.confirm]);
+		rows.push([L.janai, k.attrib + "んじゃないか", L.confirm]);
+		rows.push([L.nodakara, k.attrib + "のだから", L.reason]);
+		rows.push([L.monode, k.attrib + "もので", L.reason]);
+		if (verb) rows.push([L.okage, k.ta + "おかげで", L.reason]);
+		if (noun) rows.push([L.okage, k.attribN + "おかげで", L.reason]);
+		return rows;
 	}
 
 	// 连用形、て形后面常接的补助动词，和敬体的劝诱・疑问，各成一组。
