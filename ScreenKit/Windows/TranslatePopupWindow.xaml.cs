@@ -54,6 +54,7 @@ public partial class TranslatePopupWindow : Window {
 		etrengine.SelectionChanged += (_, _) => {
 			if (uiLoading) return;
 			applyenginechoice(save: true);
+			syncenginetip();
 			var keepSrc = selected(esrclng);
 			var keepDst = selected(edstlng);
 			fillsrc();
@@ -155,12 +156,14 @@ public partial class TranslatePopupWindow : Window {
 		bspeakdst.ToolTip = Loc.T("tr.popup.speak.tip");
 		esrclng.ToolTip = Loc.T("tr.src.tip");
 		edstlng.ToolTip = Loc.T("tr.dst.tip");
-		etrengine.ToolTip = Loc.T("tr.engine.tip");
+		syncenginetip();
 		foreach (var o in etrengine.Items) {
 			if (o is ComboBoxItem it && it.Tag is string s && s.Length == 0)
 				it.Content = Loc.T("tr.engine.onnx");
-			else if (o is ComboBoxItem it2 && it2.Tag is string s2 && s2 == "chrome")
+			else if (o is ComboBoxItem it2 && it2.Tag is string s2 && s2 == "chrome") {
 				it2.Content = Loc.T("tr.engine.chrome");
+				it2.ToolTip = Loc.T("tr.hint.chrome");
+			}
 		}
 		if (string.IsNullOrWhiteSpace(lbstatus.Text)
 			|| lbstatus.Text == Loc.T("tr.popup.hint")
@@ -196,6 +199,9 @@ public partial class TranslatePopupWindow : Window {
 	bool usechrome() =>
 		etrengine?.SelectedItem is ComboBoxItem it && it.Tag is string s
 		&& s.Equals("chrome", StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>选中 Chrome 时把“首次要联网下载语言包、可能要代理”的提示放到下拉框上。</summary>
+	void syncenginetip() => etrengine.ToolTip = usechrome() ? Loc.T("tr.hint.chrome") : Loc.T("tr.engine.tip");
 
 	bool usellm() =>
 		etrengine?.SelectedItem is ComboBoxItem it && it.Tag is LlmEndpoint;
@@ -241,6 +247,7 @@ public partial class TranslatePopupWindow : Window {
 				}
 			}
 			etrengine.SelectedItem = pickItem ?? etrengine.Items[0];
+			syncenginetip();
 		}
 		finally { uiLoading = false; }
 	}
