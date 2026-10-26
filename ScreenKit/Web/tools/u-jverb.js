@@ -534,6 +534,7 @@
 			pol: "丁宁形", polneg: "丁宁否定", polpast: "丁宁过去", polpastneg: "丁宁过去否定",
 			adv: "副词形", naru: "なる", sa: "さ", rentai: "连体形",
 			darou: "だろう", deshou: "でしょう", dearu: "である",
+			nda: "んだ", nanda: "なんだ", tte: "って",
 			dks: "方言・关西", dky: "方言・九州", dth: "方言・东北", dhi: "方言・广岛"
 		};
 		return {
@@ -564,6 +565,7 @@
 			pol: "polite", polneg: "polite negative", polpast: "polite past", polpastneg: "polite past negative",
 			adv: "adverbial", naru: "naru", sa: "sa", rentai: "attributive",
 			darou: "darou", deshou: "deshou", dearu: "dearu",
+			nda: "nda", nanda: "nanda", tte: "tte",
 			dks: "Kansai dialect", dky: "Kyushu dialect", dth: "Tohoku dialect", dhi: "Hiroshima dialect"
 		};
 	}
@@ -609,7 +611,9 @@
 			row(L.sugiru, s + "すぎる"),
 			row(L.sa, s + "さ"),
 			row(L.darou, word + "だろう"),
-			row(L.deshou, word + "でしょう")
+			row(L.deshou, word + "でしょう"),
+			row(L.nda, word + "んだ"),
+			row(L.tte, word + "って")
 		] };
 	}
 
@@ -648,7 +652,9 @@
 			row(L.sugiru, word + "すぎる"),
 			row(L.sa, word + "さ"),
 			row(L.darou, word + "だろう"),
-			row(L.deshou, word + "でしょう")
+			row(L.deshou, word + "でしょう"),
+			row(L.nanda, word + "なんだ"),
+			row(L.tte, word + "だって")
 		] };
 	}
 
@@ -671,7 +677,9 @@
 			row(L.tara, word + "だったら"),
 			row(L.dearu, word + "である"),
 			row(L.darou, word + "だろう"),
-			row(L.deshou, word + "でしょう")
+			row(L.deshou, word + "でしょう"),
+			row(L.nanda, word + "なんだ"),
+			row(L.tte, word + "だって")
 		] };
 	}
 
@@ -702,7 +710,9 @@
 			row(L.cau, cau),
 			row(L.cap, cap),
 			row(L.tai, tai),
-			row(L.takunai, tai.slice(0, -2) + "たくない")
+			row(L.takunai, tai.slice(0, -2) + "たくない"),
+			row(L.nda, plain + "んだ"),
+			row(L.tte, plain + "って")
 		]);
 		return { ok: true, plain: plain, masu: masu, te: te, ta: ta, nai: nai,
 			rows: rows.concat(auxrows(L, plain, masu, te), keigo(plain, masu, pas, L)) };
