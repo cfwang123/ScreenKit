@@ -60,8 +60,10 @@
 				+ esc(SK.td("厂家、产品、046d 或 046d:c52b")) + '">'
 				+ '<span id="usb-msg" class="msg"></span></div>'
 				+ '<p class="hint">' + esc(SK.td("常见设备的厂家、产品和型号。点一行复制 VID:PID，并按 usb.ids 补上接口。")) + "</p>"
+				+ '<div class="usbwrap">'
 				+ '<div class="usbscroll"><table class="usblist" id="usb-tab"></table></div>'
-				+ '<pre id="usb-detail" class="usbdetail"></pre>';
+				+ '<pre id="usb-detail" class="usbdetail"></pre>'
+				+ "</div>";
 		},
 		run: function(){
 			throw new Error("没有这个工具");
