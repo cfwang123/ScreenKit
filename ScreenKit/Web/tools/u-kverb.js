@@ -51,6 +51,23 @@
 		"하얗다": 1, "까맣다": 1, "퍼렇다": 1, "허옇다": 1, "누렇다": 1, "푸르다": 1, "노르다": 1,
 		"그렇다": 1, "이렇다": 1, "저렇다": 1, "어떻다": 1, "아무렇다": 1, "없다": 1
 	};
+	// 形态被动没有统一规则，只列常见动词的固定说法
+	var PASSIVE = {
+		"보다": "보이다", "먹다": "먹히다", "잡다": "잡히다", "읽다": "읽히다",
+		"쓰다": "쓰이다", "놓다": "놓이다", "쌓다": "쌓이다", "섞다": "섞이다",
+		"바꾸다": "바뀌다", "열다": "열리다", "팔다": "팔리다", "끊다": "끊기다",
+		"안다": "안기다", "감다": "감기다", "씻다": "씻기다", "막다": "막히다",
+		"닫다": "닫히다", "듣다": "들리다", "풀다": "풀리다", "끌다": "끌리다",
+		"걸다": "걸리다", "밀다": "밀리다", "물다": "물리다", "자르다": "잘리다",
+		"부르다": "불리다", "쫓다": "쫓기다", "빼앗다": "빼앗기다", "업다": "업히다",
+		"만들다": "만들어지다", "고치다": "고쳐지다"
+	};
+	// -아/어 있다 只对少数表示结果状态的动词自然
+	var STATEVERB = {
+		"앉다": 1, "서다": 1, "눕다": 1, "살다": 1, "죽다": 1, "가다": 1, "오다": 1,
+		"열리다": 1, "닫히다": 1, "놓이다": 1, "쌓이다": 1, "걸리다": 1, "쓰이다": 1,
+		"피다": 1
+	};
 	var GRP = {
 		base: ["基本", "기본", "Base"],
 		now: ["现在", "현재", "Present"],
@@ -72,7 +89,8 @@
 		hg: ["咸镜道", "함경도", "Hamgyeong"],
 		pg: ["平安道", "평안도", "Pyeongan"],
 		aux: ["补助", "보조", "Auxiliary"],
-		voice: ["态", "태", "Voice"]
+		voice: ["态", "태", "Voice"],
+		style: ["文体", "문체", "Style"]
 	};
 	var NOTE = {
 		v: ["动词", "동사", "verb"],
@@ -207,7 +225,17 @@
 		afterdoing: ["做了之后", "과거 후", "after doing"],
 		midway: ["中途", "도중", "midway"],
 		cond: ["前提", "전제", "given that"],
-		neunde: ["过去转折", "과거 대조", "but (past)"]
+		neunde: ["过去转折", "과거 대조", "but (past)"],
+		atda: ["回想", "회상", "retrospective"],
+		nayo: ["半敬语疑问", "해요 의문", "polite question"],
+		plup: ["过去完成", "과거 완료", "pluperfect"],
+		state: ["状态", "상태", "state"],
+		pass: ["被动", "수동", "passive"],
+		hao: ["准敬语", "하오체", "semi-formal"],
+		haq: ["准敬语疑问", "하오체 의문", "semi-formal question"],
+		hage: ["对等语", "하게체", "familiar"],
+		hagecmd: ["对等语命令", "하게체 명령", "familiar command"],
+		hagesug: ["对等语劝诱", "하게체 청유", "familiar suggestion"]
 	};
 	var PICKG = {
 		common: ["常见", "자주", "Common"],
@@ -965,8 +993,9 @@
 		add("hey", "해요", hey);
 		add("ban", "해", ba);
 		add("plain", plainDa ? "다" : "는다", neunda(syls, plainDa, word));
-		add("qhap", "합니까", dropR(syls, "습니까"));
+		add("qhap", "합니까", hapsho(syls).replace(/니다$/, "니까"));
 		add("qplain", adj && !eobs ? "냐" : "느냐", qPlain(syls, irr, kind));
+		add("nayo", "나요", (adj && !eobs ? nieunWord(syls, irr) + "가요" : dropR(syls, "나요")) + "?");
 		cur = g("past");
 		add("phap", "했습니다", past + "습니다");
 		add("phey", "했어요", past + "어요");
@@ -974,6 +1003,7 @@
 		add("pplain", "했다", past + "다");
 		add("pqhap", "했습니까", past + "습니까");
 		add("pqplain", "했느냐", past + "느냐");
+		if (verb) add("plup", "했었어요", past + "었어요");
 		cur = g("fut");
 		add("fhap", "ㄹ 겁니다", rl + " 겁니다");
 		add("fhey", "ㄹ 거예요", rl + " 거예요");
@@ -994,6 +1024,7 @@
 			add("prpy", "고 있었어요", jn(syls) + "고 있었어요");
 			add("prph", "고 있었습니다", jn(syls) + "고 있었습니다");
 			add("prpp", "고 있었다", jn(syls) + "고 있었다");
+			if (STATEVERB[word]) add("state", "상태", ba + " 있어요");
 			cur = g("cmd");
 			add("sip", "십시오", sipnio(syls, irr));
 			add("seyo", "세요", seyoForm(syls, irr));
@@ -1071,6 +1102,7 @@
 		add("jyo", "죠", jn(syls) + "죠");
 		add("jiyo", "지요", jn(syls) + "지요");
 		add("deon", "았더라고요", past + "더라고요");
+		add("atda", "았더라", past + "더라");
 		if (irr === "hada") {
 			var hy = stem.slice(0, -1) + "하여";
 			cur = g("wrt");
@@ -1089,11 +1121,21 @@
 			add("hbenef", "드리다", ba + " 드렸어요");
 			add("endup", "고 말다", jn(syls) + "고 말았어요");
 		}
-		// 态：使动、变成、形容词的「变得」
+		// 态：使动、变成、形容词的「变得」、固定说法的被动
 		cur = g("voice");
 		add("caus", "게 하다", jn(syls) + "게 했어요");
 		add("turn", "게 되다", jn(syls) + "게 되었어요");
 		if (adj) add("becom", "아/어지다", ba + "졌어요");
+		add("pass", "被动", passiveText(word));
+		// 文体：하오체 / 하게체
+		cur = g("style");
+		add("hao", "하오체", haoForm(syls));
+		add("haq", "하오체 의문", haoForm(syls) + "?");
+		add("hage", "하게체", jn(syls) + "네");
+		if (verb) {
+			add("hagecmd", "하게체 명령", jn(syls) + "게");
+			add("hagesug", "하게체 청유", jn(syls) + "세");
+		}
 		// 方言：与标准语不同的常用说法，每个方言一组
 		var dia = dialectRows(syls, irr, kind, {
 			hey: hey, ba: ba, past: past, st: st, rl: rl
@@ -1122,6 +1164,24 @@
 	// 把标准语 의문형 -느냐/-냐 换成方言的 -나/-노/-냐
 	function qdial(q, end){
 		return q.replace(/느냐$/, end).replace(/냐$/, end);
+	}
+
+	// 하오체：开音节接 -오（가오），闭音节接 -소（먹소）
+	function haoForm(syls){
+		var last = syls[syls.length - 1];
+		return jn(syls) + (last.jong === 0 ? "오" : "소");
+	}
+
+	// 形态被动只有固定说法，给出词典形和해요形
+	function passiveText(word){
+		var pv = PASSIVE[word];
+		if (!pv) return "";
+		var all = decAll(pv);
+		if (!all || all.length < 2 || pv.charAt(pv.length - 1) !== "다") return pv;
+		var syls = all.slice(0, -1);
+		var stem = pv.slice(0, -1);
+		var irr = classify(stem, syls);
+		return pv + " · " + spokenAe(syls, irr, false) + "요";
 	}
 
 	function dialectRows(syls, irr, kind, f, lang){

@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese verb conjugation also lists つつ / つつある, きる / きれる, あう, かける / かかる, そこなう, たがらない, すぎない, そうに / そうな, the te-form auxiliaries ておく, てしまう, てみる, てある, てくる, ていく, てください, and the polite ませんか / ましょうか.
 - English verb tenses on the tools page: enter a base verb and get the sixteen tenses, plus negatives, questions, passive and other forms, with a speak button on each.
 - Korean verbs: add auxiliary, causative/change and connective forms
+- Korean verbs: add passive forms, the hao and hage styles, and state forms
 
 #### Changed
 
@@ -108,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Voice install can focus its own Chrome while the user's Chrome stays in front, so the speech component starts.
 - Voice install waits until its Chrome window is in front and the page is ready before sending the reading shortcut.
 - Voice install sends the reading shortcut to the browser window, not the empty Chrome widget.
+- Korean verbs: form the formal question correctly (갑니까, 삽니까)
 
 ### 中文
 
@@ -127,6 +129,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语动词变形新增つつ／つつある、きる／きれる、あう、かける／かかる、そこなう、たがらない、すぎない、そうに／そうな，ておく、てしまう、てみる、てある、てくる、ていく、てください，以及敬体的ませんか／ましょうか。
 - 工具页新增英语动词时态：输入原形，列出十六种时态，另附否定、疑问、被动和其他形式，每项可以发音。
 - 韩语动词变化：补充补助动词、使动/变化和连接词尾
+- 韩语动词变化：补充被动形、准敬语/对等语文体和状态形
 
 #### 变更
 
@@ -175,6 +178,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 用户的 Chrome 在前台时，安装语音仍能让程序自己的 Chrome 获得焦点并启动语音组件。
 - 安装语音时等程序的 Chrome 窗口到前台并打开页面后，再发朗读快捷键。
 - 安装语音时把朗读快捷键发给带页面的浏览器窗口，不再发给那个空白的 Chrome 窗口。
+- 韩语动词变化：修正敬语疑问形（갑니까、삽니까）
 
 ## v1.0.29 (2026-10-23)
 
