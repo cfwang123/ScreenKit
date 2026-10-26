@@ -119,6 +119,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Idle model unload no longer waits behind a running synthesis or recognition, so the UI thread is not blocked.
 - Temporary WAV and image files no longer collide when several requests land in the same millisecond; the name now carries a random suffix.
 - Early error responses (503, 405, bad request) now drain the request body before closing, so clients read the JSON error instead of getting a connection reset.
+- Chrome offline speech now opens its page when the app runs as administrator; Chrome restarts itself with lower rights and the launcher exits first, so the real browser is waited for and reused.
 
 ### 中文
 
@@ -197,6 +198,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 空闲卸载模型时不再排队等正在进行的合成或识别，界面线程不会被卡住。
 - 同一毫秒内的多个请求不再生成同名临时文件（临时文件名加了随机段），词典发音、SAPI 合成等不再偶发互相覆盖。
 - 提前返回错误（503、405、请求非法）时先把请求体收掉再断开，客户端能读到 JSON 错误，不再表现为连接被重置。
+- 程序以管理员身份运行时，Chrome 朗读不再报「Chrome 没有打开朗读页」：Chrome 会降权重启、启动器先退出，现在按调试口等真正的浏览器并复用它。
 
 ## v1.0.29 (2026-10-23)
 
