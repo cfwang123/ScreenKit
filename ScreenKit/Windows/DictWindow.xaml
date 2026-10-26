@@ -15,10 +15,16 @@
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="220"/>
 						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
 					<TextBlock Text="{Binding L}" Foreground="#285AAA"
 					           TextWrapping="Wrap" Margin="0,0,8,0"/>
 					<TextBlock Grid.Column="1" Text="{Binding V}" TextWrapping="Wrap"/>
+					<Button Grid.Column="2" Content="🔊" FontSize="13" Width="26" Height="26"
+					        Margin="4,0,0,0" Padding="0" VerticalAlignment="Top"
+					        Background="Transparent" BorderThickness="0" Foreground="#2878BE"
+					        Cursor="Hand" Focusable="False"
+					        AutomationProperties.AutomationId="dict.conj.speak"/>
 				</Grid>
 			</StackPanel>
 		</DataTemplate>

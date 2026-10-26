@@ -55,6 +55,7 @@ sealed class ConjCat {
 /// <summary>一个「形态变化」标签页：自己的过滤框、计数和列表。</summary>
 sealed class ConjPane {
 	public TabItem Tab;
+	public TextBlock Meta;
 	public TextBox Q;
 	public TextBlock Cnt;
 	public ListBox List;
@@ -497,6 +498,15 @@ public partial class DictWindow : UserControl {
 		var say = row.Speak;
 		if (string.IsNullOrEmpty(say)) say = SpeakHead(row.Word, row.Dict);
 		_ = speak(say, speaklang(row.Dict));
+	}
+
+	/// <summary>形态变化页每行的发音：读这一行的变形结果。</summary>
+	void onconjspeak(object sender, RoutedEventArgs e) {
+		if (e.OriginalSource is not Button b) return;
+		if (b.DataContext is not ConjItem item) return;
+		e.Handled = true;
+		if (string.IsNullOrEmpty(item.V)) return;
+		_ = speak(item.V, speaklang(curlang));
 	}
 
 	int exportgen;
@@ -942,7 +952,16 @@ public partial class DictWindow : UserControl {
 		pane.Tab = new TabItem { Header = header };
 		pane.Tab.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.tab." + (n + 1));
 		var dock = new DockPanel();
-		var top = new DockPanel { Margin = new Thickness(0, 0, 0, 6) };
+		var top = new StackPanel { Margin = new Thickness(0, 0, 0, 6) };
+		pane.Meta = new TextBlock {
+			TextWrapping = TextWrapping.Wrap,
+			FontSize = 12,
+			Foreground = (Brush)FindResource("TextMuted"),
+			Margin = new Thickness(0, 0, 0, 4),
+		};
+		pane.Meta.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.meta." + n);
+		top.Children.Add(pane.Meta);
+		var row = new DockPanel();
 		pane.Cnt = new TextBlock {
 			Margin = new Thickness(8, 0, 0, 0),
 			VerticalAlignment = VerticalAlignment.Center,
@@ -960,8 +979,9 @@ public partial class DictWindow : UserControl {
 		var ci = n;
 		pane.Q.TextChanged += (_, _) => fillconj(ci);
 		DockPanel.SetDock(pane.Cnt, Dock.Right);
-		top.Children.Add(pane.Cnt);
-		top.Children.Add(pane.Q);
+		row.Children.Add(pane.Cnt);
+		row.Children.Add(pane.Q);
+		top.Children.Add(row);
 		DockPanel.SetDock(top, Dock.Top);
 		dock.Children.Add(top);
 		pane.List = new ListBox {
@@ -970,6 +990,7 @@ public partial class DictWindow : UserControl {
 			ItemContainerStyle = (Style)FindResource("ConjItemStyle"),
 		};
 		pane.List.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.list." + n);
+		pane.List.AddHandler(Button.ClickEvent, new RoutedEventHandler(onconjspeak));
 		ScrollViewer.SetHorizontalScrollBarVisibility(pane.List, ScrollBarVisibility.Disabled);
 		dock.Children.Add(pane.List);
 		pane.Tab.Content = dock;
@@ -1027,6 +1048,20 @@ public partial class DictWindow : UserControl {
 
 	static bool Has(string s, string bit) => s.IndexOf(bit, StringComparison.OrdinalIgnoreCase) >= 0;
 
+	// 词条头可能带 ¹²³ 之类的序号，变形要用干净的词形。
+	static string conjbase(string s) =>
+		(s ?? "").TrimEnd("⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉①②③④⑤⑥⑦⑧⑨⑩".ToCharArray()).Trim();
+
+	// 形态页顶上那行：实际判定的类型和特殊变化（1类/2类/3类、い/な形容词、不规则说明）。
+	static string conjmeta(ConjResult r) {
+		var parts = new List<string>();
+		var name = r.Name ?? "";
+		if (name.Length > 0 && name != "v" && name != "a" && name != "n") parts.Add(name);
+		if ((r.Note == null || r.Note.Length == 0) && (r.Irr ?? "").Length > 0) parts.Add(r.Irr);
+		if (r.Note != null && r.Note.Length > 0) parts.Add(r.Note);
+		return string.Join(" · ", parts);
+	}
+
 	void loadconj(int ci) {
 		if (ci < 0 || ci >= conjpanes.Count || ci >= concats.Count) return;
 		var pane = conjpanes[ci];
@@ -1034,7 +1069,7 @@ public partial class DictWindow : UserControl {
 		var cat = concats[ci];
 		var lang = curlang;
 		var ja = lang == "ja";
-		var word = curword;
+		var word = conjbase(curword);
 		if (ja && cat.Sub == "suru" && !word.EndsWith("する", StringComparison.Ordinal)) word += "する";
 		var g = ++conjgen;
 		pane.Cnt.Text = "";
@@ -1049,6 +1084,7 @@ public partial class DictWindow : UserControl {
 				return;
 			}
 			pane.Rows = r.Rows;
+			pane.Meta.Text = conjmeta(r);
 			fillconj(ci);
 		})));
 	}

@@ -418,7 +418,7 @@
 		pane.appendChild(host);
 
 		var lang = e.dict || "";
-		var word = e.word || "";
+		var word = conjbase(e.word || "");
 		var params = { lang: lang, q: word, ui: langs()[langAt] || "zh" };
 		if (lang === "ja") {
 			if (cat.kind) params.kind = cat.kind;
@@ -436,6 +436,10 @@
 				return;
 			}
 			var rows = d.rows;
+			var meta = document.createElement("p");
+			meta.className = "cmeta";
+			meta.textContent = conjmeta(d);
+			pane.insertBefore(meta, bar);
 			function draw(){
 				var k = String(q.value || "").toLowerCase();
 				var vis = [], i2;
@@ -472,6 +476,16 @@
 					td = document.createElement("td");
 					td.className = "cval";
 					td.textContent = vis[i2].v;
+					if (vis[i2].v) {
+						var say = document.createElement("button");
+						say.type = "button";
+						say.className = "spk";
+						say.setAttribute("data-say", vis[i2].v);
+						say.setAttribute("data-lang", lang);
+						say.textContent = "🔊";
+						td.appendChild(document.createTextNode(" "));
+						td.appendChild(say);
+					}
 					tr.appendChild(td);
 					tb.appendChild(tr);
 				}
@@ -482,6 +496,21 @@
 		}).catch(function(){
 			if (g === cgen) pane.appendChild(one(t("dict.conj.fail") || "算不出形态变化", "pron", ""));
 		});
+	}
+
+	// 词条头可能带 ¹²³ 之类的序号，变形要用干净的词形。
+	function conjbase(s){
+		return String(s || "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹₀-₉①-⑳㉑-㉟]+$/, "").trim();
+	}
+
+	// 形态页顶上那行：实际判定的类型和特殊变化（1类/2类/3类、い/な形容词、不规则说明）。
+	function conjmeta(d){
+		var parts = [];
+		var name = d.name || "";
+		if (name && name !== "v" && name !== "a" && name !== "n") parts.push(name);
+		if (!d.note && d.irr) parts.push(d.irr);
+		if (d.note) parts.push(d.note);
+		return parts.join(" · ");
 	}
 
 	function qs(params){

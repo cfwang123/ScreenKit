@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The Japanese word-form tool now lists N5 to N1 verb patterns, classical (N0) forms and compound verbs, such as てもいい, てあげる, ざるを得ない and んばかり
 - Web dictionary: the detail pane now has tabs; verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English)
 - Main window dictionary: the detail pane now uses tabs; verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English)
+- Dictionary word-forms tab: each form has a speaker button
 
 #### Changed
 
@@ -157,6 +158,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语词形变化新增 N5～N1 句型、文语（N0）和复合动词，如 てもいい、てあげる、ざるを得ない、んばかり
 - 网页词典：详情栏改为多标签，动词/形容词/名词词条多出可搜索的「形态变化」页（日、韩、英）
 - 主窗口词典：详情栏改成标签页，动词/形容词/名词词条多出可搜索的「形态变化」页（日、韩、英）
+- 词典形态变化页：每行加了发音按钮
 
 #### 变更
 
