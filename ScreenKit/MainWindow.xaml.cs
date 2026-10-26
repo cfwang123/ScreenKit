@@ -1287,6 +1287,7 @@ public partial class MainWindow : Window {
 	void exitfast() {
 		try { Hide(); } catch { }
 		try { disposeTts(); } catch { }
+		try { ChromeTts.StopPage(); } catch { }
 		try { disposeAsr(); } catch { }
 		try { trEngine?.Dispose(); } catch { }
 		try {

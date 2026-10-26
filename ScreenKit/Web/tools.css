@@ -413,6 +413,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #rv-row > #rv-kind { flex: 0 0 118px; }
 #rv-row > #rv-word { flex: 0 1 320px; width: 320px; max-width: 320px; min-width: 200px; }
 #rv-row2 > #rv-aspect { flex: 0 0 112px; }
+#rv-row2 > #rv-gender { flex: 0 0 108px; }
 #rv-row2 > #rv-anim { flex: 0 0 142px; }
 #rv-row2 > #rv-var { flex: 0 0 168px; }
 #rv-out .jv-tab { width: 100%; }
@@ -472,6 +473,9 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .jv-tab td { padding: 1px 0; vertical-align: middle; white-space: nowrap; }
 .jv-tab .jv-k { color: var(--muted); font-size: 12px; width: 7.2em; padding-right: 6px; }
 .jv-tab .jv-v { padding-right: 22px; }
+#jv-out .jv-tab .jv-k { white-space: nowrap; }
+#jv-out .jv-tab .jv-v { white-space: normal; }
+#jv-out .jv-tab .jv-u { display: inline-block; white-space: nowrap; }
 .jv-tab .jv-spk {
 	width: 22px; height: 22px; min-height: 0; margin: 0 4px 0 1px; padding: 0;
 	border: 0; border-radius: 6px; background: transparent; color: var(--accent);

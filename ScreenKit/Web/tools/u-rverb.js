@@ -375,7 +375,7 @@
 		impf: ["未完成体", "Imperfective"],
 		pf: ["完成体", "Perfective"],
 		bad: ["请输入俄语动词不定式，如 читать、говорить、идти", "Enter a Russian infinitive, e.g. читать, говорить, идти"],
-		unsup: ["暂不支持这个词尾，试试 -ать / -ить / -еть / -нуть / -овать 或下拉里的动词", "This ending is not supported yet; try -ать / -ить / -еть / -нуть / -овать or a verb from the list"],
+		unsup: ["暂不支持这个词尾；可切换类型，或试试 -ать / -ить / -еть / -нуть / -овать 或下拉里的词", "This ending is not supported; switch the type, or try -ать / -ить / -еть / -нуть / -овать or a word from the list"],
 		nospeak: ["无法发音", "Can't play audio"],
 		g_basic: ["基本形式", "Basic forms"],
 		g_pres: ["现在时", "Present"],
@@ -416,6 +416,7 @@
 		adj: ["形容词", "Adjective"],
 		noun: ["名词", "Noun"],
 		anim: ["动物性", "Animacy"],
+		gender: ["性", "Gender"],
 		anim_yes: ["动物", "Animate"],
 		anim_no: ["非动物", "Inanimate"],
 		variant: ["语体 / 方言", "Register / dialect"],
@@ -515,7 +516,7 @@
 	var NOUN_II = { "герой": 1, "покой": 1, "слой": 1, "строй": 1, "бой": 1, "зной": 1, "рой": 1, "конвой": 1, "отбой": 1, "прибой": 1, "разбой": 1, "устой": 1, "санаторий": 1, "сценарий": 1, "гербарий": 1, "алюминий": 1, "калий": 1, "натрий": 1, "магний": 1, "литий": 1, "радий": 1, "музей": 0 };
 	var MYA = { "время": 1, "имя": 1, "знамя": 1, "племя": 1, "семя": 1, "темя": 1, "бремя": 1, "стремя": 1, "пламя": 1 };
 	var MASC_A = { "папа": 1, "дядя": 1, "мужчина": 1, "дедушка": 1, "юноша": 1, "судья": 1, "староста": 1, "коллега": 1 };
-	var MASC_SOFT = { "путь": 1, "день": 1, "конь": 1, "огонь": 1, "гость": 1, "медведь": 1, "словарь": 1, "календарь": 1, "автомобиль": 1, "контроль": 1, "уровень": 1, "спектакль": 1, "корабль": 1, "профиль": 1, "стиль": 1, "рубль": 1, "сентябрь": 1, "октябрь": 1, "ноябрь": 1, "декабрь": 1, "январь": 1, "февраль": 1, "апрель": 1, "июнь": 1, "июль": 1, "учитель": 1, "писатель": 1, "читатель": 1, "двигатель": 1, "выключатель": 1, "приятель": 1, "житель": 1, "зритель": 1, "водитель": 1 };
+	var MASC_SOFT = { "путь": 1, "день": 1, "конь": 1, "огонь": 1, "гость": 1, "медведь": 1, "словарь": 1, "календарь": 1, "автомобиль": 1, "контроль": 1, "уровень": 1, "спектакль": 1, "корабль": 1, "профиль": 1, "стиль": 1, "рубль": 1, "сентябрь": 1, "октябрь": 1, "ноябрь": 1, "декабрь": 1, "январь": 1, "февраль": 1, "апрель": 1, "июнь": 1, "июль": 1, "учитель": 1, "писатель": 1, "читатель": 1, "двигатель": 1, "выключатель": 1, "приятель": 1, "житель": 1, "зритель": 1, "водитель": 1, "портфель": 1, "фонарь": 1, "якорь": 1, "олень": 1, "тюлень": 1, "соболь": 1, "червь": 1, "гвоздь": 1, "дождь": 1, "лебедь": 1, "голубь": 1, "журавль": 1, "алтарь": 1, "сухарь": 1, "букварь": 1, "янтарь": 1, "богатырь": 1, "монастырь": 1, "пузырь": 1, "тополь": 1, "стебель": 1, "кремль": 1, "ансамбль": 1, "модуль": 1 };
 	var FEM_SOFT = { "ночь": 1, "дверь": 1, "часть": 1, "речь": 1, "вещь": 1, "площадь": 1, "тетрадь": 1, "кровать": 1, "любовь": 1, "жизнь": 1, "смерть": 1, "память": 1, "скорость": 1, "возможность": 1, "область": 1, "роль": 1, "цель": 1, "модель": 1, "болезнь": 1, "осень": 1, "новость": 1, "помощь": 1, "молодёжь": 1, "роскошь": 1, "тишь": 1, "глушь": 1, "дичь": 1, "мать": 1, "дочь": 1, "сеть": 1, "весть": 1, "честь": 1, "лесть": 1, "месть": 1, "нефть": 1, "грусть": 1, "власть": 1, "страсть": 1, "зависть": 1, "совесть": 1, "ненависть": 1 };
 	var ANIM = { "человек": 1, "студент": 1, "учитель": 1, "врач": 1, "кот": 1, "собака": 1, "брат": 1, "друг": 1, "ребёнок": 1, "женщина": 1, "мужчина": 1, "девочка": 1, "мальчик": 1, "мама": 1, "папа": 1, "птица": 1, "рыба": 1, "животное": 1, "конь": 1, "лошадь": 1, "медведь": 1, "волк": 1, "лиса": 1, "заяц": 1, "мышь": 1, "кошка": 1, "корова": 1, "свинья": 1, "овца": 1, "коза": 1, "курица": 1, "петух": 1, "тигр": 1, "лев": 1, "слон": 1, "обезьяна": 1, "гость": 1, "доктор": 1, "инженер": 1, "программист": 1, "ученик": 1, "школьник": 1, "родители": 1, "мать": 1, "отец": 1, "сын": 1, "дочь": 1, "сестра": 1, "бабушка": 1, "дедушка": 1, "дядя": 1, "тётя": 1, "племянник": 1, "племянница": 1, "котёнок": 1, "щенок": 1, "насекомое": 1, "герой": 1, "царь": 1, "князь": 1, "боец": 1, "певец": 1, "продавец": 1, "хозяин": 1, "гражданин": 1, "горожанин": 1, "крестьянин": 1, "судья": 1, "коллега": 1, "староста": 1 };
 	var NOUN_IRR = {
@@ -595,12 +596,17 @@
 		"якорь": ["якорь", "якоря", "якорю", "якорь", "якорем", "якоре", "якоря", "якорей", "якорям", "якоря", "якорями", "якорях"],
 		"князь": ["князь", "князя", "князю", "князя", "князем", "князе", "князья", "князей", "князьям", "князей", "князьями", "князьях"],
 		"лист": ["лист", "листа", "листу", "лист", "листом", "листе", "листья", "листьев", "листьям", "листья", "листьями", "листьях"],
-		"колос": ["колос", "колоса", "колосу", "колос", "колосом", "колосе", "колосья", "колосьев", "колосьям", "колосья", "колосьями", "колосьях"]
+		"колос": ["колос", "колоса", "колосу", "колос", "колосом", "колосе", "колосья", "колосьев", "колосьям", "колосья", "колосьями", "колосьях"],
+		"животное": ["животное", "животного", "животному", "животное", "животным", "животном", "животные", "животных", "животным", "животных", "животными", "животных"],
+		"насекомое": ["насекомое", "насекомого", "насекомому", "насекомое", "насекомым", "насекомом", "насекомые", "насекомых", "насекомым", "насекомых", "насекомыми", "насекомых"],
+		"мороженое": ["мороженое", "мороженого", "мороженому", "мороженое", "мороженым", "мороженом", "мороженые", "мороженых", "мороженым", "мороженые", "морожеными", "мороженых"]
 	};
 	var NOUN_LOC2 = { "лес": "лесу", "сад": "саду", "мост": "мосту", "шкаф": "шкафу", "угол": "углу", "пол": "полу", "бой": "бою", "рай": "раю", "снег": "снегу", "год": "году", "край": "краю", "круг": "кругу", "берег": "берегу", "аэропорт": "аэропорту", "порт": "порту", "цех": "цеху", "отпуск": "отпуску", "тыл": "тылу", "плен": "плену", "долг": "долгу", "ад": "аду" };
 	var NOUN_PART = { "чай": "чаю", "сахар": "сахару", "сыр": "сыру", "мёд": "мёду", "песок": "песку", "коньяк": "коньяку", "рис": "рису", "лук": "луку", "чеснок": "чесноку", "квас": "квасу", "спирт": "спирту", "творог": "творогу", "народ": "народу", "шум": "шуму", "крик": "крику", "страх": "страху", "смех": "смеху", "грех": "греху", "воздух": "воздуху" };
 	var NOUN_VOC = { "Бог": "Боже", "Господь": "Господи", "отец": "отче", "старик": "старче", "друг": "друже", "князь": "княже", "сын": "сыне", "Саша": "Саш", "Маша": "Маш", "Даша": "Даш", "Паша": "Паш", "Миша": "Миш", "Петя": "Петь", "Ваня": "Вань", "Катя": "Кать", "Таня": "Тань", "Наташа": "Наташ", "мама": "мам", "папа": "пап", "бабушка": "бабуль", "дедушка": "дедуль", "дядя": "дядь", "тётя": "тёть" };
 	var NOUN_ARCH_PL = { "дом": "домы", "город": "городы", "снег": "снеги", "лес": "лесы", "поезд": "поезды", "берег": "береги", "голос": "голосы", "вечер": "вечеры", "остров": "островы", "учитель": "учители" };
+	var NOUN_GENPL = { "ошибка": "ошибок", "доска": "досок", "песня": "песен", "кухня": "кухонь", "башня": "башен", "вишня": "вишен", "пашня": "пашен", "спальня": "спален", "ставня": "ставен", "сотня": "сотен", "деревня": "деревень", "свеча": "свечей", "сказка": "сказок", "улыбка": "улыбок", "попытка": "попыток", "встречка": "встречек", "заколка": "заколок", "ружьё": "ружей", "копьё": "копий", "марка": "марок", "полка": "полок", "вилка": "вилок", "тарелка": "тарелок", "бутылка": "бутылок", "ёлка": "ёлок", "иголка": "иголок", "палка": "палок", "сделка": "сделок", "стенка": "стенок", "оценка": "оценок", "весна": "вёсен", "сосна": "сосен", "земля": "земель", "свинья": "свиней", "палец": "пальцев", "конец": "концов", "танец": "танцев", "дворец": "дворцов", "образец": "образцов", "огурец": "огурцов", "перец": "перцев" };
+	var NOUN_PLNOM = { "палец": "пальцы" };
 	var timer = 0;
 	var clip = null;
 
@@ -759,8 +765,10 @@
 		R(g, L(lang, LAB.f_adj), w);
 		R(g, L(lang, LAB.f_adjtype), adjTypeName(info.type, lang));
 		var cmp = ADJ_COMP[w] || adjComp(info);
-		R(g, L(lang, LAB.f_comp), cmp ? cmp + " / более " + w : "более " + w);
-		R(g, L(lang, LAB.f_super), "самый " + w + " / наиболее " + w);
+		if (info.type !== "poss") {
+			R(g, L(lang, LAB.f_comp), cmp ? cmp + " / более " + w : "более " + w);
+			R(g, L(lang, LAB.f_super), "самый " + w + " / наиболее " + w);
+		}
 		var forms = adjForms(info, anim);
 		var gl = [LAB.g_m, LAB.g_f, LAB.g_n, LAB.g_pl];
 		for (var i = 0; i < 4; i++) {
@@ -796,8 +804,10 @@
 	}
 
 	function buildNoun(w, lang, opt){
+		if (/(ть|ти|чь)$/.test(w) && !NOUN_IRR[w] && !MASC_SOFT[w] && !FEM_SOFT[w] && !INDEK[w]) return { ok: false, err: L(lang, LAB.noun_bad) };
 		var info = nounInfo(w, opt);
 		if (!info) return { ok: false, err: L(lang, LAB.noun_bad) };
+		info.word = w;
 		var anim = opt.anim === "anim" || (opt.anim !== "inan" && nounAnim(w, info));
 		var forms = nounForms(info, anim);
 		var rows = [];
@@ -848,7 +858,10 @@
 		if (ADJ_POSS[w]) return { type: "poss", stem: w.slice(0, -2) };
 		if (/ой$/.test(w)) {
 			var st = w.slice(0, -2);
-			return { type: sibilant(last(st)) ? "sibh" : "hard", stem: st, stressed: 1 };
+			var c0 = last(st);
+			if (sibilant(c0)) return { type: "sibh", stem: st, stressed: 1 };
+			if (c0 === "к" || c0 === "г" || c0 === "х") return { type: "velh", stem: st, stressed: 1 };
+			return { type: "hard", stem: st, stressed: 1 };
 		}
 		if (/ый$/.test(w)) return { type: "hard", stem: w.slice(0, -2) };
 		if (/ий$/.test(w)) {
@@ -865,6 +878,7 @@
 		if (type === "soft") return L(lang, LAB.adj_soft);
 		if (type === "velar") return L(lang, LAB.adj_velar);
 		if (type === "sib" || type === "sibh") return L(lang, LAB.adj_sib);
+		if (type === "velh") return L(lang, LAB.adj_velar);
 		if (type === "poss") return L(lang, LAB.adj_poss);
 		return L(lang, LAB.adj_hard);
 	}
@@ -894,6 +908,12 @@
 			n: ["ое", "ого", "ому", "ое", "им", "ом"],
 			pl: ["ие", "их", "им", "ие", "ими", "их"]
 		};
+		var velh = {
+			m: ["ой", "ого", "ому", "ой", "им", "ом"],
+			f: ["ая", "ой", "ой", "ую", "ой", "ой"],
+			n: ["ое", "ого", "ому", "ое", "им", "ом"],
+			pl: ["ие", "их", "им", "ие", "ими", "их"]
+		};
 		var soft = {
 			m: ["ий", "его", "ему", "ий", "им", "ем"],
 			f: ["яя", "ей", "ей", "юю", "ей", "ей"],
@@ -909,6 +929,7 @@
 		if (type === "velar") return velar;
 		if (type === "sib") return sib;
 		if (type === "sibh") return sibh;
+		if (type === "velh") return velh;
 		if (type === "soft") return soft;
 		if (type === "poss") return poss;
 		return hard;
@@ -935,7 +956,7 @@
 	}
 
 	function adjComp(info){
-		if (info.type === "poss" || info.type === "sibh") return null;
+		if (info.type === "poss" || info.type === "sibh" || info.type === "velh") return null;
 		if (/ск$|цк$/.test(info.stem)) return null;
 		if (info.type === "velar" && /к$/.test(info.stem)) return info.stem.slice(0, -1) + "че";
 		return info.stem + "ее";
@@ -944,7 +965,7 @@
 	function adjShort(info){
 		if (info.type === "poss") return null;
 		if (info.type === "soft") return null;
-		if (info.type === "velar") return null;
+		if (info.type === "velar" || info.type === "velh") return null;
 		if (/ск$/.test(info.stem)) return null;
 		var base = info.stem;
 		var m = base;
@@ -974,6 +995,7 @@
 			return { type: gb === "f" ? "i" : "msoft", g: gb, stem: w.slice(0, -1), soft: "b" };
 		}
 		if (/й$/.test(w)) return { type: "msoft", g: "m", stem: w.slice(0, -1), soft: "y" };
+		if (/ё$/.test(w)) return { type: "yo", g: "n", stem: w.slice(0, -1) };
 		if (/о$/.test(w)) return { type: "o", g: "n", stem: w.slice(0, -1) };
 		if (/е$/.test(w)) return { type: "e", g: "n", stem: w.slice(0, -1) };
 		return { type: "m", g: "m", stem: w };
@@ -992,12 +1014,12 @@
 		if (info.type === "a") {
 			var ins = (sibilant(last(st)) || last(st) === "ц") ? "ей" : "ой";
 			var pl = st + i;
-			var gp = /[жшчщ]к$/.test(st) ? st.slice(0, -1) + "ек" : st;
+			var gp = NOUN_GENPL[info.word] || (/[жшчщ]к$/.test(st) ? st.slice(0, -1) + "ек" : st);
 			return [st + "а", st + i, st + "е", st + "у", st + ins, st + "е", pl, gp, st + "ам", anim ? gp : pl, st + "ами", st + "ах"];
 		}
 		if (info.type === "ya") {
 			var pl2 = st + "и";
-			var gp2 = vowel(last(st)) ? st + "й" : st + "ь";
+			var gp2 = NOUN_GENPL[info.word] || (vowel(last(st)) ? st + "й" : st + "ь");
 			return [st + "я", st + "и", st + "е", st + "ю", st + "ей", st + "е", pl2, gp2, st + "ям", anim ? gp2 : pl2, st + "ями", st + "ях"];
 		}
 		if (info.type === "ia") {
@@ -1011,8 +1033,8 @@
 			return [st + "ие", st + "ия", st + "ию", st + "ие", st + "ием", st + "ии", pl3e, gp3e, st + "иям", anim ? gp3e : pl3e, st + "иями", st + "иях"];
 		}
 		if (info.type === "m") {
-			var pl4 = st + (needsI(st) ? "и" : "ы");
-			var gp4 = /[жшчщйь]$/.test(st) ? st + "ей" : (/ц$/.test(st) ? st + "ев" : st + "ов");
+			var pl4 = NOUN_PLNOM[info.word] || st + (needsI(st) ? "и" : "ы");
+			var gp4 = NOUN_GENPL[info.word] || (/[жшчщйь]$/.test(st) ? st + "ей" : (/ц$/.test(st) ? st + "ев" : st + "ов"));
 			return [st, st + "а", st + "у", anim ? st + "а" : st, st + "ом", st + "е", pl4, gp4, st + "ам", anim ? gp4 : pl4, st + "ами", st + "ах"];
 		}
 		if (info.type === "msoft") {
@@ -1029,6 +1051,12 @@
 			var pl7 = st + "я";
 			var gp7 = st + "ей";
 			return [st + "е", st + "я", st + "ю", st + "е", st + "ем", st + "е", pl7, gp7, st + "ям", pl7, st + "ями", st + "ях"];
+		}
+		if (info.type === "yo") {
+			var pst = /ь$/.test(st) ? st.slice(0, -1) : st;
+			var pl9 = pst + "ья";
+			var gp9 = NOUN_GENPL[info.word] || pst + "ей";
+			return [st + "ё", st + "я", st + "ю", st + "ё", st + "ём", st + "е", pl9, gp9, pst + "ьям", pl9, pst + "ьями", pst + "ьях"];
 		}
 		if (info.type === "i") {
 			var pl8 = st + "и";
@@ -1590,6 +1618,12 @@
 			+ '<option value="anim"></option>'
 			+ '<option value="inan"></option>'
 			+ "</select></label>"
+			+ '<label id="rv-gender"><select id="rv-sel-gender">'
+			+ '<option value="auto"></option>'
+			+ '<option value="m"></option>'
+			+ '<option value="f"></option>'
+			+ '<option value="n"></option>'
+			+ "</select></label>"
 			+ '<label id="rv-var"><select id="rv-sel-var">'
 			+ '<option value="std"></option>'
 			+ '<option value="coll"></option>'
@@ -1614,6 +1648,7 @@
 		setlab("rv-word", "web.rverb.word", L(lang, LAB.word));
 		setlab("rv-aspect", "web.rverb.aspect", L(lang, LAB.aspect));
 		setlab("rv-anim", "web.rverb.anim", L(lang, LAB.anim));
+		setlab("rv-gender", "web.rverb.gender", L(lang, LAB.gender));
 		setlab("rv-var", "web.rverb.variant", L(lang, LAB.variant));
 		SK.combofill("rv-in", pickgroups(lang));
 		setopt("rv-sel-kind", "auto", "web.rverb.auto", L(lang, LAB.auto));
@@ -1626,6 +1661,10 @@
 		setopt("rv-sel-anim", "auto", "web.rverb.auto", L(lang, LAB.auto));
 		setopt("rv-sel-anim", "anim", "web.rverb.anim_yes", L(lang, LAB.anim_yes));
 		setopt("rv-sel-anim", "inan", "web.rverb.anim_no", L(lang, LAB.anim_no));
+		setopt("rv-sel-gender", "auto", "web.rverb.auto", L(lang, LAB.auto));
+		setopt("rv-sel-gender", "m", "web.rverb.masc", L(lang, LAB.g_m));
+		setopt("rv-sel-gender", "f", "web.rverb.fem", L(lang, LAB.g_f));
+		setopt("rv-sel-gender", "n", "web.rverb.neut", L(lang, LAB.g_n));
 		setopt("rv-sel-var", "std", "web.rverb.std", L(lang, LAB.std));
 		setopt("rv-sel-var", "coll", "web.rverb.coll", L(lang, LAB.coll));
 		setopt("rv-sel-var", "north", "web.rverb.north", L(lang, LAB.north));
@@ -1639,6 +1678,7 @@
 		bind("rv-sel-kind", function(){ syncui(); run(); });
 		bind("rv-sel", run);
 		bind("rv-sel-anim", run);
+		bind("rv-sel-gender", run);
 		bind("rv-sel-var", run);
 		var out = F.id("rv-out");
 		if (out && !F.attr(out, "data-bind")) {
@@ -1660,6 +1700,7 @@
 		var kind = F.id("rv-sel-kind");
 		var v = kind ? kind.value : "auto";
 		show(F.id("rv-aspect"), v === "verb" || v === "auto");
+		show(F.id("rv-gender"), v === "noun" || v === "auto");
 		show(F.id("rv-anim"), v === "adj" || v === "noun" || v === "auto");
 	}
 
@@ -1722,6 +1763,7 @@
 		var manual = sel ? sel.value : "auto";
 		var kind = F.id("rv-sel-kind");
 		var anim = F.id("rv-sel-anim");
+		var gender = F.id("rv-sel-gender");
 		var vari = F.id("rv-sel-var");
 		if (!norm(word)) {
 			paint("", "", []);
@@ -1732,6 +1774,7 @@
 			kind: kind ? kind.value : "auto",
 			aspect: manual,
 			anim: anim ? anim.value : "auto",
+			gender: gender ? gender.value : "auto",
 			variant: vari ? vari.value : "std"
 		});
 		if (!built.ok) {

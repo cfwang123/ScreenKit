@@ -2,6 +2,11 @@
 	var exp = null;
 	if (typeof module !== "undefined" && module.exports) exp = module.exports;
 
+	var rtimer = null;
+	var lastpaint = null;
+	var perline = 2;
+	var bound = false;
+
 	var COL = {
 		"う": ["わ", "い", "う", "え", "お", "って", "った"],
 		"く": ["か", "き", "く", "け", "こ", "いて", "いた"],
@@ -197,6 +202,10 @@
 			F.seta(out, "data-bind", "1");
 			out.onclick = onout;
 		}
+		if (!bound) {
+			bound = true;
+			window.addEventListener("resize", onresize);
+		}
 		run();
 	}
 
@@ -235,7 +244,35 @@
 	function paint(head, name, rows){
 		var out = F.id("jv-out");
 		if (!out) return;
-		if (!rows || !rows.length) { out.innerHTML = ""; return; }
+		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
+		lastpaint = { head: head, name: name, rows: rows };
+		perline = 2;
+		out.innerHTML = tablehtml(head, name, rows);
+		fit(out);
+	}
+
+	// 两列排不下就退回一列，尽量不出现横向滚动条。
+	function fit(out){
+		if (perline === 2 && out.scrollWidth > out.clientWidth + 2 && lastpaint) {
+			perline = 1;
+			out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows);
+		}
+	}
+
+	function onresize(){
+		if (rtimer) clearTimeout(rtimer);
+		rtimer = setTimeout(refit, 150);
+	}
+
+	function refit(){
+		var out = F.id("jv-out");
+		if (!out || !lastpaint) return;
+		perline = 2;
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows);
+		fit(out);
+	}
+
+	function tablehtml(head, name, rows){
 		var tip = esc(tx("dict.speak", "发音"));
 		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(name) + "</span></div><table class=\"jv-tab\">";
 		var g = null;
@@ -247,20 +284,21 @@
 				html += flushrows(buf, tip);
 				buf = [];
 				g = rg;
-				if (g) html += '<tr><td class="kv-g" colspan="4">' + esc(g) + "</td></tr>";
+				if (g) html += '<tr><td class="kv-g" colspan="' + perline * 2 + '">' + esc(g) + "</td></tr>";
 			}
 			buf.push(rows[i]);
 		}
-		html += flushrows(buf, tip) + "</table>";
-		out.innerHTML = html;
+		return html + flushrows(buf, tip) + "</table>";
 	}
 
 	function flushrows(buf, tip){
 		var html = "";
-		var j;
-		for (j = 0; j < buf.length; j += 2) {
-			html += "<tr>" + cellhtml(buf[j], tip);
-			html += j + 1 < buf.length ? cellhtml(buf[j + 1], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+		var j, k;
+		for (j = 0; j < buf.length; j += perline) {
+			html += "<tr>";
+			for (k = 0; k < perline; k++) {
+				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+			}
 			html += "</tr>";
 		}
 		return html;
@@ -304,9 +342,9 @@
 		var i;
 		for (i = 0; i < forms.length; i++) {
 			if (!forms[i]) continue;
-			if (bits) bits += " ";
-			bits += "<span>" + esc(forms[i]) + "</span>"
-				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button>';
+			if (bits) bits += "<br>";
+			bits += '<span class="jv-u"><span>' + esc(forms[i]) + "</span>"
+				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button></span>';
 		}
 		return '<td class="jv-k">' + esc(item[0]) + '</td><td class="jv-v">' + bits + "</td>";
 	}

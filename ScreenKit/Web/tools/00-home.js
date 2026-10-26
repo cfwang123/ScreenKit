@@ -329,11 +329,11 @@
 						"type":"button",
 						"data-tool":"u-rverb",
 						"data-cat":"text",
-						"data-name":"俄语 俄文 动词 变化 变位 活用 читать говорить идти 完成体 未完成体 分词 副动词 conjugation russian verb",
-						"title":"输入俄语动词不定式，列出体、现在时或将来时、过去时、命令式、假定式、分词和副动词",
+						"data-name":"俄语 俄文 动词 形容词 名词 变化 变位 变格 活用 читать красивый книга 完成体 未完成体 分词 副动词 格 动物 方言 conjugation declension russian",
+						"title":"输入俄语动词、形容词或名词，列出体、时态、命令式、假定式、语气、分词、副动词，或形容词、名词的变格和特殊形式",
 						c:[
 						{x:"i.fa-solid.fa-language"},
-						{x:"span","data-k":"web.tool.rverb",c:"俄语动词变化"},
+						{x:"span","data-k":"web.tool.rverb",c:"俄语词形变化"},
 						{x:"i.fa-solid.fa-star","data-fav":"u-rverb","title":"收藏"}
 					]
 					},

@@ -259,7 +259,7 @@ public partial class MainWindow {
 		finally { trUiLoading = false; }
 	}
 
-	/// <summary>用专用配置打开本机 Chrome，进入 Chrome 模型页。</summary>
+	/// <summary>用模型页自己的配置打开本机 Chrome。装包的配置在别处，装包不会关掉这个窗口。</summary>
 	void openchromepage(Action<string> fail) {
 		var exe = ChromeTts.FindExe(opt.ChromeExe);
 		if (string.IsNullOrEmpty(exe)) {
@@ -267,18 +267,14 @@ public partial class MainWindow {
 			return;
 		}
 		var url = "http://127.0.0.1:" + HttpOcrServer.PagePort(opt) + "/chrome";
-		var profile = ChromeTts.ProfileDir();
+		var profile = ChromeTts.PageProfileDir();
 		var px = HttpProxy.ChromeArgs();
 		try {
-			ChromeHost.Stop();
-			// 语音引擎的启用信息要在 Chrome 启动前写进配置，模型页这个 Chrome 才能直接装语音包。
-			ChromePack.PrepareVoice(profile);
+			ChromeTts.StopPage();
 			var left = 80;
 			var top = 60;
 			var width = 1100;
 			var height = 760;
-			try { (left, top, width, height) = ChromeHost.PrepareVisible(); }
-			catch { }
 			var args = $"--user-data-dir=\"{profile}\" --remote-debugging-address=127.0.0.1 --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-features=UseSystemProxyResolver --window-position={left},{top} --window-size={width},{height} {px}\"{url}\"";
 			var proc = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo {
 				FileName = exe,
@@ -287,7 +283,6 @@ public partial class MainWindow {
 			});
 			var pid = 0;
 			try { if (proc != null) pid = proc.Id; } catch { }
-			ChromeHost.PageOpened(pid);
 			ChromeHost.NudgeVisible(pid, left, top, width, height);
 		}
 		catch (Exception ex) {
