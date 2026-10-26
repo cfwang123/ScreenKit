@@ -79,6 +79,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP API: OCR, ASR, TTS, translation, face, chat, dictionary speech, and network lookups now run at most 8 at a time and answer 503 immediately beyond that, so /api/status and model lists stay responsive during a burst. The listener also caps connections at 256 and raises the thread-pool minimum.
 - Korean verbs: stop listing forms that match standard Korean (자요, 더랬-, plain passive, broadcast 합쇼체/-리라)
 - Dictionary: one- and two-character lookups scan key blocks in parallel instead of one single-threaded pass, about 0.5 s down to under 0.1 s
+- WinRT calendar, Japanese readings and speech synthesis now share one resident STA thread instead of spawning a thread per request
+- HTTP requests never pop the install dialog anymore; a missing runtime library returns error code 953
 
 #### Fixed
 
@@ -127,6 +129,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - POST /api/tts/speak, and /api/tts with the Chrome engine, now accept loopback callers only, so another device on the LAN can no longer make this PC speak.
 - GET /api/dict/speak is loopback-only when that language speaks through Chrome, which plays on this PC instead of returning audio.
+- Request bodies over 64MB are refused with HTTP 413 without being read into memory
 
 ### 中文
 
@@ -165,6 +168,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 接口：识别、合成、翻译、人脸、对话、词典发音和联网查询同时最多 8 个，超出的当场返回 503，突发请求时 /api/status 和模型列表仍能立刻响应。监听连接上限 256，线程池下限也调高了。
 - 韩语动词变化：不再列出与标准语同形的说法（자요、더랬-、普通被动词、播音 합쇼체/-리라）
 - 词典：一字、两字查询改成分块并行扫键段，不再单线程全表走一遍，约 0.5 秒降到 0.1 秒内
+- WinRT 日历换算、日文读音、语音合成改用常驻 STA 线程，不再每个请求新建线程
+- HTTP 请求不再弹安装提示，缺运行库时直接返回错误码 953
 
 #### 修复
 
@@ -213,6 +218,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - `POST /api/tts/speak` 以及 `/api/tts` 走 Chrome 引擎时只接受本机调用，局域网里别的设备不能再让这台机器出声。
 - GET /api/dict/speak 在该语言走 Chrome 发音（只在这台机器出声）时，同样只接受本机调用。
+- 请求体超过 64MB 直接返回 HTTP 413，不读进内存
 
 ## v1.0.29 (2026-10-23)
 

@@ -50,26 +50,8 @@ static class WinCal {
 		return "en-US";
 	}
 
-	public static WinCalInfo Query(DateTime date, string calId, string langTag) {
-		if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
-			return query(date, calId, langTag);
-		return sta(() => query(date, calId, langTag));
-	}
-
-	static T sta<T>(Func<T> fn) {
-		T result = default;
-		Exception err = null;
-		var t = new Thread(() => {
-			try { result = fn(); }
-			catch (Exception ex) { err = ex; }
-		});
-		t.IsBackground = true;
-		t.SetApartmentState(ApartmentState.STA);
-		t.Start();
-		t.Join();
-		if (err != null) throw err;
-		return result;
-	}
+	public static WinCalInfo Query(DateTime date, string calId, string langTag) =>
+		StaPump.RunIfNotSta(() => query(date, calId, langTag));
 
 	static WinCalInfo query(DateTime date, string calId, string langTag) {
 		if (string.IsNullOrEmpty(calId)) calId = CalendarIdentifiers.ChineseLunar;

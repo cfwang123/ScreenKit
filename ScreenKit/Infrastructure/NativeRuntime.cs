@@ -111,7 +111,7 @@ static class NativeRuntime {
 		}
 		log?.Report("缺少 OpenCv 运行库");
 		if (!FeaturePrompt.EnsureOpenCv())
-			throw new InvalidOperationException(
+			throw new MissingFeatureException(
 				"未安装 OpenCV 运行库。请打开「安装功能」安装「OpenCV 运行库」后再试。");
 		lock (gate) opencvOk = HasOpenCv();
 	}
@@ -125,7 +125,7 @@ static class NativeRuntime {
 		}
 		log?.Report("缺少 PDF 渲染库（Skia / PDFium）");
 		if (!FeaturePrompt.EnsurePdf())
-			throw new InvalidOperationException(
+			throw new MissingFeatureException(
 				"未安装 PDF 渲染库。请打开「安装功能」安装 Skia 与 PDFium 后再试。");
 		lock (gate) skiaOk = HasSkiaPdf();
 	}
@@ -139,7 +139,7 @@ static class NativeRuntime {
 		}
 		log?.Report("缺少 sherpa-onnx-c-api.dll");
 		if (!FeaturePrompt.EnsureSherpa())
-			throw new InvalidOperationException(
+			throw new MissingFeatureException(
 				"未安装 Sherpa 运行库（sherpa-onnx-c-api.dll）。请打开「安装功能」安装后再试。");
 		lock (gate) sherpaOk = HasSherpa();
 	}
@@ -215,7 +215,7 @@ static class NativeRuntime {
 	public static void EnsureZxing() {
 		if (HasZxing()) return;
 		if (!FeaturePrompt.EnsureZxing())
-			throw new InvalidOperationException(
+			throw new MissingFeatureException(
 				"未安装条码库（ZXing.dll）。请打开「安装功能」安装「条码 · ZXing」后再试。");
 	}
 

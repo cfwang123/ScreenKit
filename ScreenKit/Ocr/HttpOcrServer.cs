@@ -143,6 +143,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		var method = "";
 		var pathRaw = "";
 		var heavy = false;
+		// HTTP 请求无人值守：缺库直接回错误码，不弹窗等用户点按钮。
+		FeaturePrompt.Quiet = true;
 		try {
 			var req = ctx.Request;
 			method = req.HttpMethod ?? "";
@@ -670,9 +672,15 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 		catch (Exception ex) {
 			if (!ctx.RawTaken && !ctx.Upgraded)
-				try { writejson(ctx, 500, err(900, $"内部错误: {ex.Message}")); } catch { }
+				try {
+					// 缺运行库给独立错误码，客户端不用翻文案就能提示「去安装」。
+					var code = ex is MissingFeatureException ? 953 : 900;
+					writejson(ctx, 500, err(code, $"内部错误: {ex.Message}"));
+				}
+				catch { }
 		}
 		finally {
+			FeaturePrompt.Quiet = false;
 			if (heavy) heavyslot.Release();
 			if (!string.Equals(method, "OPTIONS", StringComparison.OrdinalIgnoreCase)) {
 				var ms = unchecked(Environment.TickCount - t0);
@@ -785,7 +793,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		catch (Exception ex) {
 			Logged?.Invoke($"cast ws: {ex.Message}");
 			if (!ctx.Upgraded)
-				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
+				try { writejson(ctx, 500, err(failcode(ex), ex.Message)); } catch { }
 		}
 	}
 
@@ -808,7 +816,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		catch (Exception ex) {
 			Logged?.Invoke($"chat ws: {ex.Message}");
 			if (!ctx.Upgraded)
-				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
+				try { writejson(ctx, 500, err(failcode(ex), ex.Message)); } catch { }
 		}
 	}
 
@@ -846,7 +854,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		catch (Exception ex) {
 			Logged?.Invoke($"rtsp ws: {ex.Message}");
 			if (!ctx.Upgraded)
-				try { writejson(ctx, 500, err(500, ex.Message)); } catch { }
+				try { writejson(ctx, 500, err(failcode(ex), ex.Message)); } catch { }
 		}
 	}
 
@@ -990,7 +998,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			};
 		}
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
 		if (outText == null) {
@@ -1117,7 +1125,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		byte[] png;
 		try { png = runsta(() => QrMake.Png(text, format, encoding)); }
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
 		writejson(ctx, 200, new JsonObject {
@@ -1212,7 +1220,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			py = PinyinConvert.Convert(text, true);
 		}
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
 		writejson(ctx, 200, new JsonObject {
@@ -1256,7 +1264,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		string html;
 		try { html = MdRead.ToHtml(text, "", title, 1, th.Id); }
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
 		writejson(ctx, 200, new JsonObject {
@@ -1284,7 +1292,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		string outText;
 		try { outText = dir == 1 ? ZhConvert.ToTraditional(text) : ZhConvert.ToSimplified(text); }
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
 		writejson(ctx, 200, new JsonObject {
@@ -1311,7 +1319,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		WinCalInfo info;
 		try { info = WinCal.Query(date, id, "zh-CN"); }
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
 		writejson(ctx, 200, new JsonObject {
@@ -1351,7 +1359,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		JpYomiResult res;
 		try { res = JpYomi.Convert(text, mono); }
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
 		writejson(ctx, 200, new JsonObject {
@@ -2643,6 +2651,9 @@ sealed partial class HttpOcrServer : IDisposable {
 		["code"] = code,
 		["data"] = msg ?? "",
 	};
+
+	/// <summary>异常对应的业务码：缺运行库单列 953，其余按 500。</summary>
+	static int failcode(Exception ex) => ex is MissingFeatureException ? 953 : 500;
 
 	static bool apiok(SockCtx ctx, bool on) {
 		if (on) return true;

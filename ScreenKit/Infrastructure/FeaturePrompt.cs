@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -8,6 +9,15 @@ namespace ScreenKit;
 /// 功能依赖缺失时：弹窗说明 → 可选打开「安装功能」并预勾相关项。
 /// </summary>
 static class FeaturePrompt {
+	/// <summary>HTTP 请求线程置位：缺库直接回错误，不弹窗等用户点按钮。</summary>
+	static readonly AsyncLocal<bool> quiet = new();
+
+	/// <summary>当前调用是否处在无人值守的 HTTP 请求里。</summary>
+	public static bool Quiet {
+		get => quiet.Value;
+		set => quiet.Value = value;
+	}
+
 	/// <summary>
 	/// 提示用户安装缺失组件。返回 true 表示用户确认并打开了安装窗（不保证已装完）。
 	/// </summary>
@@ -15,6 +25,8 @@ static class FeaturePrompt {
 		if (kinds == null || kinds.Length == 0) return false;
 		var missing = kinds.Where(k => FeatureInstaller.Probe(k) != FeatureInstallState.Installed).ToList();
 		if (missing.Count == 0) return true;
+		// HTTP 请求里没人点按钮：直接失败，交回调用方回错误码。
+		if (Quiet) return false;
 
 		var sb = new StringBuilder();
 		sb.AppendLine(Loc.T("inst.need.body", featureTitle));
@@ -44,6 +56,8 @@ static class FeaturePrompt {
 		if (kinds == null || kinds.Length == 0) return true;
 		if (kinds.All(k => FeatureInstaller.Probe(k) == FeatureInstallState.Installed))
 			return true;
+		// 无人值守请求：别去 UI 线程排队等弹窗。
+		if (Quiet) return false;
 
 		// 必须在 UI 线程弹窗
 		if (Application.Current?.Dispatcher != null
@@ -180,4 +194,9 @@ static class FeaturePrompt {
 			MessageBox.Show(ex.Message, Loc.T("inst.open.fail"), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
+}
+
+/// <summary>功能依赖缺失，且当前是无人值守请求（不弹窗）。HTTP 层据此回明确错误码。</summary>
+sealed class MissingFeatureException : InvalidOperationException {
+	public MissingFeatureException(string message) : base(message) { }
 }

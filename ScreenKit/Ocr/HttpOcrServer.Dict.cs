@@ -65,7 +65,7 @@ sealed partial class HttpOcrServer {
 			});
 		}
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 		}
 	}
 
@@ -96,7 +96,7 @@ sealed partial class HttpOcrServer {
 			});
 		}
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 		}
 	}
 
@@ -179,7 +179,7 @@ sealed partial class HttpOcrServer {
 			try { res.Close(); } catch { }
 		}
 		catch (Exception ex) {
-			writejson(ctx, 200, err(500, ex.Message));
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
 		}
 	}
 

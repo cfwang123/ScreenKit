@@ -44,7 +44,7 @@ The bottom status bar keeps the listener beside the memory summary, for example 
 
 ## 2. Response conventions
 
-Failures generally return **HTTP 200**. Success or failure is only the JSON `code` and `data`. An unknown path, a wrong method, and an uncaught exception are still 200, with the error code in the JSON (404, 805, 900). OPTIONS preflight stays 204. A successful WebSocket upgrade stays 101. **The one exception is heavy-endpoint throttling**: when more than 16 OCR, synthesis, translation, face, chat, or network-lookup requests run at once, the extra ones return HTTP **503** (JSON `code` 503) immediately instead of queueing; retry later. Status, model lists, and text tools are not throttled.
+Failures generally return **HTTP 200**. Success or failure is only the JSON `code` and `data`. An unknown path, a wrong method, and an uncaught exception are still 200, with the error code in the JSON (404, 805, 900). OPTIONS preflight stays 204. A successful WebSocket upgrade stays 101. Only two cases change the HTTP status: a request body over **64MB** gets **413** (the body is not read), and more than **256** simultaneous connections get **503**. **Heavy-endpoint throttling is JSON-level**: when more than **8** OCR, synthesis, translation, face, chat, or network-lookup requests run at once, the extra ones return `code` **503** (still HTTP 200) immediately instead of queueing; retry later. Status, model lists, and text tools are not throttled.
 
 ### 2.1 Success (with payload)
 
@@ -80,7 +80,8 @@ Failures generally return **HTTP 200**. Success or failure is only the JSON `cod
 | 100 | Success |
 | 101 | OCR: no text; barcode: none found; Face: no face |
 | 404 | Unknown path |
-| 503 | Heavy-endpoint slots full (HTTP status is also 503): more than 16 OCR / synthesis / translation / face / chat / network lookups at once |
+| 413 | Request body too large (over 64MB, HTTP status is also 413); the body is not read |
+| 503 | Heavy-endpoint slots full: more than 8 OCR / synthesis / translation / face / chat / network lookups at once (HTTP stays 200, `code` is 503); only above 256 simultaneous connections does the HTTP status become 503 |
 | 800 | Request parse failure / empty body |
 | 801 | Empty request |
 | 802 | Missing required field (e.g. base64, text) |
@@ -95,6 +96,7 @@ Failures generally return **HTTP 200**. Success or failure is only the JSON `cod
 | 920+ | TTS-related (921 Sherpa unavailable, 922 no model/voice, 923 empty audio, 924 synth failed, 925 unknown engine, 927 Chrome voice pack not installed) |
 | 930+ | Face-related (930 no models, 931 failed, 932 missing det/rec files) |
 | 950 | Barcode / QR scan failed |
+| 953 | Missing native library (OpenCV / Skia / PDFium / Sherpa / ZXing): HTTP requests never pop an install dialog, they return this code; install it from the app first |
 
 ---
 
@@ -1083,7 +1085,7 @@ curl -s -X POST "http://127.0.0.1:1224/api/face" \
 
 ## 12. QR / barcode
 
-Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the result-panel **Barcode** tab (QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, plus a light OpenCV QR fallback). `ZXing.dll` is not in the release archive. **Help → Install features** downloads it. A request without that file returns code 950. Aliases: `POST /api/qrcode` (Umi-OCR’s QR path), `POST /api/barcode`, `POST /api/barcodes` (same handler). The body is still `base64` or `path`. Each hit has both `type` and `format`; a QR code’s value is `QRCode`. Combined OCR+barcode remains `POST /api/ocr` with `options.ocr.barcode`.
+Dedicated barcode scan — **does not run OCR**. Same ZXingCpp pipeline as the result-panel **Barcode** tab (QR, Aztec, Data Matrix, PDF417, EAN-8/13, UPC-A/E, Code 39/93/128, Codabar, ITF, plus a light OpenCV QR fallback). `ZXing.dll` is not in the release archive. **Help → Install features** downloads it. A request without that file returns code 953. Aliases: `POST /api/qrcode` (Umi-OCR’s QR path), `POST /api/barcode`, `POST /api/barcodes` (same handler). The body is still `base64` or `path`. Each hit has both `type` and `format`; a QR code’s value is `QRCode`. Combined OCR+barcode remains `POST /api/ocr` with `options.ocr.barcode`.
 
 ### 12.1 POST `/api/qr`
 

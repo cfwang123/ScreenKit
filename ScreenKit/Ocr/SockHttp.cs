@@ -225,6 +225,33 @@ sealed class SockHttpServer {
 		try { ns.Write(b, 0, b.Length); } catch { }
 	}
 
+	/// <summary>请求体上限。超过直接 413，不读进内存。</summary>
+	const long MAXBODY = 64L * 1024 * 1024;
+
+	/// <summary>请求体过大：先回 413，再读掉一小段，免得 close 时 RST 把已经发出去的响应冲掉。</summary>
+	static void write413(Stream ns, long len) {
+		var body = Encoding.UTF8.GetBytes(
+			"{\"code\":413,\"data\":\"请求体过大（" + len + " 字节），上限 " + MAXBODY + " 字节\"}");
+		var head = Encoding.ASCII.GetBytes(
+			"HTTP/1.1 413 Payload Too Large\r\nConnection: close\r\nRetry-After: 1\r\n"
+			+ "Content-Type: application/json; charset=utf-8\r\nContent-Length: "
+			+ body.Length.ToString(CultureInfo.InvariantCulture) + "\r\n\r\n");
+		try {
+			ns.Write(head, 0, head.Length);
+			ns.Write(body, 0, body.Length);
+			ns.Flush();
+			if (ns.CanTimeout) ns.ReadTimeout = 500;
+			var buf = new byte[16384];
+			long total = 0;
+			while (total < 1024 * 1024) {
+				var n = ns.Read(buf, 0, buf.Length);
+				if (n <= 0) break;
+				total += n;
+			}
+		}
+		catch { }
+	}
+
 	static SockCtx readctx(NetworkStream ns, IPEndPoint remote, out bool bad) {
 		bad = false;
 		const int MAXHDR = 65536;
@@ -287,6 +314,11 @@ sealed class SockHttpServer {
 				return null;
 			}
 			hasLen = true;
+		}
+		// 大请求体先挡掉：不分配内存，也不等客户端传完。
+		if (hasLen && clen > MAXBODY) {
+			write413(ns, clen);
+			return null;
 		}
 		var chunked = !hasLen && (headers["Transfer-Encoding"] ?? "")
 			.IndexOf("chunked", StringComparison.OrdinalIgnoreCase) >= 0;

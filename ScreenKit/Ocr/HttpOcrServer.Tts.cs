@@ -995,24 +995,8 @@ sealed partial class HttpOcrServer {
 		return (all, sr);
 	}
 
-	static T runsta<T>(Func<T> fn) {
-		T result = default;
-		Exception err = null;
-		var t = new Thread(() => {
-			try {
-				_ = Dispatcher.CurrentDispatcher;
-				result = fn();
-			}
-			catch (Exception ex) { err = ex; }
-		});
-		t.SetApartmentState(ApartmentState.STA);
-		t.IsBackground = true;
-		t.Name = "http-tts-winrt";
-		t.Start();
-		t.Join();
-		if (err != null) throw err;
-		return result;
-	}
+	/// <summary>WinRT 调用排到常驻 STA 线程，不再每个请求新建线程。</summary>
+	static T runsta<T>(Func<T> fn) => StaPump.Run(fn);
 
 	/// <summary>WinRT IAsync 在 STA 上要泵消息，不能直接 GetResult。</summary>
 	static T waitdispatchertask<T>(Task<T> task) {
