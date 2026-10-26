@@ -411,6 +411,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .combo input { margin-top: 0; padding-right: 36px; }
 .combo .combo-btn {
 	position: absolute; top: 1px; right: 1px; width: 34px; height: calc(100% - 2px);
+	display: flex; align-items: center; justify-content: center;
 	margin: 0; padding: 0; border: 0; background: transparent;
 	color: var(--muted); cursor: pointer;
 }
