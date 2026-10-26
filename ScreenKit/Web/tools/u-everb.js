@@ -308,28 +308,21 @@
 		d_emph: ["强调", "Emphasis"],
 		d_hedge: ["弱化、委婉", "Hedged"],
 		d_excl: ["感叹", "Exclamation"],
-		d_neg: ["否定", "Negation"],
 		d_enough: ["足够、过度", "Enough / too"],
 		g_ntone: ["语体与数量", "Register & quantity"],
 		q_formal: ["正式", "Formal"],
 		q_neutral: ["中性", "Neutral"],
 		q_informal: ["口语", "Informal"],
 		q_small: ["少量", "A few"],
-		q_every: ["强调", "Emphasis"],
-		q_neg: ["否定", "Negation"],
 		q_excl: ["感叹", "Exclamation"],
-		q_ref: ["特指、泛指", "Specific vs generic"],
-		g_negton: ["否定 + 语气", "Negative + tone"],
-		g_negdeg: ["否定 + 程度/语气", "Negative degree & tone"],
-		g_negn: ["否定 + 语气", "Negative + tone"],
-		n_stmt: ["否定陈述", "Negative statement"],
-		n_emph: ["否定强调", "Negative emphasis"],
-		n_deduct: ["否定 + 推测", "Negative deduction"],
-		n_hear: ["否定 + 据说", "Negative hearsay"],
-		n_hedge: ["否定 + 委婉", "Negative hedging"],
-		n_rhet: ["否定反问", "Negative rhetorical question"],
-		n_degree: ["否定 + 程度", "Negative degree"],
-		s_neg: ["否定虚拟", "Negative mandative"]
+		pos: ["肯定", "Positive"],
+		neg: ["否定", "Negative"],
+		d_stmt: ["陈述", "Statement"],
+		d_deduct: ["推测", "Deduction"],
+		d_hear: ["据说", "Hearsay"],
+		q_stmt: ["陈述", "Statement"],
+		q_deduct: ["推测", "Deduction"],
+		q_hear: ["据说", "Hearsay"]
 	};
 	// 常见形容词和名词，用来自动判断词性，也给输入框下拉用。
 	var ADJS = [
@@ -591,6 +584,10 @@
 		var n3 = isBe ? "is not" : "does not " + b;
 		var rows = [];
 		function R(g, name, text){ rows.push({ g: g, name: name, text: text }); }
+		function P(a, ngt){
+			var c = lang === "zh" ? "：" : ": ";
+			return L(LAB.pos) + c + a + " / " + L(LAB.neg) + c + ngt;
+		}
 		var g;
 		// 基本形式
 		g = L(LAB.g_form);
@@ -665,8 +662,8 @@
 		}
 		// 虚拟与条件
 		g = L(LAB.g_sub);
-		R(g, L(LAB.s_pres), "I suggest that he " + b + " · it is important that he " + b);
-		R(g, L(LAB.s_neg), "I suggest that he not " + b + " · it is important that he not " + b);
+		R(g, L(LAB.s_pres), P("I suggest that he " + b + " · it is important that he " + b,
+			"I suggest that he not " + b + " · it is important that he not " + b));
 		R(g, L(LAB.s_sub), isBe ? "AmE: that he be · BrE: that he should be"
 			: "AmE: that he " + b + " · BrE: that he should " + b);
 		R(g, L(LAB.s_irr), "if I " + (isBe ? "were" : pastF) + ", I would " + b);
@@ -698,34 +695,34 @@
 		g = L(LAB.g_cau);
 		R(g, L(LAB.c_make), "make him " + b + " · have him " + b + " · get him to " + b);
 		R(g, L(LAB.c_let), "let him " + b + " · allow him to " + b + " · permit him to " + b);
-		// 语体与语气
+		// 语体与语气（肯定 ／ 否定 并排）
 		g = L(LAB.g_ton);
-		R(g, L(LAB.t_formal), "I would like to " + b + " · we wish to " + b);
-		R(g, L(LAB.t_neutral), "I want to " + b + " · I'd like to " + b);
-		R(g, L(LAB.t_informal), "I wanna " + b + " · I'm gonna " + b + " · I gotta " + b);
-		R(g, L(LAB.t_emph), isBe ? "I really am · he really is" : "I do " + b + " · I really do " + b + " · he does " + b);
-		R(g, L(LAB.t_inv), isBe ? "Never have I been there · only then was I there" : "Never have I " + ppF + " · Only then did I " + b);
-		R(g, L(LAB.t_excl), isBe ? "How he is!" : "How he " + s3F + "!");
-		R(g, L(LAB.t_hedge), "I was wondering if you could " + b + " · it might be better to " + b);
-		R(g, L(LAB.t_insist), "You will " + b + " · you are to " + b + " · you shall " + b);
-		R(g, L(LAB.t_regret), "You should have " + ppF + " · you needn't have " + ppF);
-		R(g, L(LAB.t_wish), "If only I could " + b + " · I wish I could " + b);
-		R(g, L(LAB.t_deduct), "He may have " + ppF + " · he must have " + ppF + " · he can't have " + ppF);
-		R(g, L(LAB.t_hear), "He is said to " + b + " · he is supposed to " + b);
-		// 否定 + 语气
-		g = L(LAB.g_negton);
-		R(g, L(LAB.t_formal), "I would not like to " + b + " · we do not wish to " + b);
-		R(g, L(LAB.t_neutral), "I don't want to " + b + " · I wouldn't like to " + b);
-		R(g, L(LAB.t_informal), "I don't wanna " + b + " · I'm not gonna " + b);
-		R(g, L(LAB.t_emph), isBe ? "I really am not · he really isn't" : "I don't " + b + " at all · I never " + b);
-		R(g, L(LAB.t_inv), isBe ? "Not only was I not there · not once was I there" : "Not only did I not " + b + " · not once did I " + b);
-		R(g, L(LAB.t_excl), isBe ? "How he isn't!" : "How he never " + s3F + "!");
-		R(g, L(LAB.t_hedge), "I was wondering if you couldn't " + b + " · it might not be better to " + b);
-		R(g, L(LAB.t_insist), "You will not " + b + " · you are not to " + b + " · you shall not " + b);
-		R(g, L(LAB.t_regret), "You shouldn't have " + ppF + " · you needn't have " + ppF);
-		R(g, L(LAB.t_wish), "If only I didn't have to " + b + " · I wish I didn't have to " + b);
-		R(g, L(LAB.t_deduct), "He may not have " + ppF + " · he must not have " + ppF + " · he can't have " + ppF);
-		R(g, L(LAB.t_hear), "He is said not to " + b + " · he isn't supposed to " + b);
+		R(g, L(LAB.t_formal), P("I would like to " + b + " · we wish to " + b,
+			"I would not like to " + b + " · we do not wish to " + b));
+		R(g, L(LAB.t_neutral), P("I want to " + b + " · I'd like to " + b,
+			"I don't want to " + b + " · I wouldn't like to " + b));
+		R(g, L(LAB.t_informal), P("I wanna " + b + " · I'm gonna " + b + " · I gotta " + b,
+			"I don't wanna " + b + " · I'm not gonna " + b));
+		R(g, L(LAB.t_emph), isBe
+			? P("I really am · he really is", "I really am not · he really isn't")
+			: P("I do " + b + " · I really do " + b + " · he does " + b, "I don't " + b + " at all · I never " + b));
+		R(g, L(LAB.t_inv), isBe
+			? P("Only then was I there", "Never have I been there · not once was I there")
+			: P("Only then did I " + b, "Never have I " + ppF + " · not once did I " + b + " · not only did I not " + b));
+		R(g, L(LAB.t_excl), isBe
+			? P("How he is!", "How he isn't!")
+			: P("How he " + s3F + "!", "How he never " + s3F + "!"));
+		R(g, L(LAB.t_hedge), P("I was wondering if you could " + b + " · it might be better to " + b,
+			"I was wondering if you couldn't " + b + " · it might not be better to " + b));
+		R(g, L(LAB.t_insist), P("You will " + b + " · you are to " + b + " · you shall " + b,
+			"You will not " + b + " · you are not to " + b + " · you shall not " + b));
+		R(g, L(LAB.t_regret), P("You should have " + ppF, "You shouldn't have " + ppF + " · you needn't have " + ppF));
+		R(g, L(LAB.t_wish), P("If only I could " + b + " · I wish I could " + b,
+			"If only I didn't have to " + b + " · I wish I didn't have to " + b));
+		R(g, L(LAB.t_deduct), P("He may have " + ppF + " · he must have " + ppF,
+			"He may not have " + ppF + " · he must not have " + ppF));
+		R(g, L(LAB.t_hear), P("He is said to " + b + " · he is supposed to " + b,
+			"He is said not to " + b + " · he isn't supposed to " + b));
 		// 地区变体：不规则动词的 -t / -ed 写法、gotten / got、dove / dived，以及 -l 双写
 		var ameP = pastF;
 		var amePP = ppF;
@@ -822,6 +819,10 @@
 		}
 		var rows = [];
 		function R(g, name, text){ rows.push({ g: g, name: name, text: text }); }
+		function P(a, ngt){
+			var c = lang === "zh" ? "：" : ": ";
+			return L(LAB.pos) + c + a + " / " + L(LAB.neg) + c + ngt;
+		}
 		var c1 = String(c).split(" / ")[0];
 		var s1 = String(s).split(" / ")[0];
 		var g = L(LAB.g_a_form);
@@ -838,22 +839,23 @@
 		R(g, L(LAB.a_deg), "much / far / even " + c1);
 		R(g, L(LAB.a_and), /^more /.test(c1) ? "more and more " + base : c1 + " and " + c1);
 		g = L(LAB.g_deg);
-		R(g, L(LAB.d_deg), "very / really / so / quite " + base);
-		R(g, L(LAB.d_formal), "exceedingly / remarkably " + base);
-		R(g, L(LAB.d_informal), "super / pretty / totally " + base);
-		R(g, L(LAB.d_emph), "absolutely / utterly " + base);
-		R(g, L(LAB.d_hedge), "fairly / rather / somewhat " + base + " · not very " + base);
-		R(g, L(LAB.d_excl), "How " + base + "! · So " + base + "!");
-		R(g, L(LAB.d_neg), "not " + base + " at all · far from " + base);
-		R(g, L(LAB.d_enough), base + " enough · too " + base);
-		g = L(LAB.g_negdeg);
-		R(g, L(LAB.n_stmt), "It is not " + base);
-		R(g, L(LAB.n_emph), "It is not " + base + " at all");
-		R(g, L(LAB.n_degree), "not very " + base + " · hardly " + base);
-		R(g, L(LAB.n_hedge), "It isn't exactly " + base + " · it's not particularly " + base);
-		R(g, L(LAB.n_deduct), "It may not be " + base + " · it can't be " + base);
-		R(g, L(LAB.n_hear), "It is said not to be " + base);
-		R(g, L(LAB.n_rhet), "Isn't it " + base + "!");
+		R(g, L(LAB.d_deg), P("very / really / so / quite " + base,
+			"not very / not particularly " + base));
+		R(g, L(LAB.d_emph), P("absolutely / utterly " + base,
+			"not " + base + " at all"));
+		R(g, L(LAB.d_hedge), P("fairly / rather / somewhat " + base,
+			"hardly / not exactly " + base));
+		R(g, L(LAB.d_formal), P("exceedingly / remarkably " + base,
+			"far from " + base));
+		R(g, L(LAB.d_informal), P("super / pretty / totally " + base,
+			"not so " + base));
+		R(g, L(LAB.d_stmt), P("It is " + base, "It is not " + base));
+		R(g, L(LAB.d_deduct), P("It may be " + base + " · it must be " + base,
+			"It may not be " + base + " · it can't be " + base));
+		R(g, L(LAB.d_hear), P("It is said to be " + base, "It is said not to be " + base));
+		R(g, L(LAB.d_excl), P("How " + base + "! · So " + base + "!", "Isn't it " + base + "!"));
+		R(g, L(LAB.d_enough), P(base + " enough · too " + base,
+			"not " + base + " enough · not too " + base));
 		g = L(LAB.g_a_oth);
 		R(g, L(LAB.a_adv), advform(base));
 		R(g, L(LAB.a_noun), adjnoun(base));
@@ -884,6 +886,10 @@
 		var possP = uncount ? L(LAB.uncount_dash) : (/s$/.test(first) ? first + "'" : first + "'s");
 		var rows = [];
 		function R(g, name, text){ rows.push({ g: g, name: name, text: text }); }
+		function P(a, ngt){
+			var c = lang === "zh" ? "：" : ": ";
+			return L(LAB.pos) + c + a + " / " + L(LAB.neg) + c + ngt;
+		}
 		var g = L(LAB.g_n_form);
 		R(g, L(LAB.n_sg), base);
 		R(g, L(LAB.n_pl), pl);
@@ -909,26 +915,20 @@
 			: "this " + base + " · these " + first);
 		R(g, L(LAB.n_pron), uncount ? "it" : "it · they");
 		R(g, L(LAB.n_rule), uncount ? L(LAB.pl_no) : (NOUNIRR[base] ? L(LAB.pl_irr) : (UNCHANGED[base] ? L(LAB.pl_same) : L(pluralrule(base)))));
-		g = L(LAB.g_ntone);
-		R(g, L(LAB.q_formal), uncount ? "a great deal of " + base : "a considerable number of " + first);
-		R(g, L(LAB.q_neutral), "some " + (uncount ? base : first));
-		R(g, L(LAB.q_informal), "a lot of " + (uncount ? base : first) + " · tons of " + (uncount ? base : first));
-		R(g, L(LAB.q_small), uncount ? "a little " + base : "a few " + first);
-		R(g, L(LAB.q_every), uncount ? "every bit of " + base : "every single " + base);
-		R(g, L(LAB.q_neg), "not any " + base + " · no " + base);
-		R(g, L(LAB.q_excl), uncount ? "What " + base + "!" : "What a " + base + "!");
-		R(g, L(LAB.q_ref), uncount
-			? "the " + base + " · " + base + " in general"
-			: article(base) + " " + base + " · the " + base + " · " + first + " in general");
 		var artbase = uncount ? base : article(base) + " " + base;
-		g = L(LAB.g_negn);
-		R(g, L(LAB.n_stmt), "It is not " + artbase);
-		R(g, L(LAB.n_emph), "It is not " + artbase + " at all");
-		R(g, L(LAB.n_degree), uncount ? "not much " + base : "not a single " + base);
-		R(g, L(LAB.n_hedge), "It might not be " + artbase + " · it isn't exactly " + artbase);
-		R(g, L(LAB.n_deduct), "It may not be " + artbase + " · it can't be " + artbase);
-		R(g, L(LAB.n_hear), "It is said that it is not " + artbase);
-		R(g, L(LAB.n_rhet), "Isn't it " + artbase + "!");
+		g = L(LAB.g_ntone);
+		R(g, L(LAB.q_stmt), P("It is " + artbase, "It is not " + artbase));
+		R(g, L(LAB.q_formal), P(uncount ? "a great deal of " + base : "a considerable number of " + first,
+			uncount ? "not much " + base : "not a single " + base));
+		R(g, L(LAB.q_neutral), P("some " + (uncount ? base : first), "not any " + (uncount ? base : first)));
+		R(g, L(LAB.q_informal), P("a lot of " + (uncount ? base : first) + " · tons of " + (uncount ? base : first),
+			uncount ? "not much " + base : "not many " + first));
+		R(g, L(LAB.q_small), P(uncount ? "a little " + base : "a few " + first,
+			"hardly any " + (uncount ? base : first)));
+		R(g, L(LAB.q_excl), P(uncount ? "What " + base + "!" : "What a " + base + "!", "Isn't it " + artbase + "!"));
+		R(g, L(LAB.q_deduct), P("It may be " + artbase + " · it must be " + artbase,
+			"It may not be " + artbase + " · it can't be " + artbase));
+		R(g, L(LAB.q_hear), P("It is said to be " + artbase, "It is said not to be " + artbase));
 		var note = NOUNIRR[base] ? L(LAB.irr_n) : L(LAB.reg_n);
 		if (!uncount) note += " · " + plist.join(" / ");
 		else note += " · " + L(LAB.count_no);

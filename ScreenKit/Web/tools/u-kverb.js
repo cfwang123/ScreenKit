@@ -91,8 +91,7 @@
 		aux: ["补助", "보조", "Auxiliary"],
 		voice: ["态", "태", "Voice"],
 		style: ["文体", "문체", "Style"],
-		mood: ["语气", "양태", "Mood"],
-		negmood: ["否定语气", "부정 양태", "Negative mood"]
+		mood: ["语气", "양태", "Mood"]
 	};
 	var NOTE = {
 		v: ["动词", "동사", "verb"],
@@ -247,7 +246,6 @@
 		guessf: ["判断（将来）", "판단 미래", "judgment (future)"],
 		maybe: ["也许", "어쩌면", "maybe"],
 		oblig: ["义务", "의무", "obligation"],
-		oblig2: ["义务（否定式）", "의무 부정", "must (negative)"],
 		perm: ["许可", "허가", "permission"],
 		prohibit: ["禁止", "금지", "prohibition"],
 		req: ["请求", "요청", "request"],
@@ -257,16 +255,7 @@
 		decide: ["决心", "결심", "decision"],
 		promise: ["约定", "약속", "arrangement"],
 		excl: ["感叹", "감탄", "exclamation"],
-		confirm: ["确认", "확인", "confirming"],
-		nh: ["传闻（否定）", "전언 부정", "hearsay (negative)"],
-		nhs: ["传闻缩略（否定）", "전언 준말 부정", "short hearsay (negative)"],
-		nconj: ["推量（否定）", "추량 부정", "conjecture (negative)"],
-		nguess: ["判断（否定）", "판단 부정", "judgment (negative)"],
-		nguessf: ["判断将来（否定）", "판단 미래 부정", "judgment (future, negative)"],
-		nneed: ["不必", "불필요", "need not"],
-		nreq: ["请求（否定）", "요청 부정", "negative request"],
-		nexcl: ["感叹（否定）", "감탄 부정", "exclamation (negative)"],
-		nconfirm: ["确认（否定）", "확인 부정", "confirming (negative)"]
+		confirm: ["确认", "확인", "confirming"]
 	};
 	var PICKG = {
 		v: ["动词", "동사", "Verbs"],
@@ -530,8 +519,16 @@
 	}
 
 	function cell(item, tip){
-		return '<td class="jv-k">' + esc(item.name) + '</td><td class="jv-v"><span>' + esc(item.text) + "</span>"
-			+ '<button type="button" class="jv-spk" data-v="' + esc(item.text) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button></td>';
+		var forms = String(item.text || "").split(" / ");
+		var bits = "";
+		var i;
+		for (i = 0; i < forms.length; i++) {
+			if (!forms[i]) continue;
+			if (bits) bits += " ";
+			bits += "<span>" + esc(forms[i]) + "</span>"
+				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button>';
+		}
+		return '<td class="jv-k">' + esc(item.name) + '</td><td class="jv-v">' + bits + "</td>";
 	}
 
 	function esc(s){
@@ -1237,43 +1234,36 @@
 			add("hagecmd", "하게체 명령", jn(syls) + "게");
 			add("hagesug", "하게체 청유", jn(syls) + "세");
 		}
-		// 语气：传闻、推量、判断、义务、许可、请求、意愿、感叹
+		// 语气：传闻、推量、判断、义务、许可、请求、意愿、感叹；肯定与否定同格并列
 		var plainNow = neunda(syls, plainDa, word);
+		var itda = kind === "itda";
+		var negNow = itda ? "없다" : jn(syls) + (verb ? "지 않는다" : "지 않다");
+		var negPast = itda ? "없었" : jn(syls) + "지 않았";
+		var negFut = itda ? "없을" : jn(syls) + "지 않을";
+		var negGuess = itda ? "없나 봐요" : jn(syls) + (adj ? "지 않은가 봐요" : "지 않나 봐요");
+		var negGuessP = itda ? "없는 것 같아요" : jn(syls) + (adj ? "지 않은 것 같아요" : "지 않는 것 같아요");
+		var negExcl = itda ? "없군요" : jn(syls) + (adj ? "지 않은군요" : "지 않는군요");
+		var both = function(a, n){ return a + " / " + n; };
 		cur = g("mood");
-		add("hearsay", "다고 해요", plainNow + "고 해요");
-		add("hearsays", "대요", plainNow.replace(/다$/, "대요"));
-		add("hearsaysp", "았대요", past + "대요");
-		add("conj", "나 봐요", adj && !eobs ? nieunWord(syls, irr) + "가 봐요" : dropR(syls, "나 봐요"));
-		add("guess", "는 것 같아요", (adj && !eobs ? nieunWord(syls, irr) : neun(syls)) + " 것 같아요");
-		add("guessf", "ㄹ 것 같아요", rl + " 것 같아요");
-		add("maybe", "ㄹ지도 몰라요", rl + "지도 몰라요");
-		add("oblig", "아야 돼요", ba + "야 돼요");
-		add("oblig2", "지 않으면 안 돼요", jn(syls) + "지 않으면 안 돼요");
-		add("perm", "아도 돼요", ba + "도 돼요");
+		add("hearsay", "다고 해요", both(plainNow + "고 해요", negNow + "고 해요"));
+		add("hearsays", "대요", both(plainNow.replace(/다$/, "대요"), negNow.replace(/다$/, "대요")));
+		add("hearsaysp", "았대요", both(past + "대요", negPast + "대요"));
+		add("conj", "나 봐요", both(adj && !eobs ? nieunWord(syls, irr) + "가 봐요" : dropR(syls, "나 봐요"), negGuess));
+		add("guess", "는 것 같아요", both((adj && !eobs ? nieunWord(syls, irr) : neun(syls)) + " 것 같아요", negGuessP));
+		add("guessf", "ㄹ 것 같아요", both(rl + " 것 같아요", negFut + " 것 같아요"));
+		add("maybe", "ㄹ지도 몰라요", both(rl + "지도 몰라요", negFut + "지도 몰라요"));
+		add("oblig", "아야 돼요", both(ba + "야 돼요", itda ? "없어야 돼요" : jn(syls) + "지 않아야 돼요"));
+		add("perm", "아도 돼요", both(ba + "도 돼요", itda ? "없어도 돼요" : jn(syls) + "지 않아도 돼요"));
 		add("prohibit", "으면 안 돼요", plusEu(st, "면 안 돼요", false));
-		add("excl", "는군요", (adj || kind === "itda" ? jn(syls) : neun(syls)) + "군요");
-		add("confirm", "다면서요?", plainNow + "면서요?");
+		add("excl", "는군요", both((adj || itda ? jn(syls) : neun(syls)) + "군요", negExcl));
+		add("confirm", "다면서요?", both(plainNow + "면서요?", negNow + "면서요?"));
 		if (verb) {
-			add("req", "아 주세요", ba + " 주세요");
-			add("reqp", "아 주시겠어요?", ba + " 주시겠어요?");
-			add("intent", "ㄹ래요", rl + "래요");
-			add("plan", "려고 해요", plusEu(st, "려고 해요", false));
-			add("decide", "아야겠어요", ba + "야겠어요");
-			add("promise", "기로 했어요", jn(syls) + "기로 했어요");
-		}
-		// 否定语气：否定形再叠加语气
-		if (kind === "v" || kind === "a") {
-			var negNow = jn(syls) + (verb ? "지 않는다" : "지 않다");
-			cur = g("negmood");
-			add("nh", "않다고 해요", negNow + "고 해요");
-			add("nhs", "않대요", negNow.replace(/다$/, "대요"));
-			add("nconj", "않나 봐요", jn(syls) + (adj ? "지 않은가 봐요" : "지 않나 봐요"));
-			add("nguess", "않는 것 같아요", jn(syls) + (adj ? "지 않은 것 같아요" : "지 않는 것 같아요"));
-			add("nguessf", "않을 것 같아요", jn(syls) + "지 않을 것 같아요");
-			add("nneed", "않아도 돼요", jn(syls) + "지 않아도 돼요");
-			add("nexcl", "않는군요", jn(syls) + (adj ? "지 않은군요" : "지 않는군요"));
-			add("nconfirm", "않다면서요?", negNow + "면서요?");
-			if (verb) add("nreq", "지 말아 주세요", jn(syls) + "지 말아 주세요");
+			add("req", "아 주세요", both(ba + " 주세요", jn(syls) + "지 말아 주세요"));
+			add("reqp", "아 주시겠어요?", both(ba + " 주시겠어요?", jn(syls) + "지 말아 주시겠어요?"));
+			add("intent", "ㄹ래요", both(rl + "래요", jn(syls) + "지 않을래요"));
+			add("plan", "려고 해요", both(plusEu(st, "려고 해요", false), jn(syls) + "지 않으려고 해요"));
+			add("decide", "아야겠어요", both(ba + "야겠어요", jn(syls) + "지 않아야겠어요"));
+			add("promise", "기로 했어요", both(jn(syls) + "기로 했어요", jn(syls) + "지 않기로 했어요"));
 		}
 		// 方言：与标准语不同的常用说法，每个方言一组
 		var dia = dialectRows(syls, irr, kind, {
@@ -1421,30 +1411,20 @@
 		cur = g("neg");
 		add("any", "아니에요", noun ? noun + (bat ? "이" : "가") + " 아니에요" : "아니에요");
 		cur = g("mood");
-		add("hearsay", "다고 해요", noun + (bat ? "이라고" : "라고") + " 해요");
-		add("hearsays", "래요", noun + (bat ? "이래요" : "래요"));
-		add("hearsaysp", "았대요", noun + (bat ? "이었대요" : "였대요"));
-		add("conj", "인가 봐요", noun + "인가 봐요");
-		add("guess", "인 것 같아요", noun + "인 것 같아요");
-		add("guessf", "일 것 같아요", noun + "일 것 같아요");
-		add("maybe", "일지도 몰라요", noun + "일지도 몰라요");
-		add("oblig", "이어야 돼요", noun + (bat ? "이어야" : "여야") + " 돼요");
-		add("oblig2", "지 않으면 안 돼요", noun + (bat ? "이지" : "지") + " 않으면 안 돼요");
-		add("perm", "아도 돼요", noun + (bat ? "이어도" : "여도") + " 돼요");
-		add("prohibit", "으면 안 돼요", noun + (bat ? "이면" : "면") + " 안 돼요");
-		add("excl", "군요", noun + (bat ? "이군요" : "군요"));
-		add("confirm", "다면서요?", noun + (bat ? "이라면서요?" : "라면서요?"));
-		cur = g("negmood");
 		var p = bat ? "이" : "가";
 		var nop = noun + p + " 아니";
-		add("nh", "아니라고 해요", nop + "라고 해요");
-		add("nhs", "아니래요", nop + "래요");
-		add("nconj", "아닌가 봐요", noun + p + " 아닌가 봐요");
-		add("nguess", "아닌 것 같아요", noun + p + " 아닌 것 같아요");
-		add("nguessf", "아닐 것 같아요", noun + p + " 아닐 것 같아요");
-		add("nneed", "아니어도 돼요", nop + "어도 돼요");
-		add("nexcl", "아니군요", nop + "군요");
-		add("nconfirm", "아니라면서요?", nop + "라면서요?");
+		add("hearsay", "다고 해요", noun + (bat ? "이라고" : "라고") + " 해요 / " + nop + "라고 해요");
+		add("hearsays", "래요", noun + (bat ? "이래요" : "래요") + " / " + nop + "래요");
+		add("hearsaysp", "았대요", noun + (bat ? "이었대요" : "였대요") + " / " + nop + "었대요");
+		add("conj", "인가 봐요", noun + "인가 봐요 / " + noun + p + " 아닌가 봐요");
+		add("guess", "인 것 같아요", noun + "인 것 같아요 / " + noun + p + " 아닌 것 같아요");
+		add("guessf", "일 것 같아요", noun + "일 것 같아요 / " + noun + p + " 아닐 것 같아요");
+		add("maybe", "일지도 몰라요", noun + "일지도 몰라요 / " + noun + p + " 아닐지도 몰라요");
+		add("oblig", "이어야 돼요", noun + (bat ? "이어야" : "여야") + " 돼요 / " + nop + "어야 돼요");
+		add("perm", "아도 돼요", noun + (bat ? "이어도" : "여도") + " 돼요 / " + nop + "어도 돼요");
+		add("prohibit", "으면 안 돼요", noun + (bat ? "이면" : "면") + " 안 돼요");
+		add("excl", "군요", noun + (bat ? "이군요" : "군요") + " / " + nop + "군요");
+		add("confirm", "다면서요?", noun + (bat ? "이라면서요?" : "라면서요?") + " / " + nop + "라면서요?");
 		return rows;
 	}
 
@@ -1480,20 +1460,6 @@
 		add("modf", "ㄹ", "아닐");
 		add("deon", "던", "아니던");
 		add("atd", "았던", "아니었던");
-		cur = g("mood");
-		add("hearsay", "다고 해요", "아니라고 해요");
-		add("hearsays", "래요", "아니래요");
-		add("hearsaysp", "았대요", "아니었대요");
-		add("guess", "ㄴ 것 같아요", "아닌 것 같아요");
-		add("guessf", "ㄹ 것 같아요", "아닐 것 같아요");
-		add("maybe", "ㄹ지도 몰라요", "아닐지도 몰라요");
-		add("conj", "ㄴ가 봐요", "아닌가 봐요");
-		add("oblig", "어야 돼요", "아니어야 돼요");
-		add("oblig2", "지 않으면 안 돼요", "아니지 않으면 안 돼요");
-		add("perm", "아도 돼요", "아니어도 돼요");
-		add("prohibit", "으면 안 돼요", "아니면 안 돼요");
-		add("excl", "군요", "아니군요");
-		add("confirm", "다면서요?", "아니라면서요?");
 		return rows;
 	}
 })();
