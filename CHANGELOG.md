@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean verbs: add hearsay, conjecture, judgment, obligation, permission and request forms
 - Korean nouns: list the same hearsay, conjecture, judgment, obligation and permission forms as verbs
 - Add register and tone groups to the English word-forms tool.
+- Korean: add negative-mood combinations such as hearsay, conjecture, judgment and need not
 
 #### Changed
 
@@ -154,6 +155,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语动词变化：补充传闻、推量、判断、义务、许可、请求等语气
 - 韩语名词：补上与动词对应的传闻、推量、判断、义务、许可等语气
 - 英语词形工具按正式、中性、口语、强调、委婉、感叹、推测等补上语体与语气，动词、形容词、名词各一组。
+- 韩语：补充否定形叠加语气（传闻、推量、判断、不必、否定请求等）
 
 #### 变更
 
