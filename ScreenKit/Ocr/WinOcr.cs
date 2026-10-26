@@ -1670,11 +1670,53 @@ static class WinOcr {
 		return ws[ws.Count / 2];
 	}
 
+	/// <summary>一排卡片、按钮里常夹着图标，OCR 会把图标认成一个反复出现的字。取出现最多的那个单字。</summary>
+	static string repeatedsep(List<Seg> row) {
+		var cnt = new Dictionary<string, int>(StringComparer.Ordinal);
+		foreach (var s in row) {
+			var t = (s.Line.Text ?? "").Trim();
+			if (t.Length != 1 || !iscjk(t[0])) continue;
+			cnt[t] = cnt.TryGetValue(t, out var n) ? n + 1 : 1;
+		}
+		string best = null;
+		var max = 0;
+		foreach (var kv in cnt) {
+			if (kv.Value > max) { max = kv.Value; best = kv.Key; }
+		}
+		return max >= 3 ? best : null;
+	}
+
+	/// <summary>按这个单字切开。切出来每段都至少两个字才认，否则当普通一行处理。</summary>
+	static bool splitbysep(List<Seg> row, string sep, out List<List<Seg>> parts) {
+		parts = null;
+		var groups = new List<List<Seg>>();
+		var cur = new List<Seg>();
+		foreach (var s in row) {
+			var t = (s.Line.Text ?? "").Trim();
+			if (string.Equals(t, sep, StringComparison.Ordinal)) {
+				if (cur.Count > 0) { groups.Add(cur); cur = new List<Seg>(); }
+				continue;
+			}
+			cur.Add(s);
+		}
+		if (cur.Count > 0) groups.Add(cur);
+		if (groups.Count < 3) return false;
+		foreach (var g in groups) {
+			var n = 0;
+			foreach (var s in g) n += (s.Line.Text ?? "").Trim().Length;
+			if (n < 2) return false;
+		}
+		parts = groups;
+		return true;
+	}
+
 	static List<List<Seg>> splitgaps(List<Seg> row) {
 		var groups = new List<List<Seg>>();
 		var cur = new List<Seg> { row[0] };
 		groups.Add(cur);
 		if (row.Count == 1) return groups;
+		var sep = repeatedsep(row);
+		if (sep != null && splitbysep(row, sep, out var parts)) return parts;
 		var cw = charw(row);
 		var span = row[row.Count - 1].R - row[0].L;
 		var cut = Math.Max(cw * 10f, span * 0.12f);

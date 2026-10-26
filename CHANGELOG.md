@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation can now pick non-English language pairs such as Chinese to Japanese; Chrome pivots through English, so both the English to Chinese and English to Japanese models are needed.
 - The local web server now gzips JSON API responses and text web files (HTML, JS, CSS, SVG) when the client asks for it, and caches the compressed static files instead of recompressing them on every request.
 - The HTTP API supports Keep-Alive: HTTP/1.1 reuses connections and an idle connection is held for at most 10 seconds (configurable with http_keepalive).
+- Windows OCR splits a row of icon-separated segments into one result per segment instead of joining them into one line.
 
 #### Changed
 
@@ -122,6 +123,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 翻译可以选中文 ↔ 日文这类非英文语言对。Chrome 内部经英文中转，需要同时装好英文 ↔ 中文和英文 ↔ 日文的模型。
 - 本机网页服务对 JSON 接口和 HTML、JS、CSS、SVG 等文本文件按 gzip 压缩，客户端支持才压；静态文件的压缩结果会缓存，文件没改不会重复压缩。
 - HTTP 接口支持 Keep-Alive：HTTP/1.1 默认复用连接，空闲连接最多保持 10 秒（可用 http_keepalive 调整）。
+- Windows OCR 把一行里用图标隔开的多段文字拆成多条结果，不再拼成一行。
 
 #### 变更
 
