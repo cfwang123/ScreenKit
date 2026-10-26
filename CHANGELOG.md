@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The local web server now gzips JSON API responses and text web files (HTML, JS, CSS, SVG) when the client asks for it, and caches the compressed static files instead of recompressing them on every request.
 - The HTTP API supports Keep-Alive: HTTP/1.1 reuses connections and an idle connection is held for at most 10 seconds (configurable with http_keepalive).
 - Windows OCR splits a row of icon-separated segments into one result per segment instead of joining them into one line.
+- Korean verbs: North Korean (Munhwao), DPRK broadcast and Yanbian Korean endings, including -ㅂ네다, -습네다, hapsyo -ㅂ니다, -시였습니다, -리라, -ㅁ다/슴다 and -ㄴ다이.
 
 #### Changed
 
@@ -75,6 +76,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The build merges and minifies web scripts and styles; the slim package ships only merged, minified js/css.
 - In Chinese + English recognition, numbers and Latin runs now come from the English pass, and the two results are no longer pasted twice; a line with one wide gap stays a single line instead of being split into columns.
 - HTTP TTS: the Edge online voice list is cached for an hour instead of being fetched on every request.
+- HTTP API: OCR, ASR, TTS, translation, face, chat, dictionary speech, and network lookups now run at most 8 at a time and answer 503 immediately beyond that, so /api/status and model lists stay responsive during a burst. The listener also caps connections at 256 and raises the thread-pool minimum.
+- Korean verbs: stop listing forms that match standard Korean (자요, 더랬-, plain passive, broadcast 합쇼체/-리라)
 
 #### Fixed
 
@@ -114,6 +117,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Mixed Chinese + English recognition compared the cell box, already scaled back to the source image, with word boxes still in the enlarged image, so on upscaled screenshots the English numbers were never used; both are now compared at the same scale.
 - Mixed recognition took the dollar sign as its own word and the English result brought it again, so prices came out as $$0.30; the sign now stays with the number.
 - Idle model unload no longer waits behind a running synthesis or recognition, so the UI thread is not blocked.
+- Temporary WAV and image files no longer collide when several requests land in the same millisecond; the name now carries a random suffix.
+- Early error responses (503, 405, bad request) now drain the request body before closing, so clients read the JSON error instead of getting a connection reset.
 
 ### 中文
 
@@ -130,6 +135,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 本机网页服务对 JSON 接口和 HTML、JS、CSS、SVG 等文本文件按 gzip 压缩，客户端支持才压；静态文件的压缩结果会缓存，文件没改不会重复压缩。
 - HTTP 接口支持 Keep-Alive：HTTP/1.1 默认复用连接，空闲连接最多保持 10 秒（可用 http_keepalive 调整）。
 - Windows OCR 把一行里用图标隔开的多段文字拆成多条结果，不再拼成一行。
+- 韩语动词变化：新增朝鲜文化语、朝鲜播音体和延边朝鲜语词尾，如 -ㅂ네다、-습네다、합쇼체 -ㅂ니다、-시였습니다、-리라、-ㅁ다/슴다、-ㄴ다이。
 
 #### 变更
 
@@ -148,6 +154,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 编译时合并并压缩 web 的 js/css；精简包只带合并、压缩后的 js/css。
 - 中英混合识别时，数字和英文改用英文引擎的结果，不再和中文结果重复拼接；只有一个大空档的行仍是一整行，不当成分栏切开。
 - HTTP 语音合成：Edge 在线发音人列表缓存一小时，不再每个请求都联网拉一遍。
+- HTTP 接口：识别、合成、翻译、人脸、对话、词典发音和联网查询同时最多 8 个，超出的当场返回 503，突发请求时 /api/status 和模型列表仍能立刻响应。监听连接上限 256，线程池下限也调高了。
+- 韩语动词变化：不再列出与标准语同形的说法（자요、더랬-、普通被动词、播音 합쇼체/-리라）
 
 #### 修复
 
@@ -187,6 +195,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 中英混合识别时，格子框已缩回原图，词框还是放大后的坐标，放大过的小图上取不到英文数字；现在按同一尺度比较。
 - 中英混合时美元符号被单独认成一个词，换成英文结果后又带了一遍，价格变成 $$0.30；现在符号跟后面的数字一起整段处理。
 - 空闲卸载模型时不再排队等正在进行的合成或识别，界面线程不会被卡住。
+- 同一毫秒内的多个请求不再生成同名临时文件（临时文件名加了随机段），词典发音、SAPI 合成等不再偶发互相覆盖。
+- 提前返回错误（503、405、请求非法）时先把请求体收掉再断开，客户端能读到 JSON 错误，不再表现为连接被重置。
 
 ## v1.0.29 (2026-10-23)
 

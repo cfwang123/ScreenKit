@@ -15,8 +15,9 @@ static class TmpStore {
 		}
 	}
 
+	/// <summary>名字带随机段：多路并发在同一毫秒里调用也不会撞名。</summary>
 	public static string NewPath(string prefix, string ext) {
-		var name = $"{prefix}_{DateTime.Now:yyyyMMdd_HHmmss_fff}{ext}";
+		var name = $"{prefix}_{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid().ToString("N").Substring(0, 8)}{ext}";
 		return Path.Combine(Root, name);
 	}
 

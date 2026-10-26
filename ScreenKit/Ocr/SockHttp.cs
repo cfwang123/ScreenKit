@@ -18,6 +18,10 @@ sealed class SockHttpServer {
 	Action<SockCtx> onrequest;
 	/// <summary>长连接空闲最多保持多久（毫秒）。0 表示每个请求处理完就断开。</summary>
 	public int KeepAliveMs = 10000;
+	/// <summary>同时在处理的连接上限。多出的当场回 503，不排进线程池。
+	/// 取 256 只防极端连接数；真正限制重请求的是 HttpOcrServer 里的 HeavySlots。</summary>
+	public int MaxConnections = 256;
+	System.Threading.SemaphoreSlim liveslot;
 
 	public int Port { get; private set; }
 
@@ -28,6 +32,8 @@ sealed class SockHttpServer {
 			onrequest = onRequest;
 			tcp = bind(host, port);
 			Port = ((IPEndPoint)tcp.LocalEndpoint).Port;
+			var cap = MaxConnections > 0 ? MaxConnections : 4096;
+			liveslot = new System.Threading.SemaphoreSlim(cap, cap);
 			running = true;
 			var l = tcp;
 			_ = Task.Run(() => acceptloop(l));
@@ -107,11 +113,35 @@ sealed class SockHttpServer {
 				if (!running) break;
 				continue;
 			}
-			_ = Task.Run(() => serve(c));
+			var slot = liveslot;
+			if (slot == null || !slot.Wait(0)) {
+				rejectbusy(c);
+				continue;
+			}
+			_ = Task.Run(() => serve(c, slot));
 		}
 	}
 
-	void serve(TcpClient c) {
+	/// <summary>连接数已满：当场写 503 再关，免得排在线程池里等到客户端超时。</summary>
+	static void rejectbusy(TcpClient c) {
+		try {
+			var body = Encoding.UTF8.GetBytes("{\"code\":503,\"data\":\"服务繁忙：同时处理的连接已达上限，请稍后重试\"}");
+			var head = Encoding.UTF8.GetBytes(
+				"HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nRetry-After: 1\r\n"
+				+ "Content-Type: application/json; charset=utf-8\r\n"
+				+ "Content-Length: " + body.Length.ToString(CultureInfo.InvariantCulture) + "\r\n\r\n");
+			var ns = c.GetStream();
+			ns.Write(head, 0, head.Length);
+			ns.Write(body, 0, body.Length);
+			ns.Flush();
+		}
+		catch { }
+		finally {
+			try { c.Close(); } catch { }
+		}
+	}
+
+	void serve(TcpClient c, System.Threading.SemaphoreSlim slot) {
 		var ka = KeepAliveMs;
 		try {
 			noinherit(c.Client);
@@ -141,7 +171,15 @@ sealed class SockHttpServer {
 				}
 				// 发包时才知道没有 Content-Length 的响应当场把可复用改回 false
 				keep = keep && ctx.Response.KeepAlive;
-				if (ctx.Upgraded || ctx.RawTaken || !keep) break;
+				if (ctx.Upgraded || ctx.RawTaken || !keep) {
+					// 响应发完但请求体没读（限流 503、405、参数错误等）：先收掉再关。
+					// 直接 close 会让对端收到 RST，而不是已经写出去的完整响应。
+					if (!ctx.Upgraded && !ctx.RawTaken) {
+						try { c.ReceiveTimeout = 2000; } catch { }
+						try { drainbody(ctx.Request); } catch { }
+					}
+					break;
+				}
 				// 请求体没读完不能接着读下一个请求
 				try { c.ReceiveTimeout = 3000; } catch { }
 				if (!drainbody(ctx.Request)) break;
@@ -150,6 +188,7 @@ sealed class SockHttpServer {
 		catch { }
 		finally {
 			try { c.Close(); } catch { }
+			try { slot?.Release(); } catch { }
 		}
 	}
 

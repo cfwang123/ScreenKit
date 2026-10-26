@@ -392,10 +392,13 @@ static class ChromeHost {
 		for (var attempt = 0; attempt < 3; attempt++) {
 			lock (gate) {
 				Volatile.Write(ref idle, idleSec);
-				if (up(proc) && string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)
-					&& string.Equals(launchedpx, px, StringComparison.Ordinal)) {
-					lock (slots) ready = true;
-					return;
+				if (samehost(path, px)) {
+					var dbg = readdebug();
+					if (up(proc) || bootpage(dbg)) {
+						debugPort = dbg;
+						lock (slots) ready = true;
+						return;
+					}
 				}
 				stopunlocked();
 				starthttp();
@@ -443,6 +446,8 @@ static class ChromeHost {
 		catch { }
 		var utf8 = new UTF8Encoding(false);
 		File.WriteAllText(Path.Combine(dir, "boot.html"), boothtml, utf8);
+		// 上一只留下的调试口不能算数，否则会把它当成这次启动的浏览器。
+		try { File.Delete(Path.Combine(profile, "DevToolsActivePort")); } catch { }
 		var url = "http://127.0.0.1:" + port + "/boot.html";
 		var args = new StringBuilder();
 		args.Append("--user-data-dir=\"").Append(profile).Append("\" ");
@@ -464,18 +469,71 @@ static class ChromeHost {
 
 	static bool waitready(CancellationToken ct) {
 		var start = Environment.TickCount;
+		var gone = 0;
 		while (unchecked(Environment.TickCount - start) < 15000) {
 			if (ct.IsCancellationRequested) return false;
 			if (hastitle("skc-ready")) {
 				cloak();
 				return true;
 			}
-			if (!up(proc)) return false;
+			if (up(proc)) gone = 0;
+			else {
+				// 管理员运行时 Chrome 会先退掉启动器、再降权拉起真正的浏览器。等页面，别把这次当成失败。
+				if (gone == 0) gone = Environment.TickCount;
+				if (browserpid() <= 0 && unchecked(Environment.TickCount - gone) > 3000) return false;
+			}
 			Thread.Sleep(100);
 		}
 		var ok = hastitle("skc-ready");
 		if (ok) cloak();
 		return ok;
+	}
+
+	/// <summary>降权后的浏览器进程。启动器退出后，调试口还在就认为这只 Chrome 还活着。</summary>
+	static int browserpid() {
+		var dbg = debugPort > 0 ? debugPort : readdebug();
+		if (dbg <= 0) return 0;
+		var pid = listenpid(dbg);
+		if (!alive(pid)) return 0;
+		hostpid = pid;
+		return pid;
+	}
+
+	static bool samehost(string path, string px) {
+		if (!string.Equals(launched, path, StringComparison.OrdinalIgnoreCase)) return false;
+		if (!string.Equals(launchedpx, px, StringComparison.Ordinal)) return false;
+		return up(proc) || browserpid() > 0;
+	}
+
+	/// <summary>接上现成的浏览器时，确认里面有朗读页；没有就补开一张，免得任务没人接。</summary>
+	static bool bootpage(int dbg) {
+		if (dbg <= 0 || port <= 0) return false;
+		var mark = ":" + port + "/boot.html";
+		try {
+			var req = WebRequest.Create("http://127.0.0.1:" + dbg + "/json/list");
+			req.Timeout = 1500;
+			using var resp = req.GetResponse();
+			using var rd = new StreamReader(resp.GetResponseStream());
+			var text = rd.ReadToEnd();
+			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(text) ? "[]" : text);
+			if (doc.RootElement.ValueKind == JsonValueKind.Array) {
+				foreach (var el in doc.RootElement.EnumerateArray()) {
+					var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
+					if ((url ?? "").IndexOf(mark, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+				}
+			}
+		}
+		catch { return false; }
+		try {
+			var url = "http://127.0.0.1:" + port + "/boot.html";
+			var req = WebRequest.Create("http://127.0.0.1:" + dbg + "/json/new?" + Uri.EscapeDataString(url));
+			req.Method = "PUT";
+			req.ContentLength = 0;
+			req.Timeout = 3000;
+			using (req.GetResponse()) { }
+			return true;
+		}
+		catch { return false; }
 	}
 
 	static void idleloop() {

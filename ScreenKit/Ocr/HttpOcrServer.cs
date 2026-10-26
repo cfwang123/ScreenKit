@@ -47,6 +47,10 @@ namespace ScreenKit;
 sealed partial class HttpOcrServer : IDisposable {
 	readonly Func<OcrOptions> getOpts;
 	readonly OcrRunner runner;
+	/// <summary>重接口(识别/合成/翻译/网络查询)同时放行的请求数。多出的立刻回 503，不排队占线程。
+	/// 取 8 是为了给状态、模型列表这类轻接口留出线程，80 路并发时它们仍能立刻响应。</summary>
+	const int HeavySlots = 8;
+	static readonly System.Threading.SemaphoreSlim heavyslot = new(HeavySlots, HeavySlots);
 	readonly object listenLock = new();
 	SockHttpServer sock;
 	bool disposed;
@@ -102,6 +106,9 @@ sealed partial class HttpOcrServer : IDisposable {
 		if (port == 0) host = "127.0.0.1";
 		else port = Compat.Clamp(port, 1, 65535);
 		var all = port != 0 && (lan || host == "+");
+		// 连接一多，线程池补线程很慢（约每秒 1~2 个），请求就会排队好几秒。
+		// 先把下限抬高，让 HttpOcrServer 里的重接口限流真正起作用，而不是卡在排队上。
+		try { System.Threading.ThreadPool.SetMinThreads(64, 64); } catch { }
 		lock (listenLock) {
 			Stop();
 			var s = new SockHttpServer {
@@ -135,6 +142,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		var t0 = Environment.TickCount;
 		var method = "";
 		var pathRaw = "";
+		var heavy = false;
 		try {
 			var req = ctx.Request;
 			method = req.HttpMethod ?? "";
@@ -148,6 +156,14 @@ sealed partial class HttpOcrServer : IDisposable {
 
 			var path = pathRaw.ToLowerInvariant();
 			var optNow = getOpts?.Invoke() ?? new OcrOptions();
+			// 重接口限流：拿不到槽位就当场回 503，别让请求堆在线程池里等到超时。
+			if (isheavyapi(path)) {
+				if (!heavyslot.Wait(0)) {
+					writejson(ctx, 503, err(503, "服务繁忙：同时进行的重请求已达上限（" + HeavySlots + "），请稍后重试"));
+					return;
+				}
+				heavy = true;
+			}
 			if (path is "/cast") {
 				handlecast(ctx);
 				return;
@@ -652,6 +668,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				try { writejson(ctx, 500, err(900, $"内部错误: {ex.Message}")); } catch { }
 		}
 		finally {
+			if (heavy) heavyslot.Release();
 			if (!string.Equals(method, "OPTIONS", StringComparison.OrdinalIgnoreCase)) {
 				var ms = unchecked(Environment.TickCount - t0);
 				var st = 0;
@@ -665,6 +682,15 @@ sealed partial class HttpOcrServer : IDisposable {
 		var line = $"{DateTime.Now:HH:mm:ss}  {method}  {path}  {status}  {ms}ms";
 		try { Logged?.Invoke(line); } catch { }
 	}
+
+	/// <summary>占用引擎或外部网络、单次耗时可能很长的接口；多路并发时按 HeavySlots 限流。</summary>
+	static bool isheavyapi(string path) => path is
+		"/api/ocr" or "/api/qr" or "/api/qrcode" or "/api/barcode" or "/api/barcodes"
+		or "/api/qrscan" or "/api/asr" or "/api/tts" or "/api/tts/speak"
+		or "/api/translate" or "/api/translate/batch"
+		or "/api/face" or "/api/face/compare" or "/api/face/extract"
+		or "/api/chat" or "/api/dict/speak" or "/api/reader/upload"
+		or "/api/fx" or "/api/ipcity" or "/api/mac" or "/api/usb";
 
 	static string queryone(Uri url, string key) {
 		var q = url?.Query;

@@ -44,7 +44,7 @@ The bottom status bar keeps the listener beside the memory summary, for example 
 
 ## 2. Response conventions
 
-Failures also return **HTTP 200**. Success or failure is only the JSON `code` and `data`. An unknown path, a wrong method, and an uncaught exception are still 200, with the error code in the JSON (404, 805, 900). OPTIONS preflight stays 204. A successful WebSocket upgrade stays 101.
+Failures generally return **HTTP 200**. Success or failure is only the JSON `code` and `data`. An unknown path, a wrong method, and an uncaught exception are still 200, with the error code in the JSON (404, 805, 900). OPTIONS preflight stays 204. A successful WebSocket upgrade stays 101. **The one exception is heavy-endpoint throttling**: when more than 16 OCR, synthesis, translation, face, chat, or network-lookup requests run at once, the extra ones return HTTP **503** (JSON `code` 503) immediately instead of queueing; retry later. Status, model lists, and text tools are not throttled.
 
 ### 2.1 Success (with payload)
 
@@ -80,6 +80,7 @@ Failures also return **HTTP 200**. Success or failure is only the JSON `code` an
 | 100 | Success |
 | 101 | OCR: no text; barcode: none found; Face: no face |
 | 404 | Unknown path |
+| 503 | Heavy-endpoint slots full (HTTP status is also 503): more than 16 OCR / synthesis / translation / face / chat / network lookups at once |
 | 800 | Request parse failure / empty body |
 | 801 | Empty request |
 | 802 | Missing required field (e.g. base64, text) |

@@ -174,7 +174,21 @@ static class DictTts {
 		var path = Path.Combine(cachedir(), "chrome-ack.wav");
 		if (File.Exists(path)) return path;
 		Directory.CreateDirectory(cachedir());
-		File.WriteAllBytes(path, ackwav());
+		// 同样用随机临时名，避免并发首写时互相覆盖。
+		var part = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+		try {
+			File.WriteAllBytes(part, ackwav());
+			try {
+				File.Move(part, path);
+			}
+			catch (IOException) when (File.Exists(path)) {
+				try { File.Delete(part); } catch { }
+			}
+		}
+		catch {
+			try { if (File.Exists(part)) File.Delete(part); } catch { }
+			throw;
+		}
 		return path;
 	}
 
@@ -254,11 +268,17 @@ static class DictTts {
 		if (got.samples == null || got.samples.Length == 0 || got.sampleRate <= 0)
 			throw new InvalidOperationException("novoice");
 		Directory.CreateDirectory(cachedir());
-		var part = path + ".part";
+		// 临时文件带随机名：同一文本并发时各写各的，不会互相删掉对方正在写的文件。
+		var part = path + ".part-" + Guid.NewGuid().ToString("N");
 		try {
 			TtsPlayer.SaveWav(part, got.samples, got.sampleRate);
-			if (File.Exists(path)) File.Delete(path);
-			File.Move(part, path);
+			try {
+				File.Move(part, path);
+			}
+			catch (IOException) when (File.Exists(path)) {
+				// 另一个请求已经把同一段内容写好了，用它的即可。
+				try { File.Delete(part); } catch { }
+			}
 		}
 		catch {
 			try { if (File.Exists(part)) File.Delete(part); } catch { }

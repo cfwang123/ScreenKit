@@ -1539,11 +1539,7 @@ return 'started';
 			var start = Environment.TickCount;
 			while (unchecked(Environment.TickCount - start) < 15000) {
 				ct.ThrowIfCancellationRequested();
-				hide(sess.proc);
-				if (sess.proc.HasExited) {
-					sess.Dispose();
-					throw new InvalidOperationException(Loc.T("inst.chrome.exit"));
-				}
+				sess.hidewin();
 				try {
 					var req = WebRequest.Create("http://127.0.0.1:" + sess.port + "/json/version");
 					req.Timeout = 500;
@@ -1570,7 +1566,7 @@ return 'started';
 			var start = Environment.TickCount;
 			while (unchecked(Environment.TickCount - start) < ms) {
 				ct.ThrowIfCancellationRequested();
-				hide(proc);
+				hidewin();
 				page ??= connect("page", "on-device-translation");
 				if (page != null) {
 					var text = EvalPage("(function(){function text(n){if(!n)return '';var s='';if(n.shadowRoot)s+=text(n.shadowRoot);var ch=n.childNodes||[];for(var i=0;i<ch.length;i++){if(ch[i].nodeType===3)s+=ch[i].textContent;else s+=text(ch[i]);}return s;}return text(document.body);})()", false, 8000, ct);
@@ -1711,7 +1707,7 @@ return 'started';
 		void hideown() {
 			var pid = ownpid();
 			if (pid == 0) {
-				hide(proc);
+				hidewin();
 				return;
 			}
 			EnumWindows((h, _) => {
@@ -1919,7 +1915,7 @@ return 'started';
 			var start = Environment.TickCount;
 			while (unchecked(Environment.TickCount - start) < 12000) {
 				ct.ThrowIfCancellationRequested();
-				hide(proc);
+				hidewin();
 				web ??= connect("page", "127.0.0.1");
 				if (web != null) {
 					string ok;
@@ -1974,7 +1970,7 @@ return 'started';
 				if (browser != null && browser.Pump(40)) any = true;
 				if (page != null && page.Pump(40)) any = true;
 				if (!any) Thread.Sleep(40);
-				hide(proc);
+				hidewin();
 			}
 		}
 
@@ -2159,9 +2155,18 @@ return JSON.stringify(out);
 			HttpProxy.AppendChrome(args, mode, addr);
 		}
 
-		static void hide(Process p) {
-			if (p == null) return;
-			var pid = (uint)p.Id;
+		/// <summary>管理员运行时浏览器是降权重起的那只，启动器已经没了，按调试口的进程找窗口。</summary>
+		void hidewin() {
+			var pid = port > 0 ? (uint)PortUse.ListenerPid(port) : 0;
+			if (pid == 0 && proc != null) {
+				try { if (!proc.HasExited) pid = (uint)proc.Id; }
+				catch { }
+			}
+			hidepid(pid);
+		}
+
+		static void hidepid(uint pid) {
+			if (pid == 0) return;
 			EnumWindows((h, _) => {
 				GetWindowThreadProcessId(h, out var wpid);
 				if (wpid == pid) ShowWindow(h, SW_HIDE);

@@ -10,7 +10,7 @@
 	var YO = vi("ㅛ"), U = vi("ㅜ"), WEO = vi("ㅝ"), EU = vi("ㅡ"), I = vi("ㅣ");
 	var IEUNG = ci("ㅇ"), HIEUT = ci("ㅎ"), RIEULC = ci("ㄹ"), SIOT = ci("ㅅ"), MIEUM = ci("ㅁ");
 	var PIEUPC = ci("ㅍ"), NIEUNC = ci("ㄴ"), TTIEUT = ci("ㄸ"), CHIEUT = ci("ㅊ");
-	var J_R = zi("ㄹ"), J_B = zi("ㅂ"), J_N = zi("ㄴ"), J_SS = zi("ㅆ"), J_H = zi("ㅎ"), J_BS = zi("ㅄ");
+	var J_R = zi("ㄹ"), J_B = zi("ㅂ"), J_N = zi("ㄴ"), J_M = zi("ㅁ"), J_SS = zi("ㅆ"), J_H = zi("ㅎ"), J_BS = zi("ㅄ");
 	var IRR_D = { "걷": 1, "깨닫": 1, "듣": 1, "묻": 1, "싣": 1, "일컫": 1 };
 	var IRR_B = {
 		"가볍": 1, "고맙": 1, "굽": 1, "눕": 1, "덥": 1, "돕": 1, "맵": 1, "무겁": 1, "무섭": 1, "밉": 1,
@@ -88,6 +88,9 @@
 		jj: ["济州", "제주", "Jeju"],
 		hg: ["咸镜道", "함경도", "Hamgyeong"],
 		pg: ["平安道", "평안도", "Pyeongan"],
+		kp: ["朝鲜文化语", "문화어", "North Korean"],
+		kpb: ["朝鲜播音", "보도 문체", "DPRK broadcast"],
+		yb: ["延边朝鲜语", "연변어", "Yanbian Korean"],
 		aux: ["补助", "보조", "Auxiliary"],
 		voice: ["态", "태", "Voice"],
 		style: ["文体", "문체", "Style"],
@@ -254,7 +257,48 @@
 		decide: ["决心", "결심", "decision"],
 		promise: ["约定", "약속", "arrangement"],
 		excl: ["感叹", "감탄", "exclamation"],
-		confirm: ["确认", "확인", "confirming"]
+		confirm: ["确认", "확인", "confirming"],
+		"kp.hap": ["敬语 ㅂ네다", "ㅂ네다", "honorific -pneda"],
+		"kp.qhap": ["敬语疑问 ㅂ네까", "ㅂ네까", "honorific question -pnekka"],
+		"kp.ne": ["随意敬语 ㅂ네", "ㅂ네", "mild honorific -pne"],
+		"kp.qna": ["旧式疑问 ㅂ나", "ㅂ나", "old question -pna"],
+		"kp.deda": ["亲历 ㅂ데다", "ㅂ데다", "witnessed -pdeda"],
+		"kp.degga": ["亲历疑问 ㅂ데까", "ㅂ데까", "witnessed question -pdekka"],
+		"kp.seda": ["劝诱 ㅂ세다", "ㅂ세다", "let us -pseda"],
+		"kp.ninda": ["断言 습닌다", "습닌다", "assertive -pningda"],
+		"kp.sira": ["敬语命令 시라", "시라", "honorific imperative -sira"],
+		"kp.rayo": ["敬语命令 라요", "라요", "honorific imperative -rayo"],
+		"kp.giyo": ["亲近约定 기요", "기요", "familiar promise -giyo"],
+		"kp.soeda": ["过去 쇠다", "쇠다", "past -soeda"],
+		"kp.soda": ["过去 소다", "소다", "past -soda"],
+		"kp.gojeo": ["-고저 하다", "-고저 하다", "-gojeo hada"],
+		"kp.pass": ["强调被动 우다", "우다", "emphatic passive -uda"],
+		"kp.chap": ["敬语 임네다", "임네다", "copula -imneda"],
+		"kp.cqhap": ["敬语疑问 임네까", "임네까", "copula question -imnekka"],
+		"kp.cne": ["随意敬语 임네", "임네", "copula mild -imne"],
+		"kp.cdeda": ["亲历 임데다", "임데다", "copula witnessed -imdeda"],
+		"kp.cdegga": ["亲历疑问 임데까", "임데까", "copula witnessed question -imdekka"],
+		"kp.cseda": ["劝诱 임세다", "임세다", "copula let us -imseda"],
+		"kp.cninda": ["强陈 임닌다", "임닌다", "copula assertive -imninda"],
+		"kp.cpast": ["过去 이였습니다", "이였습니다", "copula past -iyeotseumnida"],
+		"kp.cpast2": ["过去 이였다", "이였다", "copula past -iyeotda"],
+		"kp.cyayo": ["敬语 이야요", "이야요", "copula -iyayo"],
+		"kpb.hon": ["尊称过去 시였습니다", "시였습니다", "honorific past -siyeotseumnida"],
+		"yb.hap": ["敬语 ㅁ다", "ㅁ다", "honorific -mda"],
+		"yb.qhap": ["敬语疑问 ㅁ까", "ㅁ까", "honorific question -mkka"],
+		"yb.ndai": ["하오 ㄴ다이", "ㄴ다이", "familiar -ndai"],
+		"yb.bso": ["命令 ㅂ소", "ㅂ소", "imperative -pso"],
+		"yb.bseda": ["劝诱 ㅂ세다", "ㅂ세다", "let us -pseda"],
+		"yb.giyo": ["约定 기요", "기요", "promise -giyo"],
+		"yb.chap": ["敬语 임다", "임다", "copula -imda"],
+		"yb.cqhap": ["敬语疑问 임까", "임까", "copula question -imkka"],
+		"yb.cndai": ["하오 인다이", "인다이", "copula familiar -indai"],
+		"kpa.hap": ["敬语 아닙네다", "아닙네다", "not -apneda"],
+		"kpa.qhap": ["敬语疑问 아닙네까", "아닙네까", "not question -apnekka"],
+		"kpa.past": ["过去 아니였습니다", "아니였습니다", "not past -aniyeotseumnida"],
+		"kpa.yayo": ["敬语 아니야요", "아니야요", "not -aniyayo"],
+		"yba.hap": ["敬语 아님다", "아님다", "not -amda"],
+		"yba.qhap": ["敬语疑问 아님까", "아님까", "not question -amkka"]
 	};
 	var PICKG = {
 		v: ["动词", "동사", "Verbs"],
@@ -402,7 +446,7 @@
 		var hint = F.id("kv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.kverb.hint");
-			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。");
+			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。表末是朝鲜文化语（ㅂ네다 系）、朝鲜播音体（只列与标准语不同的 -시였습니다）和延边朝鲜语（-ㅁ다/슴다、-ㄴ다이）；与标准语同形的说法不列。");
 		}
 		var title = F.id("box-title");
 		if (title) title.textContent = tx("web.tool.kverb", "韩语动词变化");
@@ -1270,6 +1314,8 @@
 			hey: hey, ba: ba, past: past, st: st, rl: rl
 		}, lang);
 		for (var di = 0; di < dia.length; di++) rows.push(dia[di]);
+		var extra = koreanRows(word, syls, kind, { past: past, st: st, hs: hs }, lang);
+		for (var ki = 0; ki < extra.length; ki++) rows.push(extra[ki]);
 		return rows;
 	}
 
@@ -1365,6 +1411,119 @@
 		return rows;
 	}
 
+	// 文化语 -ㅂ네다 类：开音节和 ㄹ 结尾加 ㅂ，其它闭音节加 습（갑네다 / 먹습네다 / 삽네다）。
+	function kpEnd(syls, tail){
+		var s = cp(syls);
+		var last = s[s.length - 1];
+		if (last.jong === 0 || last.jong === J_R) {
+			last.jong = J_B;
+			return jn(s) + tail;
+		}
+		return jn(s) + "습" + tail;
+	}
+
+	// 延边 -ㅁ다 / -ㅁ까：开音节和 ㄹ 结尾加 ㅁ，其它闭音节加 슴（감다 / 먹슴다 / 삼다）。
+	function ybEnd(syls, tail){
+		var s = cp(syls);
+		var last = s[s.length - 1];
+		if (last.jong === 0 || last.jong === J_R) {
+			last.jong = J_M;
+			return jn(s) + tail;
+		}
+		return jn(s) + "슴" + tail;
+	}
+
+	// 延边 하오体 -ㄴ다이 / -는다이，取法与 -는 / -은 相同。
+	function ybNdai(syls){
+		var s = cp(syls);
+		var last = s[s.length - 1];
+		if (last.jong === 0 || last.jong === J_R) {
+			last.jong = J_N;
+			return jn(s) + "다이";
+		}
+		return jn(s) + "는다이";
+	}
+
+	// 文化语把被动 / 使动的 이 · 히 · 리 · 기 后再加 우：먹히다 → 먹히우다。只给与标准语不同的强调形。
+	function kpPassive(word){
+		var pv = PASSIVE[word];
+		if (!pv) return "";
+		var u = pv
+			.replace(/이다$/, "이우다")
+			.replace(/히다$/, "히우다")
+			.replace(/리다$/, "리우다")
+			.replace(/기다$/, "기우다");
+		if (u === pv) return "";
+		return u;
+	}
+
+	// 朝鲜文化语、朝鲜播音体、延边朝鲜语三组词尾
+	function koreanRows(word, syls, kind, f, lang){
+		var rows = [];
+		function add(gid, key, text){
+			if (!text) return;
+			var id = gid + "." + key;
+			rows.push({ id: id, g: lp(lang, GRP[gid]), name: rowName(id, key, lang), text: text });
+		}
+		var verb = kind === "v";
+		// 文化语：ㅂ네다 系、ㅂ데다、ㅂ세다、시라 / 라요、기요、쇠다 / 소다、고저；与标准语同形的자요·더랬-不列
+		add("kp", "hap", kpEnd(syls, "네다"));
+		add("kp", "qhap", kpEnd(syls, "네까?"));
+		add("kp", "ne", kpEnd(syls, "네"));
+		add("kp", "qna", kpEnd(syls, "나?"));
+		add("kp", "deda", kpEnd(syls, "데다"));
+		add("kp", "degga", kpEnd(syls, "데까?"));
+		// -습닌다 只接在辅音结尾的词干后（ㄹ 除外），开音节没有这个说法
+		var nlast = syls[syls.length - 1];
+		if (nlast.jong !== 0 && nlast.jong !== J_R) add("kp", "ninda", jn(syls) + "습닌다");
+		if (verb) {
+			add("kp", "seda", kpEnd(syls, "세다"));
+			add("kp", "sira", plusEu(f.st, "시라", true));
+			add("kp", "rayo", plusEu(f.st, "라요", true));
+			add("kp", "giyo", jn(syls) + "기요");
+			add("kp", "gojeo", jn(syls) + "고저 합니다");
+		}
+		add("kp", "soeda", f.past + "쇠다");
+		add("kp", "soda", f.past + "소다");
+		add("kp", "pass", kpPassive(word));
+		// 朝鲜播音：합쇼체 -ㅂ니다/습니다 与 -리라 同标准语，只列 -시였습니다 一系
+		if (f.hs) add("kpb", "hon", jn(f.hs) + "였습니다 / " + jn(f.hs) + "였습니까?");
+		// 延边：-ㅁ다 / 슴다、-ㄴ다이、-ㅂ소、-ㅂ세다、-기요
+		add("yb", "hap", ybEnd(syls, "다"));
+		add("yb", "qhap", ybEnd(syls, "까?"));
+		add("yb", "ndai", ybNdai(syls));
+		if (verb) {
+			add("yb", "bso", hapN(syls, "소"));
+			add("yb", "bseda", hapN(syls, "세다"));
+			add("yb", "giyo", jn(syls) + "기요");
+		}
+		return rows;
+	}
+
+	// 名词（이다）在文化语和延边语里的说法
+	function koreanCopulaRows(noun, lang){
+		var rows = [];
+		function add(gid, key, text){
+			if (!text) return;
+			var id = gid + "." + key;
+			rows.push({ id: id, g: lp(lang, GRP[gid]), name: rowName(id, key, lang), text: text });
+		}
+		add("kp", "chap", noun + "입네다");
+		add("kp", "cqhap", noun + "입네까?");
+		add("kp", "cne", noun + "입네");
+		add("kp", "cdeda", noun + "입데다");
+		add("kp", "cdegga", noun + "입데까?");
+		add("kp", "cseda", noun + "입세다");
+		add("kp", "cninda", noun + "입닌다");
+		add("kp", "cpast", noun + "이였습니다");
+		add("kp", "cpast2", noun + "이였다");
+		add("kp", "cyayo", noun + "이야요");
+		add("yb", "chap", noun + "임다");
+		add("yb", "cqhap", noun + "임까?");
+		add("yb", "cndai", noun + "인다이");
+		return rows;
+	}
+
 	// 名词（이다）的方言说法：只列证据明确的四种
 	function copulaDialect(noun, bat, lang){
 		var rows = [];
@@ -1457,6 +1616,8 @@
 		add("confirm", "다면서요?", quad(noun + (bat ? "이라면서요?" : "라면서요?"), nop + "라면서요?", noun + (bat ? "이었다면서요?" : "였다면서요?"), nop + "었다면서요?"));
 		var dia = copulaDialect(noun, bat, lang);
 		for (var i = 0; i < dia.length; i++) rows.push(dia[i]);
+		var ko = koreanCopulaRows(noun, lang);
+		for (var j = 0; j < ko.length; j++) rows.push(ko[j]);
 		return rows;
 	}
 
@@ -1492,6 +1653,14 @@
 		add("modf", "ㄹ", "아닐");
 		add("deon", "던", "아니던");
 		add("atd", "았던", "아니었던");
+		cur = g("kp");
+		add("kpa.hap", "敬语 아닙네다", "아닙네다");
+		add("kpa.qhap", "敬语疑问 아닙네까", "아닙네까?");
+		add("kpa.past", "过去 아니였습니다", "아니였습니다");
+		add("kpa.yayo", "敬语 아니야요", "아니야요");
+		cur = g("yb");
+		add("yba.hap", "敬语 아님다", "아님다");
+		add("yba.qhap", "敬语疑问 아님까", "아님까?");
 		return rows;
 	}
 })();
