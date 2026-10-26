@@ -110,6 +110,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Show an installation prompt when Russian speech is unavailable.
 - Web pages now pick up changed scripts and styles after a normal refresh: the cache version follows the modification time of the web files instead of the page's own mtime.
 - Windows OCR reads characters near the image edge as fragments (语 as 讠吾, 则 as 贝刂); a band of background colour is now added around the image before recognition.
+- Mixed Chinese + English recognition compared the cell box, already scaled back to the source image, with word boxes still in the enlarged image, so on upscaled screenshots the English numbers were never used; both are now compared at the same scale.
 
 ### 中文
 
@@ -179,6 +180,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 俄语语音不可用时提示安装，而不是只显示无法发音。
 - 网页工具改过脚本或样式后，普通刷新就能取到新文件（版本号跟着 web 文件的修改时间走），不用再按 Ctrl+F5。
 - Windows OCR 遇到贴着图像边的文字会把字认碎（「语」认成「讠吾」、「则」认成「贝刂」），识别前在四周补一圈背景色。
+- 中英混合识别时，格子框已缩回原图，词框还是放大后的坐标，放大过的小图上取不到英文数字；现在按同一尺度比较。
 
 ## v1.0.29 (2026-10-23)
 

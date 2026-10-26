@@ -440,10 +440,11 @@ static class WinOcr {
 			words.Sort((a, b) => a.Rc.X.CompareTo(b.Rc.X));
 			void putcell(OcrLine cell) {
 				if (cell?.Box == null || cell.Box.Length < 4) return;
-				var l = cell.Box[0].X;
-				var t = cell.Box[0].Y;
-				var r = cell.Box[2].X;
-				var btm = cell.Box[2].Y;
+				// 词框是放大后的坐标，格的框已按 inv 缩回原图，这里换回放大尺度再比
+				var l = (float)(cell.Box[0].X / inv);
+				var t = (float)(cell.Box[0].Y / inv);
+				var r = (float)(cell.Box[2].X / inv);
+				var btm = (float)(cell.Box[2].Y / inv);
 				cell.Text = fixmixline(tidy(pickcellmix(words, l, t, r, btm, etok)));
 				if (string.IsNullOrEmpty(cell.Text)) return;
 				lines.Add(cell);
@@ -464,52 +465,76 @@ static class WinOcr {
 
 	/// <summary>格内按中文词框与英文词框对齐，只替换拉丁块，不丢掉汉字。</summary>
 	static string pickcellmix(List<WinWord> rowWords, float l, float t, float r, float btm, List<MixTok> etok) {
+		var cellWords = new List<WinWord>();
+		foreach (var wd in rowWords) {
+			var rc0 = wd.Rc;
+			var cx0 = rc0.X + rc0.Width * 0.5;
+			var cy0 = rc0.Y + rc0.Height * 0.5;
+			if (cx0 < l - 2 || cx0 > r + 2 || cy0 < t - 2 || cy0 > btm + 2) continue;
+			if (string.IsNullOrEmpty(wd.Text)) continue;
+			cellWords.Add(wd);
+		}
 		var sb = new StringBuilder();
 		WinWord prev = null;
 		var used = new List<MixTok>();
-		var spans = new List<Windows.Foundation.Rect>();
-		foreach (var wd in rowWords) {
-			var rc = wd.Rc;
-			var cx = rc.X + rc.Width * 0.5;
-			var cy = rc.Y + rc.Height * 0.5;
-			if (cx < l - 2 || cx > r + 2 || cy < t - 2 || cy > btm + 2) continue;
+		for (int i = 0; i < cellWords.Count; ) {
+			var wd = cellWords[i];
 			var zh = wd.Text ?? "";
-			if (zh.Length == 0) continue;
-			// 整段被一个英文词框替掉过（0.09s 盖住 0、℃、9s），后面的字不再重复输出
-			var covered = false;
-			foreach (var sp in spans) {
-				if (cx < sp.X - 1 || cx > sp.X + sp.Width + 1) continue;
-				if (cy < sp.Y - 1 || cy > sp.Y + sp.Height + 1) continue;
-				covered = true;
-				break;
+			if (!runword(zh) || !hasalnum(zh)) {
+				put(zh, wd);
+				i++;
+				continue;
 			}
-			if (covered) continue;
-			var enHits = new List<MixTok>();
+			// 连续的非汉字块整段和英文结果二选一，免得一段里的数字前后各挑一次
+			var run = new List<WinWord> { wd };
+			i++;
+			while (i < cellWords.Count) {
+				var t2 = cellWords[i].Text ?? "";
+				if (!runword(t2)) break;
+				if (hasalnum(t2)) {
+					run.Add(cellWords[i]);
+					i++;
+					continue;
+				}
+				// 小数点、℃、× 这类夹在两个数字块中间，并进这一段
+				if (i + 1 >= cellWords.Count) break;
+				var nxt = cellWords[i + 1].Text ?? "";
+				if (!hasalnum(nxt) || anycjk(nxt) || !punctlike(t2)) break;
+				run.Add(cellWords[i]);
+				i++;
+			}
+			var runText = new StringBuilder();
+			foreach (var w2 in run) runText.Append(w2.Text);
+			var hits = new List<MixTok>();
 			foreach (var e in etok) {
 				if (e == null || string.IsNullOrEmpty(e.Text) || used.Contains(e)) continue;
-				if (!overlapsrect(e, rc)) continue;
-				enHits.Add(e);
+				var hit = false;
+				foreach (var w2 in run)
+					if (overlapsrect(e, w2.Rc)) { hit = true; break; }
+				if (!hit) continue;
+				hits.Add(e);
 			}
-			var piece = zh;
-			if (enHits.Count > 0 && (preferen(zh) || cjklatinmisread(zh))) {
-				enHits.Sort((a, b) => a.L.CompareTo(b.L));
-				piece = picklatin(zh, jointoks(enHits));
-				var changed = !string.Equals(piece, zh, StringComparison.Ordinal);
-				foreach (var e in enHits) {
-					used.Add(e);
-					if (changed) spans.Add(new Windows.Foundation.Rect(e.L, e.T, e.W, e.H));
-				}
+			var piece = runText.ToString();
+			if (hits.Count > 0) {
+				hits.Sort((x, y) => x.L.CompareTo(y.L));
+				piece = picklatin(piece, jointoks(hits));
+				foreach (var e in hits) used.Add(e);
 			}
-			if (prev != null && sb.Length > 0 && piece.Length > 0) {
-				var gap = rc.X - (prev.Rc.X + prev.Rc.Width);
-				var h = Math.Max(prev.Rc.Height, rc.Height);
+			put(piece, run[0]);
+		}
+		return sb.ToString();
+
+		void put(string piece, WinWord wd) {
+			if (piece.Length == 0) return;
+			if (prev != null && sb.Length > 0) {
+				var gap = wd.Rc.X - (prev.Rc.X + prev.Rc.Width);
+				var h = Math.Max(prev.Rc.Height, wd.Rc.Height);
 				if (gap > Math.Max(3, h * 0.15) && needsword(sb[sb.Length - 1], piece[0]))
 					sb.Append(' ');
 			}
 			sb.Append(piece);
 			prev = wd;
 		}
-		return sb.ToString();
 	}
 
 	static bool overlapsrect(MixTok e, Windows.Foundation.Rect rc) {
@@ -586,6 +611,24 @@ static class WinOcr {
 			if (!iscjk(c)) return false;
 		return s.IndexOf('囗') >= 0 || s.IndexOf('亻') >= 0 || s.IndexOf('讠') >= 0 || s.IndexOf('尸') >= 0;
 	}
+
+	static bool hasalnum(string s) {
+		if (string.IsNullOrEmpty(s)) return false;
+		foreach (var c in s)
+			if (char.IsLetterOrDigit(c)) return true;
+		return false;
+	}
+
+	/// <summary>能夹在两个数字块中间的符号，像小数点、℃、×。</summary>
+	static bool punctlike(string s) {
+		if (string.IsNullOrEmpty(s) || s.Length != 1) return false;
+		var c = s[0];
+		if (char.IsLetterOrDigit(c) || iscjk(c)) return false;
+		return c != '|';
+	}
+
+	/// <summary>不含汉字的块（符号、数字、拉丁），整段按英文结果挑。</summary>
+	static bool runword(string s) => !string.IsNullOrEmpty(s) && (cjklatinmisread(s) || !anycjk(s));
 
 	static bool purelatin(string s) {
 		if (string.IsNullOrEmpty(s)) return false;
@@ -761,6 +804,12 @@ static class WinOcr {
 			if (latinscore(en) >= latinscore(zh) + 2 && en.Length >= zh.Length * 0.55) return en;
 			return zh;
 		}
+		if (purelatin(zh) && purelatin(en)) {
+			var dz = digitcount(zh);
+			var de = digitcount(en);
+			if (de > dz && en.Length <= zh.Length + 2) return en;
+			if (dz > de && zh.Length <= en.Length + 2) return zh;
+		}
 		var zs = skel(zh);
 		var es = skel(en);
 		if (zs.Length == 0) return en;
@@ -778,6 +827,14 @@ static class WinOcr {
 		if (esScore > zsScore + 1) return en;
 		if (zsScore > esScore + 1) return zh;
 		return dirt(en) < dirt(zh) ? en : zh;
+	}
+
+	static int digitcount(string s) {
+		if (string.IsNullOrEmpty(s)) return 0;
+		var n = 0;
+		foreach (var c in s)
+			if (char.IsDigit(c)) n++;
+		return n;
 	}
 
 	static int latinscore(string s) {
