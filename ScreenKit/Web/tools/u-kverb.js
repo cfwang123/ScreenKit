@@ -2,6 +2,8 @@
 	var exp = null;
 	if (typeof module !== "undefined" && module.exports) exp = module.exports;
 
+	var timer = 0, gen = 0;
+
 	var CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 	var JUNG = "ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ";
 	var JONG = ["", "ㄱ", "ㄲ", "ㄳ", "ㄴ", "ㄵ", "ㄶ", "ㄷ", "ㄹ", "ㄺ", "ㄻ", "ㄼ", "ㄽ", "ㄾ", "ㄿ", "ㅀ", "ㅁ", "ㅂ", "ㅄ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
@@ -379,7 +381,15 @@
 		}
 	}
 
+	// 输入变化先防抖 180 ms 再算：现在要先查一次词典，逐字触发太费。
 	function run(){
+		if (timer) clearTimeout(timer);
+		timer = setTimeout(go, 180);
+	}
+
+	function go(){
+		timer = 0;
+		var n = ++gen;
 		var box = F.id("kv-in");
 		var sel = F.id("kv-sel");
 		var word = norm(box ? box.value : "");
@@ -390,21 +400,39 @@
 			return;
 		}
 		var t0 = now();
-		conjreq({ lang: "ko", q: word, type: force, ui: langcode() }, function(d){
-			var tcalc = now() - t0;
-			if (!d) {
-				paint("", "", []);
-				SK.msg("box-msg", tx("web.kverb.down", "变形接口不可用"), true);
-				return;
-			}
-			if (!d.ok) {
-				paint("", "", []);
-				SK.msg("box-msg", d.err, true);
-				return;
-			}
-			paint(d.head, d.note, objrows(d.rows), timestr(-1, tcalc));
-			SK.msg("box-msg", "");
+		lookup(word, function(hits){
+			if (n !== gen) return;
+			var tdict = hits ? now() - t0 : -1;
+			var miss = hits && !hits.length ? tx("web.kverb.miss", "词典里没有这个词，已按词尾判断。") : "";
+			var t1 = now();
+			conjreq({ lang: "ko", q: word, type: force, ui: langcode() }, function(d){
+				if (n !== gen) return;
+				var tcalc = now() - t1;
+				if (!d) {
+					paint("", "", []);
+					SK.msg("box-msg", tx("web.kverb.down", "变形接口不可用"), true);
+					return;
+				}
+				if (!d.ok) {
+					paint("", "", []);
+					SK.msg("box-msg", d.err, true);
+					return;
+				}
+				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc));
+				SK.msg("box-msg", miss);
+			});
 		});
+	}
+
+	// 查词只用来算耗时、提示词条在不在；类型仍按词尾判断。
+	function lookup(word, done){
+		getjson("/api/dict?dict=ko&limit=8&q=" + encodeURIComponent(word), function(jo){
+			done(jo && jo.code === 100 && jo.data ? (jo.data.hits || []) : null);
+		});
+	}
+
+	function getjson(url, ok){
+		fetch(url).then(function(r){ return r.json(); }).then(ok, function(){ ok(null); });
 	}
 
 	// 变形算在 C# 端（/api/conj），这里只取结果和渲染。
