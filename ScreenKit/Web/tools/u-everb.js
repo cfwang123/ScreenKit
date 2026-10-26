@@ -85,10 +85,26 @@
 		fulfil: 1, distil: 1, instil: 1
 	};
 	var VOW = "aeiou";
+	// 英式会双写词尾 l、美式不双写的常用动词（travel / cancel / model 等）。
+	var LDOUBLE = {
+		travel: 1, cancel: 1, model: 1, label: 1, signal: 1, total: 1, level: 1,
+		tunnel: 1, channel: 1, quarrel: 1, dial: 1, spiral: 1, jewel: 1, fuel: 1,
+		marvel: 1, shovel: 1, pedal: 1, rival: 1, panel: 1, funnel: 1
+	};
+	// 美式保留原形、英式多用 -ted 的几个动词。
+	var AME_BARE = { fit: 1, quit: 1, wet: 1, wed: 1, bet: 1, knit: 1, sweat: 1 };
+	// 这些词的多种写法不是英式/美式差别（含义或旧体不同），不放进地区变体。
+	var NO_DIA = {
+		light: 1, shine: 1, hang: 1, wake: 1, swell: 1, sew: 1, sow: 1, strew: 1,
+		shear: 1, show: 1, tread: 1, wax: 1, gild: 1, gird: 1, geld: 1, clothe: 1,
+		cleave: 1, chide: 1, abide: 1, beseech: 1, bereave: 1, heave: 1, dare: 1,
+		alight: 1, strive: 1, speed: 1
+	};
+	var AME_SPECIAL = { gotten: 1, dove: 1, proven: 1, snuck: 1 };
 	var LAB = {
 		title: ["英语动词时态", "English verb tenses"],
-		hint: ["输入英语动词原形，先列基本形式，再按现在、过去、将来、过去将来列出十六种时态，另附否定、疑问、被动和其他形式。斜杠两边是不同写法，时态表里用第一个；句中的 I、he、they 只是示例主语。",
-			"Enter a base verb. The table lists the basic forms, the sixteen tenses (present, past, future and future in the past), then negatives, questions, passive and other forms. Slashes separate variants; the tenses use the first. I, he and they are example subjects."],
+		hint: ["输入英语动词原形，按基本形式、十六种时态、否定、疑问、被动、情态、虚拟与条件、祈使与请求、附加疑问、使役、地区变体和其它形式列出全部变化。斜杠两边是不同写法，时态表里用第一个；I、he、they 只是示例主语。地区变体按英式、美式、澳新列出 -t/-ed、gotten/got、dove/dived 和 -l 双写等差别。",
+			"Enter a base verb to see the basic forms, the sixteen tenses, negatives, questions, passive, modals, subjunctive and conditionals, imperative and requests, tag questions, causative and permission, regional variants and other forms. Slashes separate variants; the tenses use the first. I, he and they are example subjects. Regional variants cover British, American and Australian/NZ differences such as -t/-ed, gotten/got, dove/dived and doubled -l."],
 		word: ["动词", "Verb"],
 		ph: ["动词原形，如 walk、go、study", "Base form, e.g. walk, go, study"],
 		reg: ["规则动词", "Regular verb"],
@@ -146,7 +162,49 @@
 		p_fut: ["被动 · 一般将来时", "Passive · simple future"],
 		p_futp: ["被动 · 将来完成时", "Passive · future perfect"],
 		p_fips: ["被动 · 过去将来时", "Passive · future in the past"],
-		o_imp: ["祈使句", "Imperative"],
+		g_mod: ["情态动词", "Modal verbs"],
+		g_sub: ["虚拟与条件", "Subjunctive & conditionals"],
+		g_imp: ["祈使、劝诱与请求", "Imperative & requests"],
+		g_tag: ["附加疑问句", "Tag questions"],
+		g_cau: ["使役与允许", "Causative & permission"],
+		g_dia: ["地区变体", "Regional variants"],
+		m_can: ["能力·可能（can / could）", "Ability & possibility (can / could)"],
+		m_may: ["许可·推测（may / might）", "Permission & speculation (may / might)"],
+		m_must: ["必须（must）", "Obligation (must)"],
+		m_haveto: ["不得不（have to）", "Necessity (have to)"],
+		m_should: ["建议（should / ought to）", "Advice (should / ought to)"],
+		m_will: ["意愿·将来（will / would）", "Will & future (will / would)"],
+		m_need: ["需要·敢（need / dare）", "Need & dare"],
+		m_able: ["能力短语（be able to）", "Ability phrase (be able to)"],
+		m_pas: ["情态被动（及物动词）", "Modal passive (transitive)"],
+		s_pres: ["现在虚拟（建议、要求）", "Present subjunctive (mandative)"],
+		s_irr: ["与现在事实相反", "Unreal present"],
+		s_past: ["与过去事实相反", "Unreal past"],
+		s_mix: ["混合虚拟", "Mixed conditional"],
+		s_wish: ["wish 愿望", "wish"],
+		s_time: ["would rather · it is time", "would rather · it is time"],
+		s_opt: ["祈愿（may）", "Optative (may)"],
+		s_inv: ["倒装条件", "Inverted condition"],
+		i_pos: ["肯定祈使", "Affirmative imperative"],
+		i_neg: ["否定祈使", "Negative imperative"],
+		i_hort: ["劝诱（let's）", "Hortative (let's)"],
+		i_shall: ["提议（shall）", "Suggestions with shall"],
+		i_req: ["请求（would / could you）", "Requests (would / could you)"],
+		i_mind: ["委婉请求（would you mind）", "Polite request (would you mind)"],
+		i_adv: ["建议（why don't you / had better）", "Suggestion (why don't you / had better)"],
+		u_pres: ["一般现在时", "Simple present"],
+		u_past: ["一般过去时", "Simple past"],
+		u_cont: ["现在进行时", "Present continuous"],
+		u_perf: ["现在完成时", "Present perfect"],
+		u_fut: ["一般将来时", "Simple future"],
+		u_mod: ["情态动词", "With a modal"],
+		c_make: ["使役（make / have / get）", "Causative (make / have / get)"],
+		c_let: ["允许（let / allow / permit）", "Permission (let / allow / permit)"],
+		d_bre: ["英式", "British"],
+		d_ame: ["美式", "American"],
+		d_aus: ["澳新（多同英式）", "Australian & NZ (mostly British)"],
+		d_same: ["各地区写法相同", "Same in all regions"],
+		d_sub: ["虚拟式（英式多用 should）", "Mandative subjunctive"],
 		o_inf: ["不定式", "Infinitive"],
 		o_pinf: ["完成式不定式", "Perfect infinitive"],
 		o_ger: ["动名词", "Gerund"],
@@ -251,9 +309,89 @@
 			R(g, L(LAB.p_futp), "It will have been " + ppF);
 			R(g, L(LAB.p_fips), "It would be " + ppF);
 		}
+		// 情态动词；be 没有「be able to be」和情态被动，略过这两行
+		g = L(LAB.g_mod);
+		R(g, L(LAB.m_can), "can " + b + " · could " + b + " · could have " + ppF);
+		R(g, L(LAB.m_may), "may " + b + " · might " + b + " · might have " + ppF);
+		R(g, L(LAB.m_must), "must " + b + " · must have " + ppF);
+		R(g, L(LAB.m_haveto), "have to " + b + " · had to " + b + " · will have to " + b);
+		R(g, L(LAB.m_should), "should " + b + " · ought to " + b + " · should have " + ppF);
+		R(g, L(LAB.m_will), "will " + b + " · would " + b + " · would have " + ppF);
+		R(g, L(LAB.m_need), "need not " + b + " · dare not " + b);
+		if (!isBe) {
+			R(g, L(LAB.m_able), "am / is / are able to " + b + " · was / were able to " + b + " · will be able to " + b);
+			R(g, L(LAB.m_pas), "can be " + ppF + " · must be " + ppF + " · should have been " + ppF);
+		}
+		// 虚拟与条件
+		g = L(LAB.g_sub);
+		R(g, L(LAB.s_pres), "I suggest that he " + b + " · it is important that he " + b);
+		R(g, L(LAB.s_irr), "if I " + (isBe ? "were" : pastF) + ", I would " + b);
+		R(g, L(LAB.s_past), "if I had " + ppF + ", I would have " + ppF);
+		R(g, L(LAB.s_mix), "if I had " + ppF + ", I would be " + ingF);
+		R(g, L(LAB.s_wish), "I wish I " + (isBe ? "were" : pastF) + " · I wish I had " + ppF);
+		R(g, L(LAB.s_time), "I would rather he " + (isBe ? "were" : pastF) + " · it is time he " + (isBe ? "were" : pastF));
+		R(g, L(LAB.s_opt), "may he " + b);
+		R(g, L(LAB.s_inv), "should he " + b + " · were he to " + b);
+		// 祈使、劝诱与请求
+		g = L(LAB.g_imp);
+		R(g, L(LAB.i_pos), b + "! · do " + b + "! · please " + b + "!");
+		R(g, L(LAB.i_neg), "do not " + b + "! · never " + b + "!");
+		R(g, L(LAB.i_hort), "let's " + b + " · let's not " + b);
+		R(g, L(LAB.i_shall), "shall we " + b + "? · shall I " + b + "?");
+		R(g, L(LAB.i_req), "would you " + b + "? · could you " + b + "?");
+		R(g, L(LAB.i_mind), "would you mind " + ingF + "?");
+		R(g, L(LAB.i_adv), "why don't you " + b + "? · you had better " + b);
+		// 附加疑问句
+		g = L(LAB.g_tag);
+		R(g, L(LAB.u_pres), isBe ? "you are, aren't you? · he is, isn't he?"
+			: "you " + b + ", don't you? · he " + s3F + ", doesn't he?");
+		R(g, L(LAB.u_past), isBe ? "you were, weren't you?" : "you " + pastF + ", didn't you?");
+		R(g, L(LAB.u_cont), "you are " + ingF + ", aren't you?");
+		R(g, L(LAB.u_perf), "you have " + ppF + ", haven't you?");
+		R(g, L(LAB.u_fut), "you will " + b + ", won't you?");
+		R(g, L(LAB.u_mod), "you can " + b + ", can't you?");
+		// 使役与允许
+		g = L(LAB.g_cau);
+		R(g, L(LAB.c_make), "make him " + b + " · have him " + b + " · get him to " + b);
+		R(g, L(LAB.c_let), "let him " + b + " · allow him to " + b + " · permit him to " + b);
+		// 地区变体：不规则动词的 -t / -ed 写法、gotten / got、dove / dived，以及 -l 双写
+		var ameP = pastF;
+		var amePP = ppF;
+		var breP = pastF;
+		var brePP = ppF;
+		var brIng = ingF;
+		if (LDOUBLE[base]) {
+			brIng = base + "l" + "ing" + tail;
+			breP = base + "l" + "ed" + tail;
+			brePP = breP;
+		}
+		if (!isBe) {
+			if (AME_BARE[base]) {
+				if (pasts.length > 1) { ameP = pasts[0] + tail; breP = pasts[pasts.length - 1] + tail; }
+				if (pps.length > 1) { amePP = pps[0] + tail; brePP = pps[pps.length - 1] + tail; }
+			}
+			else if (!NO_DIA[base]) {
+				if (pasts.length > 1) { ameP = pickame(pasts) + tail; breP = pickbre(pasts, pickame(pasts)) + tail; }
+				if (pps.length > 1) { amePP = pickame(pps) + tail; brePP = pickbre(pps, pickame(pps)) + tail; }
+			}
+			if (base === "sneak") { ameP = "snuck" + tail; amePP = "snuck" + tail; }
+		}
+		g = L(LAB.g_dia);
+		if (!isBe && (breP !== ameP || brePP !== amePP)) {
+			R(g, L(LAB.d_bre), breP + " / " + brePP + " · " + brIng);
+			R(g, L(LAB.d_ame), ameP + " / " + amePP + " · " + ingF);
+			R(g, L(LAB.d_aus), breP + " / " + brePP + " · " + brIng);
+		}
+		else if (LDOUBLE[base]) {
+			R(g, L(LAB.d_bre), breP + " / " + brePP + " · " + brIng);
+			R(g, L(LAB.d_ame), ameP + " / " + amePP + " · " + ingF);
+			R(g, L(LAB.d_aus), breP + " / " + brePP + " · " + brIng);
+		}
+		else R(g, L(LAB.d_same), isBe ? "was / were · been · being" : pastF + " / " + ppF + " · " + ingF);
+		R(g, L(LAB.d_sub), isBe ? "AmE: that he be · BrE: that he should be"
+			: "AmE: that he " + b + " · BrE: that he should " + b);
 		// 其他形式
 		g = L(LAB.g_oth);
-		R(g, L(LAB.o_imp), isBe ? "be! · Do not be!" : b + "! · Do not " + b + "!");
 		R(g, L(LAB.o_inf), "to " + b);
 		R(g, L(LAB.o_pinf), "to have " + ppF);
 		R(g, L(LAB.o_ger), ingF);
@@ -328,6 +466,20 @@
 		if (!list.length) return "";
 		for (i = 0; i < list.length; i++) list[i] += tail;
 		return list.join(" / ");
+	}
+
+	// 美式优先 gotten、dove、proven 这类写法，其次 -ed；英式取另一个写法。
+	function pickame(list){
+		var i;
+		for (i = 0; i < list.length; i++) if (AME_SPECIAL[list[i]]) return list[i];
+		for (i = 0; i < list.length; i++) if (/ed$/.test(list[i])) return list[i];
+		return list[0];
+	}
+
+	function pickbre(list, ame){
+		var i;
+		for (i = 0; i < list.length; i++) if (list[i] !== ame) return list[i];
+		return ame;
 	}
 
 	function cons(ch){

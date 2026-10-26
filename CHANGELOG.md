@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean verbs: add auxiliary, causative/change and connective forms
 - Korean verbs: add passive forms, the hao and hage styles, and state forms
 - Japanese conjugation also handles i-adjectives, na-adjectives and nouns, tells them from verbs automatically, and can be given the type by hand.
+- English verb tenses also list modals, subjunctive and conditionals, imperative and requests, tag questions, causative and permission, and British, American and Australian/NZ forms such as learnt/learned, gotten/got and travelling/traveling.
 
 #### Changed
 
@@ -132,6 +133,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语动词变化：补充补助动词、使动/变化和连接词尾
 - 韩语动词变化：补充被动形、准敬语/对等语文体和状态形
 - 日语词形变化支持い形容词、な形容词和名词，自动区分动词和它们，也可手动指定类型。
+- 英语动词时态新增情态动词、虚拟与条件、祈使与请求、附加疑问、使役与允许等语气，以及英式、美式、澳新的 learnt/learned、gotten/got、travelling/traveling 等地区写法。
 
 #### 变更
 
