@@ -49,40 +49,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader can speak with the current browser's own voices, without asking the app to synthesize audio. That engine shows an Install models link.
 - Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 - The Chrome model page can play a short test line for an installed voice.
-- The tools page conjugates Japanese verbs from the dictionary class, or from the ending when no dictionary is installed. いく uses って / った. The list is a compact table, and each form has a speak button.
-- Japanese verb input has a dropdown of common verbs and irregulars (いく, ある, 問う, なさる, くれる, and godan verbs ending in る). The table also lists honorific, humble, and deferential forms.
-- The tools page conjugates a Korean verb or adjective from the dictionary form, with a speaker button on each form.
-- Add English irregular verb lookup on the tools page, with every form searchable.
-- Japanese verb conjugation also lists なさい and its short な (行きなさい, 行きな).
-- Japanese verb conjugation lists forms that differ from standard Japanese in Kansai, Kyushu (Hakata), Tohoku and Hiroshima, one group per dialect.
-- Korean verbs: add Gyeongsang, Jeolla, Chungcheong, Jeju, Hamgyeong and Pyeongan dialect groups
-- Japanese verb conjugation also lists 給え, やがる and the common auxiliaries ながら, たがる, すぎる, やすい, にくい, そうだ, ましょう and ている.
-- Japanese verb conjugation also lists つつ / つつある, きる / きれる, あう, かける / かかる, そこなう, たがらない, すぎない, そうに / そうな, the te-form auxiliaries ておく, てしまう, てみる, てある, てくる, ていく, てください, and the polite ませんか / ましょうか.
-- English verb tenses on the tools page: enter a base verb and get the sixteen tenses, plus negatives, questions, passive and other forms, with a speak button on each.
-- Korean verbs: add auxiliary, causative/change and connective forms
-- Korean verbs: add passive forms, the hao and hage styles, and state forms
-- Japanese conjugation also handles i-adjectives, na-adjectives and nouns, tells them from verbs automatically, and can be given the type by hand.
-- English verb tenses also list modals, subjunctive and conditionals, imperative and requests, tag questions, causative and permission, and British, American and Australian/NZ forms such as learnt/learned, gotten/got and travelling/traveling.
-- Korean verbs: choose verb, adjective or noun type first, with adjective and noun word lists
-- Japanese conjugation also lists んだ / なんだ and the quotative って (行くんだ, 静かなんだ, 学生だって).
-- Japanese conjugation also lists たそうだ and a hearsay / conjecture group: そうだ, らしい, ようだ, みたいだ, かもしれない, はずだ.
-- Add a Russian verb conjugation tool: aspect, present/future, past, imperative, subjunctive, participles and gerunds.
-- Japanese conjugation adds judgement/duty, degree/tendency, question/confirmation and reason patterns: わけだ, わけがない, べきだ, ものだ, つもりだ, がちだ, 気味だ, かな, かしら, んじゃないか, のだから, おかげで, and more in the hearsay group.
-- Add adjective and noun forms to the English word-forms tool.
-- Korean verbs: add hearsay, conjecture, judgment, obligation, permission and request forms
-- Korean nouns: list the same hearsay, conjecture, judgment, obligation and permission forms as verbs
-- Add register and tone groups to the English word-forms tool.
-- Korean: add negative-mood combinations such as hearsay, conjecture, judgment and need not
-- Add negative counterparts to every tone in the English word-forms tool.
-- Japanese modality rows now show the affirmative and negative side by side, e.g. 学生だそうだ / 学生ではないそうだ.
-- The te, ba, tara, darou, deshou, nda and tte rows also show their negative forms, and na-adjectives and nouns list the polite でござる and honorific でいらっしゃる copulas.
-- だろう / でしょう now also list the past affirmative and negative (学生だっただろう, 学生ではなかっただろう).
-- だろう also lists the contracted past presumptive 〜たろう (学生だったろう, 学生ではなかったろう).
-- The appearance そうだ rows now also list なさそうだ (食べなさそうだ, 高くなさそうだ, 静かじゃなさそうだ).
-- A group derived from ない lists なさ, なさげ and なさすぎる (食べなさすぎる, 高くなさすぎる, 静かじゃなさすぎる).
+- Japanese word forms: verbs by class plus i-adjectives, na-adjectives and nouns, with politeness levels, auxiliary and modality patterns, dialect forms, and a speak button on each form.
+- Korean word forms: verbs, adjectives and nouns by type, with speech levels, dialect and mood groups, and a speak button on each form.
+- English word forms: verb tenses and moods, irregular verbs, adjectives and nouns, with British, American and Australian variants, and a speak button on each form.
+- Russian word forms: verb conjugation, adjective and noun declension, with colloquial and dialect variants, and a speak button on each form.
 - Chrome translation can now pick non-English language pairs such as Chinese to Japanese; Chrome pivots through English, so both the English to Chinese and English to Japanese models are needed.
-- Japanese adjectives and nouns now list dialect forms too: Kansai 高うない / 静かや / 学生や, and Kyushu 高か / 高うなか for i-adjectives.
-- Korean nouns: add dialect forms for Gyeongsang, Jeolla, Chungcheong and Jeju; keep command and suggestion dialect forms to verbs
 - The local web server now gzips JSON API responses and text web files (HTML, JS, CSS, SVG) when the client asks for it, and caches the compressed static files instead of recompressing them on every request.
 - The HTTP API supports Keep-Alive: HTTP/1.1 reuses connections and an idle connection is held for at most 10 seconds (configurable with http_keepalive).
 
@@ -156,40 +127,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器可以用当前浏览器自己的语音朗读，不经过程序合成。选中这个引擎时显示「安装模型」链接。
 - 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 - Chrome 模型页可以为已安装的语音试听一句。
-- 工具页新增日语动词变形：按词典的 1/2/3 类列出变形；没装词典时提示并按词尾判断，いく 的て形、た形单独处理。结果是紧凑的表格，每一项可以发音。
-- 日语动词输入框可下拉常见动词和特殊变化（いく、ある、問う、なさる、くれる，以及词尾る的五段）。变形表增加尊敬、谦让、丁重。
-- 工具页可以输入韩语词典形，列出动词或形容词的变化，每条都能听发音。
-- 工具页新增英文不规则动词查询，任意一种形式都能搜到。
-- 日语动词变形新增「なさい」和它的省略「な」（行きなさい、行きな）。
-- 日语动词变形新增关西、九州（博多）、东北、广岛的方言说法，每个方言一组，只列和标准语不同的形。
-- 韩语动词变化：新增庆尚道、全罗道、忠清道、济州、咸镜道、平安道方言分组
-- 日语动词变形新增「給え」「やがる」，以及ながら、たがる、すぎる、やすい、にくい、そうだ、ましょう、ている 这些常用补助动词。
-- 日语动词变形新增つつ／つつある、きる／きれる、あう、かける／かかる、そこなう、たがらない、すぎない、そうに／そうな，ておく、てしまう、てみる、てある、てくる、ていく、てください，以及敬体的ませんか／ましょうか。
-- 工具页新增英语动词时态：输入原形，列出十六种时态，另附否定、疑问、被动和其他形式，每项可以发音。
-- 韩语动词变化：补充补助动词、使动/变化和连接词尾
-- 韩语动词变化：补充被动形、准敬语/对等语文体和状态形
-- 日语词形变化支持い形容词、な形容词和名词，自动区分动词和它们，也可手动指定类型。
-- 英语动词时态新增情态动词、虚拟与条件、祈使与请求、附加疑问、使役与允许等语气，以及英式、美式、澳新的 learnt/learned、gotten/got、travelling/traveling 等地区写法。
-- 韩语动词变化：先选动词/形容词/名词类型，词表补充形容词和名词
-- 日语词形变化新增「んだ」「なんだ」和引用「って」（行くんだ、静かなんだ、学生だって）。
-- 日语词形变化新增「たそうだ」，并加了一组传闻・推量：そうだ、らしい、ようだ、みたいだ、かもしれない、はずだ。
-- 新增俄语动词变化工具：按体列出现在时或将来时、过去时、命令式、假定式、分词和副动词。
-- 日语词形变化新增判断・义务、程度・倾向、疑问・确认、原因・理由几组句型（わけだ、べきだ、つもりだ、がちだ、かな、んじゃないか、のだから、おかげで 等），传闻组再补に違いない、とのことだ、とか、っぽい 等。
-- 英语词形工具增加形容词和名词：比较级、最高级、比较句型、副词和名词形式，以及复数、所有格、冠词、可数性和主谓一致。
-- 韩语动词变化：补充传闻、推量、判断、义务、许可、请求等语气
-- 韩语名词：补上与动词对应的传闻、推量、判断、义务、许可等语气
-- 英语词形工具按正式、中性、口语、强调、委婉、感叹、推测等补上语体与语气，动词、形容词、名词各一组。
-- 韩语：补充否定形叠加语气（传闻、推量、判断、不必、否定请求等）
-- 英语词形工具的每种语气补上否定形，含情态动词否定和 it is said not to walk、isn't it beautiful 等组合。
-- 日语语气句型的肯定和否定并列显示，如 学生だそうだ / 学生ではないそうだ。
-- て形、ば形、たら、だろう、でしょう、なんだ、って 这些行也并列给出否定形；な形容词和名词补上「でござる」（丁重）和「でいらっしゃる」（尊敬）的说法。
-- だろう / でしょう 也列出过去肯定和否定（学生だっただろう、学生ではなかっただろう）。
-- だろう 补上缩略的过去推量「〜たろう」（学生だったろう、学生ではなかったろう）。
-- 样态「そうだ」行并列给出「なさそうだ」（食べなさそうだ、高くなさそうだ、静かじゃなさそうだ）。
-- 新增一组「ない的派生」：なさ、なさげ、なさすぎる（食べなさすぎる、高くなさすぎる、静かじゃなさすぎる）。
+- 日语词形变化：动词按 1/2/3 类列出，也支持い形容词、な形容词和名词，含敬语、补助动词、语气句型和方言说法，每项可发音。
+- 韩语词形变化：按类型列出动词、形容词和名词的变化，含语体、方言和语气分组，每项可发音。
+- 英语词形变化：动词时态与语气、不规则动词、形容词和名词，含英美澳写法差异，每项可发音。
+- 俄语词形变化：动词变位、形容词和名词变格，含口语和方言说法，每项可发音。
 - Chrome 翻译可以选中文 ↔ 日文这类非英文语言对。Chrome 内部经英文中转，需要同时装好英文 ↔ 中文和英文 ↔ 日文的模型。
-- 日语形容词和名词也列出方言说法：关西 高うない、静かや、学生や；い形容词另有九州 高か、高うなか。
-- 韩语名词：补充庆尚道、全罗道、忠清道、济州方言；方言命令/劝诱只对动词显示
 - 本机网页服务对 JSON 接口和 HTML、JS、CSS、SVG 等文本文件按 gzip 压缩，客户端支持才压；静态文件的压缩结果会缓存，文件没改不会重复压缩。
 - HTTP 接口支持 Keep-Alive：HTTP/1.1 默认复用连接，空闲连接最多保持 10 秒（可用 http_keepalive 调整）。
 
