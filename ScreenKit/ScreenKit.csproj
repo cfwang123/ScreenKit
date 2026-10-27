@@ -297,6 +297,8 @@
       <!-- 姓名数据第一次用到时从 dict-db 下载，不进精简包 -->
       <_SlimWeb Remove="$(OutputPath)web\jname-s.txt" />
       <_SlimWeb Remove="$(OutputPath)web\jname-g.txt" />
+      <!-- 界面语言脚本启动时按 lang/*.toml 重新合成，不进精简包 -->
+      <_SlimWeb Remove="$(OutputPath)web\L.js" />
       <_SlimLang Include="$(OutputPath)lang\*.toml" Condition="Exists('$(OutputPath)lang')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
@@ -345,6 +347,7 @@
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\web\jname-s.txt;$(_SlimOut)\web\jname-g.txt" />
+      <_SlimJunk Include="$(_SlimOut)\web\L.js" />
     </ItemGroup>
     <Delete Files="@(_SlimJunk)" TreatErrorsAsWarnings="true" Condition="'@(_SlimJunk)' != ''" />
     <Delete Files="$(OutputPath)WpfOCR.exe;$(OutputPath)WpfOCR.exe.config" TreatErrorsAsWarnings="true" />

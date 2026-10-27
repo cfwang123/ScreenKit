@@ -87,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
 - Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる, and the word-forms tab conjugates the kana form too (くれない, not 呉れない).
 - Japanese names tool: the name data no longer ships in the package. It downloads jname.7z (about 1MB) from the fixed dict-db release on first use, extracts web/jname-s.txt and web/jname-g.txt, and reuses them afterwards. The minimal package never includes the data.
+- The minimal package no longer ships web/L.js (about 1.5MB). The language script is rebuilt from lang/*.toml on the first request and cached next to the web files.
 
 #### Fixed
 
@@ -188,6 +189,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
 - 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる；形态变化也按假名变（くれない，而不是 呉れない）。
 - 日本人名工具：姓名数据不再随包发布，第一次使用时从固定的 dict-db 下载 jname.7z（约 1MB），解出 web/jname-s.txt、web/jname-g.txt，之后直接用本机文件；精简包也不含这份数据。
+- 精简包不再带 web/L.js（约 1.5MB）。界面语言脚本在第一次请求时按 lang/*.toml 重新合成，之后缓存在 web 目录。
 
 #### 修复
 
