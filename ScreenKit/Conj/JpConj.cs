@@ -49,6 +49,7 @@ sealed class JpConjLabels {
 	public string degree, gachi, kimi, ippou, bakari;
 	public string tokoro1, tokoro2, tokoro3;
 	public string confirm, kana, kashira, deshoune, janai, nodeha;
+	public string conc, kedo, kedomo, keredo, ndakedo, ga2, noni;
 	public string reason, nodakara, monode, okage;
 	public string naihasei, nasa, nasage, nasasugiru;
 	public string cop, degozaru, degozaimasu;
@@ -519,6 +520,13 @@ static class JpConj {
 			L.deshoune = "でしょうね";
 			L.janai = "んじゃないか";
 			L.nodeha = "のでは（＝のではないか）";
+			L.conc = "逆接（けれど・けど）";
+			L.kedo = "けど";
+			L.kedomo = "けども";
+			L.keredo = "けれど／けれども";
+			L.ndakedo = "んだけど";
+			L.ga2 = "が（逆接）";
+			L.noni = "のに";
 			L.reason = "原因・理由";
 			L.nodakara = "のだから";
 			L.monode = "もので";
@@ -731,6 +739,13 @@ static class JpConj {
 		L.deshoune = "deshou ne";
 		L.janai = "n ja nai ka";
 		L.nodeha = "no de wa (= no de wa nai ka)";
+		L.conc = "Concessive (keredo / kedo)";
+		L.kedo = "kedo";
+		L.kedomo = "kedomo";
+		L.keredo = "keredo / keredomo";
+		L.ndakedo = "n da kedo";
+		L.ga2 = "ga (but)";
+		L.noni = "noni";
 		L.reason = "Reason";
 		L.nodakara = "no dakara";
 		L.monode = "mono de";
@@ -1061,6 +1076,16 @@ static class JpConj {
 		rows.AddRange(pair(L.monode, k.attrib + "もので", k.neg + "もので", L.reason));
 		if (verb) rows.AddRange(pair(L.okage, k.ta + "おかげで", "", L.reason));
 		if (noun) rows.AddRange(pair(L.okage, k.attribn + "おかげで", "", L.reason));
+		// 逆接：动词和い形容词直接接，な形容词和名词先接 だ（静かだけど、学生だけど）。
+		// んだけど、のに 用连体形（静かなんだけど、学生なのに）。
+		// 口语的 けど・んだけど・のに 否定用 じゃない（学生じゃないけど）；けれど、が 保留 ではない。
+		var negk = verb ? k.neg : k.neg.Replace("ではない", "じゃない");
+		rows.AddRange(pair(L.kedo, k.pred + "けど", negk + "けど", L.conc));
+		rows.AddRange(pair(L.kedomo, k.pred + "けども", negk + "けども", L.conc));
+		rows.AddRange(pair(L.keredo, k.pred + "けれど、" + k.pred + "けれども", k.neg + "けれど、" + k.neg + "けれども", L.conc));
+		rows.AddRange(pair(L.ndakedo, k.attrib + "んだけど、" + k.attrib + "んだけども", negk + "んだけど", L.conc));
+		rows.AddRange(pair(L.ga2, k.pred + "が", k.neg + "が", L.conc));
+		rows.AddRange(pair(L.noni, k.attrib + "のに", negk + "のに", L.conc));
 		return rows;
 	}
 
