@@ -218,6 +218,71 @@ static class JpGrammar {
 		return rows;
 	}
 
+	/// <summary>形容词和名词能接的句型（N5~N1）。接续按词性算，只出接得上的组合。</summary>
+	public static List<ConjRow> PosRows(bool zh, string pos, string word) {
+		var i = pos == "i";
+		var n = pos == "n";
+		// いい・かっこいい 的词干是「よ」（よく・よかった），其余去掉词尾的い。
+		var s = i ? (word.EndsWith("いい") && word != "かわいい" && word != "可愛い" ? word.Substring(0, word.Length - 2) + "よ" : (word.EndsWith("い") ? word.Substring(0, word.Length - 1) : word)) : word;
+		var plain = i ? word : word + "だ";
+		var ku = i ? s + "く" : word + "で";
+		var te = i ? s + "くて" : word + "で";
+		var ta = i ? s + "かった" : word + "だった";
+		var nai = i ? s + "くない" : word + "ではない";
+		var aNa = i ? "" : "な";
+		var aNo = i ? "" : (n ? "の" : "な");
+		var rows = new List<ConjRow>();
+		void add(string grp, string zh2, string en2, string v) {
+			if (v.Length > 0) rows.Add(new ConjRow(zh ? zh2 : en2, v, grpname(grp, zh)));
+		}
+		// N5
+		add("n5", "てもいい", "te mo ii", i ? ku + "てもいい" : word + "でもいい");
+		add("n5", "てはいけない", "te wa ikenai", te + "はいけない");
+		add("n5", "なくてもいい", "nakute mo ii", i ? ku + "なくてもいい" : word + "じゃなくてもいい");
+		add("n5", "なければならない", "nakereba naranai", i ? ku + "なければならない" : word + "でなければならない");
+		add("n5", "とき", "toki", i ? plain + "とき、" + nai + "とき" : word + aNo + "とき");
+		add("n5", "ので", "node", i ? plain + "ので、" + nai + "ので" : word + aNa + "ので");
+		add("n5", "のに", "noni", i ? plain + "のに" : word + aNa + "のに");
+		add("n5", "ても", "te mo", i ? ku + "ても" : te + "も");
+		add("n5", "と（自然条件）", "to", i ? plain + "と" : word + "だと");
+		add("n5", "なら", "nara", i ? plain + "なら" : word + "なら");
+		add("n5", "ことがある", "koto ga aru", i ? ta + "ことがある、" + plain + "ことがある" : ta + "ことがある");
+		// N4
+		add("n4", "そうだ", "souda", i ? plain + "そうだ" : plain + "そうだ");
+		add("n4", "らしい", "rashii", i ? plain + "らしい" : word + "らしい");
+		add("n4", "ようだ", "you da", i ? plain + "ようだ" : word + aNo + "ようだ");
+		add("n4", "みたいだ", "mitai da", i ? plain + "みたいだ" : word + "みたいだ");
+		add("n4", "かもしれない", "ka mo shirenai", i ? plain + "かもしれない" : word + "かもしれない");
+		add("n4", "はずだ", "hazu da", i ? plain + "はずだ" : word + aNo + "はずだ");
+		add("n4", "わけだ", "wake da", i ? plain + "わけだ" : word + aNa + "わけだ");
+		add("n4", "ようになる", "you ni naru", i ? ku + "なる" : word + "になる");
+		add("n4", "ようにする", "you ni suru", i ? ku + "なるようにする" : word + "になるようにする");
+		// N3
+		add("n3", "ために", "tame ni", i ? plain + "ために" : word + aNo + "ために");
+		add("n3", "ように（目的）", "you ni", i ? ku + "なるように" : word + "になるように");
+		add("n3", "まま", "mama", i ? plain + "まま" : word + aNo + "まま");
+		add("n3", "うちに", "uchi ni", i ? plain + "うちに" : word + aNo + "うちに");
+		add("n3", "ばかりか", "bakari ka", i ? plain + "ばかりか" : word + "ばかりか");
+		add("n3", "どころか", "dokoro ka", i ? plain + "どころか" : word + "どころか");
+		add("n3", "かわりに", "kawari ni", i ? plain + "かわりに" : word + aNo + "かわりに");
+		// N2
+		add("n2", "くせに", "kuse ni", i ? plain + "くせに" : word + aNo + "くせに");
+		add("n2", "わりに", "wari ni", i ? plain + "わりに" : word + aNo + "わりに");
+		add("n2", "にしては", "ni shite wa", i ? plain + "にしては" : word + "にしては");
+		add("n2", "ものの", "mono no", ta + "ものの");
+		add("n2", "とはいえ", "to wa ie", i ? plain + "とはいえ" : word + "とはいえ");
+		add("n2", "せいで", "sei de", i ? plain + "せいで" : word + aNo + "せいで");
+		add("n2", "ものだから", "mono dakara", i ? plain + "ものだから" : word + aNa + "ものだから");
+		add("n2", "にもかかわらず", "ni mo kakawarazu", i ? plain + "にもかかわらず" : word + "にもかかわらず");
+		add("n2", "どころではない", "dokoro de wa nai", i ? plain + "どころではない" : word + "どころではない");
+		add("n2", "一方だ", "ippou da", i ? ku + "なる一方だ" : word + "になる一方だ");
+		add("n2", "ばかりだ", "bakari da", i ? ku + "なるばかりだ" : word + "になるばかりだ");
+		add("n2", "に違いない", "ni chigai nai", i ? plain + "に違いない" : word + "に違いない");
+		// N1
+		add("n1", "ものを", "mono o", ta + "ものを");
+		return rows;
+	}
+
 	static string grpname(string key, bool zh) => key switch {
 		"n5" => zh ? "N5 句型" : "N5 patterns",
 		"n4" => zh ? "N4 句型" : "N4 patterns",

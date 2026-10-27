@@ -481,9 +481,9 @@ static class EnConj {
 
 	/// <summary>
 	/// 对应 JS build(word, lang, type)：word 原形（可带小品词），type 为 auto / v / a / n，
-	/// uiLang 以 zh 开头用中文标签，否则英文。
+	/// uiLang 以 zh 开头用中文标签，否则英文。obj1 / obj2 只用于动词，空串表示没有这一个宾语。
 	/// </summary>
-	public static ConjResult Build(string word, string type, string uiLang) {
+	public static ConjResult Build(string word, string type, string uiLang, string obj1 = "", string obj2 = "") {
 		var zh = iszh(uiLang);
 		string L(string key) => zh ? LAB[key][0] : LAB[key][1];
 
@@ -500,11 +500,24 @@ static class EnConj {
 			if (tail.Length > 0) return fail(L("bad"));
 			return kind == "a" ? buildadj(head, zh) : buildnoun(head, zh);
 		}
-		return buildverb(head, tail, zh);
+		return buildverb(head, tail, zh, obj1, obj2);
 	}
 
-	static ConjResult buildverb(string head, string tail, bool zh) {
+	static ConjResult buildverb(string head, string tail, bool zh, string obj1, string obj2) {
 		string L(string key) => zh ? LAB[key][0] : LAB[key][1];
+
+		var o1 = cleanobj(obj1);
+		var o2 = cleanobj(obj2);
+		if (o1.Length == 0) {
+			o1 = o2;
+			o2 = "";
+		}
+		var particle = tail.Length > 0 ? tail.Substring(1) : "";
+		string vx(string stem) => attach(stem, particle, o1, o2);
+		var comp = o1.Length == 0 ? "" : (o2.Length > 0 ? o1 + " " + o2 : o1);
+		var sp = comp.Length > 0 ? " " + comp : "";
+		var has = comp.Length > 0;
+		string beof(string form) => has ? form + sp : form;
 
 		var hit = findirr(head, out var hitkind);
 		var row = hit >= 0 ? IR[hit] : null;
@@ -512,24 +525,23 @@ static class EnConj {
 		var pasts = row != null ? varlist(row[1]) : new List<string>();
 		var pps = row != null ? varlist(row[2]) : new List<string>();
 		var isBe = baseword == "be";
-		var b = baseword + tail;
-		var ingF = ing(baseword) + tail;
-		var ppF = (pps.Count > 0 ? pps[0] : ed(baseword)) + tail;
-		var pastF = (pasts.Count > 0 ? pasts[0] : ed(baseword)) + tail;
-		var s3F = s3(baseword) + tail;
-		if (isBe) {
-			ingF = "being" + tail;
-			ppF = "been" + tail;
-			pastF = "was" + tail;
-			s3F = "is" + tail;
-		}
-		// 一般现在时按 I / he 各给一个形；be 的 am / is 和 was / were 单独取。
-		var p1 = isBe ? "am" : b;
-		var p3 = isBe ? "is" : s3F;
-		var q1 = isBe ? "was" : pastF;
-		var q2 = isBe ? "were" : pastF;
-		var n1 = isBe ? "am not" : "do not " + b;
-		var n3 = isBe ? "is not" : "does not " + b;
+		var ingStem = isBe ? "being" : ing(baseword);
+		var ppStem = isBe ? "been" : (pps.Count > 0 ? pps[0] : ed(baseword));
+		var pastStem = isBe ? "was" : (pasts.Count > 0 ? pasts[0] : ed(baseword));
+		var s3Stem = isBe ? "is" : s3(baseword);
+		var b = vx(baseword);
+		var ingF = vx(ingStem);
+		var ppF = vx(ppStem);
+		var pastF = vx(pastStem);
+		var s3F = vx(s3Stem);
+		var ppBare = particle.Length > 0 ? ppStem + " " + particle : ppStem;
+		// 一般现在时按 I / he 各给一个形；be 的 am / is 和 was / were 单独取。宾语跟在动词后面。
+		var p1 = isBe ? beof("am") : b;
+		var p3 = isBe ? beof("is") : s3F;
+		var q1 = isBe ? beof("was") : pastF;
+		var q2 = isBe ? beof("were") : pastF;
+		var n1 = isBe ? "am not" + sp : "do not " + b;
+		var n3 = isBe ? "is not" + sp : "does not " + b;
 		var rows = new List<ConjRow>();
 		void R(string g, string name, string text) => rows.Add(new ConjRow(name, text, g));
 		string P(string pos, string neg) {
@@ -540,10 +552,10 @@ static class EnConj {
 		// 基本形式
 		g = L("g_form");
 		R(g, L("f_base"), b);
-		R(g, L("f_s3"), isBe ? "am / is / are" : s3F);
+		R(g, L("f_s3"), isBe ? beof("am") + " / " + beof("is") + " / " + beof("are") : s3F);
 		R(g, L("f_ing"), ingF);
-		R(g, L("f_past"), isBe ? "was / were" : (pasts.Count > 0 ? variants(row[1], tail) : ed(baseword) + tail));
-		R(g, L("f_pp"), isBe ? "been" : (pps.Count > 0 ? variants(row[2], tail) : ed(baseword) + tail));
+		R(g, L("f_past"), isBe ? beof("was") + " / " + beof("were") : (pasts.Count > 0 ? variants(row[1], particle, o1, o2) : vx(ed(baseword))));
+		R(g, L("f_pp"), isBe ? vx("been") : (pps.Count > 0 ? variants(row[2], particle, o1, o2) : vx(ed(baseword))));
 		// 现在时
 		g = L("g_pres");
 		R(g, L("t_pres"), "I " + p1 + " · he " + p3);
@@ -571,29 +583,44 @@ static class EnConj {
 		// 否定
 		g = L("g_neg");
 		R(g, L("n_pres"), "I " + n1 + " · he " + n3);
-		R(g, L("n_past"), "I " + (isBe ? "was not · they were not" : "did not " + b));
+		R(g, L("n_past"), "I " + (isBe ? "was not" + sp + " · they were not" + sp : "did not " + b));
 		R(g, L("n_pcont"), "I am not " + ingF + " · he is not " + ingF);
 		R(g, L("n_ppf"), "I have not " + ppF + " · he has not " + ppF);
 		R(g, L("n_fut"), "I will not " + b);
 		// 疑问
 		g = L("g_q");
-		R(g, L("q_pres"), isBe ? "Am I? · Is he?" : "Do I " + b + "? · Does he " + b + "?");
-		R(g, L("q_past"), isBe ? "Was I? · Were they?" : "Did I " + b + "?");
+		R(g, L("q_pres"), isBe ? "Am I" + sp + "? · Is he" + sp + "?" : "Do I " + b + "? · Does he " + b + "?");
+		R(g, L("q_past"), isBe ? "Was I" + sp + "? · Were they" + sp + "?" : "Did I " + b + "?");
 		R(g, L("q_pcont"), "Am I " + ingF + "? · Is he " + ingF + "?");
 		R(g, L("q_ppf"), "Have I " + ppF + "? · Has he " + ppF + "?");
 		R(g, L("q_fut"), "Will I " + b + "?");
 		// 被动语态；be 没有被动
 		if (!isBe) {
 			g = L("g_pas");
-			R(g, L("p_pres"), "It is " + ppF + " · They are " + ppF);
-			R(g, L("p_past"), "It was " + ppF + " · They were " + ppF);
-			R(g, L("p_pcont"), "It is being " + ppF);
-			R(g, L("p_pastc"), "It was being " + ppF);
-			R(g, L("p_ppf"), "It has been " + ppF);
-			R(g, L("p_pastp"), "It had been " + ppF);
-			R(g, L("p_fut"), "It will be " + ppF);
-			R(g, L("p_futp"), "It will have been " + ppF);
-			R(g, L("p_fips"), "It would be " + ppF);
+			if (!has) {
+				R(g, L("p_pres"), "It is " + ppBare + " · They are " + ppBare);
+				R(g, L("p_past"), "It was " + ppBare + " · They were " + ppBare);
+				R(g, L("p_pcont"), "It is being " + ppBare);
+				R(g, L("p_pastc"), "It was being " + ppBare);
+				R(g, L("p_ppf"), "It has been " + ppBare);
+				R(g, L("p_pastp"), "It had been " + ppBare);
+				R(g, L("p_fut"), "It will be " + ppBare);
+				R(g, L("p_futp"), "It will have been " + ppBare);
+				R(g, L("p_fips"), "It would be " + ppBare);
+			}
+			else {
+				objagree(o1, out var sub, out var am, out var was, out var hv);
+				var rest = o2.Length > 0 ? " " + o2 : "";
+				R(g, L("p_pres"), sub + " " + am + " " + ppBare + rest);
+				R(g, L("p_past"), sub + " " + was + " " + ppBare + rest);
+				R(g, L("p_pcont"), sub + " " + am + " being " + ppBare + rest);
+				R(g, L("p_pastc"), sub + " " + was + " being " + ppBare + rest);
+				R(g, L("p_ppf"), sub + " " + hv + " been " + ppBare + rest);
+				R(g, L("p_pastp"), sub + " had been " + ppBare + rest);
+				R(g, L("p_fut"), sub + " will be " + ppBare + rest);
+				R(g, L("p_futp"), sub + " will have been " + ppBare + rest);
+				R(g, L("p_fips"), sub + " would be " + ppBare + rest);
+			}
 		}
 		// 情态动词；be 没有「be able to be」和情态被动，略过这两行
 		g = L("g_mod");
@@ -606,19 +633,25 @@ static class EnConj {
 		R(g, L("m_need"), "needn't " + b + " · need not " + b + " · needed to " + b + " · didn't need to " + b + " · daren't " + b);
 		if (!isBe) {
 			R(g, L("m_able"), "am / is / are able to " + b + " · am / is / are not able to " + b + " · will be able to " + b);
-			R(g, L("m_pas"), "can be " + ppF + " · can't be " + ppF + " · should have been " + ppF + " · shouldn't have been " + ppF);
+			if (!has) R(g, L("m_pas"), "can be " + ppBare + " · can't be " + ppBare + " · should have been " + ppBare + " · shouldn't have been " + ppBare);
+			else {
+				objagree(o1, out var sub, out _, out _, out _);
+				var rest = o2.Length > 0 ? " " + o2 : "";
+				R(g, L("m_pas"), sub + " can be " + ppBare + rest + " · " + sub + " can't be " + ppBare + rest
+					+ " · " + sub + " should have been " + ppBare + rest + " · " + sub + " shouldn't have been " + ppBare + rest);
+			}
 		}
 		// 虚拟与条件
 		g = L("g_sub");
 		R(g, L("s_pres"), P("I suggest that he " + b + " · it is important that he " + b,
 			"I suggest that he not " + b + " · it is important that he not " + b));
-		R(g, L("s_sub"), isBe ? "AmE: that he be · BrE: that he should be"
+		R(g, L("s_sub"), isBe ? "AmE: that he be" + sp + " · BrE: that he should be" + sp
 			: "AmE: that he " + b + " · BrE: that he should " + b);
-		R(g, L("s_irr"), "if I " + (isBe ? "were" : pastF) + ", I would " + b);
+		R(g, L("s_irr"), "if I " + (isBe ? "were" + sp : pastF) + ", I would " + b);
 		R(g, L("s_past"), "if I had " + ppF + ", I would have " + ppF);
 		R(g, L("s_mix"), "if I had " + ppF + ", I would be " + ingF);
-		R(g, L("s_wish"), "I wish I " + (isBe ? "were" : pastF) + " · I wish I had " + ppF);
-		R(g, L("s_time"), "I would rather he " + (isBe ? "were" : pastF) + " · it is time he " + (isBe ? "were" : pastF));
+		R(g, L("s_wish"), "I wish I " + (isBe ? "were" + sp : pastF) + " · I wish I had " + ppF);
+		R(g, L("s_time"), "I would rather he " + (isBe ? "were" + sp : pastF) + " · it is time he " + (isBe ? "were" + sp : pastF));
 		R(g, L("s_opt"), "may he " + b);
 		R(g, L("s_inv"), "should he " + b + " · were he to " + b);
 		// 祈使、劝诱与请求
@@ -632,9 +665,9 @@ static class EnConj {
 		R(g, L("i_adv"), "why don't you " + b + "? · you had better " + b);
 		// 附加疑问句
 		g = L("g_tag");
-		R(g, L("u_pres"), isBe ? "you are, aren't you? · he is, isn't he?"
+		R(g, L("u_pres"), isBe ? "you are" + sp + ", aren't you? · he is" + sp + ", isn't he?"
 			: "you " + b + ", don't you? · he " + s3F + ", doesn't he?");
-		R(g, L("u_past"), isBe ? "you were, weren't you?" : "you " + pastF + ", didn't you?");
+		R(g, L("u_past"), isBe ? "you were" + sp + ", weren't you?" : "you " + pastF + ", didn't you?");
 		R(g, L("u_cont"), "you are " + ingF + ", aren't you?");
 		R(g, L("u_perf"), "you have " + ppF + ", haven't you?");
 		R(g, L("u_fut"), "you will " + b + ", won't you?");
@@ -652,13 +685,13 @@ static class EnConj {
 		R(g, L("t_informal"), P("I wanna " + b + " · I'm gonna " + b + " · I gotta " + b,
 			"I don't wanna " + b + " · I'm not gonna " + b));
 		R(g, L("t_emph"), isBe
-			? P("I really am · he really is", "I really am not · he really isn't")
+			? P("I really am" + sp + " · he really is" + sp, "I really am not" + sp + " · he really isn't" + sp)
 			: P("I do " + b + " · I really do " + b + " · he does " + b, "I don't " + b + " at all · I never " + b));
 		R(g, L("t_inv"), isBe
-			? P("Only then was I there", "Never have I been there · not once was I there")
+			? P("Only then was I" + (has ? sp : " there"), "Never have I been" + (has ? sp : " there") + " · not once was I" + (has ? sp : " there"))
 			: P("Only then did I " + b, "Never have I " + ppF + " · not once did I " + b + " · not only did I not " + b));
 		R(g, L("t_excl"), isBe
-			? P("How he is!", "How he isn't!")
+			? P("How he is" + sp + "!", "How he isn't" + sp + "!")
 			: P("How he " + s3F + "!", "How he never " + s3F + "!"));
 		R(g, L("t_hedge"), P("I was wondering if you could " + b + " · it might be better to " + b,
 			"I was wondering if you couldn't " + b + " · it might not be better to " + b));
@@ -678,34 +711,34 @@ static class EnConj {
 		var brePP = ppF;
 		var brIng = ingF;
 		if (LDOUBLE.Contains(baseword)) {
-			brIng = baseword + "ling" + tail;
-			breP = baseword + "led" + tail;
+			brIng = vx(baseword + "ling");
+			breP = vx(baseword + "led");
 			brePP = breP;
 		}
 		if (!isBe) {
 			if (AME_BARE.Contains(baseword)) {
 				if (pasts.Count > 1) {
-					ameP = pasts[0] + tail;
-					breP = pasts[pasts.Count - 1] + tail;
+					ameP = vx(pasts[0]);
+					breP = vx(pasts[pasts.Count - 1]);
 				}
 				if (pps.Count > 1) {
-					amePP = pps[0] + tail;
-					brePP = pps[pps.Count - 1] + tail;
+					amePP = vx(pps[0]);
+					brePP = vx(pps[pps.Count - 1]);
 				}
 			}
 			else if (!NO_DIA.Contains(baseword)) {
 				if (pasts.Count > 1) {
-					ameP = pickame(pasts) + tail;
-					breP = pickbre(pasts, pickame(pasts)) + tail;
+					ameP = vx(pickame(pasts));
+					breP = vx(pickbre(pasts, pickame(pasts)));
 				}
 				if (pps.Count > 1) {
-					amePP = pickame(pps) + tail;
-					brePP = pickbre(pps, pickame(pps)) + tail;
+					amePP = vx(pickame(pps));
+					brePP = vx(pickbre(pps, pickame(pps)));
 				}
 			}
 			if (baseword == "sneak") {
-				ameP = "snuck" + tail;
-				amePP = "snuck" + tail;
+				ameP = vx("snuck");
+				amePP = vx("snuck");
 			}
 		}
 		// 只列真的有地区写法差别的动词
@@ -721,19 +754,20 @@ static class EnConj {
 		R(g, L("o_pinf"), "to have " + ppF);
 		R(g, L("o_ger"), ingF);
 		R(g, L("o_pcp"), "having " + ppF);
-		if (!isBe) R(g, L("o_pi"), "to be " + ppF);
+		if (!isBe) R(g, L("o_pi"), has ? "for " + o1 + " to be " + ppBare + (o2.Length > 0 ? " " + o2 : "") : "to be " + ppBare);
 		// 顶部说明
 		string note;
 		if (row != null) {
 			note = L("irr");
-			if (pasts.Count > 0) note += " · " + L("f_past") + " " + variants(row[1], tail);
-			if (pps.Count > 0) note += " · " + L("f_pp") + " " + variants(row[2], tail);
+			if (pasts.Count > 0) note += " · " + L("f_past") + " " + variants(row[1], particle, "", "");
+			if (pps.Count > 0) note += " · " + L("f_pp") + " " + variants(row[2], particle, "", "");
 			var mean = tail.Length > 0 ? "" : (zh ? row[3] : row[4]);
 			if (mean.Length > 0) note += " · " + mean;
 			if (isBe) note += " · " + L("be");
 			if (hitkind != "base") note = fmt(L("from"), head + tail) + " · " + note;
 		}
 		else note = L("reg");
+		if (has) note += " · " + comp;
 		return ok(baseword + tail, note, rows);
 	}
 
@@ -1069,11 +1103,64 @@ static class EnConj {
 
 	static bool varhas(string field, string word) => varlist(field).Contains(word);
 
-	static string variants(string field, string tail) {
+	static string variants(string field, string particle, string o1, string o2) {
 		var list = varlist(field);
 		if (list.Count == 0) return "";
-		for (var i = 0; i < list.Count; i++) list[i] += tail;
+		for (var i = 0; i < list.Count; i++) list[i] = attach(list[i], particle, o1, o2);
 		return string.Join(" / ", list);
+	}
+
+	// 宾语只收简短英语短语。代词或冠词加名词，最多四个词。
+	static string cleanobj(string s) {
+		s = Regex.Replace(s ?? "", "^\\s+|\\s+$", "");
+		s = Regex.Replace(s, "\\s+", " ").ToLowerInvariant();
+		if (s.Length == 0 || s.Length > 48) return "";
+		if (!Regex.IsMatch(s, "^[a-z][a-z']*( [a-z][a-z']*){0,3}$")) return "";
+		return s;
+	}
+
+	static readonly HashSet<string> OBJPRON = new() { "me", "you", "him", "her", "it", "us", "them" };
+
+	static readonly HashSet<string> OBJPREP = new() {
+		"after", "for", "with", "at", "into", "onto", "upon", "from", "of",
+		"against", "about", "by", "across", "along", "through", "toward", "towards", "around"
+	};
+
+	// 主动：动词 + 宾语。短语动词里，代词宾语夹在动词和副词小品词之间（turn it on），介词则放在后面（look after him）。
+	static string attach(string stem, string particle, string o1, string o2) {
+		var p = particle ?? "";
+		if (o1.Length == 0) return p.Length == 0 ? stem : $"{stem} {p}";
+		if (p.Length == 0) return o2.Length == 0 ? $"{stem} {o1}" : $"{stem} {o1} {o2}";
+		if (OBJPRON.Contains(o1) && !OBJPREP.Contains(p))
+			return o2.Length == 0 ? $"{stem} {o1} {p}" : $"{stem} {o1} {p} {o2}";
+		return o2.Length == 0 ? $"{stem} {p} {o1}" : $"{stem} {p} {o1} {o2}";
+	}
+
+	// 被动里宾语升成主语，并配上 be / have。
+	static void objagree(string obj, out string sub, out string pres, out string past, out string have) {
+		var k = obj.ToLowerInvariant();
+		if (k == "i" || k == "me") { sub = "I"; pres = "am"; past = "was"; have = "have"; return; }
+		if (k == "you") { sub = "you"; pres = "are"; past = "were"; have = "have"; return; }
+		if (k == "we" || k == "us") { sub = "we"; pres = "are"; past = "were"; have = "have"; return; }
+		if (k == "they" || k == "them") { sub = "they"; pres = "are"; past = "were"; have = "have"; return; }
+		if (k == "he" || k == "him") { sub = "he"; pres = "is"; past = "was"; have = "has"; return; }
+		if (k == "she" || k == "her") { sub = "she"; pres = "is"; past = "was"; have = "has"; return; }
+		if (k == "it") { sub = "it"; pres = "is"; past = "was"; have = "has"; return; }
+		sub = obj;
+		var pl = pluralnoun(obj);
+		pres = pl ? "are" : "is";
+		past = pl ? "were" : "was";
+		have = pl ? "have" : "has";
+	}
+
+	static bool pluralnoun(string phrase) {
+		var i = phrase.LastIndexOf(' ');
+		var last = i < 0 ? phrase : phrase.Substring(i + 1);
+		if (last is "people" or "children" or "men" or "women" or "teeth" or "feet" or "mice" or "geese") return true;
+		if (last.Length < 2 || !last.EndsWith("s", StringComparison.Ordinal)) return false;
+		if (last.EndsWith("ss", StringComparison.Ordinal) || last.EndsWith("us", StringComparison.Ordinal) || last.EndsWith("is", StringComparison.Ordinal)) return false;
+		if (last is "this" or "his" or "news" or "series" or "species" or "maths") return false;
+		return true;
 	}
 
 	// 美式优先 gotten、dove、proven 这类写法，其次 -ed；英式取另一个写法。

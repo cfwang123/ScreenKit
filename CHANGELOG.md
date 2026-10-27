@@ -66,6 +66,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese word forms: the contracted ちゃう / じゃう forms (食べちゃう, 飲んじゃう, しちゃう) and their past forms, listed under te-form +.
 - Japanese word forms: each colloquial contraction now sits in the same cell as the full form - ている/てる, ておく/とく, てしまう/ちゃう, ては/ちゃ, ていく・てくる/てく, てくる/て来い, れば/りゃ, なければ/なきゃ, なくては/なくちゃ, でなければ/じゃなきゃ, ら抜き (食べられる/食べれる), のです/んです, ていらっしゃい/てらっしゃい.
 - Korean word forms add grammar patterns, auxiliaries, quotation, contractions and literary endings.
+- English verb forms can take one or two objects and use them in every form.
+- Japanese word forms: い-adjectives, な-adjectives and nouns now also list the N5-N1 patterns that fit them (てもいい, とき, ので, らしい, まま, くせに, 一方だ and so on), with the ending conjugated for each part of speech.
 
 #### Changed
 
@@ -170,6 +172,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语形态变化：补上口语缩略的 ちゃう／じゃう 形（食べちゃう、飲んじゃう、しちゃう）及其过去形，归在「て形＋」组里。
 - 日语形态变化：口语缩略和原形排在同一格里 —— ている/てる、ておく/とく、てしまう/ちゃう、ては/ちゃ、ていく・てくる/てく、てくる/て来い、れば/りゃ、なければ/なきゃ、なくては/なくちゃ、でなければ/じゃなきゃ、ら抜き（食べられる/食べれる）、のです/んです、ていらっしゃい/てらっしゃい。
 - 韩语词形变化补上句型、补助动词、引用、口语缩略和文言词尾。
+- 英语词形变化在选择动词后可以带一个或两个宾语，所有变化都会用上。
+- 日语形态变化：い形容词、な形容词、名词也补上能接的 N5~N1 句型（てもいい、とき、ので、らしい、まま、くせに、一方だ 等），词尾按词性变形。
 
 #### 变更
 

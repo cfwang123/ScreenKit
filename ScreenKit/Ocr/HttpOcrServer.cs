@@ -742,7 +742,7 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	// ───────── status / ASR / TTS / ITN ─────────
 
-	/// <summary>日/韩/英动词变形：GET/POST /api/conj?lang=ja|ko|en&amp;q=…&amp;kind=&amp;flag=&amp;sub=&amp;type=&amp;ui=zh</summary>
+	/// <summary>日/韩/英动词变形：GET/POST /api/conj?lang=ja|ko|en&amp;q=…&amp;kind=&amp;flag=&amp;sub=&amp;type=&amp;ui=zh&amp;o1=&amp;o2=</summary>
 	void handleconj(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var word = (field(ctx, jo, "q") ?? field(ctx, jo, "word") ?? "").Trim();
@@ -755,7 +755,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		ConjResult r;
 		try {
 			r = ConjApi.Build(lang, word, field(ctx, jo, "kind"), field(ctx, jo, "flag"),
-				field(ctx, jo, "sub"), field(ctx, jo, "type"), ui);
+				field(ctx, jo, "sub"), field(ctx, jo, "type"), ui, field(ctx, jo, "o1"), field(ctx, jo, "o2"));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(942, "变形失败: " + ex.Message));

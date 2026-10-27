@@ -122,10 +122,10 @@ public partial class SysToolWindow {
 
 	void showsvc() {
 		if (lvsvc.SelectedItem is not SvcItem it) {
-			lbsvcdetail.Text = "";
+			esvcdetail.Text = "";
 			return;
 		}
-		lbsvcdetail.Text = join(it.Disp, it.Name, it.State, it.Start, it.Path);
+		esvcdetail.Text = join(it.Disp, it.Name, it.State, it.Start, it.Path);
 	}
 
 	void copysvc() {
@@ -169,10 +169,10 @@ public partial class SysToolWindow {
 
 	void showpatch() {
 		if (lvpatch.SelectedItem is not PatchItem it) {
-			lbpatchdetail.Text = "";
+			epatchdetail.Text = "";
 			return;
 		}
-		lbpatchdetail.Text = join(it.Id, it.Date, it.Desc);
+		epatchdetail.Text = join(it.Id, it.Date, it.Desc);
 	}
 
 	void copypatch() {
@@ -213,10 +213,10 @@ public partial class SysToolWindow {
 
 	void showstore() {
 		if (lvstore.SelectedItem is not StoreItem it) {
-			lbstoredetail.Text = "";
+			estoredetail.Text = "";
 			return;
 		}
-		lbstoredetail.Text = join(it.Name, it.Ver, it.Pub);
+		estoredetail.Text = join(it.Name, it.Ver, it.Pub);
 	}
 
 	void copystore() {
@@ -245,10 +245,10 @@ public partial class SysToolWindow {
 
 	void showassoc() {
 		if (assoc == null || (assoc.App.Length == 0 && assoc.Exe.Length == 0 && assoc.Cmd.Length == 0)) {
-			lbassocdetail.Text = "";
+			eassocdetail.Text = "";
 			return;
 		}
-		lbassocdetail.Text = join(
+		eassocdetail.Text = join(
 			$"{Loc.T("systool.assoc.app")}  {assoc.App}",
 			$"{Loc.T("systool.assoc.exe")}  {assoc.Exe}",
 			$"{Loc.T("systool.assoc.cmd")}  {assoc.Cmd}");

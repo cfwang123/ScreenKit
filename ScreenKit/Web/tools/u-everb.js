@@ -56,6 +56,22 @@
 		adj: ["常见形容词", "Common adjectives"],
 		noun: ["常见名词", "Common nouns"]
 	};
+	// 动词宾语。值是放进句子里的英语，中文只在下拉里作释义。
+	var OBJS = [
+		["it", "it 它"],
+		["him", "him 他"],
+		["her", "her 她"],
+		["me", "me 我"],
+		["you", "you 你"],
+		["us", "us 我们"],
+		["them", "them 他们"],
+		["this", "this 这个"],
+		["that", "that 那个"],
+		["a book", "a book 一本书"],
+		["a letter", "a letter 一封信"],
+		["the door", "the door 这扇门"],
+		["some money", "some money 一些钱"]
+	];
 ;
 	// 短语动词只接这类小品词或介词，避免把两个单词的短语当成动词。
 ;
@@ -71,8 +87,8 @@
 ;
 	var LAB = {
 		title: ["英语词形变化", "English word forms"],
-		hint: ["输入英语动词原形、形容词或名词，类型默认自动：先查不规则的动词、形容词、名词表，再按词尾判断，认不出时按动词处理，也可以改类型。动词列基本形式、十六种时态、否定、疑问、被动、情态、虚拟、祈使、附加疑问、使役和地区变体；形容词列比较级、最高级、比较句型、副词和名词形式；名词列复数、冠词、所有格和主谓一致。斜杠两边是不同写法，表里用第一个。",
-			"Enter a verb, adjective or noun. Auto checks the irregular verb, adjective and noun tables, then the ending; if unsure it treats the word as a verb, and you can change the type. Verbs list the basic forms, sixteen tenses, negatives, questions, passive, modals, subjunctive, imperative, tag questions, causative and regional variants. Adjectives list comparative and superlative forms, comparison patterns, the adverb and the noun. Nouns list plural, articles, possessives and subject-verb agreement. Slashes separate variants; the tables use the first."],
+		hint: ["输入英语动词原形、形容词或名词，类型默认自动：先查不规则的动词、形容词、名词表，再按词尾判断，认不出时按动词处理，也可以改类型。动词列基本形式、十六种时态、否定、疑问、被动、情态、虚拟、祈使、附加疑问、使役和地区变体；形容词列比较级、最高级、比较句型、副词和名词形式；名词列复数、冠词、所有格和主谓一致。斜杠两边是不同写法，表里用第一个。选了动词后可以再选一个或两个宾语，默认没有；表里每一种变化都会带上这些宾语。",
+			"Enter a verb, adjective or noun. Auto checks the irregular verb, adjective and noun tables, then the ending; if unsure it treats the word as a verb, and you can change the type. Verbs list the basic forms, sixteen tenses, negatives, questions, passive, modals, subjunctive, imperative, tag questions, causative and regional variants. Adjectives list comparative and superlative forms, comparison patterns, the adverb and the noun. Nouns list plural, articles, possessives and subject-verb agreement. Slashes separate variants; the tables use the first. With Verb selected, add one or two objects (none by default); every form includes them."],
 		word: ["单词", "Word"],
 		ph: ["动词原形、形容词或名词，如 walk、beautiful、child", "A verb, adjective or noun, e.g. walk, beautiful, child"],
 		reg: ["规则动词", "Regular verb"],
@@ -182,6 +198,12 @@
 		t_a: ["形容词", "Adjective"],
 		t_n: ["名词", "Noun"],
 		type: ["类型", "Type"],
+		obj: ["宾语", "Object"],
+		obj0: ["无", "None"],
+		obj1: ["1个", "One"],
+		obj2: ["2个", "Two"],
+		o1: ["宾语1", "Object 1"],
+		o2: ["宾语2", "Object 2"],
 		g_a_form: ["基本形式", "Basic forms"],
 		a_base: ["原级", "Positive"],
 		a_comp: ["比较级", "Comparative"],
@@ -450,6 +472,16 @@
 			+ "</select></label>"
 			+ '<label id="ev-word"><span data-k="web.everb.word">' + esc(tr(LAB.word)) + "</span>"
 			+ SK.combo("ev-in", "walk", LAB.ph[0]) + "</label>"
+			+ '<label id="ev-obj" hidden><span data-k="web.everb.obj">' + esc(tr(LAB.obj)) + "</span>"
+			+ '<select id="ev-on">'
+			+ '<option value="0"></option>'
+			+ '<option value="1"></option>'
+			+ '<option value="2"></option>'
+			+ "</select></label>"
+			+ '<label id="ev-o1" hidden><span data-k="web.everb.o1">' + esc(tr(LAB.o1)) + "</span>"
+			+ '<select id="ev-oa"></select></label>'
+			+ '<label id="ev-o2" hidden><span data-k="web.everb.o2">' + esc(tr(LAB.o2)) + "</span>"
+			+ '<select id="ev-ob"></select></label>'
 			+ "</div>"
 			+ '<div id="ev-out"></div>';
 	}
@@ -462,11 +494,32 @@
 		setopt("v", "web.everb.verb", LAB.t_v[0]);
 		setopt("a", "web.everb.adj", LAB.t_a[0]);
 		setopt("n", "web.everb.noun", LAB.t_n[0]);
+		setobjopt("0", "web.everb.obj0", LAB.obj0);
+		setobjopt("1", "web.everb.obj1", LAB.obj1);
+		setobjopt("2", "web.everb.obj2", LAB.obj2);
+		fillobj("ev-oa");
+		fillobj("ev-ob");
 		var sel = F.id("ev-sel");
 		if (sel && !F.attr(sel, "data-bind")) {
 			F.seta(sel, "data-bind", "1");
 			sel.onchange = ontype;
 		}
+		var on = F.id("ev-on");
+		if (on && !F.attr(on, "data-bind")) {
+			F.seta(on, "data-bind", "1");
+			on.onchange = onobj;
+		}
+		var oa = F.id("ev-oa");
+		var ob = F.id("ev-ob");
+		if (oa && !F.attr(oa, "data-bind")) {
+			F.seta(oa, "data-bind", "1");
+			oa.onchange = run;
+		}
+		if (ob && !F.attr(ob, "data-bind")) {
+			F.seta(ob, "data-bind", "1");
+			ob.onchange = run;
+		}
+		showobj();
 		var out = F.id("ev-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
@@ -490,6 +543,64 @@
 	// 下拉只列当前类型的例词：自动列全部，选了动词/形容词/名词就只列这一类。
 	function ontype(){
 		SK.combofill("ev-in", pickgroups());
+		showobj();
+		run();
+	}
+
+	function setobjopt(value, key, pair){
+		var sel = F.id("ev-on");
+		if (!sel) return;
+		for (var i = 0; i < sel.options.length; i++) {
+			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, tr(pair));
+		}
+	}
+
+	function fillobj(id){
+		var sel = F.id(id);
+		if (!sel) return;
+		var cur = sel.value;
+		var zh = langcode() === "zh";
+		var html = "";
+		var i;
+		for (i = 0; i < OBJS.length; i++) {
+			html += '<option value="' + esc(OBJS[i][0]) + '">' + esc(zh ? OBJS[i][1] : OBJS[i][0]) + "</option>";
+		}
+		sel.innerHTML = html;
+		if (cur) sel.value = cur;
+	}
+
+	function verbpick(){
+		var sel = F.id("ev-sel");
+		return !!(sel && sel.value === "v");
+	}
+
+	function showobj(){
+		var on = verbpick();
+		var nsel = F.id("ev-on");
+		var n = nsel && nsel.value ? nsel.value : "0";
+		var box = F.id("ev-obj");
+		var a = F.id("ev-o1");
+		var b = F.id("ev-o2");
+		if (box) box.hidden = !on;
+		if (a) a.hidden = !on || n === "0";
+		if (b) b.hidden = !on || n !== "2";
+	}
+
+	// 从「无」换成 1 个或 2 个时给一个常用宾语，已经选过的保留。
+	function onobj(){
+		var nsel = F.id("ev-on");
+		var n = nsel && nsel.value ? nsel.value : "0";
+		var prev = nsel ? (F.attr(nsel, "data-prev") || "0") : "0";
+		var a = F.id("ev-oa");
+		var b = F.id("ev-ob");
+		if (prev === "0" && n === "1" && a) a.value = "it";
+		if (prev === "0" && n === "2") {
+			if (a) a.value = "him";
+			if (b) b.value = "a book";
+		}
+		if (prev === "1" && n === "2" && b && !b.value) b.value = "a book";
+		if (nsel) F.seta(nsel, "data-prev", n);
+		showobj();
 		run();
 	}
 
@@ -572,7 +683,7 @@
 			var tdict = hits ? now() - t0 : -1;
 			var miss = hits && !hits.length ? tx("web.everb.miss", "词典里没有这个词，已按词形判断。") : "";
 			var t1 = now();
-			conjreq({ lang: "en", q: word, type: sel ? sel.value : "auto", ui: langcode() }, function(d){
+			conjreq(conjparams(word, sel), function(d){
 				if (n !== gen) return;
 				var tcalc = now() - t1;
 				if (!d) {
@@ -589,6 +700,18 @@
 				SK.msg("box-msg", "");
 			});
 		});
+	}
+
+	function conjparams(word, sel){
+		var params = { lang: "en", q: word, type: sel ? sel.value : "auto", ui: langcode() };
+		if (!verbpick()) return params;
+		var nsel = F.id("ev-on");
+		var n = nsel && nsel.value ? nsel.value : "0";
+		var a = F.id("ev-oa");
+		var b = F.id("ev-ob");
+		if ((n === "1" || n === "2") && a && a.value) params.o1 = a.value;
+		if (n === "2" && b && b.value) params.o2 = b.value;
+		return params;
 	}
 
 	// 查词只用来算耗时、提示词条在不在；类型仍按词形判断。

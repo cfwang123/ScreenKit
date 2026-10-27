@@ -2,13 +2,29 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="系统工具"
-        Width="980" Height="680"
-        MinWidth="760" MinHeight="480"
+        Width="1200" Height="720"
+        MinWidth="900" MinHeight="520"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{StaticResource BgApp}"
         FontFamily="Segoe UI, Microsoft YaHei UI"
         AutomationProperties.AutomationId="systool.window">
+	<Window.Resources>
+		<Style x:Key="DetailBox" TargetType="TextBox">
+			<Setter Property="IsReadOnly" Value="True"/>
+			<Setter Property="IsReadOnlyCaretVisible" Value="True"/>
+			<Setter Property="AcceptsReturn" Value="True"/>
+			<Setter Property="TextWrapping" Value="Wrap"/>
+			<Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+			<Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+			<Setter Property="Padding" Value="8,6"/>
+			<Setter Property="Background" Value="{StaticResource BgPanel}"/>
+			<Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
+			<Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+			<Setter Property="FontFamily" Value="Consolas, Microsoft YaHei UI"/>
+			<Setter Property="FontSize" Value="12"/>
+		</Style>
+	</Window.Resources>
 	<Grid Margin="16">
 		<TabControl x:Name="tabs" BorderBrush="{StaticResource BorderSoft}"
 		            AutomationProperties.AutomationId="systool.tabs">
@@ -18,7 +34,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbprochint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -31,20 +46,28 @@
 						<TextBox x:Name="eproc" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvproc" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colprocname" Width="180" DisplayMemberBinding="{Binding Name}"/>
-								<GridViewColumn x:Name="colprocpid" Width="80" DisplayMemberBinding="{Binding Pid}"/>
-								<GridViewColumn x:Name="colprocmem" Width="90" DisplayMemberBinding="{Binding Mem}"/>
-								<GridViewColumn x:Name="colprocpath" Width="280" DisplayMemberBinding="{Binding Path}"/>
-								<GridViewColumn x:Name="colproccmd" Width="280" DisplayMemberBinding="{Binding Cmd}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lbprocdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lbprocstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvproc" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colprocname" Width="160" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colprocpid" Width="70" DisplayMemberBinding="{Binding Pid}"/>
+									<GridViewColumn x:Name="colprocmem" Width="80" DisplayMemberBinding="{Binding Mem}"/>
+									<GridViewColumn x:Name="colprocpath" Width="240" DisplayMemberBinding="{Binding Path}"/>
+									<GridViewColumn x:Name="colproccmd" Width="240" DisplayMemberBinding="{Binding Cmd}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="eprocdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lbprocstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tablock" Header="文件占用" AutomationProperties.AutomationId="systool.tab.lock">
@@ -53,7 +76,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lblockhint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -65,18 +87,26 @@
 						<TextBox x:Name="elock" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvlock" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="collockname" Width="220" DisplayMemberBinding="{Binding Name}"/>
-								<GridViewColumn x:Name="collockpid" Width="80" DisplayMemberBinding="{Binding Pid}"/>
-								<GridViewColumn x:Name="collockpath" Width="420" DisplayMemberBinding="{Binding Path}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lblockdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lblockstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvlock" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="collockname" Width="200" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="collockpid" Width="70" DisplayMemberBinding="{Binding Pid}"/>
+									<GridViewColumn x:Name="collockpath" Width="360" DisplayMemberBinding="{Binding Path}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="elockdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lblockstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tabenv" Header="环境变量" AutomationProperties.AutomationId="systool.tab.env">
@@ -85,7 +115,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbenvhint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -97,18 +126,26 @@
 						<TextBox x:Name="eenv" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvenv" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colenvscope" Width="80" DisplayMemberBinding="{Binding Scope}"/>
-								<GridViewColumn x:Name="colenvname" Width="220" DisplayMemberBinding="{Binding Name}"/>
-								<GridViewColumn x:Name="colenvvalue" Width="480" DisplayMemberBinding="{Binding Value}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lbenvdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lbenvstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvenv" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colenvscope" Width="70" DisplayMemberBinding="{Binding Scope}"/>
+									<GridViewColumn x:Name="colenvname" Width="180" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colenvvalue" Width="400" DisplayMemberBinding="{Binding Value}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="eenvdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lbenvstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tabstart" Header="启动项" AutomationProperties.AutomationId="systool.tab.start">
@@ -117,7 +154,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbstarthint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -129,18 +165,26 @@
 						<TextBox x:Name="estart" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvstart" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colstartsrc" Width="140" DisplayMemberBinding="{Binding Source}"/>
-								<GridViewColumn x:Name="colstartname" Width="220" DisplayMemberBinding="{Binding Name}"/>
-								<GridViewColumn x:Name="colstartcmd" Width="420" DisplayMemberBinding="{Binding Cmd}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lbstartdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lbstartstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvstart" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colstartsrc" Width="120" DisplayMemberBinding="{Binding Source}"/>
+									<GridViewColumn x:Name="colstartname" Width="190" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colstartcmd" Width="360" DisplayMemberBinding="{Binding Cmd}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="estartdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lbstartstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tabapp" Header="已安装程序" AutomationProperties.AutomationId="systool.tab.app">
@@ -149,7 +193,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbapphint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -161,20 +204,28 @@
 						<TextBox x:Name="eapp" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvapp" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colappname" Width="260" DisplayMemberBinding="{Binding Name}"/>
-								<GridViewColumn x:Name="colappver" Width="120" DisplayMemberBinding="{Binding Ver}"/>
-								<GridViewColumn x:Name="colapppub" Width="200" DisplayMemberBinding="{Binding Pub}"/>
-								<GridViewColumn x:Name="colappdate" Width="110" DisplayMemberBinding="{Binding Date}"/>
-								<GridViewColumn x:Name="colappscope" Width="100" DisplayMemberBinding="{Binding Scope}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lbappdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lbappstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvapp" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colappname" Width="220" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colappver" Width="110" DisplayMemberBinding="{Binding Ver}"/>
+									<GridViewColumn x:Name="colapppub" Width="170" DisplayMemberBinding="{Binding Pub}"/>
+									<GridViewColumn x:Name="colappdate" Width="100" DisplayMemberBinding="{Binding Date}"/>
+									<GridViewColumn x:Name="colappscope" Width="90" DisplayMemberBinding="{Binding Scope}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="eappdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lbappstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tabsvc" Header="服务" AutomationProperties.AutomationId="systool.tab.svc">
@@ -183,7 +234,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbsvchint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -195,19 +245,27 @@
 						<TextBox x:Name="esvc" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvsvc" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colsvcname" Width="240" DisplayMemberBinding="{Binding Disp}"/>
-								<GridViewColumn x:Name="colsvcstate" Width="90" DisplayMemberBinding="{Binding State}"/>
-								<GridViewColumn x:Name="colsvcstart" Width="90" DisplayMemberBinding="{Binding Start}"/>
-								<GridViewColumn x:Name="colsvcpath" Width="420" DisplayMemberBinding="{Binding Path}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lbsvcdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lbsvcstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvsvc" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colsvcname" Width="200" DisplayMemberBinding="{Binding Disp}"/>
+									<GridViewColumn x:Name="colsvcstate" Width="80" DisplayMemberBinding="{Binding State}"/>
+									<GridViewColumn x:Name="colsvcstart" Width="80" DisplayMemberBinding="{Binding Start}"/>
+									<GridViewColumn x:Name="colsvcpath" Width="340" DisplayMemberBinding="{Binding Path}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="esvcdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lbsvcstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tabpatch" Header="补丁" AutomationProperties.AutomationId="systool.tab.patch">
@@ -216,7 +274,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbpatchhint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -228,18 +285,26 @@
 						<TextBox x:Name="epatch" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvpatch" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colpatchid" Width="140" DisplayMemberBinding="{Binding Id}"/>
-								<GridViewColumn x:Name="colpatchdate" Width="120" DisplayMemberBinding="{Binding Date}"/>
-								<GridViewColumn x:Name="colpatchdesc" Width="480" DisplayMemberBinding="{Binding Desc}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lbpatchdetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lbpatchstat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvpatch" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colpatchid" Width="130" DisplayMemberBinding="{Binding Id}"/>
+									<GridViewColumn x:Name="colpatchdate" Width="110" DisplayMemberBinding="{Binding Date}"/>
+									<GridViewColumn x:Name="colpatchdesc" Width="400" DisplayMemberBinding="{Binding Desc}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="epatchdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lbpatchstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tabstore" Header="商店应用" AutomationProperties.AutomationId="systool.tab.store">
@@ -248,7 +313,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbstorehint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -260,18 +324,26 @@
 						<TextBox x:Name="estore" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<ListView x:Name="lvstore" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}">
-						<ListView.View>
-							<GridView>
-								<GridViewColumn x:Name="colstorename" Width="360" DisplayMemberBinding="{Binding Name}"/>
-								<GridViewColumn x:Name="colstorever" Width="140" DisplayMemberBinding="{Binding Ver}"/>
-								<GridViewColumn x:Name="colstorepub" Width="280" DisplayMemberBinding="{Binding Pub}"/>
-							</GridView>
-						</ListView.View>
-					</ListView>
-					<TextBlock x:Name="lbstoredetail" Grid.Row="3" Margin="0,8,0,0" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-					<TextBlock x:Name="lbstorestat" Grid.Row="4" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvstore" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colstorename" Width="300" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colstorever" Width="120" DisplayMemberBinding="{Binding Ver}"/>
+									<GridViewColumn x:Name="colstorepub" Width="240" DisplayMemberBinding="{Binding Pub}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="estoredetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+					</Grid>
+					<TextBlock x:Name="lbstorestat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
 			<TabItem x:Name="tabassoc" Header="文件关联" AutomationProperties.AutomationId="systool.tab.assoc">
@@ -279,7 +351,7 @@
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
 						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 					<TextBlock x:Name="lbassochint" TextWrapping="Wrap" Margin="0,0,0,8"
@@ -290,8 +362,7 @@
 						<TextBox x:Name="eassoc" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<TextBlock x:Name="lbassocdetail" Grid.Row="2" TextWrapping="Wrap"
-					           FontFamily="Consolas, Microsoft YaHei UI" FontSize="13"/>
+					<TextBox x:Name="eassocdetail" Grid.Row="2" Style="{StaticResource DetailBox}" FontSize="13"/>
 					<TextBlock x:Name="lbassocstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>

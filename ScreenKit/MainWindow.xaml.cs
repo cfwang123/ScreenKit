@@ -5018,6 +5018,14 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(pixelArtWin, w)) pixelArtWin = null;
 				else if (ReferenceEquals(voiceRecWin, w)) voiceRecWin = null;
 				else if (ReferenceEquals(camWin, w)) camWin = null;
+				else if (ReferenceEquals(sysToolWin, w)) sysToolWin = null;
+				else if (ReferenceEquals(fileProbeWin, w)) fileProbeWin = null;
+				else if (ReferenceEquals(glyphModWin, w)) glyphModWin = null;
+				else if (ReferenceEquals(midiWin, w)) midiWin = null;
+				else if (ReferenceEquals(perfMonWin, w)) perfMonWin = null;
+				else if (ReferenceEquals(pinyinWin, w)) pinyinWin = null;
+				else if (ReferenceEquals(portUseWin, w)) portUseWin = null;
+				else if (ReferenceEquals(rtspSrvWin, w)) rtspSrvWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
 			w.Show();

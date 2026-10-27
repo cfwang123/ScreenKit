@@ -190,12 +190,12 @@ public partial class SysToolWindow : Window {
 
 	void showproc() {
 		if (lvproc.SelectedItem is not ProcItem it) {
-			lbprocdetail.Text = "";
+			eprocdetail.Text = "";
 			bprocopen.IsEnabled = false;
 			return;
 		}
 		bprocopen.IsEnabled = File.Exists(it.Path);
-		lbprocdetail.Text = join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Cmd);
+		eprocdetail.Text = join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Cmd);
 	}
 
 	void copyproc() {
@@ -264,10 +264,10 @@ public partial class SysToolWindow : Window {
 
 	void showlock() {
 		if (lvlock.SelectedItem is not LockItem it) {
-			lblockdetail.Text = "";
+			elockdetail.Text = "";
 			return;
 		}
-		lblockdetail.Text = join($"{it.Name}  {it.Pid}", it.Path);
+		elockdetail.Text = join($"{it.Name}  {it.Pid}", it.Path);
 	}
 
 	void loadenv() {
@@ -308,12 +308,12 @@ public partial class SysToolWindow : Window {
 
 	void showenv() {
 		if (lvenv.SelectedItem is not EnvItem it) {
-			lbenvdetail.Text = "";
+			eenvdetail.Text = "";
 			return;
 		}
 		var value = it.Value ?? "";
 		if (value.IndexOf(';') >= 0) value = value.Replace(";", "\n");
-		lbenvdetail.Text = join($"{it.Scope}  {it.Name}", value);
+		eenvdetail.Text = join($"{it.Scope}  {it.Name}", value);
 	}
 
 	void copyenv() {
@@ -357,10 +357,10 @@ public partial class SysToolWindow : Window {
 
 	void showstart() {
 		if (lvstart.SelectedItem is not StartItem it) {
-			lbstartdetail.Text = "";
+			estartdetail.Text = "";
 			return;
 		}
-		lbstartdetail.Text = join($"{it.Source}  {it.Name}", it.Cmd);
+		estartdetail.Text = join($"{it.Source}  {it.Name}", it.Cmd);
 	}
 
 	void copystart() {
@@ -407,10 +407,10 @@ public partial class SysToolWindow : Window {
 
 	void showapp() {
 		if (lvapp.SelectedItem is not AppItem it) {
-			lbappdetail.Text = "";
+			eappdetail.Text = "";
 			return;
 		}
-		lbappdetail.Text = join($"{it.Name}  {it.Ver}", it.Pub, it.Date, it.Scope, it.Uninstall);
+		eappdetail.Text = join($"{it.Name}  {it.Ver}", it.Pub, it.Date, it.Scope, it.Uninstall);
 	}
 
 	void copyapp() {

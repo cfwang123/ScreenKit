@@ -707,7 +707,7 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "ai"));
 		rows.AddRange(naihaseirows(L, s + "くない"));
 		rows.AddRange(dialectiadj(L, s));
-		return new JpConjPacked { plain = word, rows = rows };
+			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
 	}
 
 	static string iadjstem(string word) {
@@ -762,7 +762,7 @@ static class JpConj {
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
 		rows.AddRange(dialectnounrows(L, word));
-		return new JpConjPacked { plain = word, rows = rows };
+			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "a", word) };
 	}
 
 	// 名词：学生だ、学生だった。和な形容词一样接だ・で・だった，连体形用の。
@@ -800,7 +800,7 @@ static class JpConj {
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
 		rows.AddRange(dialectnounrows(L, word));
-		return new JpConjPacked { plain = word, rows = rows };
+			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "n", word) };
 	}
 
 	// ───────── 动词 ─────────
