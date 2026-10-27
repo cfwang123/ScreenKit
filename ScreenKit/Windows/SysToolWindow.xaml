@@ -65,7 +65,15 @@
 						</ListView>
 						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
 						              VerticalAlignment="Stretch" Background="Transparent"/>
-						<TextBox x:Name="eprocdetail" Grid.Column="2" Style="{StaticResource DetailBox}"/>
+						<Grid Grid.Column="2">
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+							<TextBlock x:Name="lbprocinfo" TextWrapping="Wrap" FontFamily="Consolas, Microsoft YaHei UI"
+							           FontSize="12" Foreground="{StaticResource TextPrimary}"/>
+							<TextBox x:Name="eproccmd" Grid.Row="1" Margin="0,6,0,0" Style="{StaticResource DetailBox}"/>
+						</Grid>
 					</Grid>
 					<TextBlock x:Name="lbprocstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>

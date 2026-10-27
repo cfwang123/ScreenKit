@@ -31,6 +31,7 @@ sealed class JpConjLabels {
 	public string mashou, mashouka, masenka;
 	public string teita, teinai, teimasu, teshimatta, tewa;
 	public string nakereba, nakucha, noda, terasshai;
+	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, sa, rentai;
@@ -410,6 +411,19 @@ static class JpConj {
 			L.nakucha = "なくては";
 			L.noda = "のです";
 			L.terasshai = "ていらっしゃい";
+			L.reg = "角色语";
+			L.jdegozaru = "でござる（武士）";
+			L.jdearimasu = "であります（军队）";
+			L.jnya = "にゃ（猫）";
+			L.jnanoda = "なのだ（解说）";
+			L.jdesuwa = "ですわ（大小姐）";
+			L.jnoja = "のじゃ（老人）";
+			L.jssu = "っす（体育会）";
+			L.jssho = "っしょ（辣妹）";
+			L.jjan = "じゃん（口语）";
+			L.jnari = "なり（武士）";
+			L.jdesourou = "で候（文语）";
+			L.jojaru = "でおじゃる（古风）";
 			L.ai = "い形容词";
 			L.an = "な形容词";
 			L.nn = "名词";
@@ -576,6 +590,19 @@ static class JpConj {
 			L.nakucha = "nakucha";
 			L.noda = "noda";
 			L.terasshai = "teirasshai";
+		L.reg = "Character speech";
+		L.jdegozaru = "degozaru (samurai)";
+		L.jdearimasu = "de arimasu (military)";
+		L.jnya = "nya (cat)";
+		L.jnanoda = "na no da (narrator)";
+		L.jdesuwa = "desu wa (ojou-sama)";
+		L.jnoja = "no ja (elder)";
+		L.jssu = "ssu (sports club)";
+		L.jssho = "ssho (gal)";
+		L.jjan = "jan (casual)";
+		L.jnari = "nari (samurai)";
+		L.jdesourou = "de sourou (classical)";
+		L.jojaru = "de ojaru (archaic)";
 		L.ai = "i-adjective";
 		L.an = "na-adjective";
 		L.nn = "noun";
@@ -707,6 +734,7 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "ai"));
 		rows.AddRange(naihaseirows(L, s + "くない"));
 		rows.AddRange(dialectiadj(L, s));
+		rows.AddRange(jargonrows(L, word, "i"));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
 	}
 
@@ -761,6 +789,7 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "an"));
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
+		rows.AddRange(jargonrows(L, word, "a"));
 		rows.AddRange(dialectnounrows(L, word));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "a", word) };
 	}
@@ -799,6 +828,7 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "n"));
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
+		rows.AddRange(jargonrows(L, word, "n"));
 		rows.AddRange(dialectnounrows(L, word));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "n", word) };
 	}
@@ -843,6 +873,7 @@ static class JpConj {
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
 		rows.AddRange(naihaseirows(L, nai));
 		rows.AddRange(keigo(plain, masu, pas, L));
+		rows.AddRange(jargonrows(L, plain, "v"));
 		// 尊敬语命令：～ていらっしゃい／～てらっしゃい（行ってらっしゃい）
 		if (!issonkearu(plain) && !isaru(plain)) rows.Add(new ConjRow(L.terasshai, te + "いらっしゃい、" + te + "らっしゃい", L.gson));
 		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
@@ -958,6 +989,27 @@ static class JpConj {
 		return rows;
 	}
 
+	// 小圈子的角色语：武士、大小姐、猫语、网络语这类只在特定语境里用的说法。
+	static List<ConjRow> jargonrows(JpConjLabels L, string plain, string kind) {
+		var noun = kind == "n";
+		var na = kind == "a";
+		var dan = noun || na ? "な" : "";
+		var rows = new List<ConjRow> {
+			new(L.jdegozaru, plain + "でござる", L.reg),
+			new(L.jdearimasu, plain + "であります", L.reg),
+			new(L.jnya, plain + "にゃ", L.reg),
+			new(L.jnanoda, plain + dan + "のだ", L.reg),
+			new(L.jdesuwa, plain + "ですわ", L.reg),
+			new(L.jnoja, plain + dan + "のじゃ", L.reg),
+			new(L.jssu, plain + "っす", L.reg),
+			new(L.jssho, plain + "っしょ", L.reg),
+			new(L.jjan, plain + "じゃん", L.reg),
+			new(L.jdesourou, plain + "で候", L.reg),
+			new(L.jojaru, plain + "でおじゃる", L.reg),
+		};
+		if (noun || na) rows.Insert(9, new ConjRow(L.jnari, plain + "なり", L.reg));
+		return rows;
+	}
 	// だ・です的敬语说法：丁重的 でござる、尊敬的 でいらっしゃる。な形容词和名词都能接。
 	static List<ConjRow> copularows(JpConjLabels L, string word) {
 		return new List<ConjRow> {

@@ -14,6 +14,8 @@ static class SysTool {
 		public string Mem = "";
 		public string Path = "";
 		public string Cmd = "";
+		public int Bits = 64;
+		public int Elev = -1;
 	}
 
 	public sealed class LockRow {
@@ -83,6 +85,7 @@ static class SysTool {
 				row.Cmd = text(mo["CommandLine"]);
 				row.Mem = bytes(toulong(mo["WorkingSetSize"]));
 				if (row.Name.Length == 0) row.Name = row.Pid.ToString();
+				procflags(row);
 				list.Add(row);
 			}
 		}
@@ -92,6 +95,22 @@ static class SysTool {
 			return a.Pid - b.Pid;
 		});
 		return list;
+	}
+
+	// 平台位数与是否提权。64 位系统上 WOW64 进程算 32 位；打不开的进程只给系统位数。
+	static void procflags(ProcRow row) {
+		row.Bits = Environment.Is64BitOperatingSystem ? 64 : 32;
+		var h = OpenProcess(0x1000, false, row.Pid);
+		if (h == IntPtr.Zero) return;
+		try {
+			if (IsWow64Process(h, out var wow) && wow) row.Bits = 32;
+			if (!OpenProcessToken(h, 0x0008, out var tok)) return;
+			try {
+				if (GetTokenInformation(tok, 20, out var elev, 4, out _)) row.Elev = elev != 0 ? 1 : 0;
+			}
+			finally { CloseHandle(tok); }
+		}
+		finally { CloseHandle(h); }
 	}
 
 	public static List<LockRow> Locks(string path, out string err) {
@@ -587,6 +606,21 @@ static class SysTool {
 
 	[DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
 	static extern int AssocQueryString(int flags, int str, string assoc, string extra, StringBuilder pszOut, ref int pcchOut);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+
+	[DllImport("kernel32.dll", SetLastError = true)]
+	static extern bool IsWow64Process(IntPtr h, out bool wow);
+
+	[DllImport("advapi32.dll", SetLastError = true)]
+	static extern bool OpenProcessToken(IntPtr h, uint access, out IntPtr token);
+
+	[DllImport("advapi32.dll", SetLastError = true)]
+	static extern bool GetTokenInformation(IntPtr token, int cls, out int info, int len, out int ret);
+
+	[DllImport("kernel32.dll")]
+	static extern bool CloseHandle(IntPtr h);
 
 	[DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)]
 	static extern int RmStartSession(out uint pSessionHandle, int dwSessionFlags, StringBuilder strSessionKey);

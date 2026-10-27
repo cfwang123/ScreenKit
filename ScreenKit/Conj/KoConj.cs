@@ -34,7 +34,7 @@ static class KoConj {
 	// 初声索引，只列用到的
 	private const int CH_N = 2, CH_DD = 4, CH_R = 5, CH_M = 6, CH_S = 9, CH_NG = 11, CH_CH = 14, CH_P = 17, CH_H = 18;
 	// 终声索引
-	private const int JG_N = 4, JG_R = 8, JG_M = 16, JG_B = 17, JG_BS = 18, JG_SS = 20, JG_H = 27;
+	private const int JG_N = 4, JG_R = 8, JG_RM = 10, JG_M = 16, JG_B = 17, JG_BS = 18, JG_SS = 20, JG_H = 27;
 
 	// ==================== 数据表（与 Web/tools/u-kverb.js 保持一致） ====================
 	private static readonly HashSet<string> IRR_D = new() {
@@ -186,6 +186,8 @@ static class KoConj {
 		["voice"] = new[] { "态", "태", "Voice" },
 		["style"] = new[] { "文体", "문체", "Style" },
 		["mood"] = new[] { "语气", "양태", "Mood" },
+		["ellip"] = new[] { "省略", "준말", "Contraction" },
+		["talk"] = new[] { "口语", "구어", "Colloquial" },
 	};
 
 	private static readonly Dictionary<string, string[]> NOTE = new() {
@@ -458,6 +460,51 @@ static class KoConj {
 		["igido"] = new[] { "也是", "이기도", "also is" },
 		["imyeonseo"] = new[] { "既是", "이면서", "while being" },
 		["idaga"] = new[] { "一度是", "이다가", "was, then" },
+		["fullae"] = new[] { "未缩略", "본말", "uncontracted" },
+		["geoda"] = new[] { "缩略 거다", "거다", "geoda" },
+		["geotcon"] = new[] { "东西缩略", "건/걸/게", "thing (short)" },
+		["geotfut"] = new[] { "将来东西", "ㄹ 거/걸/게", "future thing" },
+		["geoya"] = new[] { "是…的", "거야", "geoya" },
+		["geoyeyo"] = new[] { "是…的敬", "거예요", "geoyeyo" },
+		["geoji"] = new[] { "是…的呀", "거지", "geoji" },
+		["dae"] = new[] { "传闻短", "대", "dae" },
+		["rae"] = new[] { "命令传闻", "래", "rae" },
+		["jae"] = new[] { "劝诱传闻", "재", "jae" },
+		["nyae"] = new[] { "疑问传闻", "냬", "nyae" },
+		["rago"] = new[] { "口语打算", "ㄹ라고", "colloquial intent" },
+		["qni"] = new[] { "疑问 니", "니", "ni" },
+		["qnip"] = new[] { "过去疑问", "었니", "past ni" },
+		["jiq"] = new[] { "确认 지", "지", "ji" },
+		["jima2"] = new[] { "禁止 지 마", "지 마", "don't" },
+		["lrae"] = new[] { "意愿短", "ㄹ래", "llae" },
+		["lgeol"] = new[] { "推测短", "ㄹ걸", "lgeol" },
+		["geodeunyo"] = new[] { "解释 거든요", "거든요", "geodeunyo" },
+		["ndeyo"] = new[] { "转折 는데요", "는데요", "neundeyo" },
+		["guna"] = new[] { "发觉 구나", "구나", "guna" },
+		["gun"] = new[] { "发觉 군", "군", "gun" },
+		["geol"] = new[] { "原来 걸", "걸", "geol" },
+		["danikka"] = new[] { "强调", "다니까", "danikka" },
+		["ranikka"] = new[] { "强调命令", "라니까", "ranikka" },
+		["tryban"] = new[] { "试试", "봐", "try (casual)" },
+		["gu"] = new[] { "并列短", "구", "gu" },
+		["guyo"] = new[] { "并列短敬", "구요", "guyo" },
+		["euro"] = new[] { "所以 므로", "므로", "meuro" },
+		["euna"] = new[] { "书面转折", "으나", "euna" },
+		["euni"] = new[] { "书面原因", "으니", "euni" },
+		["doe"] = new[] { "虽则 되", "되", "doe" },
+		["gie"] = new[] { "因为 기에", "기에", "gie" },
+		["mieum"] = new[] { "名词化 음", "음", "nominal 음" },
+		["gi"] = new[] { "名词化 기", "기", "nominal 기" },
+		["neunji"] = new[] { "是否 는지", "는지", "neunji" },
+		["neunjip"] = new[] { "过去是否", "었는지", "past neunji" },
+		["lji"] = new[] { "将来是否", "ㄹ지", "lji" },
+		["neunba"] = new[] { "鉴于 바", "바", "neunba" },
+		["jira"] = new[] { "文言原因 지라", "지라", "jira" },
+		["doda"] = new[] { "文言感叹", "도다", "doda" },
+		["jieoda"] = new[] { "文言命令 지어다", "지어다", "jieoda" },
+		["haeuuna"] = new[] { "书面转折 하였으나", "하였으나", "hayeoseuna" },
+		["haeumyeo"] = new[] { "书面同时 하였으며", "하였으며", "hayeoseumyeo" },
+		["haeumeuro"] = new[] { "书面原因 하였으므로", "하였으므로", "hayeoseumeuro" },
 	};
 
 	/// <summary>
@@ -1135,6 +1182,26 @@ static class KoConj {
 		add("nira", "니라", pluseu(st, "니라", true));
 		add("mae", "매", pluseu(st, "매", true));
 		add("myeo", "며", pluseu(st, "며", false));
+		add("euro", "므로", pluseu(st, "므로", true));
+		add("euna", "으나", pluseu(st, "나", true));
+		add("euni", "으니", pluseu(st, "니", true));
+		add("doe", "되", pluseu(st, "되", true));
+		add("gie", "기에", jn(syls) + "기에");
+		add("mieum", "음", mieum(syls, irr));
+		add("gi", "기", jn(syls) + "기");
+		add("neunji", "는지", kind == "a" && !eobs ? nieunword(syls, irr) + "지" : dropr(syls, "는지"));
+		add("neunjip", "었는지", past + "는지");
+		add("lji", "ㄹ지", rl + "지");
+		add("neunba", "바", nowmod + "바");
+		add("jira", "지라", verb ? nieunword(syls, irr) + "지라 / " + dropr(syls, "는지라") : (kind == "a" && !eobs ? nieunword(syls, irr) + "지라" : dropr(syls, "는지라")));
+		add("doda", "도다", verb ? neun(syls) + "도다" : jn(syls) + "도다");
+		add("jieoda", "지어다", rl + "지어다");
+		if (irr == "hada") {
+			var hw = stem.Substring(0, stem.Length - 1);
+			add("haeuuna", "하였으나", hw + "하였으나");
+			add("haeumyeo", "하였으며", hw + "하였으며");
+			add("haeumeuro", "하였으므로", hw + "하였으므로");
+		}
 		// 补助动词：试、做完、放着、预先、为别人、最终，以及结果、渐变、缩略
 		cur = g("aux");
 		if (verb) {
@@ -1222,6 +1289,43 @@ static class KoConj {
 		add("cheok", "는 척하다", nowmod + " 척해요");
 		add("qquote", "냐고", quotenya(syls, irr, kind) + " / " + past + "느냐고");
 		add("dquote", "다는", repend(plainnow, "다", "다는") + " / " + past + "다는");
+		// 省略：것 的缩略和带空格的「将来的东西」与承诺形 ㄹ게 分开
+		var full = fullpolite(syls, irr);
+		cur = g("ellip");
+		if (full.Length > 0) add("fullae", "未缩略", full);
+		if (irr == "hada") add("fullae", "未缩略", stem.Substring(0, stem.Length - 1) + "하여요 · " + stem.Substring(0, stem.Length - 1) + "하였어요");
+		add("geoda", "거다", rl + " 거다");
+		add("geotcon", "건/걸/게", nowmod + " 건 / " + nowmod + " 걸 / " + nowmod + " 게");
+		add("geotfut", "ㄹ 거", rl + " 거 / " + rl + " 걸 / " + rl + " 게");
+		add("geoya", "거야", nowmod + " 거야");
+		add("geoyeyo", "거예요", nowmod + " 거예요");
+		add("geoji", "거지", nowmod + " 거지");
+		add("dae", "대", repend(plainnow, "다", "대"));
+		if (verb) {
+			add("rae", "래", pluseu(st, "래", false));
+			add("jae", "재", jn(syls) + "재");
+			add("ranikka", "라니까", pluseu(st, "라니까", false));
+		}
+		add("nyae", "냬", kind == "a" && !eobs ? pluseu(st, "냬", true) : dropr(syls, "냬"));
+		add("rago", "ㄹ라고", rl + "라고");
+		// 口语。发觉：动词用 는구나，形容词和 있다 用 구나
+		var gutail = verb ? neun(syls) : jn(syls);
+		cur = g("talk");
+		add("qni", "니", dropr(syls, "니?"));
+		add("qnip", "었니", past + "니?");
+		add("jiq", "지", jn(syls) + "지?");
+		if (verb || adj || itda) add("jima2", "지 마", jn(syls) + "지 마");
+		add("lrae", "ㄹ래", rl + "래");
+		add("lgeol", "ㄹ걸", rl + "걸");
+		add("geodeunyo", "거든요", jn(syls) + "거든요");
+		add("ndeyo", "는데요", neundeform(syls, irr, kind, "요"));
+		add("guna", "구나", gutail + "구나");
+		add("gun", "군", gutail + "군");
+		add("geol", "걸", nowmod + "걸");
+		add("danikka", "다니까", repend(plainnow, "다", "다니까"));
+		if (verb || adj || itda) add("tryban", "봐", ba + " 봐");
+		add("gu", "구", jn(syls) + "구");
+		add("guyo", "구요", jn(syls) + "구요");
 		rows.AddRange(dialectrows(syls, irr, kind, li));
 		rows.AddRange(koreanrows(word, syls, irr, kind, li));
 		return rows;
@@ -1291,6 +1395,45 @@ static class KoConj {
 		var last = s[s.Count - 1];
 		if (last.Jong == JG_R) last.Jong = 0;
 		return jn(s) + (last.Jong == 0 ? "옵니다" : "사옵니다");
+	}
+
+	// 名词化 -음。闭音节加 음，开音节收 ㅁ，ㄹ 收成 ㄻ。不规则先按接 으 的词干变。
+	private static string mieum(List<KoSyl> syls, string irr) {
+		var st = eustem(syls, irr);
+		var s = cp(st.S);
+		if (st.Eu) return jn(s) + "음";
+		var last = s[s.Count - 1];
+		if (last.Jong == JG_R) {
+			last.Jong = JG_RM;
+			return jn(s);
+		}
+		if (last.Jong == 0) {
+			last.Jong = JG_M;
+			return jn(s);
+		}
+		return jn(s) + "음";
+	}
+
+	// ㅏ/ㅓ 没有并进前一音节的说法：보아요、주어요、되어요、쓰어요。和缩略不同才列出，并带上过去。
+	private static string fullpolite(List<KoSyl> syls, string irr) {
+		if (irr != "reg" && irr != "eu") return "";
+		var last = syls[syls.Count - 1];
+		if (last.Jong != 0) return "";
+		string yo;
+		if (irr == "eu") {
+			if (syls.Count != 1) return "";
+			yo = jn(syls) + "어요";
+		} else if (last.Jung == O) yo = jn(syls) + "아요";
+		else if (last.Jung == U || last.Jung == OE || last.Jung == I) yo = jn(syls) + "어요";
+		else return "";
+		if (yo == ae(syls, irr) + "요") return "";
+		return yo + " · " + fullpast(yo);
+	}
+
+	private static string fullpast(string yo) {
+		if (yo.EndsWith("아요", StringComparison.Ordinal)) return yo.Substring(0, yo.Length - 2) + "았어요";
+		if (yo.EndsWith("어요", StringComparison.Ordinal)) return yo.Substring(0, yo.Length - 2) + "었어요";
+		return "";
 	}
 
 	private static List<ConjRow> dialectrows(List<KoSyl> syls, string irr, string kind, int li) {
@@ -1587,6 +1730,43 @@ static class KoConj {
 		add("myeo", "이며", copart(noun, bat, "며", "며"));
 		add("saop", "이옵니다", copart(noun, bat, "옵니다", "옵니다"));
 		add("naida", "이나이다", copart(noun, bat, "나이다", "나이다"));
+		add("euro", "므로", copart(noun, bat, "므로", "므로"));
+		add("euna", "으나", copart(noun, bat, "나", "나"));
+		add("euni", "으니", copart(noun, bat, "니", "니"));
+		add("doe", "되", copart(noun, bat, "되", "되"));
+		add("gie", "기에", noun + "이기에");
+		add("mieum", "음", noun + "임");
+		add("gi", "기", noun + "이기");
+		add("neunjip", "었는지", copart(noun, bat, "었는지", "였는지"));
+		add("lji", "ㄹ지", noun + "일지");
+		add("neunba", "바", noun + "인바");
+		add("jira", "지라", noun + "인지라");
+		add("doda", "도다", copart(noun, bat, "로다", "로다"));
+		add("jieoda", "지어다", noun + "일지어다");
+		cur = g("ellip");
+		add("geoda", "거다", noun + "일 거다");
+		add("geotcon", "건/걸/게", noun + "인 건 / " + noun + "인 걸 / " + noun + "인 게");
+		add("geotfut", "ㄹ 거", noun + "일 거 / " + noun + "일 걸 / " + noun + "일 게");
+		add("geoya", "거야", noun + "인 거야");
+		add("geoyeyo", "거예요", noun + "인 거예요");
+		add("geoji", "거지", noun + "인 거지");
+		add("dae", "대", copart(noun, bat, "래", "래"));
+		add("nyae", "냬", copart(noun, bat, "냬", "냬"));
+		add("rago", "ㄹ라고", noun + "일라고");
+		cur = g("talk");
+		add("qni", "니", copart(noun, bat, "니?", "니?"));
+		add("qnip", "었니", copart(noun, bat, "었니?", "였니?"));
+		add("jiq", "지", copart(noun, bat, "지?", "지?"));
+		add("lrae", "ㄹ래", noun + "일래");
+		add("lgeol", "ㄹ걸", noun + "일걸");
+		add("geodeunyo", "거든요", copart(noun, bat, "거든요", "거든요"));
+		add("ndeyo", "는데요", noun + "인데요");
+		add("guna", "구나", copart(noun, bat, "구나", "구나"));
+		add("gun", "군", copart(noun, bat, "군", "군"));
+		add("geol", "걸", noun + "인걸");
+		add("danikka", "다니까", copart(noun, bat, "라니까", "라니까"));
+		add("gu", "구", copart(noun, bat, "구", "구"));
+		add("guyo", "구요", copart(noun, bat, "구요", "구요"));
 		rows.AddRange(copuladialect(noun, bat, li));
 		rows.AddRange(koreancopularows(noun, li));
 		return rows;
@@ -1656,6 +1836,44 @@ static class KoConj {
 		add("rira", "리라", "아니리라");
 		add("nira", "니라", "아니니라");
 		add("myeo", "며", "아니며");
+		add("euro", "므로", "아니므로");
+		add("euna", "으나", "아니나");
+		add("euni", "으니", "아니니");
+		add("doe", "되", "아니되");
+		add("gie", "기에", "아니기에");
+		add("mieum", "음", "아님");
+		add("gi", "기", "아니기");
+		add("neunji", "는지", "아닌지");
+		add("neunjip", "었는지", "아니었는지");
+		add("lji", "ㄹ지", "아닐지");
+		add("neunba", "바", "아닌바");
+		add("jira", "지라", "아닌지라");
+		add("doda", "도다", "아니로다");
+		add("jieoda", "지어다", "아닐지어다");
+		cur = g("ellip");
+		add("geoda", "거다", "아닐 거다");
+		add("geotcon", "건/걸/게", "아닌 건 / 아닌 걸 / 아닌 게");
+		add("geotfut", "ㄹ 거", "아닐 거 / 아닐 걸 / 아닐 게");
+		add("geoya", "거야", "아닌 거야");
+		add("geoyeyo", "거예요", "아닌 거예요");
+		add("geoji", "거지", "아닌 거지");
+		add("dae", "대", "아니래");
+		add("nyae", "냬", "아니냬");
+		add("rago", "ㄹ라고", "아닐라고");
+		cur = g("talk");
+		add("qni", "니", "아니니?");
+		add("qnip", "었니", "아니었니?");
+		add("jiq", "지", "아니지?");
+		add("lrae", "ㄹ래", "아닐래");
+		add("lgeol", "ㄹ걸", "아닐걸");
+		add("geodeunyo", "거든요", "아니거든요");
+		add("ndeyo", "는데요", "아닌데요");
+		add("guna", "구나", "아니구나");
+		add("gun", "군", "아니군");
+		add("geol", "걸", "아닌걸");
+		add("danikka", "다니까", "아니라니까");
+		add("gu", "구", "아니구");
+		add("guyo", "구요", "아니구요");
 		cur = g("kp");
 		add("kpa.hap", "敬语 아닙네다", "아닙네다");
 		add("kpa.qhap", "敬语疑问 아닙네까", "아닙네까?");

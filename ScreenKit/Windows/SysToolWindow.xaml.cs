@@ -32,6 +32,7 @@ public partial class SysToolWindow : Window {
 		public string Mem { get; set; }
 		public string Path { get; set; }
 		public string Cmd { get; set; }
+		public string Meta { get; set; }
 	}
 
 	sealed class LockItem {
@@ -180,8 +181,11 @@ public partial class SysToolWindow : Window {
 		var q = (eproc.Text ?? "").Trim();
 		var view = new List<ProcItem>();
 		foreach (var r in procs) {
-			var it = new ProcItem { Name = r.Name, Pid = r.Pid, Mem = r.Mem, Path = r.Path, Cmd = r.Cmd };
-			if (q.Length == 0 || has(q, it.Name, it.Path, it.Cmd, it.Pid.ToString(), it.Mem)) view.Add(it);
+			var it = new ProcItem {
+				Name = r.Name, Pid = r.Pid, Mem = r.Mem, Path = r.Path, Cmd = r.Cmd,
+				Meta = $"{procbits(r.Bits)}  {procelev(r.Elev)}".Trim(),
+			};
+			if (q.Length == 0 || has(q, it.Name, it.Path, it.Cmd, it.Pid.ToString(), it.Mem, it.Meta)) view.Add(it);
 		}
 		lvproc.ItemsSource = view;
 		lbprocstat.Text = Loc.T("systool.stat", view.Count, procs.Count);
@@ -190,17 +194,26 @@ public partial class SysToolWindow : Window {
 
 	void showproc() {
 		if (lvproc.SelectedItem is not ProcItem it) {
-			eprocdetail.Text = "";
+			lbprocinfo.Text = "";
+			eproccmd.Text = "";
 			bprocopen.IsEnabled = false;
 			return;
 		}
 		bprocopen.IsEnabled = File.Exists(it.Path);
-		eprocdetail.Text = join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Cmd);
+		lbprocinfo.Text = join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Meta);
+		eproccmd.Text = noquote(it.Cmd);
 	}
 
 	void copyproc() {
 		if (lvproc.SelectedItem is not ProcItem it) return;
-		setclip(join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Cmd));
+		setclip(join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Meta, noquote(it.Cmd)));
+	}
+
+	static string procbits(int bits) => label($"systool.proc.bit{bits}", $"{bits} 位");
+
+	static string procelev(int elev) {
+		if (elev < 0) return "";
+		return elev == 0 ? label("systool.proc.normal", "普通用户") : label("systool.proc.admin", "管理员");
 	}
 
 	void openproc() {
@@ -444,6 +457,12 @@ public partial class SysToolWindow : Window {
 			sb.Append(p);
 		}
 		return sb.ToString();
+	}
+
+	// 命令行里的引号去掉，方便逐项看和复制。
+	static string noquote(string cmd) {
+		if (string.IsNullOrEmpty(cmd)) return "";
+		return cmd.Replace("\"", "");
 	}
 
 	static void setclip(string text) {
