@@ -20,7 +20,8 @@
 		live: false,
 		body: body,
 		open: open,
-		run: run
+		run: run,
+		dispose: aimclose
 	});
 
 	function tx(key, fb){
@@ -768,8 +769,6 @@
 		if (window.speechSynthesis) window.speechSynthesis.cancel();
 		if (SK.stopwav) SK.stopwav();
 	}
-
-	SK.aimclose = aimclose;
 
 	function prompt(text){
 		var ctor = api("LanguageModel");

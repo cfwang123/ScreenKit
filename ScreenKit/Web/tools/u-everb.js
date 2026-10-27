@@ -449,7 +449,8 @@
 		body: body,
 		open: open,
 		relang: open,
-		run: run
+		run: run,
+		dispose: dropspeak
 	});
 
 	function tx(key, fb){
@@ -703,6 +704,13 @@
 		if (!btn || btn === out) return;
 		var text = F.attr(btn, "data-v") || "";
 		if (text) speak(text);
+	}
+
+	function dropspeak(){
+		if (SK.stopwav) SK.stopwav();
+		if (!clip) return;
+		try { clip.pause(); } catch (e) {}
+		clip = null;
 	}
 
 	function speak(text){

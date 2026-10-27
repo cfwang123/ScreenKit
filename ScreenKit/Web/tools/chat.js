@@ -775,4 +775,5 @@
 
 	SK.chatopen = open;
 	SK.chatclose = leave;
+	SK.regutil("chat", { dispose: leave });
 })();

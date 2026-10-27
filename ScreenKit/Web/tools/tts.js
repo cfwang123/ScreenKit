@@ -311,4 +311,13 @@
 	SK.ttsgendermatch = ttsgendermatch;
 	SK.ttsmodelok = ttsmodelok;
 	SK.ttsspeakerok = ttsspeakerok;
+	SK.regutil("tts", {
+		dispose: function(){
+			var audio = F.id("tts-audio");
+			if (!audio) return;
+			try { audio.pause(); } catch (e) {}
+			audio.removeAttribute("src");
+			try { audio.load(); } catch (e2) {}
+		}
+	});
 })();

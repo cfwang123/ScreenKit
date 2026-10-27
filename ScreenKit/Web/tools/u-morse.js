@@ -42,7 +42,8 @@
 		},
 		hideGo: true,
 		hideOut: true,
-		live: false
+		live: false,
+		dispose: stop
 	});
 
 	function buildcodes(){

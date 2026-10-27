@@ -1607,7 +1607,8 @@
 		body: body,
 		open: open,
 		relang: open,
-		run: run
+		run: run,
+		dispose: dropspeak
 	});
 
 	function tx(key, fb){
@@ -1698,6 +1699,19 @@
 		if (!btn || btn === out) return;
 		var text = F.attr(btn, "data-v") || "";
 		if (text) speak(text);
+	}
+
+	function dropspeak(){
+		speakSeq++;
+		if (SK.stopwav) SK.stopwav();
+		if (clip) {
+			try { clip.pause(); } catch (e) {}
+			clip = null;
+		}
+		if (clipUrl) {
+			try { URL.revokeObjectURL(clipUrl); } catch (e2) {}
+			clipUrl = null;
+		}
 	}
 
 	function speak(text){

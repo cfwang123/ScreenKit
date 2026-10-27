@@ -62,14 +62,9 @@
 		hideOut: true,
 		live: false,
 		body: body,
-		open: open
+		open: open,
+		dispose: leave
 	});
-
-	var show0 = SK.show;
-	SK.show = function(name, fromHist){
-		if (name !== "u-bit") leave();
-		show0(name, fromHist);
-	};
 
 	function body(){
 		var opts = "";
@@ -584,6 +579,7 @@
 	}
 
 	function stopaudio(){
+		if (SK.bitblipstop) SK.bitblipstop();
 		songstop();
 		cleardemo();
 		stoploop();

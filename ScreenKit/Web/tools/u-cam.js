@@ -61,7 +61,8 @@
 			if (focus) focus.onclick = applyfocus;
 			openid("");
 			arm();
-		}
+		},
+		dispose: halt
 	});
 
 	function tx(key, fb){

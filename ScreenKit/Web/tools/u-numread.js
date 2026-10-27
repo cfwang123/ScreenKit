@@ -123,6 +123,9 @@
 		},
 		run: function(){
 			return numread(SK.val("box-in"));
+		},
+		dispose: function(){
+			if (SK.stopwav) SK.stopwav();
 		}
 	});
 

@@ -1,6 +1,7 @@
 (function(){
 	var asrItems = [];
 	var asrRec = null;
+	var asrStream = null;
 	function loadasr(){
 		if (asrItems.length) return;
 		SK.get("/api/asr/models", function(data){
@@ -76,6 +77,10 @@
 			return;
 		}
 		navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+			if (SK.curtool !== "asr") {
+				stream.getTracks().forEach(function(tr){ tr.stop(); });
+				return;
+			}
 			var chunks = [];
 			var rec;
 			try { rec = new MediaRecorder(stream); }
@@ -85,13 +90,17 @@
 				return;
 			}
 			asrRec = rec;
+			asrStream = stream;
 			setasr(true);
 			SK.msg("asr-msg", "正在录音");
 			rec.ondataavailable = function(ev){
 				if (ev.data && ev.data.size) chunks.push(ev.data);
 			};
 			rec.onstop = function(){
-				stream.getTracks().forEach(function(tr){ tr.stop(); });
+				if (asrStream) {
+					asrStream.getTracks().forEach(function(tr){ tr.stop(); });
+					asrStream = null;
+				}
 				asrRec = null;
 				setasr(false);
 				var blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
@@ -103,10 +112,27 @@
 		});
 	}
 
+	function asrdispose(){
+		var rec = asrRec;
+		var stream = asrStream;
+		asrRec = null;
+		asrStream = null;
+		if (rec) {
+			rec.ondataavailable = null;
+			rec.onstop = null;
+			try { rec.stop(); } catch (e) {}
+		}
+		if (stream) {
+			try { stream.getTracks().forEach(function(tr){ tr.stop(); }); } catch (e2) {}
+		}
+		setasr(false);
+	}
+
 	SK.loadasr = loadasr;
 	SK.fillasrmodels = fillasrmodels;
 	SK.postasr = postasr;
 	SK.asrfile = asrfile;
 	SK.setasr = setasr;
 	SK.asrrec = asrrec;
+	SK.regutil("asr", { dispose: asrdispose });
 })();

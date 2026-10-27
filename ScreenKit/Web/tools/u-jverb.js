@@ -142,7 +142,8 @@
 		body: body,
 		open: open,
 		relang: open,
-		run: run
+		run: run,
+		dispose: dropspeak
 	});
 
 	function tx(key, fb){
@@ -224,6 +225,13 @@
 	function ontype(){
 		SK.combofill("jv-in", pickgroups());
 		run();
+	}
+
+	function dropspeak(){
+		if (SK.stopwav) SK.stopwav();
+		if (!clip) return;
+		try { clip.pause(); } catch (e) {}
+		clip = null;
 	}
 
 	function speak(text){

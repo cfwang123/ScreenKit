@@ -20,7 +20,8 @@
 		hideCopy: true,
 		hideOut: true,
 		body: body,
-		open: open
+		open: open,
+		dispose: halt
 	});
 
 	function body(){

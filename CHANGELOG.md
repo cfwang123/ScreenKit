@@ -130,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tool windows such as system tools could not be opened again after closing them once.
 - English irregular verbs such as become use became / become instead of the regular -ed ending.
 - English entries such as eat show a verb tab when the definition marks an object, even if the label only says noun.
+- Leaving a tool calls dispose so Morse code and other held audio or devices stop.
 
 #### Security / privacy notes
 
@@ -225,6 +226,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统工具等工具窗口关掉后，再从菜单打开会没有反应。
 - 英语不规则动词按不规则表变化，become 的过去式是 became，不再写成 becomed。
 - eat 这类英语词条，释义里写了宾语而词性只标了名词时，也会列出动词变化。
+- 离开工具时调用 dispose，摩斯码等占用声音或设备的工具会停掉。
 
 #### 安全与隐私
 

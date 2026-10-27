@@ -197,14 +197,24 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		show(id, true);
 	}
 
+	// 离开工具时调用 spec.dispose，用来停声音、关设备。没有资源的工具不用写。
+	function disposeutil(name){
+		if (!name || name === "home") return;
+		var spec = SK.utils[name];
+		if (!spec || !spec.dispose) return;
+		try { spec.dispose(); }
+		catch (ex) {}
+	}
+
 	function show(name, fromHist){
 		var href = extpage(name);
 		if (href) {
+			disposeutil(SK.curtool);
 			location.href = href;
 			return;
 		}
+		if (SK.curtool !== name) disposeutil(SK.curtool);
 		stoptick();
-		var prev = SK.curtool;
 		SK.curtool = name;
 		if (name.indexOf("u-") === 0) {
 			openutil(name);
@@ -232,8 +242,6 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (name === "tts") SK.loadtts();
 		if (name === "tr" && SK.loadtr) SK.loadtr();
 		if (name === "asr") SK.loadasr();
-		if (prev === "chat" && SK.curtool !== "chat" && SK.chatclose) SK.chatclose();
-		if (prev === "u-aim" && SK.curtool !== "u-aim" && SK.aimclose) SK.aimclose();
 		if (SK.curtool === "chat" && SK.chatopen) SK.chatopen();
 		settitle();
 		if (!fromHist) pushhash(SK.curtool);

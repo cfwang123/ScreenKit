@@ -317,4 +317,9 @@
 	SK.trmodel = trmodel;
 	SK.trsync = trsync;
 	SK.trfillmodel = function(){ fillmodel(""); };
+	SK.regutil("tr", {
+		dispose: function(){
+			if (SK.stopwav) SK.stopwav();
+		}
+	});
 })();
