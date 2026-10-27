@@ -460,7 +460,7 @@
 						"data-tool":"u-jname",
 						"data-cat":"info",
 						"data-name":"日本姓名查询 日本人名 姓名读音 姓氏 名字 苗字 読み方 name surname reading",
-						"title":"查日本姓氏和名字的读法：输入汉字出假名，输入假名反查汉字，每条可以听读音",
+						"title":"查日本姓氏和名字的读法。输入完整姓名会拆成姓和名并配上读音，每条可以听",
 						c:[
 						{x:"i.fa-solid.fa-id-card"},
 						{x:"span",c:"日本姓名查询"},

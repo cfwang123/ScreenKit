@@ -4,6 +4,7 @@
 	var clip = null;
 	var KINDS = [
 		{ id: "all", name: "全部" },
+		{ id: "n", name: "姓名" },
 		{ id: "s", name: "姓" },
 		{ id: "g", name: "名" }
 	];
@@ -21,9 +22,10 @@
 		{ id: "w", name: "わ", chars: "わをんゎ" }
 	];
 	var ROWSPERCOL = 30;
-	var sur = null, giv = null, loading = {};
-	var hits = [], page = 0;
+	var sur = null, giv = null, surix = null, givix = null, loading = {};
+	var hits = [], page = 0, blank = "";
 	var kind = "all", row = "", sep = " | ";
+	var markn = 1;
 
 	SK.regutil("u-jname", {
 		title: "日本姓名查询",
@@ -41,7 +43,7 @@
 
 	function body(){
 		var i;
-		var html = '<div class="uquery"><input id="jn-q" type="text" placeholder="输入汉字或假名，如 佐藤 / さとう">'
+		var html = '<div class="uquery"><input id="jn-q" type="text" placeholder="输入汉字、假名或姓名，如 佐藤 / 佐藤太郎">'
 			+ '<span id="jn-msg" class="msg"></span></div>'
 			+ '<div class="jnseg" id="jn-seg">';
 		for (i = 0; i < KINDS.length; i++)
@@ -56,7 +58,7 @@
 			+ '<span id="jn-pages" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
 			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict。首次打开要下载约 1MB 数据，之后直接用本机文件。'
-			+ '输入汉字查读法，输入假名反查汉字；文字可以直接选中复制，喇叭听这一条的读音。</p>';
+			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会拆成姓和名再配读音；文字可以直接选中复制，喇叭听这一条的读音。</p>';
 		return html;
 	}
 
@@ -76,6 +78,7 @@
 			if (!b || !b.getAttribute || !F.attr(b, "data-kind")) return;
 			kind = F.attr(b, "data-kind");
 			mark(seg, kind);
+			place();
 			load();
 		};
 		idx.onclick = function(ev){
@@ -102,7 +105,16 @@
 		if (next) next.onclick = function(){ goto(page + 1); };
 		list.onclick = onlist;
 		window.addEventListener("resize", function(){ render(); });
+		place();
 		load();
+	}
+
+	function place(){
+		var q = F.id("jn-q");
+		if (!q) return;
+		q.placeholder = kind === "n"
+			? "输入姓名，如 佐藤太郎 / さとうたろう"
+			: "输入汉字、假名或姓名，如 佐藤 / 佐藤太郎";
 	}
 
 	function mark(box, id){
@@ -114,8 +126,8 @@
 
 	function load(){
 		var need = [];
-		if (kind !== "g") need.push("s");
-		if (kind !== "s") need.push("g");
+		if (kind === "n" || kind !== "g") need.push("s");
+		if (kind === "n" || kind !== "s") need.push("g");
 		if (!need.length) return paint();
 		for (var i = 0; i < need.length; i++) {
 			if (!loading[need[i]]) continue;
@@ -138,8 +150,8 @@
 				return r.text();
 			})
 			.then(function(text){
-				if (k === "s") sur = parsesur(text);
-				else giv = parsegiv(text);
+				if (k === "s") { sur = parsesur(text); surix = null; }
+				else { giv = parsegiv(text); givix = null; }
 				loading[k] = false;
 				done();
 			})
@@ -174,7 +186,29 @@
 	}
 
 	function paint(){
-		var q = norm(SK.val("jn-q"));
+		var raw = SK.val("jn-q");
+		var q = norm(raw);
+		blank = "";
+		if (kind === "n") {
+			hits = sur && giv ? pairsof(raw) : [];
+			if (!String(raw || "").trim()) blank = "输入完整姓名，按姓和名拆开匹配";
+			page = 0;
+			render();
+			return;
+		}
+		if (kind === "all" && sur && giv && splitraw(raw)) {
+			if (!surix) surix = ix(sur);
+			if (!givix) givix = ix(giv);
+			if (!exactwhole(q)) {
+				var found = pairsof(raw);
+				if (found.length) {
+					hits = found;
+					page = 0;
+					render();
+					return;
+				}
+			}
+		}
 		hits = [];
 		if (kind !== "g" && sur) collect(sur, true, q, hits);
 		if (kind !== "s" && giv) collect(giv, false, q, hits);
@@ -191,7 +225,9 @@
 	function render(){
 		var box = F.id("jn-list");
 		if (!box) return;
-		var cols = Math.max(1, Math.min(8, Math.floor(box.clientWidth / 210) || 1));
+		var pair = hits.length && hits[0].pair;
+		box.className = pair ? "jnlist jnpair" : "jnlist";
+		var cols = Math.max(1, Math.min(8, Math.floor(box.clientWidth / (pair ? 440 : 210)) || 1));
 		var per = cols * ROWSPERCOL;
 		var pages = Math.max(1, Math.ceil(hits.length / per));
 		if (page < 0) page = 0;
@@ -200,7 +236,7 @@
 		var slice = hits.slice(from, from + per);
 		var html = [];
 		for (var i = 0; i < slice.length; i++) html.push(rowhtml(slice[i]));
-		box.innerHTML = html.length ? html.join("") : '<p class="jnnone">没有匹配的姓名</p>';
+		box.innerHTML = html.length ? html.join("") : '<p class="jnnone">' + (blank || "没有匹配的姓名") + "</p>";
 		SK.msg("jn-msg", hits.length ? "共 " + hits.length + " 条" : "");
 		var pin = F.id("jn-page");
 		if (pin && document.activeElement !== pin) pin.value = hits.length ? String(page + 1) : "";
@@ -266,8 +302,121 @@
 		return s || fb;
 	}
 
+	// 完整姓名：每个切分点上，左边是姓、右边是名，才算一条。空格或间隔号只切一刀。
+	function splitraw(raw){
+		var s = String(raw || "").trim();
+		if (!s) return null;
+		var bits = s.split(/[\s\u3000・·.．]+/);
+		var parts = [], i, a, b, q, cuts;
+		for (i = 0; i < bits.length; i++) if (bits[i]) parts.push(bits[i]);
+		if (parts.length === 2) {
+			a = norm(parts[0]);
+			b = norm(parts[1]);
+			if (!a || !b) return null;
+			return [[a, b]];
+		}
+		if (parts.length !== 1) return null;
+		q = norm(parts[0]);
+		if (q.length < 2) return null;
+		cuts = [];
+		for (i = 1; i < q.length; i++) cuts.push([q.slice(0, i), q.slice(i)]);
+		return cuts;
+	}
+
+	function ix(list){
+		var byk = {}, byy = {}, i, j, r, y, b;
+		for (i = 0; i < list.length; i++) {
+			r = list[i];
+			b = byk[r.k];
+			if (b) b.push(r);
+			else byk[r.k] = [r];
+			for (j = 0; j < r.y.length; j++) {
+				y = r.y[j];
+				if (!y) continue;
+				b = byy[y];
+				if (b) b.push(r);
+				else byy[y] = [r];
+			}
+		}
+		return { byk: byk, byy: byy };
+	}
+
+	function finds(idx, part){
+		var out = [], bags, bi, bag, i, r;
+		if (!idx || !part) return out;
+		bags = [idx.byk[part], idx.byy[part]];
+		markn++;
+		for (bi = 0; bi < bags.length; bi++) {
+			bag = bags[bi];
+			if (!bag) continue;
+			for (i = 0; i < bag.length; i++) {
+				r = bag[i];
+				if (r.mark === markn) continue;
+				r.mark = markn;
+				out.push(r);
+			}
+		}
+		return out;
+	}
+
+	function reading(r, part){
+		var i;
+		for (i = 0; i < r.y.length; i++) if (r.y[i] === part) return part;
+		return r.y.length ? r.y[0] : "";
+	}
+
+	function exactwhole(q){
+		if (!q || !surix || !givix) return false;
+		return !!(surix.byk[q] || surix.byy[q] || givix.byk[q] || givix.byy[q]);
+	}
+
+	function pairsof(raw){
+		var cuts, out, seen, ci, ss, gs, i, j, sy, gy, key, added;
+		if (!sur || !giv) return [];
+		if (!surix) surix = ix(sur);
+		if (!givix) givix = ix(giv);
+		cuts = splitraw(raw);
+		if (!cuts) return [];
+		out = [];
+		seen = {};
+		for (ci = 0; ci < cuts.length; ci++) {
+			ss = finds(surix, cuts[ci][0]);
+			gs = finds(givix, cuts[ci][1]);
+			if (!ss.length || !gs.length) continue;
+			if (ss.length > 1) ss = ss.slice().sort(function(a, b){ return b.p - a.p; });
+			if (ss.length > 40) ss = ss.slice(0, 40);
+			if (gs.length > 80) gs = gs.slice(0, 80);
+			added = 0;
+			for (i = 0; i < ss.length; i++) {
+				if (!inrow(ss[i], row)) continue;
+				sy = reading(ss[i], cuts[ci][0]);
+				for (j = 0; j < gs.length; j++) {
+					gy = reading(gs[j], cuts[ci][1]);
+					key = ss[i].k + "\t" + gs[j].k + "\t" + sy + "\t" + gy;
+					if (seen[key]) continue;
+					seen[key] = 1;
+					out.push({ pair: true, s: ss[i], g: gs[j], sy: sy, gy: gy });
+					if (++added >= 80) break;
+				}
+				if (added >= 80) break;
+			}
+		}
+		out = sortpairs(out);
+		if (out.length > 300) out = out.slice(0, 300);
+		return out;
+	}
+
+	function sortpairs(out){
+		out.sort(function(a, b){
+			if (b.s.p !== a.s.p) return b.s.p - a.s.p;
+			return b.s.k.length - a.s.k.length;
+		});
+		return out;
+	}
+
 	// 一行放表记、主读法和发音。其余读法在悬停提示里。不显示姓的人数。
 	function rowhtml(hit){
+		if (hit.pair) return pairhtml(hit);
 		var r = hit.r;
 		var y = r.y.length ? r.y[0] : "";
 		var tip = r.k + " " + r.y.join("、");
@@ -280,6 +429,22 @@
 			+ spk
 			+ (kind === "all" ? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "")
 			+ "</div>";
+	}
+
+	function pairhtml(hit){
+		var say = (hit.sy || "") + (hit.gy || "");
+		var tip = hit.s.k + " " + hit.s.y.join("、") + " / " + hit.g.k + " " + hit.g.y.join("、");
+		var spk = say
+			? '<button type="button" class="jn-spk" data-v="' + esc(say) + '" title="' + esc(tx("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>'
+			: "";
+		return '<div class="jnrow" title="' + esc(tip) + '">'
+			+ '<span class="jnk">' + esc(hit.s.k) + "</span>"
+			+ '<span class="jny">' + esc(hit.sy) + "</span>"
+			+ '<span class="jntag">姓</span>'
+			+ '<span class="jnk">' + esc(hit.g.k) + "</span>"
+			+ '<span class="jny">' + esc(hit.gy) + "</span>"
+			+ '<span class="jntag">名</span>'
+			+ spk + "</div>";
 	}
 
 	function collect(list, issur, q, hits){
