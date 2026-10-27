@@ -454,24 +454,36 @@
 					host.appendChild(one(t("dict.conj.empty") || "没有匹配的形态", "pron", ""));
 					return;
 				}
-				var grid = document.createElement("div");
-				grid.className = "cgrid";
-				var last = null;
-				for (i2 = 0; i2 < vis.length; i2++) {
-					if (vis[i2].g !== last) {
-						last = vis[i2].g;
+				var tb = document.createElement("table");
+				tb.className = "ctab";
+				var n = conjcols(host), last = null, buf = [], i3;
+				function flush(){
+					while (buf.length) {
+						var tr = document.createElement("tr");
+						for (var c = 0; c < n; c++) tr.appendChild(buf.shift() || conjblank());
+						tb.appendChild(tr);
+					}
+				}
+				for (i3 = 0; i3 < vis.length; i3++) {
+					if ((vis[i3].g || "") !== last) {
+						flush();
+						last = vis[i3].g || "";
 						if (last) {
-							var gh = document.createElement("div");
-							gh.className = "cgrp";
-							gh.textContent = last;
-							grid.appendChild(gh);
+							var htr = document.createElement("tr");
+							var htd = document.createElement("td");
+							htd.className = "cgrp";
+							htd.colSpan = n;
+							htd.textContent = last;
+							htr.appendChild(htd);
+							tb.appendChild(htr);
 						}
 					}
-					grid.appendChild(conjcell(vis[i2], lang));
+					buf.push(conjcell(vis[i3], lang));
 				}
-				host.appendChild(grid);
-				gridcols(grid);
+				flush();
+				host.appendChild(tb);
 			}
+			conjdraw = draw;
 			q.addEventListener("input", draw);
 			draw();
 		}).catch(function(){
@@ -516,14 +528,14 @@
 		return t;
 	}
 
-	// 一格：形态名一行，下面每条例句一行；并列的例句竖排，每句尾巴一个喇叭。
+	// 一格（表格的一个 td）：形态名一行，下面每条例句一行；并列的例句竖排，每句尾巴一个喇叭。
 	function conjcell(r, lang){
-		var box = document.createElement("div");
-		box.className = "ccell";
+		var td = document.createElement("td");
+		td.className = "c-k";
 		var lab = document.createElement("div");
 		lab.className = "clab";
 		lab.textContent = r.l || "";
-		box.appendChild(lab);
+		td.appendChild(lab);
 		var segs = conjparts(r.v), i, s, sy, b;
 		for (i = 0; i < segs.length; i += 2) {
 			s = String(segs[i] || "").trim();
@@ -541,30 +553,31 @@
 				b.textContent = "🔊";
 				line.appendChild(b);
 			}
-			box.appendChild(line);
+			td.appendChild(line);
 		}
-		return box;
+		return td;
 	}
 
-	// 按可用宽度排 1～3 栏；窗口宽度变了重排。
-	var gridwatch = null, gtimer = 0;
+	// 一行没填满时补空单元格，横线才能从左贯通到右。
+	function conjblank(){
+		var td = document.createElement("td");
+		td.className = "c-k";
+		return td;
+	}
 
-	function gridcols(grid){
-		if (!grid) return;
-		gridwatch = grid;
-		var w = grid.clientWidth;
-		if (!w) w = grid.parentNode ? grid.parentNode.clientWidth : 0;
-		if (!w) return;
-		var n = Math.floor((w + 8) / 248);
-		if (n < 1) n = 1;
-		if (n > 3) n = 3;
-		grid.style.gridTemplateColumns = "repeat(" + n + ", minmax(0, 1fr))";
+	// 按可用宽度排 2～3 栏（至少 2 栏）；窗口宽度变了重排。
+	var conjdraw = null, ctimer = 0;
+
+	function conjcols(host){
+		var w = host.clientWidth;
+		if (!w) w = host.parentNode ? host.parentNode.clientWidth : 0;
+		return w >= 870 ? 3 : 2;
 	}
 
 	window.addEventListener("resize", function(){
-		if (!gridwatch) return;
-		clearTimeout(gtimer);
-		gtimer = setTimeout(function(){ gridcols(gridwatch); }, 120);
+		if (!conjdraw) return;
+		clearTimeout(ctimer);
+		ctimer = setTimeout(function(){ if (conjdraw) conjdraw(); }, 150);
 	});
 
 	// 形态页顶上那行：实际判定的类型和特殊变化（1类/2类/3类、い/な形容词、不规则说明）。
