@@ -75,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Each Japanese name lists every reading in a vertical stack, with a speak button on each one.
 - Dictionary entries are built once as a compact JSON of rendered lines and inline runs; the WPF dictionary, web dictionary and reader render the same document, and Definitions only is a builder parameter.
 - Japanese name results line up in rows, 60 per page, and scroll inside the list.
+- The dictionary conjugation table is now a read-only RichTextBox: text can be selected and copied; copy strips the speaker icon and trailing spaces.
 
 #### Fixed
 
@@ -115,6 +116,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日本姓名的每条结果竖排显示全部读法，每个读法都有发音按钮。
 - 词典词条改为先生成「行 + 行内块」的紧凑 JSON，WPF 词典、网页词典和阅读器渲染同一份文档；「仅释义」作为生成参数传入。
 - 日本姓名结果按行对齐，每页固定 60 条，超出部分在列表里滚动。
+- 词典的形态变化表改成只读 RichTextBox，文字可以拖选、Ctrl+C 复制；复制时去掉朗读图标和行尾空白。
 
 #### 修复
 
@@ -1676,7 +1678,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页管理勾选 **保持登录** 后，重启本程序仍然保持。浏览器留下 30 天 Cookie 和已保存的登录，电脑正在启动时会重试；旧页面里的 token 不再挡住这次登录。
 - 词典划词浮窗：鼠标悬停词条时字保持深色，底为浅蓝。不再把字改成白色叠在很浅的高亮上。
 - 在词典词条里双击单词会弹出划词浮窗。拖选和右键仍会弹出。
-- 文件名含中文（如 `XPlayer v2.9.0.0 高级版.apk`）发到手机时，不再报「路径中具有非法字符」。共用 HTTP 口按 UTF-8 解码下载地址里的查询串。
+- 文件名含中文发到手机时，不再报「路径中具有非法字符」。共用 HTTP 口按 UTF-8 解码下载地址里的查询串。
 - HTTP 服务启动失败后，每 10 秒再试一次，直到听上，或接口、传文件、投屏都关掉。状态栏在成功前仍显示失败原因。
 
 ## v1.0.15 (2026-10-05 ~ 10-06)

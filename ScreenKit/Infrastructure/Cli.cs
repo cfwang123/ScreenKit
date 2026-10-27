@@ -76,7 +76,7 @@ static class Cli {
 				or "--test-ort-release"
 				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-rebuild" or "--test-dict-install" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
-				or "--test-dict-scroll"
+				or "--test-dict-scroll" or "--test-dict-select"
 				or "--test-dict-senseonly"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
@@ -453,6 +453,8 @@ static class Cli {
 					return testdicthost();
 				case "--test-dict-scroll":
 					return testdictscroll(Opt());
+				case "--test-dict-select":
+					return testdictselect(Opt());
 				case "--test-dict-senseonly":
 					return testdictsenseonly(args, i);
 				case "--test-selbar":
@@ -7077,6 +7079,118 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 	}
 
+	/// <summary>变形表是只读 RichTextBox：整表能选中、能复制，内容还是按栏排的表格。</summary>
+	static int testdictselect(string word) {
+		if (string.IsNullOrWhiteSpace(word)) word = "食べる";
+		Out($"=== 变形表文字可选中 --test-dict-select {word} ===");
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		DictHostWindow win = null;
+		try {
+			win = new DictHostWindow(word, () => new OcrOptions(), _ => { });
+			win.Show();
+			var start = Environment.TickCount;
+			while (Environment.TickCount - start < 8000 && win.host.lhits.Items.Count == 0) {
+				pump();
+				System.Threading.Thread.Sleep(5);
+			}
+			if (win.host.lhits.Items.Count == 0) {
+				Err("FAIL: 没有查出结果");
+				return 1;
+			}
+			win.host.lhits.SelectedIndex = 0;
+			var tabs = win.host.dtabc;
+			start = Environment.TickCount;
+			while (Environment.TickCount - start < 8000 && tabs.Items.Count < 2) {
+				pump();
+				System.Threading.Thread.Sleep(5);
+			}
+			Out("tabs=" + tabs.Items.Count);
+			if (tabs.Items.Count < 2) {
+				Err("FAIL: 这个词没有变形标签页");
+				return 2;
+			}
+			tabs.SelectedIndex = 1;
+			RichTextBox box = null;
+			start = Environment.TickCount;
+			while (Environment.TickCount - start < 8000) {
+				pump();
+				box = conjbox(win.host, 0);
+				if (box != null && doclen(box) > 20) break;
+				System.Threading.Thread.Sleep(5);
+			}
+			if (box == null) {
+				Err("FAIL: 找不到变形表");
+				return 3;
+			}
+			var rows = conjrows(box);
+			Out($"readonly={box.IsReadOnly} chars={doclen(box)} rows={rows}");
+			if (!box.IsReadOnly || doclen(box) < 20 || rows < 1) {
+				Err("FAIL: 变形表不是只读全文或没有表格");
+				return 4;
+			}
+			box.SelectAll();
+			var sel = box.Selection.Text ?? "";
+			Out("selected=" + sel.Length);
+			if (sel.Length < 20) {
+				Err("FAIL: 整表选不中");
+				return 5;
+			}
+			var clip = "";
+			try {
+				ApplicationCommands.Copy.Execute(null, box);
+				clip = Clipboard.GetText() ?? "";
+			}
+			catch (Exception ex) { Out("clip " + ex.Message); }
+			Out($"clip={clip.Length} icon={clip.IndexOf('\uE767') >= 0}");
+			if (clip.Length > 0 && (clip.IndexOf('\uE767') >= 0 || clip.IndexOf(word, StringComparison.Ordinal) < 0)) {
+				Err("FAIL: 复制出来的文字带朗读图标或缺内容");
+				return 6;
+			}
+			var from = box.Document.ContentStart;
+			var to = from.GetPositionAtOffset(20, System.Windows.Documents.LogicalDirection.Forward) ?? box.Document.ContentEnd;
+			box.Selection.Select(from, to);
+			var part = (box.Selection.Text ?? "").Replace("\r", "").Replace("\n", " / ");
+			Out("part=" + part);
+			if (part.Trim().Length == 0) {
+				Err("FAIL: 选中一段读不到文字");
+				return 7;
+			}
+			Out("=== OK：变形表文字可以选中复制 ===");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL " + ex.Message);
+			return 8;
+		}
+		finally {
+			try { win?.Close(); } catch { }
+		}
+
+		static void pump() {
+			var frame = new DispatcherFrame();
+			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
+			Dispatcher.PushFrame(frame);
+		}
+
+		static RichTextBox conjbox(DictWindow w, int i) {
+			var f = typeof(DictWindow).GetField("conjpanes", BindingFlags.Instance | BindingFlags.NonPublic);
+			if (f?.GetValue(w) is not System.Collections.IList list || list.Count <= i) return null;
+			return list[i]?.GetType().GetField("Box")?.GetValue(list[i]) as RichTextBox;
+		}
+
+		static int doclen(RichTextBox box) =>
+			(new System.Windows.Documents.TextRange(box.Document.ContentStart, box.Document.ContentEnd)).Text?.Length ?? 0;
+
+		static int conjrows(RichTextBox box) {
+			var n = 0;
+			foreach (var b in box.Document.Blocks)
+				if (b is System.Windows.Documents.Table t)
+					foreach (var rg in t.RowGroups) n += rg.Rows.Count;
+			return n;
+		}
+	}
+
 	/// <summary>勾「仅释义」后详情不再显示例句；子义项合并成一行；义项块多行时之间空一行。</summary>
 	static int testdictsenseonly(string[] args, int at) {
 		var word = at + 1 < args.Length && args[at + 1].Length > 0 && args[at + 1][0] != '-' ? args[at + 1] : "hello";
@@ -7732,6 +7846,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
       --test-dict-scroll [词]  换词典语言后原词条仍选中并滚到它；词条不在新词典就回到顶部；划词浮窗切语言回顶部
+      --test-dict-select [词]  变形表是只读 RichTextBox：表格排好、整表和一段都能选中复制，词默认 食べる
       --test-dict-senseonly [词] [词典] [空行]  勾「仅释义」后每义项只显示一种语言、子义项合并成一行；词典默认 en，空行 1 要求义项之间有空行、0 要求没有
       --test-selbar  读本进程文本框的选中文字，并检查划词查词浮窗的位置和不抢焦点
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译

@@ -45,14 +45,14 @@ sealed class ConjCat {
 	public string Cat = "", Kind = "", Sub = "";
 }
 
-/// <summary>一个「形态变化」标签页：自己的过滤框、计数，和按宽度排 2～3 栏的表。</summary>
+/// <summary>一个「形态变化」标签页：自己的过滤框、计数，和按宽度排 2～8 栏的只读表。</summary>
 sealed class ConjPane {
 	public TabItem Tab;
 	public TextBlock Meta;
 	public TextBox Q;
 	public TextBlock Cnt;
-	public ScrollViewer Scroll;
-	public Grid Table;
+	/// <summary>整张表放在这个只读 RichTextBox 里，文字可以拖选、Ctrl+C 复制。</summary>
+	public RichTextBox Box;
 	public int Index;
 	public int Cols;
 	/// <summary>上一次排版时的可视宽度，宽度变了才重排。</summary>
@@ -900,18 +900,39 @@ public partial class DictWindow : UserControl {
 		DockPanel.SetDock(top, Dock.Top);
 		dock.Children.Add(top);
 		pane.Index = n;
-		pane.Table = new Grid();
-		pane.Scroll = new ScrollViewer {
+		// 只读 RichTextBox：表格做进 FlowDocument，整张表都能拖着选、Ctrl+C 复制。
+		pane.Box = new RichTextBox {
+			IsReadOnly = true,
+			IsReadOnlyCaretVisible = false,
+			IsDocumentEnabled = true,
+			BorderThickness = new Thickness(0),
+			Background = Brushes.Transparent,
+			Padding = new Thickness(0),
 			VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
 			HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-			BorderThickness = new Thickness(0),
-			Content = pane.Table,
+			SpellCheck = { IsEnabled = false },
+			Document = blankdoc(),
 		};
-		pane.Scroll.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.list." + n);
+		var menu = new ContextMenu();
+		menu.Items.Add(new MenuItem {
+			Header = Loc.T("copy"),
+			Command = ApplicationCommands.Copy,
+			CommandTarget = pane.Box,
+		});
+		pane.Box.ContextMenu = menu;
+		// 复制走自己的处理：去掉朗读链接的图标和行尾空白，粘出来是干净的词形。
+		pane.Box.CommandBindings.Add(new CommandBinding(ApplicationCommands.Copy, (_, e) => {
+			var text = cleancopy(pane.Box.Selection.Text);
+			if (text.Length > 0) {
+				try { Clipboard.SetText(text); } catch { }
+			}
+			e.Handled = true;
+		}));
+		pane.Box.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.list." + n);
 		pane.Wait = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
 		pane.Wait.Tick += (_, _) => { pane.Wait.Stop(); layoutconj(pane); };
-		pane.Scroll.SizeChanged += (_, _) => { pane.Wait.Stop(); pane.Wait.Start(); };
-		dock.Children.Add(pane.Scroll);
+		pane.Box.SizeChanged += (_, _) => { pane.Wait.Stop(); pane.Wait.Start(); };
+		dock.Children.Add(pane.Box);
 		pane.Tab.Content = dock;
 		conjpanes.Add(pane);
 		dtabc.Items.Add(pane.Tab);
@@ -1217,8 +1238,7 @@ public partial class DictWindow : UserControl {
 			if (k.Length > 0 && !(r.L + " " + r.V).ToLowerInvariant().Contains(k)) continue;
 			vis.Add(r);
 		}
-		pane.Table = conjtable(vis, pane.Cols);
-		pane.Scroll.Content = pane.Table;
+		pane.Box.Document = conjdoc(vis, pane.Cols);
 		pane.Cnt.Text = string.Format(Loc.T("dict.conj.count"), vis.Count, pane.Rows.Count);
 	}
 
@@ -1229,8 +1249,8 @@ public partial class DictWindow : UserControl {
 	const int CONJMAXCOLS = 8;
 
 	int conjcols(ConjPane pane) {
-		var w = pane.Scroll == null ? 0 : pane.Scroll.ViewportWidth;
-		if (double.IsNaN(w) || w < 40) w = pane.Scroll == null ? 0 : pane.Scroll.ActualWidth;
+		var w = pane.Box == null ? 0 : scrollof(pane.Box)?.ViewportWidth ?? 0;
+		if (double.IsNaN(w) || w < 40) w = pane.Box == null ? 0 : pane.Box.ActualWidth;
 		if (double.IsNaN(w) || w < 40) return 0;
 		var n = (int)(w / CONJMIN);
 		if (n < 1) n = 1;
@@ -1239,8 +1259,8 @@ public partial class DictWindow : UserControl {
 	}
 
 	void layoutconj(ConjPane pane) {
-		if (pane.Scroll == null || pane.Rows == null) return;
-		var vw = pane.Scroll.ViewportWidth;
+		if (pane.Box == null || pane.Rows == null) return;
+		var vw = scrollof(pane.Box)?.ViewportWidth ?? pane.Box.ActualWidth;
 		if (vw < 80) return;                         // 还没排好，等宽度出来再算
 		if (Math.Abs(vw - pane.Vw) < 1 && pane.Cols > 0) return;
 		pane.Vw = vw;
@@ -1249,124 +1269,116 @@ public partial class DictWindow : UserControl {
 		fillconj(pane.Index);
 	}
 
-	/// <summary>把形变行排成表：组名单独占一行，其余按栏从左到右填，行高由这一行最高的一格决定。</summary>
-	Grid conjtable(List<ConjRow> vis, int cols) {
-		var grid = new Grid();
-		for (var c = 0; c < cols; c++) {
-			// 1、2 栏时均分整行，再多就每栏固定宽度
-			grid.ColumnDefinitions.Add(new ColumnDefinition {
-				Width = cols <= 2 ? new GridLength(1, GridUnitType.Star) : new GridLength(CONJMIN),
-			});
+	/// <summary>把形变行排进 FlowDocument 的 Table：组名横跨一行，其余按栏从左到右填。
+	/// 放在只读 RichTextBox 里，文字就能拖选、复制。</summary>
+	FlowDocument conjdoc(List<ConjRow> vis, int cols) {
+		if (cols < 1) cols = 1;
+		var doc = blankdoc();
+		var table = new Table { CellSpacing = 0, Margin = new Thickness(0) };
+		for (var c = 0; c < cols; c++)
+			table.Columns.Add(new TableColumn { Width = new GridLength(1, GridUnitType.Star) });
+		var rg = new TableRowGroup();
+		table.RowGroups.Add(rg);
+		doc.Blocks.Add(table);
+		if (vis.Count == 0) {
+			rg.Rows.Add(conjheadrow(Loc.T("dict.conj.empty"), false, cols));
+			return doc;
 		}
-		var row = 0;
-		var slot = 0;
+		var buf = new List<ConjRow>();
 		string last = null;
+		void flush() {
+			if (buf.Count == 0) return;
+			for (var i = 0; i < buf.Count; i += cols) {
+				var line = rg.Rows.Count > 0;
+				var tr = new TableRow();
+				for (var c = 0; c < cols; c++)
+					tr.Cells.Add(i + c < buf.Count ? conjcell2(buf[i + c].L, buf[i + c].V, line) : conjemptycell(line));
+				rg.Rows.Add(tr);
+			}
+			buf.Clear();
+		}
 		foreach (var r in vis) {
 			if (r.G != last) {
+				flush();
 				last = r.G;
-				if (!string.IsNullOrEmpty(last)) {
-					if (slot > 0) { conjpad(grid, row, slot, cols); row++; slot = 0; }
-					grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-					var head = conjband(last, row > 0);
-					Grid.SetRow(head, row);
-					Grid.SetColumnSpan(head, cols);
-					grid.Children.Add(head);
-					row++;
-				}
+				if (!string.IsNullOrEmpty(last)) rg.Rows.Add(conjheadrow(last, rg.Rows.Count > 0, cols));
 			}
-			if (slot == 0) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-			var cell = conjitem(r.L, r.V, row > 0);
-			Grid.SetRow(cell, row);
-			Grid.SetColumn(cell, slot);
-			grid.Children.Add(cell);
-			slot++;
-			if (slot >= cols) { slot = 0; row++; }
+			buf.Add(r);
 		}
-		if (vis.Count == 0) {
-			grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-			var none = conjband(Loc.T("dict.conj.empty"), false);
-			Grid.SetRow(none, 0);
-			Grid.SetColumnSpan(none, cols);
-			grid.Children.Add(none);
-			return grid;
-		}
-		if (slot > 0) conjpad(grid, row, slot, cols);
-		return grid;
+		flush();
+		return doc;
 	}
 
-	// 一行的最后几栏没内容也要占位，横线才会从左贯通到右。
-	static void conjpad(Grid grid, int row, int from, int cols) {
-		for (var c = from; c < cols; c++) {
-			var a = conjempty(row > 0);
-			Grid.SetRow(a, row);
-			Grid.SetColumn(a, c);
-			grid.Children.Add(a);
-		}
+	/// <summary>组名（传闻・推量、方言・关西之类），单独占一行、横跨所有栏。</summary>
+	static TableRow conjheadrow(string g, bool line, int cols) {
+		var cell = new TableCell {
+			BorderBrush = CLine,
+			BorderThickness = new Thickness(0, line ? 1 : 0, 0, 0),
+			Padding = new Thickness(0, 8, 0, 3),
+			ColumnSpan = cols,
+		};
+		cell.Blocks.Add(new Paragraph(new Run(g)) {
+			FontSize = 12,
+			FontWeight = FontWeights.SemiBold,
+			Foreground = CPos,
+			Margin = new Thickness(0),
+		});
+		var tr = new TableRow();
+		tr.Cells.Add(cell);
+		return tr;
 	}
 
-	static Border conjempty(bool line) => new Border {
-		BorderBrush = CLine,
-		BorderThickness = new Thickness(0, line ? 1 : 0, 0, 0),
-	};
-
-	/// <summary>表格里的一格：除第一行外顶上一条细分隔线。</summary>
-	static Border conjcell(UIElement child, Thickness pad, bool line) => new Border {
-		BorderBrush = CLine,
-		BorderThickness = new Thickness(0, line ? 1 : 0, 0, 0),
-		Padding = pad,
-		Child = child,
-	};
-
-	/// <summary>一格：形变名在上、例句在下竖排，每句尾巴一个喇叭。</summary>
-	Border conjitem(string label, string value, bool line) {
-		var stack = new StackPanel();
-		stack.Children.Add(new TextBlock {
-			Text = label,
+	/// <summary>一格：形变名在上、每个例句单独一行，句尾一个朗读链接；除第一行外顶上一条细分隔线。</summary>
+	TableCell conjcell2(string label, string value, bool line) {
+		var cell = new TableCell {
+			BorderBrush = CLine,
+			BorderThickness = new Thickness(0, line ? 1 : 0, 0, 0),
+			Padding = new Thickness(0, 3, 10, 3),
+		};
+		cell.Blocks.Add(new Paragraph(new Run(label)) {
 			FontSize = 12,
 			Foreground = CPron,
-			TextWrapping = TextWrapping.Wrap,
+			Margin = new Thickness(0),
+			LineHeight = 16,
 		});
 		var parts = conjparts(value);
 		for (var i = 0; i < parts.Count; i += 2) {
 			var s = parts[i].Trim();
 			if (s.Length == 0) continue;
-			var t = new TextBlock { TextWrapping = TextWrapping.Wrap };
-			t.Inlines.Add(new Run(s));
+			var p = new Paragraph { Margin = new Thickness(0), LineHeight = 18 };
+			p.Inlines.Add(new Run(s));
 			var spk = conjsay(s);
-			if (spk.Length > 0) t.Inlines.Add(new InlineUIContainer(conjspk(spk)) { BaselineAlignment = BaselineAlignment.Center });
-			stack.Children.Add(t);
+			if (spk.Length > 0) {
+				p.Inlines.Add(new Run(" "));
+				p.Inlines.Add(conjlink(spk));
+			}
+			cell.Blocks.Add(p);
 		}
-		return conjcell(stack, new Thickness(0, 3, 10, 3), line);
+		return cell;
 	}
 
-	/// <summary>组名（传闻・推量、方言・关西之类），单独占一行、横跨所有栏。</summary>
-	static Border conjband(string g, bool line) => conjcell(new TextBlock {
-		Text = g,
-		FontSize = 12,
-		FontWeight = FontWeights.SemiBold,
-		Foreground = CPos,
-		TextWrapping = TextWrapping.Wrap,
-	}, new Thickness(0, 8, 0, 3), line);
+	// 一行的最后几栏没内容也要占位，横线才会从左贯通到右。
+	static TableCell conjemptycell(bool line) => new TableCell {
+		BorderBrush = CLine,
+		BorderThickness = new Thickness(0, line ? 1 : 0, 0, 0),
+	};
 
-	/// <summary>一个小喇叭，点一下只读这句。</summary>
-	Button conjspk(string say) {
-		var b = new Button {
-			Content = "🔊",
-			FontSize = 11,
-			Width = 16,
-			Height = 16,
-			Padding = new Thickness(0),
-			Margin = new Thickness(3, 0, 1, 0),
-			BorderThickness = new Thickness(0),
-			Background = Brushes.Transparent,
+	/// <summary>句尾的小喇叭链接，点一下朗读这句；文档里用链接才不影响选中和复制。</summary>
+	Hyperlink conjlink(string say) {
+		var run = new Run("\uE767") {
+			FontFamily = new FontFamily("Segoe MDL2 Assets"),
+			FontSize = 12,
 			Foreground = CSpeak,
-			Cursor = Cursors.Hand,
-			Focusable = false,
-			ToolTip = Loc.T("dict.speak"),
 		};
-		b.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.speak");
-		b.Click += (_, _) => _ = speak(say, speaklang(curlang));
-		return b;
+		var link = new Hyperlink(run) {
+			Foreground = CSpeak,
+			TextDecorations = null,
+			ToolTip = Loc.T("dict.speak"),
+			Cursor = Cursors.Hand,
+		};
+		link.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.speak");
+		link.Click += (_, _) => _ = speak(say, speaklang(curlang));
+		return link;
 	}
 
 	/// <summary>一行里的例句分隔符：日语、韩语、英语各自用什么并列，都算断句点。</summary>
@@ -2190,6 +2202,26 @@ public partial class DictWindow : UserControl {
 		if (dict == "ko") return Loc.T("dict.filter.ko");
 		if (dict == "zh") return Loc.T("dict.filter.zh");
 		return "";
+	}
+
+	/// <summary>复制变形表时用：去掉朗读链接的图标（U+E767）和行尾空白，空行不占位。</summary>
+	static string cleancopy(string s) {
+		if (string.IsNullOrEmpty(s)) return "";
+		var sb = new StringBuilder();
+		foreach (var raw in s.Replace("\r", "").Split('\n')) {
+			var line = raw.Replace("\uE767", "").TrimEnd();
+			if (line.Length == 0) continue;
+			if (sb.Length > 0) sb.Append('\n');
+			sb.Append(line);
+		}
+		return sb.ToString();
+	}
+
+	/// <summary>形态变化表用的空文档：不要页边距，由 Table 自己排。</summary>
+	static FlowDocument blankdoc() {
+		var doc = newdoc();
+		doc.PagePadding = new Thickness(0);
+		return doc;
 	}
 
 	static FlowDocument newdoc() {
