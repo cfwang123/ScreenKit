@@ -14,7 +14,8 @@
 [hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
-	min-width: 1080px;
+	/* 目录页窄窗口也按窗口宽度重排（卡片固定宽度、自动换行），不横向滚动 */
+	min-width: 0;
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
@@ -24,10 +25,6 @@ body {
 	background: #fff;
 	color: var(--ink);
 	font: 15px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
-}
-/* 目录页窗口比布局窄时不压缩内容，给横向滚动，别把右边裁掉 */
-@media (max-width: 1079px) {
-	body { overflow: auto; }
 }
 /* 打开工具后宽度不超过窗口。超出的部分在工具内部滚动 */
 html.in-tool body { min-width: 0; overflow: hidden; }
@@ -150,12 +147,14 @@ h1 { margin: 6px 0 12px; font-size: 22px; font-weight: 650; }
 }
 .catsec h2 i { width: 18px; text-align: center; color: #f97316; }
 .cards {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+	display: flex;
+	flex-wrap: wrap;
 	gap: 12px;
 }
-.cards button, .cards a {
+/* 卡片固定宽度，放不下就换行：宽度按最长的英文工具名折三行算出来 */
+.cards > button, .cards > a {
 	display: flex; align-items: center; gap: 6px;
+	flex: 0 0 186px; width: 186px;
 	min-height: 36px; height: auto; padding: 4px 6px;
 	text-align: left; background: #eef1f4; border: 0; border-radius: 8px;
 }
