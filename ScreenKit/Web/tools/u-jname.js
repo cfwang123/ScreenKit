@@ -48,7 +48,7 @@
 		for (i = 0; i < ROWS.length; i++)
 			html += '<button type="button" data-row="' + ROWS[i].id + '">' + ROWS[i].name + "</button>";
 		html += '</div><div class="jnlist" id="jn-list"></div>'
-			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict；前 5000 姓带人数（来自名字由来排名）。'
+			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict；前 5000 姓带人数（来自名字由来排名）。首次打开要下载约 1MB 数据，之后直接用本机文件。'
 			+ '输入汉字查读法，输入假名反查汉字；点一行复制。</p>';
 		return html;
 	}
@@ -117,7 +117,7 @@
 	function fetchkind(k, done){
 		if (loading[k]) return;
 		loading[k] = true;
-		SK.msg("jn-msg", "读取" + (k === "s" ? "姓氏" : "名字") + "…");
+		SK.msg("jn-msg", "读取" + (k === "s" ? "姓氏" : "名字") + "…首次可能要下载");
 		fetch("/sk/jname-" + k + ".txt", { cache: "force-cache" })
 			.then(function(r){
 				if (!r.ok) throw new Error(String(r.status));

@@ -1054,6 +1054,11 @@ sealed partial class HttpOcrServer : IDisposable {
 			mime = "application/javascript; charset=utf-8";
 		}
 		else if (path == "/sk/jname-s.txt" || path == "/sk/jname-g.txt") {
+			// 姓名数据不进安装包：第一次用到时从 dict-db 下载 jname.7z 解压到 web。
+			if (!NameData.Ready && !NameData.Wait(90, out var why)) {
+				writejson(ctx, 503, err(503, "姓名数据下载失败: " + why));
+				return;
+			}
 			name = path.Substring(4);
 			mime = "text/plain; charset=utf-8";
 		}

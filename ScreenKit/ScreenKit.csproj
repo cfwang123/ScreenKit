@@ -61,8 +61,6 @@
     <None Include="Web\fa.css" CopyToOutputDirectory="PreserveNewest" Link="web\fa.css" />
     <None Include="Web\viewer.min.css" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.css" />
     <None Include="Web\viewer.min.js" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.js" />
-    <None Include="Web\jname-s.txt" CopyToOutputDirectory="PreserveNewest" Link="web\jname-s.txt" />
-    <None Include="Web\jname-g.txt" CopyToOutputDirectory="PreserveNewest" Link="web\jname-g.txt" />
     <None Include="Web\fa-solid-900.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\fa-solid-900.woff2" />
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />
@@ -296,6 +294,9 @@
       <!-- 发布包只要合成后的 web\tools.js，不要 web\tools 里的各工具脚本和阅读器上传的书 -->
       <_SlimWeb Remove="$(OutputPath)web\tools\**\*.*" />
       <_SlimWeb Remove="$(OutputPath)web\up\**\*.*" />
+      <!-- 姓名数据第一次用到时从 dict-db 下载，不进精简包 -->
+      <_SlimWeb Remove="$(OutputPath)web\jname-s.txt" />
+      <_SlimWeb Remove="$(OutputPath)web\jname-g.txt" />
       <_SlimLang Include="$(OutputPath)lang\*.toml" Condition="Exists('$(OutputPath)lang')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
@@ -343,6 +344,7 @@
       <_SlimJunk Include="$(_SlimOut)\ZXing.dll;$(_SlimOut)\SharpCompress.dll;$(_SlimOut)\SharpSevenZip.dll;$(_SlimOut)\e_sqlite3.dll;$(_SlimOut)\Bogus.dll;$(_SlimOut)\NPinyin.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
+      <_SlimJunk Include="$(_SlimOut)\web\jname-s.txt;$(_SlimOut)\web\jname-g.txt" />
     </ItemGroup>
     <Delete Files="@(_SlimJunk)" TreatErrorsAsWarnings="true" Condition="'@(_SlimJunk)' != ''" />
     <Delete Files="$(OutputPath)WpfOCR.exe;$(OutputPath)WpfOCR.exe.config" TreatErrorsAsWarnings="true" />
