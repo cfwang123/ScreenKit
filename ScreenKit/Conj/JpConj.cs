@@ -29,6 +29,7 @@ sealed class JpConjLabels {
 	public string teoku, teshimau, temiru, tearu;
 	public string tekuru, teiku, tekudasai;
 	public string mashou, mashouka, masenka;
+	public string kchaG, kchau, kchatta, kchawanai, kchatte, kchattara;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, sa, rentai;
@@ -399,6 +400,12 @@ static class JpConj {
 			L.mashou = "ましょう";
 			L.mashouka = "ましょうか";
 			L.masenka = "ませんか";
+			L.kchaG = "口语缩略";
+			L.kchau = "ちゃう・じゃう";
+			L.kchatta = "ちゃった・じゃった";
+			L.kchawanai = "ちゃわない・じゃわない";
+			L.kchatte = "ちゃって・じゃって";
+			L.kchattara = "ちゃったら・じゃったら";
 			L.ai = "い形容词";
 			L.an = "な形容词";
 			L.nn = "名词";
@@ -556,6 +563,12 @@ static class JpConj {
 		L.mashou = "mashou";
 		L.mashouka = "mashou ka";
 		L.masenka = "masen ka";
+			L.kchaG = "contractions";
+			L.kchau = "chau / jau";
+			L.kchatta = "chatta / jatta";
+			L.kchawanai = "chawanai / jawanai";
+			L.kchatte = "chatte / jatte";
+			L.kchattara = "chattara / jattara";
 		L.ai = "i-adjective";
 		L.an = "na-adjective";
 		L.nn = "noun";
@@ -982,8 +995,19 @@ static class JpConj {
 			row(L.mashouka, ren + "ましょうか"),
 			row(L.masenka, ren + "ませんか"),
 		};
+		// てしまう 的口语缩略：て＋ちゃう、で＋じゃう
+		var stem = cut(te, 1);
+		var cha = te.EndsWith("で") ? "じゃ" : "ちゃ";
+		var conrows = new List<ConjRow> {
+			row(L.kchau, stem + cha + "う"),
+			row(L.kchatta, stem + cha + "った"),
+			row(L.kchawanai, stem + cha + "わない"),
+			row(L.kchatte, stem + cha + "って"),
+			row(L.kchattara, stem + cha + "ったら"),
+		};
 		var outs = setgroup(rows, L.aux);
 		outs.AddRange(setgroup(teerows, L.auxte));
+		outs.AddRange(setgroup(conrows, L.kchaG));
 		outs.AddRange(setgroup(polrows, L.auxpol));
 		return outs;
 	}
