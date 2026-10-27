@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Text;
+using System.Threading;
 
 namespace ScreenKit;
 
@@ -15,7 +16,13 @@ static class DictRebuild {
 		public int N;
 	}
 
-	public static void Run(string corePath, string destPath, Action<string> log) {
+	public static void Run(string corePath, string destPath, Action<string> log,
+		Action<double> progress = null, CancellationToken ct = default) {
+		void tick(double p, string msg = null) {
+			ct.ThrowIfCancellationRequested();
+			if (msg != null) log?.Invoke(msg);
+			progress?.Invoke(p);
+		}
 		var sw = Stopwatch.StartNew();
 		var phase = Stopwatch.StartNew();
 		using var src = new FileStream(corePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -24,19 +31,21 @@ static class DictRebuild {
 		var keys = readkeys(src, meta);
 		var ids = keys.ids;
 		var metas = keys.metas;
-		log?.Invoke($"读键 {phase.ElapsedMilliseconds} ms");
+		tick(0.04, $"读键 {phase.ElapsedMilliseconds} ms");
 		phase.Restart();
-		var gmap = buildgrams(keys.items, ids, metas, meta.GramChars, log);
-		log?.Invoke($"生成 gram {gmap.Count}  {phase.ElapsedMilliseconds} ms");
+		var gmap = buildgrams(keys.items, ids, metas, meta.GramChars, log, progress, ct);
+		tick(0.16, $"生成 gram {gmap.Count}  {phase.ElapsedMilliseconds} ms");
 		phase.Restart();
 		var rev = new byte[keys.items.Length][];
 		for (var i = 0; i < rev.Length; i++) rev[i] = revutf8(keys.items[i].Key);
 		var order = new int[rev.Length];
 		for (var i = 0; i < order.Length; i++) order[i] = i;
 		Array.Sort(order, (a, b) => cmp(rev[a], rev[b]));
-		log?.Invoke($"后缀排序 {phase.ElapsedMilliseconds} ms");
+		tick(0.22, $"后缀排序 {phase.ElapsedMilliseconds} ms");
 		phase.Restart();
 		var tmp = destPath + ".tmp";
+		var moved = false;
+		try {
 		using (var dst = new FileStream(tmp, FileMode.Create, FileAccess.ReadWrite, FileShare.Read)) {
 			dst.SetLength(0);
 			dst.Write(new byte[256], 0, 256);
@@ -54,7 +63,7 @@ static class DictRebuild {
 			h.OffPrefixL1 = pre.L1;
 			h.NPrefixBlocks = pre.Blocks;
 			h.NPrefixL1 = pre.L1n;
-			log?.Invoke($"前缀 {phase.ElapsedMilliseconds} ms");
+			tick(0.28, $"前缀 {phase.ElapsedMilliseconds} ms");
 			phase.Restart();
 			var suf = writekeys(dst, keys.items, ids, metas, order, rev, meta.KeysPer, meta.DirGroup);
 			h.OffSuffixData = suf.Data;
@@ -63,9 +72,9 @@ static class DictRebuild {
 			h.NSuffixBlocks = suf.Blocks;
 			h.NSuffixL1 = suf.L1n;
 			rev = null;
-			log?.Invoke($"后缀 {phase.ElapsedMilliseconds} ms");
+			tick(0.36, $"后缀 {phase.ElapsedMilliseconds} ms");
 			phase.Restart();
-			var gram = writegrams(dst, gmap, keys.items, ids, metas, meta.DirGroup);
+			var gram = writegrams(dst, gmap, keys.items, ids, metas, meta.DirGroup, progress, ct);
 			h.NGrams = gram.N;
 			h.NGramBlocks = gram.Blocks;
 			h.OffGramIds = gram.Ids;
@@ -75,9 +84,9 @@ static class DictRebuild {
 			h.OffGramL1 = gram.L1;
 			h.NGramL1 = gram.L1n;
 			gmap = null;
-			log?.Invoke($"gram 写入 {phase.ElapsedMilliseconds} ms");
+			tick(0.70, $"gram 写入 {phase.ElapsedMilliseconds} ms");
 			phase.Restart();
-			var ent = writeentries(dst, src, meta);
+			var ent = writeentries(dst, src, meta, progress, ct);
 			h.OffEntryData = ent.Data;
 			h.EntryDataEnd = ent.DataEnd;
 			h.OffEntryIndex = ent.Index;
@@ -89,7 +98,8 @@ static class DictRebuild {
 		}
 		if (File.Exists(destPath)) File.Delete(destPath);
 		File.Move(tmp, destPath);
-		log?.Invoke($"词条压缩 {phase.ElapsedMilliseconds} ms");
+		moved = true;
+		tick(0.98, $"词条压缩 {phase.ElapsedMilliseconds} ms");
 		var len = new FileInfo(destPath).Length;
 		var peak = Process.GetCurrentProcess().PeakWorkingSet64;
 		log?.Invoke($"重建 {sw.ElapsedMilliseconds} ms  文件 {len}  峰值工作集 {peak}");
@@ -97,7 +107,13 @@ static class DictRebuild {
 		if (!DictDb.Init(destPath))
 			throw new InvalidOperationException("重建文件打不开: " + DictDb.Error);
 		DictDb.Close();
-		log?.Invoke("打开校验通过");
+		tick(1, "打开校验通过");
+		}
+		finally {
+			if (!moved) {
+				try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+			}
+		}
 	}
 
 	struct CoreHead {
@@ -157,7 +173,8 @@ static class DictRebuild {
 		return (items, idList.ToArray(), metaList.ToArray());
 	}
 
-	static Dictionary<string, List<int>> buildgrams(KeyRec[] items, int[] ids, byte[] metas, int gramChars, Action<string> log) {
+	static Dictionary<string, List<int>> buildgrams(KeyRec[] items, int[] ids, byte[] metas, int gramChars,
+		Action<string> log, Action<double> progress, CancellationToken ct) {
 		var map = new Dictionary<string, List<int>>(800000);
 		for (var i = 0; i < items.Length; i++) {
 			var rec = items[i];
@@ -171,7 +188,11 @@ static class DictRebuild {
 				}
 				list.Add(i);
 			}
-			if (i > 0 && (i % 500000) == 0) log?.Invoke($"  gram 键 {i}");
+			if (i > 0 && (i % 500000) == 0) {
+				ct.ThrowIfCancellationRequested();
+				log?.Invoke($"  gram 键 {i}");
+				progress?.Invoke(0.04 + 0.12 * i / (double)items.Length);
+			}
 		}
 		return map;
 	}
@@ -272,7 +293,8 @@ static class DictRebuild {
 		public int L1n;
 	}
 
-	static GramW writegrams(FileStream dst, Dictionary<string, List<int>> map, KeyRec[] items, int[] ids, byte[] metas, int dirGroup) {
+	static GramW writegrams(FileStream dst, Dictionary<string, List<int>> map, KeyRec[] items, int[] ids, byte[] metas,
+		int dirGroup, Action<double> progress, CancellationToken ct) {
 		var names = new string[map.Count];
 		map.Keys.CopyTo(names, 0);
 		Array.Sort(names, StringComparer.Ordinal);
@@ -297,6 +319,7 @@ static class DictRebuild {
 			chunkRows.Clear();
 			chunk.SetLength(0);
 		}
+		var gi = 0;
 		foreach (var name in names) {
 			var list = map[name];
 			list.Sort();
@@ -317,6 +340,11 @@ static class DictRebuild {
 			rows.Add((g, idAt, uniq.Count * 4, -1, inner, body.Length));
 			chunkRows.Add(rows.Count - 1);
 			if (body.Length >= GramChunk) flush();
+			gi++;
+			if ((gi % 4000) == 0) {
+				ct.ThrowIfCancellationRequested();
+				progress?.Invoke(0.36 + 0.34 * gi / (double)names.Length);
+			}
 		}
 		flush();
 		var idsEnd = dst.Position;
@@ -380,7 +408,7 @@ static class DictRebuild {
 		public int N;
 	}
 
-	static EntW writeentries(FileStream dst, FileStream src, CoreHead meta) {
+	static EntW writeentries(FileStream dst, FileStream src, CoreHead meta, Action<double> progress, CancellationToken ct) {
 		src.Seek(Head, SeekOrigin.Begin);
 		var raw = new byte[meta.EntryBytes];
 		readfull(src, raw);
@@ -411,6 +439,10 @@ static class DictRebuild {
 			}
 			n++;
 			nIn++;
+			if ((n % 8192) == 0) {
+				ct.ThrowIfCancellationRequested();
+				progress?.Invoke(0.70 + 0.28 * n / (double)Math.Max(1, meta.NEntries));
+			}
 			if (nIn >= meta.EntriesPer) flush();
 		}
 		flush();

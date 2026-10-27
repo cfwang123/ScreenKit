@@ -44,7 +44,7 @@ public enum FeatureKind {
 	MediaFoundation,
 	/// <summary>系统 MJPEG AVI，无需下载。</summary>
 	Mjpeg,
-	/// <summary>词典 dict3.bin。从固定 Release dict-db 的 dict3.7z 解出，不进应用更新包。</summary>
+	/// <summary>词典 dict3.bin。从固定 Release dict-db 下载 dict3-core.7z，解压后在本机重建索引。</summary>
 	DictDb,
 	/// <summary>中英双向 Opus-MT ONNX 翻译模型。从固定 Release dict-db 下载。</summary>
 	TranslateOnnx,
@@ -131,8 +131,8 @@ static class FeatureInstaller {
 	const string FaceBuffaloLZip = "https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip";
 	const string FaceBuffaloLHf = "https://huggingface.co/deepinsight/insightface/resolve/main/models/buffalo_l.zip";
 	/// <summary>固定标签 dict-db，不跟随最新 Release，避免被当成应用更新包。</summary>
-	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict3.7z";
-	const long DICT7Z_BYTES = 279822816L;
+	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict3-core.7z";
+	const long DICT7Z_BYTES = 112548067L;
 	const string IME7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ime.7z";
 	const long IME7Z_BYTES = 6242584L;
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
@@ -1273,7 +1273,7 @@ arabic_dict.txt
 			deletefile(Path.Combine(FaceModelsDir, extra), log);
 	}
 
-	// ───────── 词典 dict3.7z ─────────
+	// ───────── 词典 dict3-core.7z ─────────
 
 	static string dictdbpath() => Path.Combine(BaseDir, "dict3.bin");
 
@@ -1313,7 +1313,7 @@ arabic_dict.txt
 			return;
 		}
 		Directory.CreateDirectory(CacheDir);
-		var arc = Path.Combine(CacheDir, "dict3.7z");
+		var arc = Path.Combine(CacheDir, "dict3-core.7z");
 		if (File.Exists(arc)) {
 			long have = 0;
 			try { have = new FileInfo(arc).Length; } catch { }
@@ -1322,29 +1322,35 @@ arabic_dict.txt
 			}
 		}
 		await downloadfirst(ExpandUrls(DICT7Z_URL), arc, log, progress, ct,
-			expectedTotal: DICT7Z_BYTES, overallWeight: 0.9).ConfigureAwait(false);
+			expectedTotal: DICT7Z_BYTES, overallWeight: 0.7).ConfigureAwait(false);
+		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : 0;
+		if (zlen != DICT7Z_BYTES)
+			throw new InvalidOperationException("dict3-core.7z 大小 " + zlen + "，应为 " + DICT7Z_BYTES);
 		var unpack = Path.Combine(CacheDir, "dict-unpack");
 		if (Directory.Exists(unpack)) {
 			try { Directory.Delete(unpack, true); } catch { }
 		}
 		Directory.CreateDirectory(unpack);
-		log?.Report("解压 dict3.7z …");
-		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : DICT7Z_BYTES;
-		reportprog(progress, 0.92, zlen, zlen, "dict3.7z", "解压中…");
+		log?.Report("解压 dict3-core.7z …");
+		reportprog(progress, 0.72, zlen, zlen, "dict3-core.7z", "解压中…");
 		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
 		extract7z(arc, unpack, log);
 		string found = null;
 		try {
-			found = Directory.GetFiles(unpack, "dict3.bin", SearchOption.AllDirectories).FirstOrDefault();
+			found = Directory.GetFiles(unpack, "dict3.core.bin", SearchOption.AllDirectories).FirstOrDefault();
 		}
 		catch { }
 		if (string.IsNullOrEmpty(found))
-			throw new InvalidOperationException("dict3.7z 里没有 dict3.bin");
+			throw new InvalidOperationException("dict3-core.7z 里没有 dict3.core.bin");
 		var dest = dictdbpath();
 		unlinkifreparse(dest);
-		if (File.Exists(dest)) File.Delete(dest);
-		File.Move(found, dest);
+		try { DictDb.Close(); } catch { }
+		reportprog(progress, 0.74, zlen, zlen, "dict3.bin", "建立索引");
+		DictRebuild.Run(found, dest, s => log?.Report(s), p =>
+			reportprog(progress, 0.74 + 0.26 * p, zlen, zlen, "dict3.bin",
+				"建立索引 " + (int)(p * 100) + "%"), ct);
 		removelegacydicts(log);
+		try { Directory.Delete(unpack, true); } catch { }
 		reportprog(progress, 1, zlen, zlen, "dict3.bin", "完成");
 		log?.Report("词典 dict3.bin 完成 (" + FormatBytes(new FileInfo(dest).Length) + ")");
 	}

@@ -226,7 +226,7 @@ The items below do not automatically use this repository’s MIT license. Each l
 - **NPinyin** turns Chinese into pinyin. The package ships with no license file.
 - **SQLite** (`e_sqlite3.dll`) opens the input-method database. It is in the public domain.
 
-`dict3.bin` keeps Chinese, Japanese, Korean, and English in one file. ScreenKit does not build this file. Install features downloads it. Inside it:
+`dict3.bin` keeps Chinese, Japanese, Korean, and English in one file. Install features downloads the core pack and builds this file on the computer. Inside it:
 
 - **Chinese.** Characters, words, and idioms come from [mapull/chinese-dictionary](https://github.com/mapull/chinese-dictionary) (a pinyin dictionary). The license is MIT. The upstream notes say the origin of some material is unclear.
 - **Japanese.** Word senses come from [JMdict/EDICT](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project) (EDRDG). The license is [CC BY-SA 4.0](https://www.edrdg.org/edrdg/license.html). Redistribution has to keep the EDRDG attribution and follow that project’s update terms.

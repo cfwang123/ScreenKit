@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Definitions only shows one language per sense (UI language first, then English, Chinese, Japanese and Korean) and drops the blank lines between senses.
+- Dictionary install downloads dict3-core.7z and builds the local index.
 
 #### Fixed
 
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 「仅释义」每个义项只显示一种语言的释义（界面语言优先，没有则依次英文、中文、日文、韩文），并去掉义项之间的空行。
+- 词典安装改为下载 dict3-core.7z，解压后在本机建立索引。
 
 #### 修复
 
