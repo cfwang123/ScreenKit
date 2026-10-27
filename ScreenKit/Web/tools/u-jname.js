@@ -58,8 +58,7 @@
 			+ '<input id="jn-page" class="jnpi" type="text" inputmode="numeric" maxlength="7" title="输入页码后回车跳转">'
 			+ '<span id="jn-pages" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
-			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict。首次打开要下载约 1MB 数据，之后直接用本机文件。'
-			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会按不同长度拆开，对上的姓和名各占一行；点「随机」生成一个姓名。文字可以直接选中复制，喇叭听这一条的读音。</p></div>';
+			+ '<p class="hint">取自 JMnedict。</p></div>';
 		return html;
 	}
 
