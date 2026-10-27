@@ -15,6 +15,21 @@
 	var downY = 0;
 	var audioUrl = "";
 	var hits = [];
+	var OBJP = [
+		["it", "it 它"],
+		["him", "him 他"],
+		["her", "her 她"],
+		["me", "me 我"],
+		["you", "you 你"],
+		["us", "us 我们"],
+		["them", "them 他们"],
+		["this", "this 这个"],
+		["that", "that 那个"],
+		["a book", "a book 一本书"],
+		["a letter", "a letter 一封信"],
+		["the door", "the door 这扇门"],
+		["some money", "some money 一些钱"]
+	];
 
 	// 手机版 / 路由：#/q/<查询词>/e/<词条id>/c/<第几个变形标签>，刷新和后退都回到原处。
 	var MODEKEY = "sk.dict.mode";
@@ -564,7 +579,24 @@
 				if (/\bnoun\b/i.test(s)) put({ cat: "n" });
 			}
 		}
+		// 有的词条动词义没标 verb，只在英文释义里写 [with obj.] / [no obj.]，如 eat。
+		if (lang === "en" && verbgloss(e)) {
+			var has = false, hv;
+			for (hv = 0; hv < out.length; hv++) if (out[hv].cat === "v") has = true;
+			if (!has) out.unshift({ cat: "v" });
+		}
 		return out;
+	}
+
+	function verbgloss(e){
+		var i, s, g;
+		var senses = (e && e.senses) || [];
+		for (i = 0; i < senses.length; i++) {
+			s = senses[i];
+			g = String(s.en || "") + " " + String(s.enDef || "");
+			if (/\[(no|with) obj|\[with two obj/i.test(g)) return true;
+		}
+		return false;
 	}
 
 	function conlabel(cat){
@@ -601,20 +633,38 @@
 		}
 		else params.type = cat.cat;
 
-		var g = ++cgen;
-		fetch("/api/conj?" + qs(params)).then(function(r){ return r.json(); }).then(function(j){
+		var enverb = lang === "en" && cat.cat === "v";
+		var mark = enverb ? objmark(e) : -1;
+		var mode = null, why = null, in1 = null, in2 = null, ot = 0;
+		if (enverb) pane.insertBefore(objbar(), host);
+
+		var g = 0;
+		var draw = function(){};
+		q.addEventListener("input", function(){ draw(); });
+		function pull(){
+			g = ++cgen;
+			params.o1 = "";
+			params.o2 = "";
+			var n = objn();
+			if (n >= 1 && in1) params.o1 = in1.value;
+			if (n >= 2 && in2) params.o2 = in2.value;
+			fetch("/api/conj?" + qs(params)).then(function(r){ return r.json(); }).then(function(j){
 			if (g !== cgen) return;
+			host.innerHTML = "";
 			var d = j && j.code === 100 ? j.data : null;
 			if (!d || !d.ok || !(d.rows || []).length) {
 				host.appendChild(one((d && d.err) || t("dict.conj.fail") || "算不出形态变化", "pron", ""));
 				return;
 			}
 			var rows = d.rows;
-			var meta = document.createElement("p");
-			meta.className = "cmeta";
+			var meta = pane.querySelector(".cmeta");
+			if (!meta) {
+				meta = document.createElement("p");
+				meta.className = "cmeta";
+				pane.insertBefore(meta, bar);
+			}
 			meta.textContent = conjmeta(d);
-			pane.insertBefore(meta, bar);
-			function draw(){
+			draw = function(){
 				var k = String(q.value || "").toLowerCase();
 				var vis = [], i2;
 				for (i2 = 0; i2 < rows.length; i2++) {
@@ -669,11 +719,149 @@
 				host.appendChild(tb);
 			}
 			conjdraw = draw;
-			q.addEventListener("input", draw);
 			draw();
 		}).catch(function(){
 			if (g === cgen) pane.appendChild(one(t("dict.conj.fail") || "算不出形态变化", "pron", ""));
 		});
+		}
+		pull();
+
+		function objn(){
+			if (!mode) return 0;
+			if (mode.value === "auto") return mark > 0 ? mark : 0;
+			return parseInt(mode.value, 10) || 0;
+		}
+
+		function showobj(){
+			var n = objn();
+			if (in1) in1.parentNode.hidden = n < 1;
+			if (in2) in2.parentNode.hidden = n < 2;
+			if (!why) return;
+			if (!mode || mode.value !== "auto") { why.hidden = true; why.textContent = ""; return; }
+			why.hidden = false;
+			var key = "web.everb.objwhyn", fb = "未标";
+			if (mark === 2) { key = "web.everb.objwhy2"; fb = "双宾语"; }
+			else if (mark === 1) { key = "web.everb.objwhy1"; fb = "及物"; }
+			else if (mark === 0) { key = "web.everb.objwhy0"; fb = "不及物"; }
+			why.textContent = t(key) || fb;
+		}
+
+		function arm(){
+			if (ot) clearTimeout(ot);
+			ot = setTimeout(pull, 150);
+		}
+
+		function leaveauto(){
+			if (!mode || mode.value !== "auto") return;
+			mode.value = mark > 0 ? String(mark) : "1";
+			showobj();
+		}
+
+		function objbar(){
+			var box = document.createElement("div");
+			box.className = "cobj";
+			mode = document.createElement("select");
+			opt(mode, "auto", "web.everb.objauto", "自动");
+			opt(mode, "0", "web.everb.obj0", "无");
+			opt(mode, "1", "web.everb.obj1", "1个");
+			opt(mode, "2", "web.everb.obj2", "2个");
+			why = document.createElement("span");
+			why.className = "cwhy";
+			in1 = objin();
+			in2 = objin();
+			if (mark === 2) { in1.value = "him"; in2.value = "a book"; }
+			else if (mark === 1) in1.value = "it";
+			box.appendChild(cap(t("web.everb.obj") || "宾语"));
+			box.appendChild(mode);
+			box.appendChild(why);
+			box.appendChild(pair(t("web.everb.o1") || "宾语1", in1));
+			box.appendChild(pair(t("web.everb.o2") || "宾语2", in2));
+			mode.onchange = function(){
+				if (mode.value === "auto") {
+					if (mark === 2) { in1.value = "him"; in2.value = "a book"; }
+					else if (mark === 1) in1.value = "it";
+				}
+				else if (mode.value === "1" && !in1.value) in1.value = "it";
+				else if (mode.value === "2") {
+					if (!in1.value) in1.value = "him";
+					if (!in2.value) in2.value = "a book";
+				}
+				showobj();
+				arm();
+			};
+			in1.oninput = function(){ leaveauto(); arm(); };
+			in2.oninput = function(){ leaveauto(); arm(); };
+			showobj();
+			return box;
+		}
+
+		function cap(text){
+			var s = document.createElement("span");
+			s.textContent = text;
+			return s;
+		}
+
+		function opt(sel, value, key, fb){
+			var o = document.createElement("option");
+			o.value = value;
+			o.textContent = t(key) || fb;
+			sel.appendChild(o);
+		}
+
+		function objin(){
+			var input = document.createElement("input");
+			input.type = "text";
+			input.setAttribute("list", objpresets());
+			input.placeholder = t("web.everb.oph") || "可输入，如 him";
+			return input;
+		}
+
+		function pair(text, input){
+			var lab = document.createElement("label");
+			lab.appendChild(cap(text));
+			lab.appendChild(input);
+			return lab;
+		}
+	}
+
+	function objpresets(){
+		var id = "cobj-presets";
+		var old = document.getElementById(id);
+		if (old) old.parentNode.removeChild(old);
+		var dl = document.createElement("datalist");
+		dl.id = id;
+		var zh = (langs()[langAt] || "zh") === "zh";
+		var i, op;
+		for (i = 0; i < OBJP.length; i++) {
+			op = document.createElement("option");
+			op.value = OBJP[i][0];
+			op.textContent = zh ? OBJP[i][1] : OBJP[i][0];
+			dl.appendChild(op);
+		}
+		document.body.appendChild(dl);
+		return id;
+	}
+
+	function objmark(e){
+		var texts = [], i, p, two = false, one = false, zero = false;
+		if (!e) return -1;
+		if (e.pos) texts.push(e.pos);
+		var senses = e.senses || [];
+		for (i = 0; i < senses.length; i++) {
+			if (senses[i].pos) texts.push(senses[i].pos);
+			if (senses[i].en) texts.push(senses[i].en);
+			if (senses[i].enDef) texts.push(senses[i].enDef);
+		}
+		for (i = 0; i < texts.length; i++) {
+			p = String(texts[i]).toLowerCase();
+			if (p.indexOf("two obj") >= 0) two = true;
+			if (p.indexOf("with obj") >= 0) one = true;
+			if (p.indexOf("no obj") >= 0) zero = true;
+		}
+		if (two) return 2;
+		if (one) return 1;
+		if (zero) return 0;
+		return -1;
 	}
 
 	// 词条头可能带 ¹²³ 之类的序号，变形要用干净的词形。

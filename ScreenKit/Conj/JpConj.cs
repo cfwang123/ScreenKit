@@ -782,7 +782,6 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "ai"));
 		rows.AddRange(naihaseirows(L, s + "くない"));
 		rows.AddRange(dialectiadj(L, s));
-		rows.AddRange(jargonrows(L, word, "i", "", s + "くない"));
 		rows.AddRange(endrows(L, word, "", "i", s + "くない", s + "くないです"));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
 	}
@@ -838,7 +837,6 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "an"));
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
-		rows.AddRange(jargonrows(L, word, "a", "", word + "じゃない"));
 		rows.AddRange(endrows(L, word, "", "a", word + "じゃない", word + "じゃないです"));
 		rows.AddRange(dialectnounrows(L, word));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "a", word) };
@@ -878,7 +876,6 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "n"));
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
-		rows.AddRange(jargonrows(L, word, "n", "", word + "じゃない"));
 		rows.AddRange(endrows(L, word, "", "n", word + "じゃない", word + "じゃないです"));
 		rows.AddRange(dialectnounrows(L, word));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "n", word) };
@@ -926,7 +923,6 @@ static class JpConj {
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
 		rows.AddRange(naihaseirows(L, nai));
 		rows.AddRange(keigo(plain, masu, pas, L, te));
-		rows.AddRange(jargonrows(L, plain, "v", masu, nai));
 		rows.AddRange(endrows(L, plain, masu, "v", nai, cut(masu, 2) + "ません"));
 		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
 		var tail = JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, cau));
@@ -1066,27 +1062,19 @@ static class JpConj {
 			new(L.jdegozaru, plain + "でござる、" + nai + "でござる", L.end),
 			new(L.jdesourou, plain + "で候、" + nai + "で候", L.end),
 			new(L.jojaru, plain + "でおじゃる、" + nai + "でおじゃる", L.end),
+			// 角色语：军队、猫语、解说、大小姐、体育会、辣妹。
+			new(L.jdearimasu, plain + "であります、" + nai + "であります", L.end),
+			new(L.jnya, plain + "にゃ、" + nai + "にゃ", L.end),
+			new(L.jnanoda, plain + na + "のだ、" + nai + "のだ", L.end),
+			// ですわ 只接名词和形容词；动词要先变ます（食べますわ），不能接辞书形。
+			new(L.jdesuwa, kind == "v" ? masu + "わ、" + cut(masu, 2) + "ませんわ" : plain + "ですわ、" + nai + "ですわ", L.end),
+			new(L.jssu, plain + "っす、" + nai + "っす", L.end),
+			new(L.jssho, plain + "っしょ、" + nai + "っしょ", L.end),
+			new(L.jjan, plain + "じゃん、" + nai + "じゃん", L.end),
 		};
 		if (kind == "v") rows.Add(new ConjRow(L.endkoto, plain + "こと、" + nai + "こと", L.end));
 		if (kind == "a" || kind == "n") rows.Add(new ConjRow(L.jnari, plain + "なり、" + nai + "なり", L.end));
 		if (kind == "n") rows.Add(new ConjRow(L.me, plain + "め", L.end));
-		return rows;
-	}
-	// 小圈子的角色语：大小姐、猫语、体育会、辣妹这类只在特定语境里用的说法。
-	static List<ConjRow> jargonrows(JpConjLabels L, string plain, string kind, string masu, string nai) {
-		var noun = kind == "n";
-		var na = kind == "a";
-		var dan = noun || na ? "な" : "";
-		var rows = new List<ConjRow> {
-			new(L.jdearimasu, plain + "であります、" + nai + "であります", L.reg),
-			new(L.jnya, plain + "にゃ、" + nai + "にゃ", L.reg),
-			new(L.jnanoda, plain + dan + "のだ、" + nai + "のだ", L.reg),
-			// ですわ 只接名词和形容词；动词要先变ます（食べますわ），不能接辞书形。
-			new(L.jdesuwa, kind == "v" ? masu + "わ、" + cut(masu, 2) + "ませんわ" : plain + "ですわ、" + nai + "ですわ", L.reg),
-			new(L.jssu, plain + "っす、" + nai + "っす", L.reg),
-			new(L.jssho, plain + "っしょ、" + nai + "っしょ", L.reg),
-			new(L.jjan, plain + "じゃん、" + nai + "じゃん", L.reg),
-		};
 		return rows;
 	}
 	// だ・です的敬语说法：丁重的 でござる、尊敬的 でいらっしゃる。な形容词和名词都能接。

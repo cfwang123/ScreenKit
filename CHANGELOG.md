@@ -46,48 +46,25 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Novel reader can speak with the current browser's own voices, without asking the app to synthesize audio. That engine shows an Install models link.
+- Novel reader speaks with the current browser's own voices by default, without the app synthesizing audio. Google voices use the offline pack, installed when reading starts with a cancellable progress dialog, and a missing engine shows an Install models link.
+- Novel reader keeps txt and md files in the browser instead of uploading them, prepares the next sentence while the current one still plays, and a voice install no longer switches the browser in front into reading mode. The in-browser model list marks which Chrome voice packs are installed.
 - Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 - The Chrome model page can play a short test line for an installed voice.
-- Japanese word forms: verbs by class plus i-adjectives, na-adjectives and nouns, with politeness levels, auxiliary and modality patterns, dialect forms, and a speak button on each form.
-- Korean word forms: verbs, adjectives and nouns by type, with speech levels, dialect and mood groups, and a speak button on each form.
-- English word forms: verb tenses and moods, irregular verbs, adjectives and nouns, with British, American and Australian variants, and a speak button on each form.
+- Japanese word forms: verbs by class plus i-adjectives, na-adjectives and nouns, with politeness levels, auxiliary and modality patterns, dialect forms, character speech (でござる, にゃ, ですわ, のじゃ ...), rough and masculine forms, literary forms, sentence-ending particles, and N5-N1 sentence patterns (classical N0 and compound verbs included, listed at the end of the table). Colloquial contractions sit in the same cell as the full form (ている/てる, ておく/とく, てしまう/ちゃう, ては/ちゃ, ら抜き ...), a sentence-ending row shows both the affirmative and the negative, and every form has a speak button.
+- Korean word forms: verbs, adjectives and nouns by type, with speech levels, dialect groups (Munhwao, DPRK broadcast, Yanbian), grammar patterns, auxiliaries, quotation, contractions, colloquial, literary, character-speech, in-group, rough and classical endings, and a speak button on each form.
+- English word forms: verb tenses and moods, irregular verbs, adjectives and nouns, with British, American and Australian variants; a verb takes one or two objects, typed or picked, and every form has a speak button.
 - Russian word forms: verb conjugation, adjective and noun declension, with colloquial and dialect variants, and a speak button on each form.
 - Chrome translation can now pick non-English language pairs such as Chinese to Japanese; Chrome pivots through English, so both the English to Chinese and English to Japanese models are needed.
 - The local web server gzips only HTML, JS and CSS files when the client asks for it, and caches the compressed static files instead of recompressing them on every request. JSON API responses are no longer compressed.
 - The HTTP API supports Keep-Alive: HTTP/1.1 reuses connections and an idle connection is held for at most 10 seconds (configurable with http_keepalive).
 - Windows OCR splits a row of icon-separated segments into one result per segment instead of joining them into one line.
-- Korean verbs: North Korean (Munhwao), DPRK broadcast and Yanbian Korean endings, including -ㅂ네다, -습네다, hapsyo -ㅂ니다, -시였습니다, -리라, -ㅁ다/슴다 and -ㄴ다이.
-- The Japanese word-form tool now lists N5 to N1 verb patterns, classical (N0) forms and compound verbs, such as てもいい, てあげる, ざるを得ない and んばかり
-- Web dictionary: the detail pane now has tabs; verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English)
-- Main window dictionary: the detail pane now uses tabs; verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English)
-- Dictionary word-forms tab: each form has a speaker button
+- Web and main-window dictionary: the detail pane has tabs, and verbs, adjectives and nouns get a searchable word-forms tab (Japanese, Korean, English) with a speak button on every form; English forms take one or two objects, typed or chosen. The table puts a form's name above its forms, stacks examples with one speaker button each, keeps group names on their own row, and uses a fixed column width with as many columns as fit the window.
 - Web dictionary: a phone layout that shows one page at a time with a back button, opens automatically on phones, and can be switched to and from the desktop layout. Every page has its own hash URL (#/q/<query>, #/q/<query>/e/<entry>, .../c/<word-forms tab>) so refresh and browser back work.
-- Japanese word forms: the contracted ちゃう / じゃう forms (食べちゃう, 飲んじゃう, しちゃう) and their past forms, listed under te-form +.
-- Japanese word forms: each colloquial contraction now sits in the same cell as the full form - ている/てる, ておく/とく, てしまう/ちゃう, ては/ちゃ, ていく・てくる/てく, てくる/て来い, れば/りゃ, なければ/なきゃ, なくては/なくちゃ, でなければ/じゃなきゃ, ら抜き (食べられる/食べれる), のです/んです, ていらっしゃい/てらっしゃい.
-- Korean word forms add grammar patterns, auxiliaries, quotation, contractions and literary endings.
-- English verb forms can take one or two objects and use them in every form.
-- Japanese word forms: い-adjectives, な-adjectives and nouns now also list the N5-N1 patterns that fit them (てもいい, とき, ので, らしい, まま, くせに, 一方だ and so on), with the ending conjugated for each part of speech.
-- Japanese word forms: a character-speech group for fiction and subculture registers - でござる, であります, にゃ, なのだ, ですわ, のじゃ, っす, っしょ, じゃん, なり, で候, でおじゃる - on verbs, adjectives and nouns.
-- Korean word forms add contractions, colloquial endings and literary forms for verbs, adjectives and nouns.
-- System tools: the process list and details show whether a process is 32-bit or 64-bit and whether it runs elevated.
-- Japanese word forms: rough/masculine speech (ぞ, ぜ, わ, さ, くさる, こく, ない becomes ねえ/んない, ちまう, っけ, もん) and literary forms (たる, ごとき, ごとく, にて for nouns and na-adjectives; 高し, 高からず, 高き, 高けれ, 高かるべし for i-adjectives). The ojou-sama form now uses ますわ for verbs (食べますわ), since です cannot follow a plain verb.
-- Korean word forms add character speech, in-group endings and rough endings for verbs, adjectives and nouns.
-- System tools: the file associations page lists every registered extension with its document type, default app and command line; type to filter.
-- Japanese word forms: a sentence-endings group (よ, ですよ, ね, ですね, よね, わよ, の, かな, かしら, こと) plus masculine (ぞ, ぜ, さ, わ) and samurai/archaic endings (のじゃ, でござる, で候, でおじゃる, なり) in the same group, each row showing both the affirmative and the negative form.
-- Korean word forms add a classical ending group for verbs, adjectives and nouns.
-- System tools: click a column header to sort by that column, click again to sort in reverse.
-- Japanese word forms: ですよね added to the sentence-endings group (食べますよね / 食べませんよね).
-- System tools: the process list shows start time, handle count, thread count and commit size; double-click a row to copy its command line.
+- System tools: the process list shows PID, memory, commit size, thread count, handle count, 32/64-bit, elevation, start time and path, the side pane shows the selected process with its command line in a separate copyable box with quotes removed, and double-clicking a row copies that command line. Every table sorts by clicking a column header and reverses on a second click.
+- System tools: the file associations page lists every registered extension with its document type, default app and command line, filtered as you type.
 
 #### Changed
 
-- Novel reader uses the current browser's voices as the default reading engine.
-- Novel reader Google voices use the offline pack. A missing pack is installed when reading starts, with a cancellable progress dialog.
-- A voice install no longer switches the browser in front into reading mode.
-- Novel reader keeps txt and md files in the browser instead of uploading them.
-- The in-browser model voice list shows whether each Chrome voice pack is installed.
-- Novel reader prepares the next sentence while the current one is still playing, so the pause between sentences is shorter.
 - Refreshing the tools page rebuilds the tool scripts, so web tool edits show up without restarting.
 - Install features marks an old ime.db as a new version. Install replaces it with the current lexicon, including Japanese spellings and conjugations; uninstall removes the old file.
 - A partial Japanese reading lists every lexicon word that can still be completed.
@@ -98,20 +75,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - In Chinese + English recognition, numbers and Latin runs now come from the English pass, and the two results are no longer pasted twice; a line with one wide gap stays a single line instead of being split into columns.
 - HTTP TTS: the Edge online voice list is cached for an hour instead of being fetched on every request.
 - HTTP API: OCR, ASR, TTS, translation, face, chat, dictionary speech, and network lookups now run at most 8 at a time and answer 503 immediately beyond that, so /api/status and model lists stay responsive during a burst. The listener also caps connections at 256 and raises the thread-pool minimum.
-- Korean verbs: stop listing forms that match standard Korean (자요, 더랬-, plain passive, broadcast 합쇼체/-리라)
 - Dictionary: one- and two-character lookups scan key blocks in parallel instead of one single-threaded pass, about 0.5 s down to under 0.1 s
 - WinRT calendar, Japanese readings and speech synthesis now share one resident STA thread instead of spawning a thread per request
 - HTTP requests never pop the install dialog anymore; a missing runtime library returns error code 953
 - HTTP concurrency details: fx rates download outside the cache lock with a shared HttpClient, usb.ids loads once, reader uploads read the body outside the file lock, status caches model scans for 2 s, and the font/encoding tables initialize under a lock
 - LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
 - Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
-- Japanese word forms: N5-N0 grammar patterns now show at the end of the table
-- Word forms, in the four word-form tools and in the dictionary on both the web page and the main window: a form name sits above its forms, several examples stack with one speaker button each, group names take their own row, and the table uses a fixed column width with as many columns as fit the window (a single or double column fills the width).
 - Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる, and the word-forms tab conjugates the kana form too (くれない, not 呉れない).
-- English verb objects follow the dictionary: intransitive, transitive, or two objects.
-- English verb objects can be typed, not only picked from the list.
-- The English irregular-verb page reads the single list kept in the conjugation data.
-- Dictionary verb forms for English can take one or two objects, typed or chosen like the word-form tool.
+- Japanese word forms: character-speech endings (であります, にゃ, なのだ, ですわ, っす, っしょ, じゃん) now sit in the sentence-endings group instead of a separate one.
 
 #### Fixed
 
@@ -159,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English word forms show the object choice for auto-detected verbs as well as the Verb type.
 - Tool windows such as system tools could not be opened again after closing them once.
 - English irregular verbs such as become use became / become instead of the regular -ed ending.
+- English entries such as eat show a verb tab when the definition marks an object, even if the label only says noun.
 
 #### Security / privacy notes
 
@@ -170,48 +142,25 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 小说阅读器可以用当前浏览器自己的语音朗读，不经过程序合成。选中这个引擎时显示「安装模型」链接。
+- 小说阅读器默认用当前浏览器自己的语音朗读，不经过程序合成；Google 发音人改走离线包，没装时在朗读前安装并显示可取消的进度；缺少引擎时显示「安装模型」链接。
+- 小说阅读器的 txt、md 存在浏览器里，不再上传到程序；读当前句时提前准备下一句，缩短两句之间的停顿；语音安装不再把当前浏览器切进阅读模式；浏览器小模型选 Chrome 发音时会标出该语音包是否已安装。
 - 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 - Chrome 模型页可以为已安装的语音试听一句。
-- 日语词形变化：动词按 1/2/3 类列出，也支持い形容词、な形容词和名词，含敬语、补助动词、语气句型和方言说法，每项可发音。
-- 韩语词形变化：按类型列出动词、形容词和名词的变化，含语体、方言和语气分组，每项可发音。
-- 英语词形变化：动词时态与语气、不规则动词、形容词和名词，含英美澳写法差异，每项可发音。
+- 日语词形变化：动词按 1/2/3 类列出，也支持い形容词、な形容词和名词，含敬语、补助动词、语气句型、方言说法、角色语（でござる、にゃ、ですわ、のじゃ 等）、粗俗／男性语、书面语和「语气（终助词）」组，以及 N5～N1 句型（含文语 N0 和复合动词，排在整张表最后）。口语缩略和原形排在同一格里（ている/てる、ておく/とく、てしまう/ちゃう、ては/ちゃ、ら抜き 等），语气组的每行同时给肯定和否定两式，每项可发音。
+- 韩语词形变化：按类型列出动词、形容词和名词的变化，含语体、方言分组（朝鲜文化语、朝鲜播音体、延边朝鲜语）、句型、补助动词、引用、口语缩略、书面语、角色语、小圈子用语、粗俗和古代语词尾，每项可发音。
+- 英语词形变化：动词时态与语气、不规则动词、形容词和名词，含英美澳写法差异；动词可以带一个或两个宾语（可选也可自己输入），每项可发音。
 - 俄语词形变化：动词变位、形容词和名词变格，含口语和方言说法，每项可发音。
 - Chrome 翻译可以选中文 ↔ 日文这类非英文语言对。Chrome 内部经英文中转，需要同时装好英文 ↔ 中文和英文 ↔ 日文的模型。
 - 本机网页服务只对 HTML、JS、CSS 按 gzip 压缩，客户端支持才压；静态文件的压缩结果会缓存，文件没改不会重复压缩。JSON 接口不再压缩。
 - HTTP 接口支持 Keep-Alive：HTTP/1.1 默认复用连接，空闲连接最多保持 10 秒（可用 http_keepalive 调整）。
 - Windows OCR 把一行里用图标隔开的多段文字拆成多条结果，不再拼成一行。
-- 韩语动词变化：新增朝鲜文化语、朝鲜播音体和延边朝鲜语词尾，如 -ㅂ네다、-습네다、합쇼체 -ㅂ니다、-시였습니다、-리라、-ㅁ다/슴다、-ㄴ다이。
-- 日语词形变化新增 N5～N1 句型、文语（N0）和复合动词，如 てもいい、てあげる、ざるを得ない、んばかり
-- 网页词典：详情栏改为多标签，动词/形容词/名词词条多出可搜索的「形态变化」页（日、韩、英）
-- 主窗口词典：详情栏改成标签页，动词/形容词/名词词条多出可搜索的「形态变化」页（日、韩、英）
-- 词典形态变化页：每行加了发音按钮
+- 网页和主窗口词典：详情栏改为多标签，动词、形容词和名词词条多出可搜索的「形态变化」页（日、韩、英），每行都有发音按钮；英语变化可选一个或两个宾语，也可自己输入。表格里形变名在上、例句在下竖排，每句一个发音按钮，分组名单独占一行；栏宽固定，窗口多宽就排几栏。
 - 网页词典：增加手机版（一屏一页、带返回按钮），手机上自动进入，也能和电脑版互相切换；每个页面有独立地址（#/q/<查询词>、#/q/<查询词>/e/<词条>、…/c/<变形标签>），刷新和后退都能回到原处。
-- 日语形态变化：补上口语缩略的 ちゃう／じゃう 形（食べちゃう、飲んじゃう、しちゃう）及其过去形，归在「て形＋」组里。
-- 日语形态变化：口语缩略和原形排在同一格里 —— ている/てる、ておく/とく、てしまう/ちゃう、ては/ちゃ、ていく・てくる/てく、てくる/て来い、れば/りゃ、なければ/なきゃ、なくては/なくちゃ、でなければ/じゃなきゃ、ら抜き（食べられる/食べれる）、のです/んです、ていらっしゃい/てらっしゃい。
-- 韩语词形变化补上句型、补助动词、引用、口语缩略和文言词尾。
-- 英语词形变化在选择动词后可以带一个或两个宾语，所有变化都会用上。
-- 日语形态变化：い形容词、な形容词、名词也补上能接的 N5~N1 句型（てもいい、とき、ので、らしい、まま、くせに、一方だ 等），词尾按词性变形。
-- 日语形态变化：新增「角色语」组，收武士、军队、猫语、大小姐、老人、体育会、辣妹、网络等小圈子说法（でござる、であります、にゃ、なのだ、ですわ、のじゃ、っす、っしょ、じゃん、なり、で候、でおじゃる），动词、形容词、名词都有。
-- 韩语词形变化为动词、形容词和名词补上省略、口语和书面用法。
-- 系统工具：进程列表和详情显示 32/64 位与是否以管理员身份运行。
-- 日语形态变化：补上粗俗／男性语（ぞ、ぜ、わ、さ、くさる、こく，ない 的 ねえ／んない，ちまう，っけ，もん）和书面语（名词・な形容词的 たる、ごとき、ごとく、にて；い形容词的 高し、高からず、高き、高けれ、高かるべし）。大小姐语里的 ですわ 对动词改用 ますわ（食べますわ），因为 です 不能接动词辞书形。
-- 韩语词形变化为动词、形容词和名词补上角色语、小圈子用语和粗俗词尾。
+- 系统工具：进程列表显示 PID、内存、提交大小、线程数、句柄数、32/64 位、是否管理员、启动时间和路径，右侧栏显示选中进程的详情，命令行单独放在可复制的文本框里并去掉引号，双击一行即可复制命令行；所有表格点列头按该列排序，再点同一列倒序。
 - 系统工具：文件关联页直接列出全部已注册的扩展名及类型、默认应用和命令行，输入即可筛选。
-- 日语形态变化：新增「语气（终助词）」组，收 よ、ですよ、ね、ですね、よね、わよ、の、かな、かしら、こと，以及男性（ぞ、ぜ、さ、わ）和武士・古风（のじゃ、でござる、で候、でおじゃる、なり）的说法，每行都带肯定和否定两式。
-- 韩语词形变化为动词、形容词和名词补上古代语词尾。
-- 系统工具：点列头按该列排序，再点同一列倒序。
-- 日语形态变化：「语气（终助词）」组补上 ですよね（食べますよね / 食べませんよね）。
-- 系统工具：进程列表显示启动时间、句柄数、线程数和提交大小；双击一行复制命令行。
 
 #### 变更
 
-- 小说阅读器默认用当前浏览器自己的语音朗读。
-- 小说阅读器的 Google 发音人改为走离线包。没装时在朗读前安装，并显示可取消的进度。
-- 语音安装时不再把当前浏览器切进阅读模式。
-- 小说阅读器的 txt、md 改存在浏览器里，不再上传到程序。
-- 浏览器小模型选择 Chrome 发音时，会标出该模型是否已安装。
-- 小说阅读器在读当前句时提前合成下一句，缩短两句之间的停顿。
 - 刷新工具页会重新拼接网页工具脚本，改完不用重启程序。
 - 安装功能里，旧的 ime.db 会标成有新版本。安装会换成当前词库（含日语写法和活用），卸载会删掉旧文件。
 - 日语读音只打到一半时，候选列出还能接着输入的词。
@@ -222,20 +171,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 中英混合识别时，数字和英文改用英文引擎的结果，不再和中文结果重复拼接；只有一个大空档的行仍是一整行，不当成分栏切开。
 - HTTP 语音合成：Edge 在线发音人列表缓存一小时，不再每个请求都联网拉一遍。
 - HTTP 接口：识别、合成、翻译、人脸、对话、词典发音和联网查询同时最多 8 个，超出的当场返回 503，突发请求时 /api/status 和模型列表仍能立刻响应。监听连接上限 256，线程池下限也调高了。
-- 韩语动词变化：不再列出与标准语同形的说法（자요、더랬-、普通被动词、播音 합쇼체/-리라）
 - 词典：一字、两字查询改成分块并行扫键段，不再单线程全表走一遍，约 0.5 秒降到 0.1 秒内
 - WinRT 日历换算、日文读音、语音合成改用常驻 STA 线程，不再每个请求新建线程
 - HTTP 请求不再弹安装提示，缺运行库时直接返回错误码 953
 - HTTP 并发细节：汇率下载移出缓存锁并复用静态 HttpClient，usb.ids 单飞，reader 上传在锁外读请求体，status 的模型扫描缓存 2 秒，字体表/编码表加锁初始化
 - LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
 - 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
-- 日语词形变化：N5~N0 句型移到整张表的最后
-- 词形变化（四个词形工具，以及网页和主窗口的词典）：形变名在上、例句在下竖排，每句一个发音按钮，分组名单独占一行；栏宽固定，窗口多宽就排几栏（只有 1、2 栏时铺满整行）。
 - 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる；形态变化也按假名变（くれない，而不是 呉れない）。
-- 英语动词的宾语个数默认按词典词性判断：不及物、及物或双宾语。
-- 英语词形变化的宾语可以自己输入，不必只从列表里选。
-- 英文不规则动词页改为读取词形变化里的那一份表，不再另存一份。
-- 词典里的英语动词变化可以选一个或两个宾语，和词形变化工具一样能自己输入。
+- 日语形态变化：角色语的说法（であります、にゃ、なのだ、ですわ、っす、っしょ、じゃん）并入「语气（终助词）」组，不再单独成组。
 
 #### 修复
 
@@ -283,6 +226,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词形变化在自动识别为动词时也显示宾语选择，不必先把类型改成动词。
 - 系统工具等工具窗口关掉后，再从菜单打开会没有反应。
 - 英语不规则动词按不规则表变化，become 的过去式是 became，不再写成 becomed。
+- eat 这类英语词条，释义里写了宾语而词性只标了名词时，也会列出动词变化。
 
 #### 安全与隐私
 

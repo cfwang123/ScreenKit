@@ -58,6 +58,18 @@ sealed class ConjPane {
 	/// <summary>缩窗口时不要每一帧都重排，停下来再算。</summary>
 	public DispatcherTimer Wait;
 	public List<ConjRow> Rows;
+	/// <summary>英语动词才有宾语。Mark 是词典词性：2 双宾语，1 及物，0 不及物，-1 没写。</summary>
+	public bool Obj;
+	public int Mark = -1;
+	public ComboBox On, O1, O2;
+	public TextBlock OWhy;
+	public StackPanel P1, P2;
+}
+
+sealed class ObjOpt {
+	public string V, T;
+	public ObjOpt(string v, string t) { V = v; T = t; }
+	public override string ToString() => T ?? "";
 }
 
 sealed class DictSelRow {
@@ -122,6 +134,10 @@ public partial class DictWindow : UserControl {
 	List<ConjCat> concats = new();
 	List<ConjPane> conjpanes = new();
 	int conjgen;
+	DictEntry curentry;
+	DispatcherTimer objwait;
+	int objci = -1;
+	bool objlock;
 
 	/// <summary>最近一次搜索的状态文字。界面不再显示状态栏，留给 --test-dict 这类自测读。</summary>
 	internal string Status = "";
@@ -158,8 +174,14 @@ public partial class DictWindow : UserControl {
 			if (filling) return;
 			if (lhits.SelectedItem is DictRow row) loaddetail(row);
 		};
-		dtabc.SelectionChanged += (_, _) => {
+		dtabc.SelectionChanged += (_, e) => {
+			if (e.Source != dtabc) return;
 			if (dtabc.SelectedIndex > 0) loadconj(dtabc.SelectedIndex - 1);
+		};
+		objwait = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+		objwait.Tick += (_, _) => {
+			objwait.Stop();
+			if (objci >= 0) reloadconj(objci);
 		};
 		lhits.AddHandler(Button.ClickEvent, new RoutedEventHandler(onrowspeak));
 		bspeak.Click += (_, _) => _ = speak(curspeak, speaklang(curlang));
@@ -769,6 +791,7 @@ public partial class DictWindow : UserControl {
 	void cleardetail() {
 		HideOutside();
 		curword = "";
+		curentry = null;
 		conjword = "";
 		curspeak = "";
 		curlang = "";
@@ -783,6 +806,7 @@ public partial class DictWindow : UserControl {
 		if (e == null) { cleardetail(); return; }
 		HideOutside();
 		curlang = e.Dict ?? "";
+		curentry = e;
 		curword = e.Word.Length > 0 ? e.Word : e.Headword;
 		conjword = headforms(e)[0];
 		curspeak = curlang == "ja" ? DictDb.JaSpeak(curword, e.Kanji, e.Pron) : SpeakHead(curword, curlang);
@@ -939,11 +963,12 @@ public partial class DictWindow : UserControl {
 		for (var i = conjpanes.Count - 1; i >= 0; i--) dtabc.Items.Remove(conjpanes[i].Tab);
 		conjpanes.Clear();
 		tabinfo.Header = Loc.T("dict.tab.info");
-		for (var i = 0; i < concats.Count; i++) addconjtab(tablabel(concats[i]));
+		for (var i = 0; i < concats.Count; i++) addconjtab(concats[i]);
 		dtabc.SelectedIndex = 0;
 	}
 
-	void addconjtab(string header) {
+	void addconjtab(ConjCat cat) {
+		var header = tablabel(cat);
 		var n = conjpanes.Count;
 		var pane = new ConjPane();
 		pane.Tab = new TabItem { Header = header };
@@ -979,6 +1004,7 @@ public partial class DictWindow : UserControl {
 		row.Children.Add(pane.Cnt);
 		row.Children.Add(pane.Q);
 		top.Children.Add(row);
+		if (string.Equals(curlang, "en", StringComparison.OrdinalIgnoreCase) && cat.Cat == "v") addobjrow(pane, top, n);
 		DockPanel.SetDock(top, Dock.Top);
 		dock.Children.Add(top);
 		pane.Index = n;
@@ -1044,10 +1070,22 @@ public partial class DictWindow : UserControl {
 				if (Has(t, "noun")) put("n", "", "");
 			}
 		}
+		// 有的词条动词义没标 verb，只在英文释义里写 [with obj.] / [no obj.]，如 eat。
+		if (lang == "en" && verbgloss(e) && outl.Find(x => x.Cat == "v") == null)
+			outl.Insert(0, new ConjCat { Cat = "v" });
 		return outl;
 	}
 
 	static bool Has(string s, string bit) => s.IndexOf(bit, StringComparison.OrdinalIgnoreCase) >= 0;
+
+	static bool verbgloss(DictEntry e) {
+		if (e == null) return false;
+		foreach (var s in e.Senses) {
+			if (Has(s.En, "[no obj") || Has(s.En, "[with obj") || Has(s.En, "[with two obj")) return true;
+			if (Has(s.EnDef, "[no obj") || Has(s.EnDef, "[with obj") || Has(s.EnDef, "[with two obj")) return true;
+		}
+		return false;
+	}
 
 	// 词条头可能带 ¹²³ 之类的序号，变形要用干净的词形。
 	static string conjbase(string s) =>
@@ -1063,6 +1101,180 @@ public partial class DictWindow : UserControl {
 		return string.Join(" · ", parts);
 	}
 
+	static readonly string[] OBJPRE = {
+		"it", "him", "her", "me", "you", "us", "them", "this", "that",
+		"a book", "a letter", "the door", "some money"
+	};
+
+	// 词条词性里的 [with two objs] / [with obj.] / [no obj.]。没写就返回 -1。
+	static int objmark(DictEntry e) {
+		if (e == null) return -1;
+		var two = false;
+		var one = false;
+		var zero = false;
+		void scan(string s) {
+			if (s == null || s.Length == 0) return;
+			var p = s.ToLowerInvariant();
+			if (p.Contains("two obj")) two = true;
+			if (p.Contains("with obj")) one = true;
+			if (p.Contains("no obj")) zero = true;
+		}
+		scan(e.Pos);
+		foreach (var s in e.Senses) {
+			scan(s.Pos);
+			scan(s.En);
+			scan(s.EnDef);
+		}
+		if (two) return 2;
+		if (one) return 1;
+		if (zero) return 0;
+		return -1;
+	}
+
+	void addobjrow(ConjPane pane, StackPanel top, int n) {
+		pane.Obj = true;
+		pane.Mark = objmark(curentry);
+		var row = new WrapPanel { Margin = new Thickness(0, 6, 0, 0) };
+		var lab = objcap(Loc.T("web.everb.obj"));
+		pane.On = new ComboBox { Width = 88, Height = 28, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0) };
+		pane.On.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.obj." + n);
+		pane.On.Items.Add(new ObjOpt("auto", Loc.T("web.everb.objauto")));
+		pane.On.Items.Add(new ObjOpt("0", Loc.T("web.everb.obj0")));
+		pane.On.Items.Add(new ObjOpt("1", Loc.T("web.everb.obj1")));
+		pane.On.Items.Add(new ObjOpt("2", Loc.T("web.everb.obj2")));
+		pane.On.SelectedIndex = 0;
+		pane.OWhy = new TextBlock {
+			Margin = new Thickness(0, 0, 8, 0),
+			VerticalAlignment = VerticalAlignment.Center,
+			FontSize = 12,
+			Foreground = (Brush)FindResource("TextMuted"),
+		};
+		pane.O1 = objbox("dict.conj.o1." + n);
+		pane.O2 = objbox("dict.conj.o2." + n);
+		pane.P1 = objpair(Loc.T("web.everb.o1"), pane.O1);
+		pane.P2 = objpair(Loc.T("web.everb.o2"), pane.O2);
+		if (pane.Mark == 2) { pane.O1.Text = "him"; pane.O2.Text = "a book"; }
+		else if (pane.Mark == 1) pane.O1.Text = "it";
+		pane.On.SelectionChanged += (_, _) => onobjmode(n);
+		pane.O1.AddHandler(TextBox.TextChangedEvent, new TextChangedEventHandler((_, _) => onobjtext(n)));
+		pane.O2.AddHandler(TextBox.TextChangedEvent, new TextChangedEventHandler((_, _) => onobjtext(n)));
+		whytext(pane);
+		showobj(pane);
+		row.Children.Add(lab);
+		row.Children.Add(pane.On);
+		row.Children.Add(pane.OWhy);
+		row.Children.Add(pane.P1);
+		row.Children.Add(pane.P2);
+		top.Children.Add(row);
+	}
+
+	static TextBlock objcap(string text) => new() {
+		Text = text,
+		Margin = new Thickness(0, 0, 4, 0),
+		VerticalAlignment = VerticalAlignment.Center,
+		FontSize = 12,
+		Foreground = new SolidColorBrush(Color.FromRgb(107, 100, 92)),
+	};
+
+	ComboBox objbox(string aid) {
+		var box = new ComboBox {
+			Width = 148,
+			Height = 28,
+			IsEditable = true,
+			IsTextSearchEnabled = true,
+			VerticalAlignment = VerticalAlignment.Center,
+		};
+		box.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, aid);
+		for (var i = 0; i < OBJPRE.Length; i++) box.Items.Add(OBJPRE[i]);
+		return box;
+	}
+
+	StackPanel objpair(string cap, ComboBox box) {
+		var p = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 8, 0) };
+		p.Children.Add(objcap(cap));
+		p.Children.Add(box);
+		return p;
+	}
+
+	static string objmode(ConjPane pane) {
+		if (pane.On != null && pane.On.SelectedItem is ObjOpt o && o.V != null && o.V.Length > 0) return o.V;
+		return "auto";
+	}
+
+	static int objcount(ConjPane pane) {
+		var m = objmode(pane);
+		if (m == "auto") return pane.Mark > 0 ? pane.Mark : 0;
+		if (m == "1") return 1;
+		if (m == "2") return 2;
+		return 0;
+	}
+
+	void whytext(ConjPane pane) {
+		if (pane.OWhy == null) return;
+		var auto = objmode(pane) == "auto";
+		pane.OWhy.Visibility = auto ? Visibility.Visible : Visibility.Collapsed;
+		if (!auto) { pane.OWhy.Text = ""; return; }
+		var key = "web.everb.objwhyn";
+		if (pane.Mark == 2) key = "web.everb.objwhy2";
+		else if (pane.Mark == 1) key = "web.everb.objwhy1";
+		else if (pane.Mark == 0) key = "web.everb.objwhy0";
+		pane.OWhy.Text = Loc.T(key);
+	}
+
+	void showobj(ConjPane pane) {
+		var n = objcount(pane);
+		if (pane.P1 != null) pane.P1.Visibility = n >= 1 ? Visibility.Visible : Visibility.Collapsed;
+		if (pane.P2 != null) pane.P2.Visibility = n >= 2 ? Visibility.Visible : Visibility.Collapsed;
+	}
+
+	void onobjmode(int n) {
+		if (objlock || n < 0 || n >= conjpanes.Count) return;
+		var pane = conjpanes[n];
+		var mode = objmode(pane);
+		objlock = true;
+		if (mode == "auto") {
+			if (pane.Mark == 2) { pane.O1.Text = "him"; pane.O2.Text = "a book"; }
+			else if (pane.Mark == 1) pane.O1.Text = "it";
+		}
+		else if (mode == "1") { if ((pane.O1.Text ?? "").Length == 0) pane.O1.Text = "it"; }
+		else if (mode == "2") {
+			if ((pane.O1.Text ?? "").Length == 0) pane.O1.Text = "him";
+			if ((pane.O2.Text ?? "").Length == 0) pane.O2.Text = "a book";
+		}
+		objlock = false;
+		whytext(pane);
+		showobj(pane);
+		queueobj(n);
+	}
+
+	void onobjtext(int n) {
+		if (objlock || n < 0 || n >= conjpanes.Count) return;
+		var pane = conjpanes[n];
+		if (objmode(pane) == "auto") {
+			objlock = true;
+			var pick = pane.Mark > 0 ? pane.Mark.ToString() : "1";
+			for (var i = 0; i < pane.On.Items.Count; i++) {
+				if (pane.On.Items[i] is ObjOpt o && o.V == pick) { pane.On.SelectedIndex = i; break; }
+			}
+			objlock = false;
+			whytext(pane);
+			showobj(pane);
+		}
+		queueobj(n);
+	}
+
+	void queueobj(int n) {
+		objci = n;
+		objwait.Stop();
+		objwait.Start();
+	}
+
+	void reloadconj(int ci) {
+		if (ci < 0 || ci >= conjpanes.Count) return;
+		conjpanes[ci].Rows = null;
+		loadconj(ci);
+	}
+
 	void loadconj(int ci) {
 		if (ci < 0 || ci >= conjpanes.Count || ci >= concats.Count) return;
 		var pane = conjpanes[ci];
@@ -1072,10 +1284,17 @@ public partial class DictWindow : UserControl {
 		var ja = lang == "ja";
 		var word = conjbase(conjword.Length > 0 ? conjword : curword);
 		if (ja && cat.Sub == "suru" && !word.EndsWith("する", StringComparison.Ordinal)) word += "する";
+		var o1 = "";
+		var o2 = "";
+		if (pane.Obj) {
+			var nobj = objcount(pane);
+			if (nobj >= 1 && pane.O1 != null) o1 = pane.O1.Text ?? "";
+			if (nobj >= 2 && pane.O2 != null) o2 = pane.O2.Text ?? "";
+		}
 		var g = ++conjgen;
 		pane.Cnt.Text = "";
 		Task.Run(() => {
-			try { return ConjApi.Build(lang, word, ja ? cat.Kind : "", "", ja ? "" : "", ja ? "" : cat.Cat, Loc.Lang); }
+			try { return ConjApi.Build(lang, word, ja ? cat.Kind : "", "", ja ? "" : "", ja ? "" : cat.Cat, Loc.Lang, o1, o2); }
 			catch { return null; }
 		}).ContinueWith(t => Dispatcher.BeginInvoke(new Action(() => {
 			if (g != conjgen) return;
