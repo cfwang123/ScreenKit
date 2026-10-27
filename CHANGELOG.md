@@ -72,6 +72,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean word forms add contractions, colloquial endings and literary forms for verbs, adjectives and nouns.
 - System tools: the process list and details show whether a process is 32-bit or 64-bit and whether it runs elevated.
 - Japanese word forms: rough/masculine speech (ぞ, ぜ, わ, さ, くさる, こく, ない becomes ねえ/んない, ちまう, っけ, もん) and literary forms (たる, ごとき, ごとく, にて for nouns and na-adjectives; 高し, 高からず, 高き, 高けれ, 高かるべし for i-adjectives). The ojou-sama form now uses ますわ for verbs (食べますわ), since です cannot follow a plain verb.
+- Korean word forms add character speech, in-group endings and rough endings for verbs, adjectives and nouns.
+- System tools: the file associations page lists every registered extension with its document type, default app and command line; type to filter.
 
 #### Changed
 
@@ -184,6 +186,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词形变化为动词、形容词和名词补上省略、口语和书面用法。
 - 系统工具：进程列表和详情显示 32/64 位与是否以管理员身份运行。
 - 日语形态变化：补上粗俗／男性语（ぞ、ぜ、わ、さ、くさる、こく，ない 的 ねえ／んない，ちまう，っけ，もん）和书面语（名词・な形容词的 たる、ごとき、ごとく、にて；い形容词的 高し、高からず、高き、高けれ、高かるべし）。大小姐语里的 ですわ 对动词改用 ますわ（食べますわ），因为 です 不能接动词辞书形。
+- 韩语词形变化为动词、形容词和名词补上角色语、小圈子用语和粗俗词尾。
+- 系统工具：文件关联页直接列出全部已注册的扩展名及类型、默认应用和命令行，输入即可筛选。
 
 #### 变更
 
