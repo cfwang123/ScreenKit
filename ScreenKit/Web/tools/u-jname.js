@@ -43,7 +43,7 @@
 
 	function body(){
 		var i;
-		var html = '<div class="uquery"><input id="jn-q" type="text" placeholder="输入汉字、假名或姓名，如 佐藤 / 佐藤太郎">'
+		var html = '<div class="jn"><div class="uquery"><input id="jn-q" type="text" placeholder="输入汉字、假名或姓名，如 佐藤 / 佐藤太郎">'
 			+ '<span id="jn-msg" class="msg"></span></div>'
 			+ '<div class="jnseg" id="jn-seg">';
 		for (i = 0; i < KINDS.length; i++)
@@ -52,13 +52,13 @@
 		html += '</div><div class="jnidx" id="jn-idx"><button type="button" data-row="" class="on">全部</button>';
 		for (i = 0; i < ROWS.length; i++)
 			html += '<button type="button" data-row="' + ROWS[i].id + '">' + ROWS[i].name + "</button>";
-		html += '</div><div class="jnlist" id="jn-list"></div>'
+		html += '</div><div class="jnscroll"><div class="jnlist" id="jn-list"></div></div>'
 			+ '<div class="jnpager" id="jn-pager"><button type="button" id="jn-prev">‹</button>'
 			+ '<input id="jn-page" class="jnpi" type="text" inputmode="numeric" maxlength="7" title="输入页码后回车跳转">'
 			+ '<span id="jn-pages" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
 			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict。首次打开要下载约 1MB 数据，之后直接用本机文件。'
-			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会拆成姓和名再配读音；文字可以直接选中复制，喇叭听这一条的读音。</p>';
+			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会拆成姓和名再配读音；文字可以直接选中复制，喇叭听这一条的读音。</p></div>';
 		return html;
 	}
 

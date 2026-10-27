@@ -1293,7 +1293,18 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 
 
 
-/* 日本姓名查询：类型切换、五十音行、结果列表 */
+/* 日本姓名查询：类型切换、五十音行、结果列表。列表占满剩余高度，翻页条始终在下面。 */
+#box.panel.on:has(.jn) { overflow: hidden; }
+#box.panel.on:has(.jn) #box-body {
+	flex: 1 1 auto; min-height: 0; min-width: 0;
+	display: flex; flex-direction: column;
+}
+.jn {
+	display: flex; flex-direction: column; gap: 0;
+	flex: 1 1 auto; min-height: 0; min-width: 0;
+}
+.jn > .uquery, .jn > .jnseg, .jn > .jnidx, .jn > .jnpager, .jn > .hint { flex: none; }
+.jnscroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .jnseg, .jnidx { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
 .jnseg button, .jnidx button {
 	height: 28px; padding: 0 10px; cursor: pointer;
@@ -1301,7 +1312,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .jnseg button.on, .jnidx button.on { border-color: var(--accent); background: #fff1e8; }
-/* 多栏：每栏自己往下排，栏宽至少 190px，条数满一页再翻页 */
+/* 多栏：每栏自己往下排，栏宽至少 190px，条数满一页再翻页。高度随内容，由外层滚动。 */
 .jnlist { column-width: 190px; column-gap: 16px; }
 .jnlist.jnpair { column-width: 440px; }
 .jnpager { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; }
