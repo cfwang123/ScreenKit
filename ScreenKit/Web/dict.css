@@ -109,8 +109,8 @@ button, input, select { font: inherit; }
 #detail p { margin: 0 0 2px; }
 #detail .title { font-weight: 650; margin-bottom: 4px; }
 /* 词头一行有多个写法时，只有第一项加粗，其余正常字重，中间留点空隙 */
-#detail .title span { font-weight: 400; margin-left: 8px; }
-#detail .title span:first-child { font-weight: 650; margin-left: 0; }
+#detail .title span { font-weight: 400; }
+#detail .title span:first-child { font-weight: 650; }
 #detail .pron { color: #6e6e6e; }
 #detail .pos { color: #8830a8; }
 #detail .num { color: #d25514; }

@@ -791,7 +791,7 @@ public partial class DictWindow : UserControl {
 		var head = para(2);
 		var forms = headforms(e);
 		addrun(head, forms[0], DRole.Title, entrylang);
-		for (var i = 1; i < forms.Count; i++) addrun(head, "  " + forms[i], DRole.Body, entrylang);
+		for (var i = 1; i < forms.Count; i++) addrun(head, ", " + forms[i], DRole.Body, entrylang);
 		doc.Blocks.Add(head);
 		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
 		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1, entrylang));
