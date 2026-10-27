@@ -9,7 +9,7 @@
         Background="{StaticResource BgApp}"
         FontFamily="Segoe UI, Microsoft YaHei UI"
         AutomationProperties.AutomationId="cam.window">
-	<Grid Margin="16">
+	<Grid x:Name="root" Margin="16">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
@@ -20,18 +20,18 @@
 		</Grid.RowDefinitions>
 		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Margin="0,0,0,10"
 		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-		<DockPanel Grid.Row="1" Margin="0,0,0,12" LastChildFill="True">
+		<DockPanel x:Name="pdev" Grid.Row="1" Margin="0,0,0,12" LastChildFill="True">
 			<TextBlock x:Name="lbdev" Text="摄像头" VerticalAlignment="Center" Margin="0,0,8,0"/>
 			<Button x:Name="bdev" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}" Margin="8,0,0,0"
 			        AutomationProperties.AutomationId="cam.refresh"/>
 			<ComboBox x:Name="edev" Height="32" VerticalContentAlignment="Center"
 			          AutomationProperties.AutomationId="cam.dev"/>
 		</DockPanel>
-		<Border Grid.Row="2" Background="#111111" CornerRadius="8" ClipToBounds="True" Margin="0,0,0,12">
+		<Border x:Name="pview" Grid.Row="2" Background="#111111" CornerRadius="8" ClipToBounds="True" Margin="0,0,0,12">
 			<Image x:Name="eprev" Stretch="Uniform"
 			       AutomationProperties.AutomationId="cam.preview"/>
 		</Border>
-		<DockPanel Grid.Row="3" Margin="0,0,0,8" LastChildFill="True">
+		<DockPanel x:Name="pops" Grid.Row="3" Margin="0,0,0,8" LastChildFill="True">
 			<CheckBox x:Name="ckmic" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0" IsChecked="True"
 			          AutomationProperties.AutomationId="cam.mic"/>
 			<WrapPanel>

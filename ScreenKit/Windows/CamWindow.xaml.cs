@@ -18,6 +18,14 @@ public partial class CamWindow : Window {
 	int scanat;
 	string scantxt = "";
 	string recpath = "";
+	bool full;
+	WindowStyle style0;
+	WindowState state0;
+	ResizeMode resize0;
+	double left0;
+	double top0;
+	double width0;
+	double height0;
 
 	public CamWindow() {
 		InitializeComponent();
@@ -33,7 +41,15 @@ public partial class CamWindow : Window {
 		bshot.Click += (_, _) => shot();
 		brec.Click += (_, _) => rec();
 		bscan.Click += (_, _) => scan();
-		WindowEsc.Attach(this);
+		pview.MouseLeftButtonDown += (_, e) => {
+			if (e.ClickCount < 2) return;
+			e.Handled = true;
+			togglefull();
+		};
+		WindowEsc.Attach(this, () => {
+			if (full) togglefull();
+			else Close();
+		});
 		Closed += (_, _) => shutdown();
 		timer.Tick += (_, _) => tick();
 		timer.Start();
@@ -47,6 +63,59 @@ public partial class CamWindow : Window {
 		ckmic.Content = Loc.T("cam.mic");
 		ToolBtnUi.Set(bdev, ToolBtnUi.Swap, Loc.T("cam.refresh"));
 		paint();
+	}
+
+	void togglefull() {
+		if (!full) {
+			style0 = WindowStyle;
+			state0 = WindowState;
+			resize0 = ResizeMode;
+			if (WindowState == WindowState.Maximized) {
+				var b = RestoreBounds;
+				left0 = b.Left;
+				top0 = b.Top;
+				width0 = b.Width;
+				height0 = b.Height;
+			}
+			else {
+				left0 = Left;
+				top0 = Top;
+				width0 = Width;
+				height0 = Height;
+			}
+			full = true;
+			chromeshow(false);
+			root.Margin = new Thickness(0);
+			pview.Margin = new Thickness(0);
+			pview.CornerRadius = new CornerRadius(0);
+			WindowState = WindowState.Normal;
+			WindowStyle = WindowStyle.None;
+			ResizeMode = ResizeMode.NoResize;
+			WindowState = WindowState.Maximized;
+			return;
+		}
+		full = false;
+		WindowState = WindowState.Normal;
+		WindowStyle = style0;
+		ResizeMode = resize0;
+		Left = left0;
+		Top = top0;
+		Width = width0;
+		Height = height0;
+		WindowState = state0;
+		root.Margin = new Thickness(16);
+		pview.Margin = new Thickness(0, 0, 0, 12);
+		pview.CornerRadius = new CornerRadius(8);
+		chromeshow(true);
+	}
+
+	void chromeshow(bool on) {
+		var v = on ? Visibility.Visible : Visibility.Collapsed;
+		lbhint.Visibility = v;
+		pdev.Visibility = v;
+		pops.Visibility = v;
+		ecode.Visibility = v;
+		lbstat.Visibility = v;
 	}
 
 	void paint() {

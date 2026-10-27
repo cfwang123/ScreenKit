@@ -97,7 +97,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **HTTP request debugger**: Requests are saved in groups; parameters are one `key=value` per line, and a POST can be JSON, XML, or raw text.
 - **MIDI synthesizer**: Play with the mouse or the keyboard, open, change, and save MIDI files, and see a live waveform.
 - **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV.
-- **Camera**: Preview a camera, take photos and videos, and scan QR codes and barcodes.
+- **Camera**: Preview a camera, take photos and videos, and scan QR codes and barcodes. Double-click the picture for fullscreen; double-click again or press Esc to leave it.
 - **Scientific calculator**: A borderless keypad calculator with trigonometry, logarithms, powers, roots, factorial, and memory.
 - **Desktop note**: A borderless translucent note for text or a to-do list; content and position are remembered. The pin in the title bar keeps it above other windows, and that too is remembered.
 - **RTSP test server**: Encodes a bouncing picture to H.264 and serves an RTSP address on the chosen port.
@@ -142,7 +142,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Text recognition**: Read text in a picture
   - **QR / barcode**: Make a QR code or barcode
   - **Scan QR / barcode**: Read a code from a picture
-  - **Camera**: Take a photo or scan a code
+  - **Camera**: Take a photo or scan a code. Double-click the picture for fullscreen.
   - **RTSP player**: Play an RTSP video
   - **Image Base64**: Picture and Base64
   - **Image to ICO**: Turn a picture into an icon
@@ -156,7 +156,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Japanese conjugation**: Enter the dictionary form or pick a word from the dropdown; auto tells a verb from an i-adjective, na-adjective or noun, and the type can be set by hand. Verbs are listed by class with auxiliaries, politeness and dialect forms, adjectives and nouns with their own rows, and each form has a speak button.
   - **Korean verbs**: Pick verb, adjective or noun, type a word or choose one from the list. Forms are grouped by speech level, grammar pattern, contraction, colloquial and literary ending, classical ending, character speech, in-group slang, rough endings, dialect, North Korean, DPRK broadcast or Yanbian. Each form has a speak button.
   - **Russian word forms**: Pick a type and enter the base form; every form is listed at once. Verbs show tense, mood, participles and gerunds, adjectives and nouns their full declension, each form with a speak button.
-  - **English word forms**: Pick auto, verb, adjective or noun and type a word or choose one from the list. Verbs list the sixteen tenses with negatives, questions, passive and moods. Objects follow the dictionary by default: none if intransitive, one if transitive, two if ditransitive, and the choice can be set by hand. Each object can be picked from the list or typed. Adjectives list the comparison forms, nouns the plurals, articles and agreement, each with a speak button.
+  - **English word forms**: Pick auto, verb, adjective or noun and type a word or choose one from the list. Verbs list the sixteen tenses with negatives, questions, passive and moods, including the informal and dialect uses of ain't. Objects follow the dictionary by default: none if intransitive, one if transitive, two if ditransitive, and the choice can be set by hand. Each object can be picked from the list or typed. Adjectives list the comparison forms, nouns the plurals, articles and agreement, each with a speak button.
   - **Color chart**: Named colors
   - **HTTP status codes**: Status codes, descriptions, and specs by 1xx–5xx, plus common non-standard ones
   - **MIME types**: MIME types, file extensions, and Content-Type examples

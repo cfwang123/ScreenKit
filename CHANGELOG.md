@@ -62,6 +62,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web dictionary: a phone layout that shows one page at a time with a back button, opens automatically on phones, and can be switched to and from the desktop layout. Every page has its own hash URL (#/q/<query>, #/q/<query>/e/<entry>, .../c/<word-forms tab>) so refresh and browser back work.
 - System tools: the process list shows PID, memory, commit size, thread count, handle count, 32/64-bit, elevation, start time and path, the side pane shows the selected process with its command line in a separate copyable box with quotes removed, and double-clicking a row copies that command line. Every table sorts by clicking a column header and reverses on a second click.
 - System tools: the file associations page lists every registered extension with its document type, default app and command line, filtered as you type.
+- Double-click the camera picture for fullscreen in the window and the web tool.
+- English word forms list every informal and dialect use of ain't for verbs, adjectives and nouns.
 
 #### Changed
 
@@ -158,6 +160,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页词典：增加手机版（一屏一页、带返回按钮），手机上自动进入，也能和电脑版互相切换；每个页面有独立地址（#/q/<查询词>、#/q/<查询词>/e/<词条>、…/c/<变形标签>），刷新和后退都能回到原处。
 - 系统工具：进程列表显示 PID、内存、提交大小、线程数、句柄数、32/64 位、是否管理员、启动时间和路径，右侧栏显示选中进程的详情，命令行单独放在可复制的文本框里并去掉引号，双击一行即可复制命令行；所有表格点列头按该列排序，再点同一列倒序。
 - 系统工具：文件关联页直接列出全部已注册的扩展名及类型、默认应用和命令行，输入即可筛选。
+- 窗口相机和网页相机双击画面全屏。
+- 英语词形变化为动词、形容词和名词列出 ain't 的全部口语和方言用法。
 
 #### 变更
 

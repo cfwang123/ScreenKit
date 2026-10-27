@@ -59,11 +59,35 @@
 			if (zoom) zoom.oninput = applyzoom;
 			if (torch) torch.onclick = toggletorch;
 			if (focus) focus.onclick = applyfocus;
+			bindfull(F.id("cam-view"));
+			bindfull(F.id("cam-shotimg"));
 			openid("");
 			arm();
 		},
 		dispose: halt
 	});
+
+	function bindfull(el){
+		if (!el) return;
+		el.ondblclick = function(){
+			var fs = document.fullscreenElement || document.webkitFullscreenElement;
+			if (fs) {
+				exitfull();
+				return;
+			}
+			var req = el.requestFullscreen || el.webkitRequestFullscreen;
+			if (!req) return;
+			try { req.call(el); } catch (e) {}
+		};
+	}
+
+	function exitfull(){
+		var fs = document.fullscreenElement || document.webkitFullscreenElement;
+		if (!fs) return;
+		var exit = document.exitFullscreen || document.webkitExitFullscreen;
+		if (!exit) return;
+		try { exit.call(document); } catch (e) {}
+	}
 
 	function tx(key, fb){
 		var s = SK.t ? SK.t(key) : "";
@@ -106,6 +130,7 @@
 	}
 
 	function halt(){
+		exitfull();
 		gen++;
 		scanOn = false;
 		scanning = false;
