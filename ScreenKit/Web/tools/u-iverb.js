@@ -338,7 +338,7 @@
 	var cur = "all";
 	var picked = 0;
 
-	// 英语动词时态工具复用这张表，免得再抄一份。
+	// 英语词形变化用的是同一张表，在 EnConj.IR 里。改这里时把那边一起改。
 	if (typeof SK !== "undefined") SK.iverbrows = ROWS;
 
 	if (typeof module !== "undefined" && module.exports) {

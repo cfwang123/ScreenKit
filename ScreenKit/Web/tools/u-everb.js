@@ -19,6 +19,7 @@
 		["irr", "do", "做"],
 		["irr", "go", "去"],
 		["irr", "come", "来"],
+		["irr", "become", "成为"],
 		["irr", "get", "得到"],
 		["irr", "make", "做；制造"],
 		["irr", "take", "拿；取"],

@@ -12,6 +12,7 @@ static class SysTool {
 		public int Pid;
 		public string Name = "";
 		public string Mem = "";
+		public ulong MemBytes;
 		public string Path = "";
 		public string Cmd = "";
 		public int Bits = 64;
@@ -83,7 +84,8 @@ static class SysTool {
 				row.Name = text(mo["Name"]);
 				row.Path = text(mo["ExecutablePath"]);
 				row.Cmd = text(mo["CommandLine"]);
-				row.Mem = bytes(toulong(mo["WorkingSetSize"]));
+				row.MemBytes = toulong(mo["WorkingSetSize"]);
+				row.Mem = bytes(row.MemBytes);
 				if (row.Name.Length == 0) row.Name = row.Pid.ToString();
 				procflags(row);
 				list.Add(row);

@@ -1,6 +1,7 @@
 <Window x:Class="ScreenKit.SysToolWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sk="clr-namespace:ScreenKit"
         Title="系统工具"
         Width="1200" Height="720"
         MinWidth="900" MinHeight="520"
@@ -55,13 +56,13 @@
 						<ListView x:Name="lvproc" BorderBrush="{StaticResource BorderSoft}">
 							<ListView.View>
 								<GridView>
-									<GridViewColumn x:Name="colprocname" Width="150" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colprocname" Width="145" DisplayMemberBinding="{Binding Name}"/>
 									<GridViewColumn x:Name="colprocpid" Width="60" DisplayMemberBinding="{Binding Pid}"/>
-									<GridViewColumn x:Name="colprocmem" Width="70" DisplayMemberBinding="{Binding Mem}"/>
+									<GridViewColumn x:Name="colprocmem" Width="70" sk:GridViewSort.SortPath="MemBytes" DisplayMemberBinding="{Binding Mem}"/>
 									<GridViewColumn x:Name="colprocbits" Width="55" DisplayMemberBinding="{Binding Bits}"/>
 									<GridViewColumn x:Name="colprocelev" Width="75" DisplayMemberBinding="{Binding Admin}"/>
-									<GridViewColumn x:Name="colprocpath" Width="190" DisplayMemberBinding="{Binding Path}"/>
-									<GridViewColumn x:Name="colproccmd" Width="180" DisplayMemberBinding="{Binding Cmd}"/>
+									<GridViewColumn x:Name="colprocpath" Width="165" DisplayMemberBinding="{Binding Path}"/>
+									<GridViewColumn x:Name="colproccmd" Width="160" DisplayMemberBinding="{Binding Cmd}"/>
 								</GridView>
 							</ListView.View>
 						</ListView>

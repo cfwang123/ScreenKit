@@ -128,7 +128,7 @@ public partial class SysToolWindow {
 			};
 			if (q.Length == 0 || has(q, it.Disp, it.Name, it.State, it.Start, it.Path)) view.Add(it);
 		}
-		lvsvc.ItemsSource = view;
+		fill(lvsvc, view);
 		lbsvcstat.Text = Loc.T("systool.stat", view.Count, svcs.Count);
 		showsvc();
 	}
@@ -175,7 +175,7 @@ public partial class SysToolWindow {
 			var it = new PatchItem { Id = r.Id, Date = r.Date, Desc = r.Desc };
 			if (q.Length == 0 || has(q, it.Id, it.Date, it.Desc)) view.Add(it);
 		}
-		lvpatch.ItemsSource = view;
+		fill(lvpatch, view);
 		lbpatchstat.Text = Loc.T("systool.stat", view.Count, patches.Count);
 		showpatch();
 	}
@@ -219,7 +219,7 @@ public partial class SysToolWindow {
 			var it = new StoreItem { Name = r.Name, Ver = r.Ver, Pub = r.Pub };
 			if (q.Length == 0 || has(q, it.Name, it.Ver, it.Pub)) view.Add(it);
 		}
-		lvstore.ItemsSource = view;
+		fill(lvstore, view);
 		lbstorestat.Text = Loc.T("systool.stat", view.Count, stores.Count);
 		showstore();
 	}
@@ -266,7 +266,7 @@ public partial class SysToolWindow {
 			var it = new AssocItem { Ext = r.Ext, Type = r.Type, App = r.App, Exe = r.Exe, Cmd = r.Cmd };
 			if (q.Length == 0 || has(q, it.Ext, it.Type, it.App, it.Exe, it.Cmd)) view.Add(it);
 		}
-		lvassoc.ItemsSource = view;
+		fill(lvassoc, view);
 		lbassocstat.Text = Loc.T("systool.stat", view.Count, exts.Count);
 		showassoc();
 	}

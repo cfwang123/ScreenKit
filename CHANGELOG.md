@@ -76,6 +76,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System tools: the file associations page lists every registered extension with its document type, default app and command line; type to filter.
 - Japanese word forms: a sentence-endings group (よ, ですよ, ね, ですね, よね, わよ, の, かな, かしら, こと) plus masculine (ぞ, ぜ, さ, わ) and samurai/archaic endings (のじゃ, でござる, で候, でおじゃる, なり) in the same group, each row showing both the affirmative and the negative form.
 - Korean word forms add a classical ending group for verbs, adjectives and nouns.
+- System tools: click a column header to sort by that column, click again to sort in reverse.
+- Japanese word forms: ですよね added to the sentence-endings group (食べますよね / 食べませんよね).
 
 #### Changed
 
@@ -153,6 +155,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Main window dictionary: the word-forms tab for Japanese nouns showed the group-1 verb error instead of noun forms.
 - English word forms show the object choice for auto-detected verbs as well as the Verb type.
 - Tool windows such as system tools could not be opened again after closing them once.
+- English irregular verbs such as become use became / become instead of the regular -ed ending.
 
 #### Security / privacy notes
 
@@ -194,6 +197,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统工具：文件关联页直接列出全部已注册的扩展名及类型、默认应用和命令行，输入即可筛选。
 - 日语形态变化：新增「语气（终助词）」组，收 よ、ですよ、ね、ですね、よね、わよ、の、かな、かしら、こと，以及男性（ぞ、ぜ、さ、わ）和武士・古风（のじゃ、でござる、で候、でおじゃる、なり）的说法，每行都带肯定和否定两式。
 - 韩语词形变化为动词、形容词和名词补上古代语词尾。
+- 系统工具：点列头按该列排序，再点同一列倒序。
+- 日语形态变化：「语气（终助词）」组补上 ですよね（食べますよね / 食べませんよね）。
 
 #### 变更
 
@@ -271,6 +276,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 主窗口词典：日语名词的形态变化页显示「1类词尾要是う段假名」，没有名词变化内容。
 - 英语词形变化在自动识别为动词时也显示宾语选择，不必先把类型改成动词。
 - 系统工具等工具窗口关掉后，再从菜单打开会没有反应。
+- 英语不规则动词按不规则表变化，become 的过去式是 became，不再写成 becomed。
 
 #### 安全与隐私
 

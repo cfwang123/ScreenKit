@@ -32,7 +32,7 @@ sealed class JpConjLabels {
 	public string teita, teinai, teimasu, teshimatta, tewa;
 	public string nakereba, nakucha, noda, terasshai;
 	public string rough, zo, ze, wa, sa, me, kke, mon, tekure, kusaru, koku;
-	public string end, endyo, enddesuyo, endne, enddesune, endyone, endwayo, endno, endkana, endkashira, endkoto;
+	public string end, endyo, enddesuyo, endne, enddesune, endyone, enddesuyone, endwayo, endno, endkana, endkashira, endkoto;
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
@@ -419,6 +419,7 @@ static class JpConj {
 			L.endne = "ね";
 			L.enddesune = "ですね";
 			L.endyone = "よね";
+			L.enddesuyone = "ですよね";
 			L.endwayo = "わよ";
 			L.endno = "の（疑问）";
 			L.endkana = "かな";
@@ -620,6 +621,7 @@ static class JpConj {
 		L.endne = "ne";
 		L.enddesune = "desu ne";
 		L.endyone = "yo ne";
+		L.enddesuyone = "desu yo ne";
 		L.endwayo = "wa yo";
 		L.endno = "no (question)";
 		L.endkana = "kana";
@@ -1053,6 +1055,7 @@ static class JpConj {
 			new(L.endne, plain + dan + "ね、" + nai + "ね", L.end),
 			new(L.enddesune, pol + "ね、" + polneg + "ね", L.end),
 			new(L.endyone, plain + dan + "よね、" + nai + "よね", L.end),
+			new(L.enddesuyone, pol + "よね、" + polneg + "よね", L.end),
 			new(L.endwayo, plain + dan + "わよ、" + nai + "わよ", L.end),
 			new(L.endno, plain + na + "の、" + nai + "の", L.end),
 			new(L.endkana, plain + dan + "かな、" + nai + "かな", L.end),

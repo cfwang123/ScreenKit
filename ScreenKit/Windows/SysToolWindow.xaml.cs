@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text;
+using System.Windows.Data;
 
 namespace ScreenKit;
 
@@ -22,6 +24,7 @@ public partial class SysToolWindow : Window {
 		applylang();
 		initev();
 		initmore();
+		initsort();
 		WindowEsc.Attach(this);
 		ensure();
 	}
@@ -30,6 +33,7 @@ public partial class SysToolWindow : Window {
 		public string Name { get; set; }
 		public int Pid { get; set; }
 		public string Mem { get; set; }
+		public ulong MemBytes { get; set; }
 		public string Bits { get; set; }
 		public string Admin { get; set; }
 		public string Path { get; set; }
@@ -186,13 +190,13 @@ public partial class SysToolWindow : Window {
 		var view = new List<ProcItem>();
 		foreach (var r in procs) {
 			var it = new ProcItem {
-				Name = r.Name, Pid = r.Pid, Mem = r.Mem, Path = r.Path, Cmd = r.Cmd,
+				Name = r.Name, Pid = r.Pid, Mem = r.Mem, MemBytes = r.MemBytes, Path = r.Path, Cmd = r.Cmd,
 				Bits = procbits(r.Bits), Admin = procelev(r.Elev),
 			};
 			if (q.Length == 0 || has(q, it.Name, it.Path, it.Cmd, it.Pid.ToString(), it.Mem, it.Bits, it.Admin))
 				view.Add(it);
 		}
-		lvproc.ItemsSource = view;
+		fill(lvproc, view);
 		lbprocstat.Text = Loc.T("systool.stat", view.Count, procs.Count);
 		showproc();
 	}
@@ -272,7 +276,7 @@ public partial class SysToolWindow : Window {
 				var view = new List<LockItem>();
 				foreach (var r in locks)
 					view.Add(new LockItem { Name = r.Name, Pid = r.Pid, Path = r.Path });
-				lvlock.ItemsSource = view;
+				fill(lvlock, view);
 				if (err == "empty") lblockstat.Text = Loc.T("systool.lock.empty");
 				else if (err == "missing") lblockstat.Text = Loc.T("systool.lock.missing");
 				else if (!string.IsNullOrEmpty(err)) lblockstat.Text = err;
@@ -321,7 +325,7 @@ public partial class SysToolWindow : Window {
 			var it = new EnvItem { Scope = scope(r.Scope), Name = r.Name, Value = r.Value };
 			if (q.Length == 0 || has(q, it.Scope, it.Name, it.Value)) view.Add(it);
 		}
-		lvenv.ItemsSource = view;
+		fill(lvenv, view);
 		lbenvstat.Text = Loc.T("systool.stat", view.Count, envs.Count);
 		showenv();
 	}
@@ -370,7 +374,7 @@ public partial class SysToolWindow : Window {
 			var it = new StartItem { Source = src(r.Source), Name = r.Name, Cmd = r.Cmd };
 			if (q.Length == 0 || has(q, it.Source, it.Name, it.Cmd)) view.Add(it);
 		}
-		lvstart.ItemsSource = view;
+		fill(lvstart, view);
 		lbstartstat.Text = Loc.T("systool.stat", view.Count, starts.Count);
 		showstart();
 	}
@@ -420,7 +424,7 @@ public partial class SysToolWindow : Window {
 			};
 			if (q.Length == 0 || has(q, it.Name, it.Ver, it.Pub, it.Date, it.Scope, it.Uninstall)) view.Add(it);
 		}
-		lvapp.ItemsSource = view;
+		fill(lvapp, view);
 		lbappstat.Text = Loc.T("systool.stat", view.Count, apps.Count);
 		showapp();
 	}
@@ -448,6 +452,57 @@ public partial class SysToolWindow : Window {
 		var id = $"systool.src.{key}";
 		var t = Loc.T(id);
 		return t == id ? key : t;
+	}
+
+	// ==================== 点列头排序 ====================
+	sealed class SortState {
+		public GridViewColumn Col { get; set; }
+		public string Key { get; set; }
+		public string Raw { get; set; }
+		public ListSortDirection Dir { get; set; }
+	}
+
+	readonly Dictionary<ListView, SortState> sorts = new();
+
+	void initsort() {
+		foreach (var lv in new[] { lvproc, lvlock, lvenv, lvstart, lvapp, lvsvc, lvpatch, lvstore, lvassoc })
+			lv.AddHandler(GridViewColumnHeader.ClickEvent, new RoutedEventHandler(onheadclick));
+	}
+
+	// 第一次点升序，再点同一列倒序；换列从升序开始。
+	void onheadclick(object sender, RoutedEventArgs e) {
+		if (e.OriginalSource is not GridViewColumnHeader head) return;
+		if (head.Role != GridViewColumnHeaderRole.Normal) return;
+		var col = head.Column;
+		if (col == null || sender is not ListView lv) return;
+		var key = GridViewSort.GetSortPath(col);
+		if (string.IsNullOrEmpty(key) && col.DisplayMemberBinding is Binding bd) key = bd.Path?.Path;
+		if (string.IsNullOrEmpty(key)) return;
+		sorts.TryGetValue(lv, out var st);
+		var same = st != null && ReferenceEquals(st.Col, col);
+		var dir = same && st.Dir == ListSortDirection.Ascending
+			? ListSortDirection.Descending : ListSortDirection.Ascending;
+		var raw = same ? st.Raw : (col.Header as string ?? "");
+		if (st != null && !same) st.Col.Header = st.Raw;
+		col.Header = raw + (dir == ListSortDirection.Ascending ? " ▲" : " ▼");
+		sorts[lv] = new SortState { Col = col, Key = key, Raw = raw, Dir = dir };
+		applysort(lv, key, dir);
+	}
+
+	static void applysort(ListView lv, string key, ListSortDirection dir) {
+		if (lv.ItemsSource == null) return;
+		var view = CollectionViewSource.GetDefaultView(lv.ItemsSource);
+		if (view == null) return;
+		using (view.DeferRefresh()) {
+			view.SortDescriptions.Clear();
+			view.SortDescriptions.Add(new SortDescription(key, dir));
+		}
+	}
+
+	// 换筛选结果后重新套用当前排序。
+	void fill<T>(ListView lv, List<T> rows) {
+		lv.ItemsSource = rows;
+		if (sorts.TryGetValue(lv, out var st)) applysort(lv, st.Key, st.Dir);
 	}
 
 	static bool has(string q, params string[] parts) {
