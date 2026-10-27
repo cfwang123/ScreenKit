@@ -111,6 +111,19 @@
 		syncview();
 	}
 
+	// 手机版里换页不弹新窗口，直接在当前页跳过去。
+	function opendict(q, id){
+		if (mode !== "m") {
+			var url = "/dict?q=" + encodeURIComponent(q || "");
+			if (id) url += "&id=" + encodeURIComponent(id);
+			window.open(url, "_blank");
+			return;
+		}
+		$("q").value = q || "";
+		pushroute(q || "", id || 0, 0, false);
+		applyroute();
+	}
+
 	// 详情页切到第 n 个标签（点标签按钮，顺带触发变形页的加载）。
 	function showtab(n){
 		var btns = $("detail").querySelectorAll(".dtab");
@@ -231,7 +244,7 @@
 		$("pop-speak").addEventListener("click", function(){ speak(selText, selLang); });
 		$("pop-search").addEventListener("click", function(){
 			hidepop();
-			if (selText) window.open("/dict?q=" + encodeURIComponent(selText), "_blank");
+			if (selText) opendict(selText, 0);
 		});
 		$("pop-tr").addEventListener("click", function(){
 			hidepop();
@@ -1036,9 +1049,7 @@
 		var id = li.getAttribute("data-id") || "";
 		hidepop();
 		if (!word) return;
-		var url = "/dict?q=" + encodeURIComponent(word);
-		if (id) url += "&id=" + encodeURIComponent(id);
-		window.open(url, "_blank");
+		opendict(word, parseInt(id, 10) || 0);
 	}
 
 	function speak(text, lang){
