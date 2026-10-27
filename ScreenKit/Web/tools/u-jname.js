@@ -4,7 +4,6 @@
 	var clip = null;
 	var KINDS = [
 		{ id: "all", name: "全部" },
-		{ id: "n", name: "姓名" },
 		{ id: "s", name: "姓" },
 		{ id: "g", name: "名" }
 	];
@@ -118,15 +117,14 @@
 			var seg = F.id("jn-seg");
 			var i, line, pick;
 			if (!q) return;
-			kind = "n";
-			if (seg) mark(seg, "n");
-			place();
+			kind = "all";
+			if (seg) mark(seg, "all");
 			pick = "";
 			for (i = 0; i < lines.length; i++) {
 				line = lines[i].replace(/\s+/g, "");
 				if (!line) continue;
 				pick = line;
-				if (sur && giv && hassplit(pairsof(line))) break;
+				if (sur && giv && onepair(line)) break;
 			}
 			if (!pick) return;
 			q.value = pick;
@@ -137,9 +135,7 @@
 	function place(){
 		var q = F.id("jn-q");
 		if (!q) return;
-		q.placeholder = kind === "n"
-			? "输入姓名，如 佐藤太郎 / さとうたろう"
-			: "输入汉字、假名或姓名，如 佐藤 / 佐藤太郎";
+		q.placeholder = "输入汉字、假名或姓名，如 佐藤 / 佐藤太郎";
 	}
 
 	function mark(box, id){
@@ -151,8 +147,8 @@
 
 	function load(){
 		var need = [];
-		if (kind === "n" || kind !== "g") need.push("s");
-		if (kind === "n" || kind !== "s") need.push("g");
+		if (kind !== "g") need.push("s");
+		if (kind !== "s") need.push("g");
 		if (!need.length) return paint();
 		for (var i = 0; i < need.length; i++) {
 			if (!loading[need[i]]) continue;
@@ -214,19 +210,13 @@
 		var raw = SK.val("jn-q");
 		var q = norm(raw);
 		blank = "";
-		if (kind === "n") {
-			hits = sur && giv ? pairsof(raw) : [];
-			if (!String(raw || "").trim()) blank = "输入完整姓名，按姓和名拆开匹配";
-			page = 0;
-			render();
-			return;
-		}
 		if (kind === "all" && sur && giv && splitraw(raw)) {
 			if (!surix) surix = ix(sur);
 			if (!givix) givix = ix(giv);
 			if (!exactwhole(q)) {
-				var found = pairsof(raw);
-				if (found.length) {
+				var found = onepair(raw);
+				if (!found) found = pairsof(raw);
+				if (found && found.length) {
 					hits = found;
 					page = 0;
 					render();
@@ -435,7 +425,44 @@
 		return !!(surix.byk[q] || surix.byy[q] || givix.byk[q] || givix.byy[q]);
 	}
 
-	// 每个切分点上，对上的姓、名各占一行。一边没有也保留另一边。两边都有的排前面，其次姓更长的。
+	// 两边都能对上时，只留人数最多的那一姓和对应的一名。
+	function onepair(raw){
+		var cuts, best, ci, ss, gs, s, g;
+		if (!sur || !giv) return null;
+		if (!surix) surix = ix(sur);
+		if (!givix) givix = ix(giv);
+		cuts = splitraw(raw);
+		if (!cuts) return null;
+		best = null;
+		for (ci = 0; ci < cuts.length; ci++) {
+			ss = finds(surix, cuts[ci][0]);
+			gs = finds(givix, cuts[ci][1]);
+			s = top(ss, true);
+			g = top(gs, false);
+			if (!s || !g) continue;
+			if (!best || s.p > best.s.p || (s.p === best.s.p && cuts[ci][0].length > best.left.length))
+				best = { s: s, g: g, left: cuts[ci][0], right: cuts[ci][1] };
+		}
+		if (!best) return null;
+		return [
+			{ r: best.s, s: true, sc: 3, y: reading(best.s, best.left) },
+			{ r: best.g, s: false, sc: 3, y: reading(best.g, best.right) }
+		];
+	}
+
+	function top(list, issur){
+		var i, best;
+		if (!list) return null;
+		best = null;
+		for (i = 0; i < list.length; i++) {
+			if (!inrow(list[i], row)) continue;
+			if (!best) { best = list[i]; continue; }
+			if (issur && list[i].p > best.p) best = list[i];
+		}
+		return best;
+	}
+
+	// 没有完整的一姓一名时，对上的姓、名仍各占一行。
 	function pairsof(raw){
 		var cuts, out, seen, ranked, ci, ss, gs;
 		if (!sur || !giv) return [];
@@ -480,15 +507,6 @@
 		}
 	}
 
-	function hassplit(list){
-		var i, s = false, g = false;
-		for (i = 0; i < list.length; i++) {
-			if (list[i].s) s = true;
-			else g = true;
-		}
-		return s && g;
-	}
-
 	// 一行放表记、读音和发音。其余读法在悬停提示里。不显示姓的人数。
 	function rowhtml(hit){
 		var r = hit.r;
@@ -497,7 +515,7 @@
 		var spk = y
 			? '<button type="button" class="jn-spk" data-v="' + esc(y) + '" title="' + esc(tx("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>'
 			: "";
-		var tag = (kind === "all" || kind === "n")
+		var tag = kind === "all"
 			? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "";
 		return '<div class="jnrow" title="' + esc(tip) + '">'
 			+ '<span class="jnk">' + esc(r.k) + "</span>"
