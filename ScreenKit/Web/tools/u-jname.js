@@ -19,8 +19,9 @@
 		{ id: "r", name: "ら", chars: "らりるれろ" },
 		{ id: "w", name: "わ", chars: "わをんゎ" }
 	];
-	var SHOW = 200;
+	var ROWSPERCOL = 30;
 	var sur = null, giv = null, loading = {};
+	var hits = [], page = 0;
 	var kind = "all", row = "", sep = " | ";
 
 	SK.regutil("u-jname", {
@@ -48,6 +49,9 @@
 		for (i = 0; i < ROWS.length; i++)
 			html += '<button type="button" data-row="' + ROWS[i].id + '">' + ROWS[i].name + "</button>";
 		html += '</div><div class="jnlist" id="jn-list"></div>'
+			+ '<div class="jnpager" id="jn-pager"><button type="button" id="jn-prev">‹</button>'
+			+ '<span id="jn-page" class="msg"></span>'
+			+ '<button type="button" id="jn-next">›</button></div>'
 			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict；前 5000 姓带人数（来自名字由来排名）。首次打开要下载约 1MB 数据，之后直接用本机文件。'
 			+ '输入汉字查读法，输入假名反查汉字；点一行复制。</p>';
 		return html;
@@ -88,6 +92,11 @@
 				el = el.parentNode;
 			}
 		};
+		var prev = F.id("jn-prev");
+		var next = F.id("jn-next");
+		if (prev) prev.onclick = function(){ goto(page - 1); };
+		if (next) next.onclick = function(){ goto(page + 1); };
+		window.addEventListener("resize", function(){ render(); });
 		load();
 	}
 
@@ -160,35 +169,57 @@
 	}
 
 	function paint(){
-		var box = F.id("jn-list");
-		if (!box) return;
 		var q = norm(SK.val("jn-q"));
-		var hits = [];
-		var total = 0;
-		var i, j, list;
+		hits = [];
 		if (kind !== "g" && sur) collect(sur, true, q, hits);
 		if (kind !== "s" && giv) collect(giv, false, q, hits);
-		total = hits.length;
 		// 完全一致的排前面，其次按读法开头、人数
 		if (q) hits.sort(function(a, b){
 			if (b.sc !== a.sc) return b.sc - a.sc;
 			return b.r.p - a.r.p;
 		});
-		hits = hits.slice(0, SHOW);
-		var html = [];
-		for (i = 0; i < hits.length; i++) html.push(rowhtml(hits[i]));
-		box.innerHTML = html.length ? html.join("") : '<p class="jnnone">没有匹配的姓名</p>';
-		SK.msg("jn-msg", total ? (total > hits.length ? "共 " + total + " 条，显示前 " + hits.length + " 条"
-			: "共 " + total + " 条") : "");
+		page = 0;
+		render();
 	}
 
+	// 按可用宽度算能放几栏，一页 = 栏数 × 每栏行数
+	function render(){
+		var box = F.id("jn-list");
+		if (!box) return;
+		var cols = Math.max(1, Math.min(8, Math.floor(box.clientWidth / 210) || 1));
+		var per = cols * ROWSPERCOL;
+		var pages = Math.max(1, Math.ceil(hits.length / per));
+		if (page < 0) page = 0;
+		if (page > pages - 1) page = pages - 1;
+		var from = page * per;
+		var slice = hits.slice(from, from + per);
+		var html = [];
+		for (var i = 0; i < slice.length; i++) html.push(rowhtml(slice[i]));
+		box.innerHTML = html.length ? html.join("") : '<p class="jnnone">没有匹配的姓名</p>';
+		SK.msg("jn-msg", hits.length ? "共 " + hits.length + " 条" : "");
+		SK.msg("jn-page", hits.length ? "第 " + (page + 1) + " / " + pages + " 页" : "");
+		var prev = F.id("jn-prev");
+		var next = F.id("jn-next");
+		if (prev) prev.disabled = page <= 0;
+		if (next) next.disabled = page >= pages - 1;
+	}
+
+	function goto(n){
+		page = n;
+		render();
+		var box = F.id("jn-list");
+		if (box && box.scrollIntoView) box.scrollIntoView({ block: "nearest" });
+	}
+
+	// 一行只放表记和主读法，其余读法放在悬停提示里，窄栏也不会折行
 	function rowhtml(hit){
 		var r = hit.r;
 		var pop = r.p > 0 ? (r.p >= 10000 ? Math.round(r.p / 10000) + " 万" : r.p + " 人") : "";
-		return '<button type="button" class="jnrow" data-k="' + esc(r.k + " " + r.y[0]) + '"'
-			+ ' title="点击复制">'
+		var tip = r.k + " " + r.y.join("、");
+		return '<button type="button" class="jnrow" data-k="' + esc(tip) + '"'
+			+ ' title="' + esc(tip) + '（点击复制）">'
 			+ '<span class="jnk">' + esc(r.k) + "</span>"
-			+ '<span class="jny">' + esc(r.y.join("、")) + "</span>"
+			+ '<span class="jny">' + esc(r.y[0]) + "</span>"
 			+ (kind === "all" ? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "")
 			+ '<span class="jnp">' + esc(pop) + "</span></button>";
 	}
@@ -215,16 +246,15 @@
 		return match(r, q) ? 1 : 0;
 	}
 
+	// 按首读法（第一行读音）分行，和列表的排序一致；不然「和架 あいか／わか」会出现在「わ」行里。
 	function inrow(r, id){
 		if (!id) return true;
-		var i, j, ch;
+		var i, ch;
+		if (!r.y.length) return false;
+		ch = r.y[0].charAt(0);
 		for (i = 0; i < ROWS.length; i++) {
 			if (ROWS[i].id !== id) continue;
-			for (j = 0; j < r.y.length; j++) {
-				ch = r.y[j].charAt(0);
-				if (ROWS[i].chars.indexOf(ch) >= 0) return true;
-			}
-			return false;
+			return ROWS[i].chars.indexOf(ch) >= 0;
 		}
 		return true;
 	}
