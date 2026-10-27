@@ -1320,9 +1320,11 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .jnseg button.on, .jnidx button.on { border-color: var(--accent); background: #fff1e8; }
-/* 多栏：每栏自己往下排，栏宽至少 190px，条数满一页再翻页。高度随内容，由外层滚动。 */
-.jnlist { column-width: 190px; column-gap: 16px; }
-.jnlist.jnpair { column-width: 440px; }
+/* 多栏：按列表高度往下排，排满换栏。栏宽随本栏最长的一条，读音不省略。 */
+.jnlist {
+	display: flex; flex-flow: column wrap; align-content: flex-start; align-items: stretch;
+	gap: 0 16px; width: max-content; max-width: none;
+}
 .jnpager { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; }
 .jnpager button {
 	width: 32px; height: 28px; cursor: pointer;
@@ -1336,15 +1338,16 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .jnrow {
-	display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 7px;
+	display: flex; align-items: center; gap: 8px; width: auto; min-width: max-content;
+	padding: 3px 7px; box-sizing: border-box;
 	border: 1px solid transparent; border-radius: 8px;
 	background: transparent; color: var(--ink);
-	white-space: nowrap; overflow: hidden; break-inside: avoid;
+	white-space: nowrap; overflow: visible; flex: none;
 	user-select: text; -webkit-user-select: text; cursor: text;
 }
 .jnrow:hover { background: var(--card); }
 .jnrow .jnk { font: 600 15px/1.3 "Yu Gothic UI", "Microsoft YaHei UI", sans-serif; flex: none; }
-.jnrow .jny { color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; }
+.jnrow .jny { flex: none; color: var(--muted); font-size: 14px; overflow: visible; text-overflow: unset; }
 .jnrow .jnt { margin-left: auto; color: var(--muted); font-size: 12px; }
 .jnrow .jntag { flex: none; color: var(--muted); font-size: 12px; }
 .jnrow .jn-spk {

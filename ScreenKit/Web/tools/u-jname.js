@@ -23,7 +23,7 @@
 	];
 	var ROWSPERCOL = 30;
 	var sur = null, giv = null, surix = null, givix = null, loading = {};
-	var hits = [], page = 0, blank = "";
+	var hits = [], page = 0, blank = "", rowh = 28;
 	var kind = "all", row = "", sep = " | ";
 	var markn = 1;
 
@@ -59,7 +59,7 @@
 			+ '<span id="jn-pages" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
 			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict。首次打开要下载约 1MB 数据，之后直接用本机文件。'
-			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会拆成姓和名再配读音；点「随机」生成一个姓名。文字可以直接选中复制，喇叭听这一条的读音。</p></div>';
+			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会按不同长度拆开，对上的姓和名各占一行；点「随机」生成一个姓名。文字可以直接选中复制，喇叭听这一条的读音。</p></div>';
 		return html;
 	}
 
@@ -127,7 +127,7 @@
 				line = lines[i].replace(/\s+/g, "");
 				if (!line) continue;
 				pick = line;
-				if (sur && giv && pairsof(line).length) break;
+				if (sur && giv && hassplit(pairsof(line))) break;
 			}
 			if (!pick) return;
 			q.value = pick;
@@ -247,22 +247,62 @@
 		render();
 	}
 
-	// 按可用宽度算能放几栏，一页 = 栏数 × 每栏行数
+	// 栏宽随内容，读音完整显示。一页能放的行数看列表高度，栏数多到会超出就减少。
 	function render(){
 		var box = F.id("jn-list");
+		var scroll, rows, cols, per, pages, slice, guard, tuned, prevh;
 		if (!box) return;
-		var pair = hits.length && hits[0].pair;
-		box.className = pair ? "jnlist jnpair" : "jnlist";
-		var cols = Math.max(1, Math.min(8, Math.floor(box.clientWidth / (pair ? 440 : 210)) || 1));
-		var per = cols * ROWSPERCOL;
-		var pages = Math.max(1, Math.ceil(hits.length / per));
-		if (page < 0) page = 0;
-		if (page > pages - 1) page = pages - 1;
-		var from = page * per;
-		var slice = hits.slice(from, from + per);
+		scroll = box.parentNode;
+		box.className = "jnlist";
+		if (!hits.length) {
+			box.style.height = "";
+			box.innerHTML = '<p class="jnnone">' + (blank || "没有匹配的姓名") + "</p>";
+			pager(1);
+			return;
+		}
+		rows = rowsfit(scroll);
+		box.style.height = (rows * rowh) + "px";
+		cols = Math.max(1, Math.min(12, Math.floor((scroll.clientWidth || 1) / 160) || 1));
+		pages = 1;
+		guard = 0;
+		tuned = false;
+		while (guard++ < 16) {
+			per = cols * rows;
+			pages = Math.max(1, Math.ceil(hits.length / per));
+			if (page < 0) page = 0;
+			if (page > pages - 1) page = pages - 1;
+			slice = hits.slice(page * per, page * per + per);
+			prevh = rowh;
+			filllist(box, slice);
+			if (!tuned && rowh !== prevh) {
+				tuned = true;
+				rows = rowsfit(scroll);
+				box.style.height = (rows * rowh) + "px";
+				continue;
+			}
+			if (cols <= 1 || scroll.scrollWidth <= scroll.clientWidth + 2) break;
+			cols--;
+		}
+		pager(pages);
+	}
+
+	function filllist(box, slice){
 		var html = [];
-		for (var i = 0; i < slice.length; i++) html.push(rowhtml(slice[i]));
-		box.innerHTML = html.length ? html.join("") : '<p class="jnnone">' + (blank || "没有匹配的姓名") + "</p>";
+		var i, h;
+		for (i = 0; i < slice.length; i++) html.push(rowhtml(slice[i]));
+		box.innerHTML = html.join("");
+		if (!box.firstElementChild) return;
+		h = box.firstElementChild.offsetHeight;
+		if (h > 0) rowh = h;
+	}
+
+	function rowsfit(scroll){
+		var h = scroll.clientHeight;
+		if (h < rowh) return 1;
+		return Math.max(1, Math.floor(h / rowh));
+	}
+
+	function pager(pages){
 		SK.msg("jn-msg", hits.length ? "共 " + hits.length + " 条" : "");
 		var pin = F.id("jn-page");
 		if (pin && document.activeElement !== pin) pin.value = hits.length ? String(page + 1) : "";
@@ -328,7 +368,7 @@
 		return s || fb;
 	}
 
-	// 完整姓名：每个切分点上，左边是姓、右边是名，才算一条。空格或间隔号只切一刀。
+		// 完整姓名的切分。空格或间隔号只切一刀，否则每个长度都试一次。
 	function splitraw(raw){
 		var s = String(raw || "").trim();
 		if (!s) return null;
@@ -396,8 +436,9 @@
 		return !!(surix.byk[q] || surix.byy[q] || givix.byk[q] || givix.byy[q]);
 	}
 
+	// 每个切分点上，对上的姓、名各占一行。一边没有也保留另一边。两边都有的排前面，其次姓更长的。
 	function pairsof(raw){
-		var cuts, out, seen, ci, ss, gs, i, j, sy, gy, key, added;
+		var cuts, out, seen, ranked, ci, ss, gs;
 		if (!sur || !giv) return [];
 		if (!surix) surix = ix(sur);
 		if (!givix) givix = ix(giv);
@@ -405,72 +446,66 @@
 		if (!cuts) return [];
 		out = [];
 		seen = {};
+		ranked = [];
 		for (ci = 0; ci < cuts.length; ci++) {
 			ss = finds(surix, cuts[ci][0]);
 			gs = finds(givix, cuts[ci][1]);
-			if (!ss.length || !gs.length) continue;
+			if (!ss.length && !gs.length) continue;
 			if (ss.length > 1) ss = ss.slice().sort(function(a, b){ return b.p - a.p; });
 			if (ss.length > 40) ss = ss.slice(0, 40);
 			if (gs.length > 80) gs = gs.slice(0, 80);
-			added = 0;
-			for (i = 0; i < ss.length; i++) {
-				if (!inrow(ss[i], row)) continue;
-				sy = reading(ss[i], cuts[ci][0]);
-				for (j = 0; j < gs.length; j++) {
-					gy = reading(gs[j], cuts[ci][1]);
-					key = ss[i].k + "\t" + gs[j].k + "\t" + sy + "\t" + gy;
-					if (seen[key]) continue;
-					seen[key] = 1;
-					out.push({ pair: true, s: ss[i], g: gs[j], sy: sy, gy: gy });
-					if (++added >= 80) break;
-				}
-				if (added >= 80) break;
-			}
+			ranked.push({ ss: ss, gs: gs, left: cuts[ci][0], right: cuts[ci][1], both: ss.length && gs.length });
 		}
-		out = sortpairs(out);
+		ranked.sort(function(a, b){
+			if (a.both !== b.both) return a.both ? -1 : 1;
+			return b.left.length - a.left.length;
+		});
+		for (ci = 0; ci < ranked.length; ci++) {
+			pushside(ranked[ci].ss, true, ranked[ci].left);
+			pushside(ranked[ci].gs, false, ranked[ci].right);
+			if (out.length >= 300) break;
+		}
 		if (out.length > 300) out = out.slice(0, 300);
 		return out;
+
+		function pushside(list, issur, part){
+			var i, y, key;
+			for (i = 0; i < list.length; i++) {
+				if (!inrow(list[i], row)) continue;
+				y = reading(list[i], part);
+				key = (issur ? "s\t" : "g\t") + list[i].k + "\t" + y;
+				if (seen[key]) continue;
+				seen[key] = 1;
+				out.push({ r: list[i], s: issur, sc: 3, y: y });
+			}
+		}
 	}
 
-	function sortpairs(out){
-		out.sort(function(a, b){
-			if (b.s.p !== a.s.p) return b.s.p - a.s.p;
-			return b.s.k.length - a.s.k.length;
-		});
-		return out;
+	function hassplit(list){
+		var i, s = false, g = false;
+		for (i = 0; i < list.length; i++) {
+			if (list[i].s) s = true;
+			else g = true;
+		}
+		return s && g;
 	}
 
-	// 一行放表记、主读法和发音。其余读法在悬停提示里。不显示姓的人数。
+	// 一行放表记、读音和发音。其余读法在悬停提示里。不显示姓的人数。
 	function rowhtml(hit){
-		if (hit.pair) return pairhtml(hit);
 		var r = hit.r;
-		var y = r.y.length ? r.y[0] : "";
+		var y = hit.y || (r.y.length ? r.y[0] : "");
 		var tip = r.k + " " + r.y.join("、");
 		var spk = y
 			? '<button type="button" class="jn-spk" data-v="' + esc(y) + '" title="' + esc(tx("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>'
 			: "";
+		var tag = (kind === "all" || kind === "n")
+			? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "";
 		return '<div class="jnrow" title="' + esc(tip) + '">'
 			+ '<span class="jnk">' + esc(r.k) + "</span>"
 			+ '<span class="jny">' + esc(y) + "</span>"
 			+ spk
-			+ (kind === "all" ? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "")
+			+ tag
 			+ "</div>";
-	}
-
-	function pairhtml(hit){
-		var say = (hit.sy || "") + (hit.gy || "");
-		var tip = hit.s.k + " " + hit.s.y.join("、") + " / " + hit.g.k + " " + hit.g.y.join("、");
-		var spk = say
-			? '<button type="button" class="jn-spk" data-v="' + esc(say) + '" title="' + esc(tx("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>'
-			: "";
-		return '<div class="jnrow" title="' + esc(tip) + '">'
-			+ '<span class="jnk">' + esc(hit.s.k) + "</span>"
-			+ '<span class="jny">' + esc(hit.sy) + "</span>"
-			+ '<span class="jntag">姓</span>'
-			+ '<span class="jnk">' + esc(hit.g.k) + "</span>"
-			+ '<span class="jny">' + esc(hit.gy) + "</span>"
-			+ '<span class="jntag">名</span>'
-			+ spk + "</div>";
 	}
 
 	function collect(list, issur, q, hits){
