@@ -20,9 +20,9 @@
 		{ id: "r", name: "ら", chars: "らりるれろ" },
 		{ id: "w", name: "わ", chars: "わをんゎ" }
 	];
-	var ROWSPERCOL = 30;
+	var PERPAGE = 60;
 	var sur = null, giv = null, surix = null, givix = null, loading = {};
-	var hits = [], page = 0, blank = "", rowh = 28;
+	var hits = [], page = 0, blank = "";
 	var kind = "all", row = "", sep = " | ";
 	var markn = 1;
 
@@ -236,59 +236,34 @@
 		render();
 	}
 
-	// 栏宽随内容，读音完整显示。一页能放的行数看列表高度，栏数多到会超出就减少。
+	// 每页固定条数，按行从左到右排。超出列表高度时在列表里滚动。
 	function render(){
 		var box = F.id("jn-list");
-		var scroll, rows, cols, per, pages, slice, guard, tuned, prevh;
+		var scroll, pages, from, slice;
 		if (!box) return;
 		scroll = box.parentNode;
 		box.className = "jnlist";
+		box.style.height = "";
 		if (!hits.length) {
-			box.style.height = "";
 			box.innerHTML = '<p class="jnnone">' + (blank || "没有匹配的姓名") + "</p>";
 			pager(1);
 			return;
 		}
-		rows = rowsfit(scroll);
-		box.style.height = (rows * rowh) + "px";
-		cols = Math.max(1, Math.min(12, Math.floor((scroll.clientWidth || 1) / 160) || 1));
-		pages = 1;
-		guard = 0;
-		tuned = false;
-		while (guard++ < 16) {
-			per = cols * rows;
-			pages = Math.max(1, Math.ceil(hits.length / per));
-			if (page < 0) page = 0;
-			if (page > pages - 1) page = pages - 1;
-			slice = hits.slice(page * per, page * per + per);
-			prevh = rowh;
-			filllist(box, slice);
-			if (!tuned && rowh !== prevh) {
-				tuned = true;
-				rows = rowsfit(scroll);
-				box.style.height = (rows * rowh) + "px";
-				continue;
-			}
-			if (cols <= 1 || scroll.scrollWidth <= scroll.clientWidth + 2) break;
-			cols--;
-		}
+		pages = Math.max(1, Math.ceil(hits.length / PERPAGE));
+		if (page < 0) page = 0;
+		if (page > pages - 1) page = pages - 1;
+		from = page * PERPAGE;
+		slice = hits.slice(from, from + PERPAGE);
+		filllist(box, slice);
+		if (scroll) scroll.scrollTop = 0;
 		pager(pages);
 	}
 
 	function filllist(box, slice){
 		var html = [];
-		var i, h;
+		var i;
 		for (i = 0; i < slice.length; i++) html.push(rowhtml(slice[i]));
 		box.innerHTML = html.join("");
-		if (!box.firstElementChild) return;
-		h = box.firstElementChild.offsetHeight;
-		if (h > 0) rowh = h;
-	}
-
-	function rowsfit(scroll){
-		var h = scroll.clientHeight;
-		if (h < rowh) return 1;
-		return Math.max(1, Math.floor(h / rowh));
 	}
 
 	function pager(pages){
@@ -315,8 +290,6 @@
 	function goto(n){
 		page = n;
 		render();
-		var box = F.id("jn-list");
-		if (box && box.scrollIntoView) box.scrollIntoView({ block: "nearest" });
 	}
 
 	function onlist(ev){

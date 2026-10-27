@@ -86,14 +86,14 @@ enum DRole { Body, Title, Pron, Pos, Number, Label, ExLabel, Example }
 
 /// <summary>英日韩词典：只读 exe 旁的 dict3.bin。主窗口词典页和独立词典窗口共用这一页。</summary>
 public partial class DictWindow : UserControl {
-	static readonly Brush CPron = freeze(110, 110, 110);
-	static readonly Brush CPos = freeze(136, 48, 168);
-	static readonly Brush CNumber = freeze(210, 85, 20);
-	static readonly Brush CLabel = freeze(40, 90, 170);
-	static readonly Brush CExLabel = freeze(20, 130, 70);
-	static readonly Brush CExample = freeze(45, 120, 75);
-	static readonly Brush CSpeak = freeze(40, 120, 190);
-	static readonly Brush CLine = freeze(240, 235, 228);
+	internal static readonly Brush CPron = freeze(110, 110, 110);
+	internal static readonly Brush CPos = freeze(136, 48, 168);
+	internal static readonly Brush CNumber = freeze(210, 85, 20);
+	internal static readonly Brush CLabel = freeze(40, 90, 170);
+	internal static readonly Brush CExLabel = freeze(20, 130, 70);
+	internal static readonly Brush CExample = freeze(45, 120, 75);
+	internal static readonly Brush CSpeak = freeze(40, 120, 190);
+	internal static readonly Brush CLine = freeze(240, 235, 228);
 
 	TtsPlayer player;
 	DispatcherTimer tick;
@@ -701,7 +701,7 @@ public partial class DictWindow : UserControl {
 	internal const string ExportCss = EXPORT_TABLE_CSS;
 
 	/// <summary>词条表头的各写法。日语按表记顺序，通常只写假名的词条假名在前；其它语言就一个词。</summary>
-	static List<string> headforms(DictEntry e) {
+	internal static List<string> headforms(DictEntry e) {
 		var word = e.Word.Length > 0 ? e.Word : e.Headword;
 		if (e.Dict != "ja" || e.Kanji.Length == 0) return new List<string> { word };
 		var forms = DictDb.JaOrder(word, e.Kanji, e.Uk);
@@ -842,245 +842,7 @@ public partial class DictWindow : UserControl {
 		conjword = headforms(e)[0];
 		curspeak = curlang == "ja" ? DictDb.JaSpeak(curword, e.Kanji, e.Pron) : SpeakHead(curword, curlang);
 		var doc = newdoc();
-		var entrylang = speaklang(curlang);
-		var head = para(2);
-		var forms = headforms(e);
-		addrun(head, forms[0], DRole.Title, entrylang);
-		for (var i = 1; i < forms.Count; i++) addrun(head, ", " + forms[i], DRole.Body, entrylang);
-		doc.Blocks.Add(head);
-		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
-		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1, entrylang));
-		var zharticle = e.Dict == "zh" && e.Extra.Length > 0;
-		if (e.Pos.Length > 0) doc.Blocks.Add(one(e.Pos, DRole.Pos, 1, TextLang(e.Pos, entrylang)));
-		if (!zharticle) {
-			var tags = new List<string>();
-			foreach (var u in e.Usage) {
-				if (u == null || u.Length == 0 || u == e.Pos) continue;
-				tags.Add(u);
-			}
-			if (tags.Count > 0) {
-				var p = para(1);
-				addrun(p, Loc.T("dict.lab.tags"), DRole.Label);
-				addrun(p, string.Join(" · ", tags), DRole.Body, TextLang(string.Join(" · ", tags), entrylang));
-				doc.Blocks.Add(p);
-			}
-			if (e.Etymology.Length > 0) {
-				doc.Blocks.Add(one(Loc.T("dict.lab.etym"), DRole.Label, 0));
-				foreach (var line in splitlines(e.Etymology))
-					doc.Blocks.Add(one(line, DRole.Body, 0, TextLang(line, entrylang)));
-			}
-			foreach (var c in e.Conjugations) {
-				var p = para(0);
-				addrun(p, Loc.T("dict.lab.conj"), DRole.Label);
-				var firstpart = true;
-				foreach (var part in c.Split('　')) {
-					if (!firstpart) addrun(p, "　", DRole.Body);
-					firstpart = false;
-					addrun(p, part, DRole.Body, TextLang(part, entrylang));
-				}
-				doc.Blocks.Add(p);
-			}
-			if (e.See.Count > 0) {
-				var p = para(1);
-				addrun(p, Loc.T("dict.lab.see") + " ", DRole.Label);
-				var first = true;
-				foreach (var s in e.See) {
-					if (s == null || s.Length == 0) continue;
-					if (!first) addrun(p, " · ", DRole.Body);
-					first = false;
-					addlink(p, s, s, entrylang);
-				}
-				doc.Blocks.Add(p);
-			}
-			var n = 1;
-			string lastpos = null;
-			var anySense = false;
-			var linkphrase = e.Dict != "ko";
-			var senseonly = cbsenseonly.IsChecked == true;
-			// 韩语、英语：译文缩进，词组和例句各成一块、中文并到同一行。
-			var blockstyle = e.Dict == "ko" || e.Dict == "en";
-			// 仅释义时，同一编号下的子义项合成一段，中间用「; 」分隔。
-			Paragraph curp = null;
-			// 英语的单词组：第一次出现时先放一行「词组：」，条目用「· 」开头。
-			var idiomopen = false;
-			foreach (var s in e.Senses) {
-				if (!s.Sub) idiomopen = false;
-				if (s.Idiom.Length > 0 || !s.Sub) curp = null;
-				if (s.Idiom.Length > 0) {
-					if (e.Dict == "en") {
-						if (!idiomopen) {
-							if (anySense) doc.Blocks.Add(para(4));
-							doc.Blocks.Add(one(Loc.T("dict.lab.phrase") + "：", DRole.Label, 0));
-							idiomopen = true;
-						}
-						var ip = para(0);
-						addrun(ip, "· ", DRole.Number);
-						addlink(ip, s.Idiom, firsttoken(s.Idiom), entrylang);
-						doc.Blocks.Add(ip);
-					}
-					else {
-						if (anySense && !senseonly) doc.Blocks.Add(para(4));
-						var ip = para(0);
-						addrun(ip, Loc.T("dict.lab.phrase") + " ", DRole.Label);
-						if (linkphrase) addlink(ip, s.Idiom, firsttoken(s.Idiom), entrylang);
-						else addrun(ip, s.Idiom, DRole.Body, entrylang);
-						doc.Blocks.Add(ip);
-					}
-				}
-				// 义项之间都空一行；英语、日语词条在仅释义时义项紧挨着。
-				else if (anySense && !s.Sub && (!senseonly || (e.Dict != "en" && e.Dict != "ja")))
-					doc.Blocks.Add(para(4));
-				anySense = true;
-				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
-					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1, TextLang(s.Pos, entrylang)));
-					lastpos = s.Pos;
-					n = 1;
-					curp = null;
-				}
-				var numbered = false;
-				void gloss(string tag, string lemma, string def, string lang) {
-					if (lemma.Length == 0 && def.Length == 0) return;
-					var text = join2(lemma, def);
-					if (senseonly) {
-						text = onelines(text);
-						if (text.Length == 0) return;
-						if (curp != null) {
-							addrun(curp, "; " + text, DRole.Body, lang);
-							return;
-						}
-					}
-					var p = para(0);
-					var withnum = !numbered && !s.Sub;
-					if (withnum) {
-						addrun(p, n + ". ", DRole.Number);
-						numbered = true;
-						n++;
-					}
-					if (tag.Length > 0) addrun(p, tag + " ", DRole.Label, lang);
-					addrun(p, text, DRole.Body, lang);
-					doc.Blocks.Add(p);
-					if (senseonly) curp = p;
-					// 韩语：编号行顶格，其下的中/英/日释义缩进。
-					if (blockstyle && !withnum) indent(p);
-				}
-				// 仅释义只出一种语言的释义：界面语言优先，没有就英文、中文、日文、韩文依次回退。
-				void glossone(DictSense sn) {
-					var ui = Loc.Lang ?? "zh";
-					if (ui != "zh" && ui != "en" && ui != "ja" && ui != "ko") ui = "en";
-					foreach (var code in new[] { ui, "en", "zh", "ja", "ko" }) {
-						if (code == "ko") {
-							if (sn.Ko.Length == 0) continue;
-							gloss("", sn.Ko, "", "ko");
-							return;
-						}
-						string lemma, def;
-						if (code == "zh") { lemma = sn.Zh; def = sn.ZhDef; }
-						else if (code == "en") { lemma = sn.En; def = sn.EnDef; }
-						else { lemma = sn.Ja; def = sn.JaDef; }
-						if (lemma.Length == 0 && def.Length == 0) continue;
-						gloss("", lemma, def, code);
-						return;
-					}
-				}
-				if (senseonly) glossone(s);
-				else {
-					if (s.Ko.Length > 0) gloss("", s.Ko, "", "ko");
-					gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef, "zh");
-					gloss(Loc.T("dict.lab.en"), s.En, s.EnDef, "en");
-					gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
-				}
-				if (e.Dict == "ko" && s.Phrases.Count > 0 && s.Idiom.Length == 0) {
-					// 韩语：词组与中文释义排成一行，用颜色区分，前面加「词组：」列表头，并缩进。
-					doc.Blocks.Add(para(4));
-					var phhead = one(Loc.T("dict.lab.phrase") + "：", DRole.Label, 0);
-					indent(phhead);
-					doc.Blocks.Add(phhead);
-					foreach (var ph in s.Phrases) {
-						if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
-						var p = para(0);
-						addrun(p, "· ", DRole.Number);
-						if (ph.Text.Length > 0) addrun(p, ph.Text, DRole.Body, entrylang);
-						var say = examplesrc(ph.Text);
-						if (say.Length > 0) addspeak(p, say, entrylang);
-						if (ph.Zh.Length > 0) {
-							addrun(p, "  ", DRole.Body);
-							addrun(p, ph.Zh, DRole.Label, "zh");
-						}
-						indent(p);
-						doc.Blocks.Add(p);
-					}
-				}
-				else foreach (var ph in s.Phrases) {
-					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
-					var p = para(0);
-					addrun(p, Loc.T("dict.lab.phrase") + " ", DRole.Label);
-					if (linkphrase && ph.Text.Length > 0) addlink(p, ph.Text, firsttoken(ph.Text), entrylang);
-					else addrun(p, ph.Text, DRole.Body, entrylang);
-					// 韩语词组读原文，和例句同一颗发音按钮。中文释义在下一行，不读。
-					if (!linkphrase) {
-						var say = examplesrc(ph.Text);
-						if (say.Length > 0) addspeak(p, say, entrylang);
-					}
-					doc.Blocks.Add(p);
-					if (ph.Zh.Length > 0) {
-						var z = para(0);
-						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label, "zh");
-						addrun(z, ph.Zh, DRole.Body, "zh");
-						doc.Blocks.Add(z);
-					}
-				}
-				if (!(cbsenseonly.IsChecked == true)) {
-					if (s.Sentences.Count > 0) {
-						if (blockstyle && s.Idiom.Length == 0) doc.Blocks.Add(para(4));
-						var exhead = one(Loc.T("dict.lab.example"), DRole.ExLabel, 0);
-						if (blockstyle) indent(exhead);
-						doc.Blocks.Add(exhead);
-					}
-					var exlang = entrylang;
-					foreach (var ex in s.Sentences) {
-						if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
-						var ep = para(0);
-						// 韩语、英语例句和中文排一行；其它语言中文另起一行。
-						if (blockstyle) {
-							addrun(ep, "· ", DRole.Number);
-							if (ex.Text.Length > 0) addrun(ep, ex.Text, DRole.Example, exlang);
-						}
-						else addrun(ep, "· " + ex.Text, DRole.Example, exlang);
-						var say = examplesrc(ex.Text);
-						if (say.Length > 0) addspeak(ep, say, exlang);
-						var same = blockstyle && ex.Zh.Length > 0;
-						if (same) {
-							addrun(ep, "  ", DRole.Body);
-							addrun(ep, ex.Zh, DRole.Label, "zh");
-						}
-						if (blockstyle) indent(ep);
-						doc.Blocks.Add(ep);
-						if (ex.Zh.Length > 0 && !same) {
-							var z = para(0);
-							addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label, "zh");
-							addrun(z, ex.Zh, DRole.Body, "zh");
-							doc.Blocks.Add(z);
-						}
-					}
-				}
-				if (!s.Sub && !numbered && s.Phrases.Count == 0 && s.Sentences.Count == 0) {
-					var p = para(0);
-					addrun(p, n + ". ", DRole.Number);
-					n++;
-					addrun(p, Loc.T("dict.empty.sense"), DRole.Pron);
-					doc.Blocks.Add(p);
-				}
-				else if (!s.Sub && !numbered) {
-					doc.Blocks.Add(one(n + ".", DRole.Number, 0));
-					n++;
-				}
-			}
-		}
-		if (e.Extra.Length > 0 && (zharticle || e.Dict != "zh")) {
-			if (doc.Blocks.Count > 0) doc.Blocks.Add(para(6));
-			foreach (var line in splitlines(e.Extra))
-				doc.Blocks.Add(one(line, DRole.Body, 0, zharticle ? "zh" : TextLang(line, entrylang)));
-		}
+		DictDocView.Fill(doc, DictDoc.Build(e, cbsenseonly.IsChecked == true, Loc.Lang), q => opensearch(q), (text, lang) => _ = speak(text, lang));
 		edetail.Document = doc;
 		edetail.ScrollToHome();
 		buildtabs(e);
@@ -2261,7 +2023,7 @@ public partial class DictWindow : UserControl {
 		return text.Substring(0, cut).Trim();
 	}
 
-	static string speaklang(string dict) {
+	internal static string speaklang(string dict) {
 		if (dict == "zh" || dict == "ja" || dict == "ko" || dict == "en") return dict;
 		return "en";
 	}
@@ -2343,7 +2105,7 @@ public partial class DictWindow : UserControl {
 		return langs[best];
 	}
 
-	static int langindex(string lang) {
+	internal static int langindex(string lang) {
 		if (lang == "zh") return 0;
 		if (lang == "en") return 1;
 		if (lang == "ja") return 2;
@@ -2514,20 +2276,20 @@ public partial class DictWindow : UserControl {
 		return brush;
 	}
 
-	static string bracket(string s) {
+	internal static string bracket(string s) {
 		if (s.Length == 0) return s;
 		if (s[0] == '[' || s[0] == '［') return s;
 		return "[" + s + "]";
 	}
 
-	static string join2(string a, string b) {
+	internal static string join2(string a, string b) {
 		if (string.IsNullOrEmpty(a)) return b ?? "";
 		if (string.IsNullOrEmpty(b)) return a;
 		return a + "  " + b;
 	}
 
 	/// <summary>把释义里的多行合成一行，行间用「; 」分隔（仅释义时用）。</summary>
-	static string onelines(string text) {
+	internal static string onelines(string text) {
 		if (string.IsNullOrEmpty(text)) return "";
 		var parts = text.Replace("\r\n", "\n").Split('\n');
 		var lines = new List<string>(parts.Length);
@@ -2538,14 +2300,14 @@ public partial class DictWindow : UserControl {
 		return string.Join("; ", lines);
 	}
 
-	static string examplesrc(string text) {
+	internal static string examplesrc(string text) {
 		var t = (text ?? "").Trim().TrimStart('·').Trim();
 		var i = t.IndexOf("  ", StringComparison.Ordinal);
 		if (i > 0) t = t.Substring(0, i).Trim();
 		return t;
 	}
 
-	static string firsttoken(string phrase) {
+	internal static string firsttoken(string phrase) {
 		var t = (phrase ?? "").Trim();
 		var i = t.IndexOf(' ');
 		if (i < 0) i = t.IndexOf('　');
@@ -2553,7 +2315,7 @@ public partial class DictWindow : UserControl {
 		return t.Substring(0, i);
 	}
 
-	static List<string> splitlines(string text) {
+	internal static List<string> splitlines(string text) {
 		var list = new List<string>();
 		if (string.IsNullOrEmpty(text)) return list;
 		var parts = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');

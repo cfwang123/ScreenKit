@@ -56,7 +56,7 @@ static class DictWeb {
 		};
 	}
 
-	public static JsonObject EntryNode(DictEntry e) {
+	public static JsonObject EntryNode(DictEntry e, bool only = false, string ui = "zh") {
 		if (e == null) return null;
 		var word = e.Word.Length > 0 ? e.Word : e.Headword;
 		var usage = new JsonArray();
@@ -91,6 +91,7 @@ static class DictWeb {
 			["see"] = see,
 			["conjugations"] = conj,
 			["senses"] = senses,
+			["doc"] = DictDoc.Build(e, only, ui),
 			["speak"] = speak ?? "",
 		};
 	}

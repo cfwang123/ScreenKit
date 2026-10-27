@@ -21,6 +21,10 @@ sealed partial class HttpOcrServer {
 			name = "reader.js";
 			mime = "application/javascript; charset=utf-8";
 		}
+		else if (path == "/sk/dictdoc.js") {
+			name = "dictdoc.js";
+			mime = "application/javascript; charset=utf-8";
+		}
 		else {
 			name = "reader.html";
 			mime = "text/html; charset=utf-8";

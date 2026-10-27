@@ -65,6 +65,7 @@
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />
     <None Include="Web\dict.js" CopyToOutputDirectory="PreserveNewest" Link="web\dict.js" />
+    <None Include="Web\dictdoc.js" CopyToOutputDirectory="PreserveNewest" Link="web\dictdoc.js" />
     <None Include="Web\reader.html" CopyToOutputDirectory="PreserveNewest" Link="web\reader.html" />
     <None Include="Web\reader.css" CopyToOutputDirectory="PreserveNewest" Link="web\reader.css" />
     <None Include="Web\reader.js" CopyToOutputDirectory="PreserveNewest" Link="web\reader.js" />
@@ -81,6 +82,7 @@
     <EmbeddedResource Include="Web\dict.html" LogicalName="web.dict.html" />
     <EmbeddedResource Include="Web\dict.css" LogicalName="web.dict.css" />
     <EmbeddedResource Include="Web\dict.js" LogicalName="web.dict.js" />
+    <EmbeddedResource Include="Web\dictdoc.js" LogicalName="web.dictdoc.js" />
     <EmbeddedResource Include="Web\reader.html" LogicalName="web.reader.html" />
     <EmbeddedResource Include="Web\reader.css" LogicalName="web.reader.css" />
     <EmbeddedResource Include="Web\reader.js" LogicalName="web.reader.js" />

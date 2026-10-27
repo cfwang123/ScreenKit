@@ -17,6 +17,10 @@ sealed partial class HttpOcrServer {
 			name = "dict.js";
 			mime = "application/javascript; charset=utf-8";
 		}
+		else if (path == "/sk/dictdoc.js") {
+			name = "dictdoc.js";
+			mime = "application/javascript; charset=utf-8";
+		}
 		else {
 			name = "dict.html";
 			mime = "text/html; charset=utf-8";
@@ -95,7 +99,7 @@ sealed partial class HttpOcrServer {
 			}
 			writejson(ctx, 200, new JsonObject {
 				["code"] = 100,
-				["data"] = DictWeb.EntryNode(e),
+				["data"] = DictWeb.EntryNode(e, query(ctx.Request, "only") == "1", DictWeb.NormLang(query(ctx.Request, "ui"))),
 			});
 		}
 		catch (Exception ex) {

@@ -1320,10 +1320,10 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .jnseg button.on, .jnidx button.on { border-color: var(--accent); background: #fff1e8; }
-/* 多栏：按列表高度往下排，排满换栏。栏宽随本栏最长的一条，读音不省略。 */
+/* 按行从左到右排，同一行顶部对齐。每页条数固定，超出部分在 .jnscroll 里滚动。 */
 .jnlist {
-	display: flex; flex-flow: column wrap; align-content: flex-start; align-items: stretch;
-	gap: 0 16px; width: max-content; max-width: none;
+	display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	align-items: start; gap: 0 16px; width: 100%;
 }
 .jnpager { display: flex; align-items: center; gap: 8px; margin: 8px 0 4px; }
 .jnpager button {
@@ -1338,7 +1338,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .jnrow {
-	display: flex; align-items: flex-start; gap: 8px; width: auto; min-width: max-content;
+	display: flex; align-items: flex-start; gap: 8px; width: 100%; min-width: min-content;
 	padding: 3px 7px; box-sizing: border-box;
 	border: 1px solid transparent; border-radius: 8px;
 	background: transparent; color: var(--ink);
