@@ -43,10 +43,11 @@ static class DictDoc {
 			if (e.Etymology.Length > 0) {
 				var lines = DictWindow.splitlines(e.Etymology);
 				if (lines.Count == 1) {
-					// 只有一条语源：标签和正文排同一行，下面空一行。
+					// 只有一条语源：标签和正文排同一行，去掉数据里带的「1. 」，下面空一行。
+					var text = nonum(lines[0]);
 					blocks.Add(p(0, 0, new JsonArray {
 						k("dict.lab.etym", "l", " "),
-						s(lines[0], "b", DictWindow.TextLang(lines[0], entrylang)),
+						s(text, "b", DictWindow.TextLang(text, entrylang)),
 					}));
 				}
 				else {
@@ -255,6 +256,16 @@ static class DictDoc {
 
 	static JsonArray p(double indent, double bottom, JsonArray runs) =>
 		new() { indent > 0 ? 1 : 0, (int)bottom, runs };
+
+	/// <summary>去掉行首的「1. 」这类序号。</summary>
+	static string nonum(string text) {
+		var i = 0;
+		while (i < text.Length && char.IsDigit(text[i])) i++;
+		if (i == 0 || i >= text.Length || text[i] != '.') return text;
+		i++;
+		while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
+		return text.Substring(i);
+	}
 
 	static JsonArray gap(double h) => p(0, h, new JsonArray());
 
