@@ -897,17 +897,35 @@ public partial class DictWindow : UserControl {
 			var anySense = false;
 			var linkphrase = e.Dict != "ko";
 			var senseonly = cbsenseonly.IsChecked == true;
+			// 韩语、英语：译文缩进，词组和例句各成一块、中文并到同一行。
+			var blockstyle = e.Dict == "ko" || e.Dict == "en";
 			// 仅释义时，同一编号下的子义项合成一段，中间用「; 」分隔。
 			Paragraph curp = null;
+			// 英语的单词组：第一次出现时先放一行「词组：」，条目用「· 」开头。
+			var idiomopen = false;
 			foreach (var s in e.Senses) {
+				if (!s.Sub) idiomopen = false;
 				if (s.Idiom.Length > 0 || !s.Sub) curp = null;
 				if (s.Idiom.Length > 0) {
-					if (anySense && !senseonly) doc.Blocks.Add(para(4));
-					var ip = para(0);
-					addrun(ip, Loc.T("dict.lab.phrase") + " ", DRole.Label);
-					if (linkphrase) addlink(ip, s.Idiom, firsttoken(s.Idiom), entrylang);
-					else addrun(ip, s.Idiom, DRole.Body, entrylang);
-					doc.Blocks.Add(ip);
+					if (e.Dict == "en") {
+						if (!idiomopen) {
+							if (anySense) doc.Blocks.Add(para(4));
+							doc.Blocks.Add(one(Loc.T("dict.lab.phrase") + "：", DRole.Label, 0));
+							idiomopen = true;
+						}
+						var ip = para(0);
+						addrun(ip, "· ", DRole.Number);
+						addlink(ip, s.Idiom, firsttoken(s.Idiom), entrylang);
+						doc.Blocks.Add(ip);
+					}
+					else {
+						if (anySense && !senseonly) doc.Blocks.Add(para(4));
+						var ip = para(0);
+						addrun(ip, Loc.T("dict.lab.phrase") + " ", DRole.Label);
+						if (linkphrase) addlink(ip, s.Idiom, firsttoken(s.Idiom), entrylang);
+						else addrun(ip, s.Idiom, DRole.Body, entrylang);
+						doc.Blocks.Add(ip);
+					}
 				}
 				// 义项之间都空一行；英语、日语词条在仅释义时义项紧挨着。
 				else if (anySense && !s.Sub && (!senseonly || (e.Dict != "en" && e.Dict != "ja")))
@@ -943,7 +961,7 @@ public partial class DictWindow : UserControl {
 					doc.Blocks.Add(p);
 					if (senseonly) curp = p;
 					// 韩语：编号行顶格，其下的中/英/日释义缩进。
-					if (e.Dict == "ko" && !withnum) indent(p);
+					if (blockstyle && !withnum) indent(p);
 				}
 				// 仅释义只出一种语言的释义：界面语言优先，没有就英文、中文、日文、韩文依次回退。
 				void glossone(DictSense sn) {
@@ -1013,29 +1031,29 @@ public partial class DictWindow : UserControl {
 				}
 				if (!(cbsenseonly.IsChecked == true)) {
 					if (s.Sentences.Count > 0) {
-						if (e.Dict == "ko") doc.Blocks.Add(para(4));
+						if (blockstyle && s.Idiom.Length == 0) doc.Blocks.Add(para(4));
 						var exhead = one(Loc.T("dict.lab.example"), DRole.ExLabel, 0);
-						if (e.Dict == "ko") indent(exhead);
+						if (blockstyle) indent(exhead);
 						doc.Blocks.Add(exhead);
 					}
 					var exlang = entrylang;
 					foreach (var ex in s.Sentences) {
 						if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
 						var ep = para(0);
-						// 韩语例句和中文排一行，和词组一致；其它语言中文另起一行。
-						if (e.Dict == "ko") {
+						// 韩语、英语例句和中文排一行；其它语言中文另起一行。
+						if (blockstyle) {
 							addrun(ep, "· ", DRole.Number);
 							if (ex.Text.Length > 0) addrun(ep, ex.Text, DRole.Example, exlang);
 						}
 						else addrun(ep, "· " + ex.Text, DRole.Example, exlang);
 						var say = examplesrc(ex.Text);
 						if (say.Length > 0) addspeak(ep, say, exlang);
-						var same = e.Dict == "ko" && ex.Zh.Length > 0;
+						var same = blockstyle && ex.Zh.Length > 0;
 						if (same) {
 							addrun(ep, "  ", DRole.Body);
 							addrun(ep, ex.Zh, DRole.Label, "zh");
 						}
-						if (e.Dict == "ko") indent(ep);
+						if (blockstyle) indent(ep);
 						doc.Blocks.Add(ep);
 						if (ex.Zh.Length > 0 && !same) {
 							var z = para(0);
