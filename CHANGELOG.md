@@ -47,6 +47,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - CLI --test-dict-count compares full hit counts of two dict3.bin files, without the 4000-row cap.
+- CLI --test-dict-rebuild rebuilds dict3.bin from the core package and prints how long each stage takes.
 
 #### Fixed
 
@@ -58,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 命令行 --test-dict-count 比较两份 dict3.bin 的全部命中数，不受 4000 条上限。
+- 命令行 --test-dict-rebuild 从核心包重建 dict3.bin，并打印各段耗时。
 
 #### 修复
 

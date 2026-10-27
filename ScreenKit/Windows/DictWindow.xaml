@@ -21,6 +21,9 @@
 			<CheckBox x:Name="cbselbar" DockPanel.Dock="Right" Content="划词浮窗" FontSize="12"
 			          VerticalAlignment="Center" Margin="10,0,0,0"
 			          AutomationProperties.AutomationId="dict.selbar"/>
+			<CheckBox x:Name="cbsenseonly" DockPanel.Dock="Right" Content="仅释义" FontSize="12"
+			          VerticalAlignment="Center" Margin="10,0,0,0"
+			          AutomationProperties.AutomationId="dict.senseonly"/>
 			<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6,0,0,0"
 			            AutomationProperties.AutomationId="dict.filter">
 				<ToggleButton x:Name="bfiltall" Content="全部" Height="28" Padding="8,0" FontSize="12"

@@ -226,6 +226,8 @@ public partial class DictWindow : UserControl {
 		cbselbar.Unchecked += (_, _) => {
 			if (!selbarsync) SelBarChanged?.Invoke(false);
 		};
+		cbsenseonly.Checked += (_, _) => redrawdetail();
+		cbsenseonly.Unchecked += (_, _) => redrawdetail();
 		filts = new[] { bfiltall, bfiltzh, bfiltja, bfiltko, bfilten };
 		wirefilter(bfiltall, "");
 		wirefilter(bfiltzh, "zh");
@@ -319,6 +321,8 @@ public partial class DictWindow : UserControl {
 		bexport.ToolTip = Loc.T("dict.export.tip");
 		cbselbar.Content = Loc.T("dict.selbar");
 		cbselbar.ToolTip = Loc.T("dict.selbar.tip");
+		cbsenseonly.Content = Loc.T("dict.senseonly");
+		cbsenseonly.ToolTip = Loc.T("dict.senseonly.tip");
 		try { outwin?.ApplyText(); } catch { }
 		bfiltall.Content = Loc.T("dict.filter.all");
 		bfiltzh.Content = Loc.T("dict.filter.zh");
@@ -821,6 +825,14 @@ public partial class DictWindow : UserControl {
 		edetail.Document = newdoc();
 	}
 
+	/// <summary>勾「仅释义」时重画当前词条，尽量停在原来的滚动位置。</summary>
+	void redrawdetail() {
+		if (curentry == null) return;
+		var off = scrollof(edetail)?.VerticalOffset ?? 0;
+		filldetail(curentry);
+		if (off > 0) scrollof(edetail)?.ScrollToVerticalOffset(off);
+	}
+
 	void filldetail(DictEntry e) {
 		if (e == null) { cleardetail(); return; }
 		HideOutside();
@@ -936,20 +948,22 @@ public partial class DictWindow : UserControl {
 						doc.Blocks.Add(z);
 					}
 				}
-				if (s.Sentences.Count > 0) doc.Blocks.Add(one(Loc.T("dict.lab.example"), DRole.ExLabel, 0));
-				var exlang = entrylang;
-				foreach (var ex in s.Sentences) {
-					if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
-					var ep = para(0);
-					addrun(ep, "· " + ex.Text, DRole.Example, exlang);
-					var say = examplesrc(ex.Text);
-					if (say.Length > 0) addspeak(ep, say, exlang);
-					doc.Blocks.Add(ep);
-					if (ex.Zh.Length > 0) {
-						var z = para(0);
-						addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label, "zh");
-						addrun(z, ex.Zh, DRole.Body, "zh");
-						doc.Blocks.Add(z);
+				if (!(cbsenseonly.IsChecked == true)) {
+					if (s.Sentences.Count > 0) doc.Blocks.Add(one(Loc.T("dict.lab.example"), DRole.ExLabel, 0));
+					var exlang = entrylang;
+					foreach (var ex in s.Sentences) {
+						if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
+						var ep = para(0);
+						addrun(ep, "· " + ex.Text, DRole.Example, exlang);
+						var say = examplesrc(ex.Text);
+						if (say.Length > 0) addspeak(ep, say, exlang);
+						doc.Blocks.Add(ep);
+						if (ex.Zh.Length > 0) {
+							var z = para(0);
+							addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label, "zh");
+							addrun(z, ex.Zh, DRole.Body, "zh");
+							doc.Blocks.Add(z);
+						}
 					}
 				}
 				if (!s.Sub && !numbered && s.Phrases.Count == 0 && s.Sentences.Count == 0) {
