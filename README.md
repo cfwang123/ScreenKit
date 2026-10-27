@@ -60,7 +60,6 @@ The main window, or **Tools → Dictionary**. Look up Chinese, English, Japanese
 
 On the PC, open **File sync**; the phone and the PC are on the same LAN.
 
-- The list is `sendfile/` next to the program, one level deep: list or thumbnails, marquee and multi-select, cut/copy/paste, and delete to the Recycle Bin.
 - Dropping files onto the list puts them in the inbox; dropping onto the lower area sends them to the phone while it is connected, and a phone share or upload writes to `sendfile/`.
 - **Web manager** uses the same port: the PC opens `/files` and the phone `/m`, where a login allows uploads, folders, rename, and delete.
 
@@ -156,7 +155,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Japanese conjugation**: Enter the dictionary form or pick a word from the dropdown; auto tells a verb from an i-adjective, na-adjective or noun, and the type can be set by hand. Verbs are listed by class with auxiliaries, politeness, dialect forms and N5-N1 patterns; adjectives and nouns get their own patterns and literary forms, and rough, written, character-speech and sentence-ending groups are listed separately. Each form has a speak button.
   - **Korean verbs**: Pick verb, adjective or noun, type a word or choose one from the list. Forms are grouped by speech level, grammar pattern, contraction, colloquial and literary ending, classical ending, character speech, in-group slang, rough endings, dialect, North Korean, DPRK broadcast or Yanbian. Each form has a speak button.
   - **Russian word forms**: Pick a type and enter the base form; every form is listed at once. Verbs show tense, mood, participles and gerunds, adjectives and nouns their full declension, each form with a speak button.
-  - **English word forms**: Pick auto, verb, adjective or noun and type a word or choose one from the list. Verbs list the sixteen tenses with negatives, questions, passive and moods, including the informal and dialect uses of ain't. Objects follow the dictionary by default: none if intransitive, one if transitive, two if ditransitive, and the choice can be set by hand. Each object can be picked from the list or typed. Adjectives list the comparison forms, nouns the plurals, articles and agreement, each with a speak button.
+  - **English word forms**: Pick auto, verb, adjective or noun and type a word or choose one from the list. Verbs list the sixteen tenses with negatives, questions, passive and moods. Objects follow the dictionary by default: none if intransitive, one if transitive, two if ditransitive, and the choice can be set by hand. Each object can be picked from the list or typed. Adjectives list the comparison forms, nouns the plurals, articles and agreement, each with a speak button.
   - **Color chart**: Named colors
   - **HTTP status codes**: Status codes, descriptions, and specs by 1xx–5xx, plus common non-standard ones
   - **MIME types**: MIME types, file extensions, and Content-Type examples
