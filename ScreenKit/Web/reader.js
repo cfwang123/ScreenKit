@@ -2072,14 +2072,14 @@
 	}
 
 	function packtag(v){
-		if (st.engine === "browser") {
-			if (!isgoogle(v)) return "";
-			if (v.local || packon(v)) return L("web.reader.pack.on", "已装离线包");
-			return L("web.reader.pack.off", "未装离线包");
-		}
-		if (st.engine === "chrome")
-			return packon(v) ? L("web.reader.pack.on", "已装离线包") : L("web.reader.pack.off", "未装离线包");
+		if (!isgoogle(v)) return "";
+		if (st.engine === "browser") return L("web.reader.online", "在线") + " · " + packword(v.local || packon(v));
+		if (st.engine === "chrome") return L("web.reader.online", "在线") + " · " + packword(packon(v));
 		return "";
+	}
+
+	function packword(on){
+		return on ? L("web.reader.pack.on", "已装语音包") : L("web.reader.pack.off", "未装语音包");
 	}
 
 	function curvoice(){
