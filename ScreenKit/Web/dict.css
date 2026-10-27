@@ -141,9 +141,9 @@ button, input, select { font: inherit; }
 	border-radius: 8px;
 }
 .ccnt { color: var(--muted); font-size: 13px; white-space: nowrap; }
-/* 形态变化：按宽度排 2～3 栏（栏数由脚本算），组名占满一行，行间一条细线 */
-.ctab { width: 100%; table-layout: fixed; border-collapse: collapse; }
-.ctab td { padding: 3px 10px 3px 0; vertical-align: top; }
+/* 形态变化：栏宽固定，栏数由脚本按窗口宽度算；只有 1、2 栏时整行均分 */
+.ctab { table-layout: fixed; border-collapse: collapse; }
+.ctab td { padding: 3px 12px 3px 0; vertical-align: top; }
 .ctab tr + tr td { border-top: 1px solid #f0ebe4; }
 .ctab .cgrp { color: #8830a8; font-weight: 600; font-size: 12px; padding-top: 8px; }
 .ctab .clab { color: var(--muted); font-size: 12px; }

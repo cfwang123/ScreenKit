@@ -458,6 +458,17 @@
 				var tb = document.createElement("table");
 				tb.className = "ctab";
 				var n = conjcols(host), last = null, buf = [], i3;
+				// 1、2 栏铺满整行；再多就每栏固定宽度，表格只占需要的宽度
+				tb.style.width = n <= 2 ? "100%" : (n * CONJCELL) + "px";
+				if (n > 2) {
+					var cg = document.createElement("colgroup");
+					for (i3 = 0; i3 < n; i3++) {
+						var col = document.createElement("col");
+						col.style.width = CONJCELL + "px";
+						cg.appendChild(col);
+					}
+					tb.appendChild(cg);
+				}
 				function flush(){
 					while (buf.length) {
 						var tr = document.createElement("tr");
@@ -566,19 +577,25 @@
 		return td;
 	}
 
-	// 按可用宽度排 2～3 栏（至少 2 栏）；窗口宽度变了重排。
+	// 栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。
 	var conjdraw = null, ctimer = 0;
+	var CONJCELL = 200;
 
 	function conjcols(host){
 		var w = host.clientWidth;
 		if (!w) w = host.parentNode ? host.parentNode.clientWidth : 0;
-		return w >= 870 ? 3 : 2;
+		var n = Math.floor(w / CONJCELL);
+		if (n < 1) n = 1;
+		if (n > 8) n = 8;
+		return n;
 	}
 
 	window.addEventListener("resize", function(){
 		if (!conjdraw) return;
 		clearTimeout(ctimer);
-		ctimer = setTimeout(function(){ if (conjdraw) conjdraw(); }, 150);
+		ctimer = setTimeout(function(){
+			if (conjdraw) conjdraw();
+		}, 150);
 	});
 
 	// 形态页顶上那行：实际判定的类型和特殊变化（1类/2类/3类、い/な形容词、不规则说明）。
@@ -1036,3 +1053,4 @@
 	if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
 	else boot();
 })();
+

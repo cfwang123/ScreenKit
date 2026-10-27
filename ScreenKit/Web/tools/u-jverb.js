@@ -251,14 +251,22 @@
 		render(out);
 	}
 
-	// 页面越宽排得越多：先按一栏量出最宽的一行，够放几栏就排几栏，最多四栏；
-	// 排完仍然超宽再逐栏退回，尽量不出现横向滚动条。
+	// 栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。
+	var CELLW = 200;
+
+	function tabopen(cls){
+		var n = perline;
+		var html = '<table class="' + cls + '" style="width:' + (n <= 2 ? "100%" : (n * CELLW) + "px") + '">';
+		if (n > 2) {
+			html += "<colgroup>";
+			for (var i = 0; i < n; i++) html += '<col style="width:' + CELLW + 'px">';
+			html += "</colgroup>";
+		}
+		return html;
+	}
+
 	function render(out){
 		if (!out || !lastpaint) return;
-		perline = 1;
-		out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
-		var tab = out.getElementsByTagName("table")[0];
-		var w = tab ? tab.offsetWidth : 0;
 		var cw = out.clientWidth;
 		if (cw <= 0) {
 			// 刚切到工具页时容器可能还没显示，等一帧再量。
@@ -266,20 +274,10 @@
 			return;
 		}
 		tries = 0;
-		var n = 1;
-		if (w > 0) {
-			n = Math.floor((cw + 10) / (w + 10));
-			if (n > maxcols) n = maxcols;
-			if (n < 1) n = 1;
-		}
-		if (n > 1) {
-			perline = n;
-			out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
-		}
-		while (perline > 1 && out.scrollWidth > out.clientWidth + 2) {
-			perline--;
-			out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
-		}
+		perline = Math.floor(cw / CELLW);
+		if (perline < 1) perline = 1;
+		if (perline > 8) perline = 8;
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
 	}
 
 	function onresize(){
@@ -295,7 +293,7 @@
 	function tablehtml(head, name, rows, tm){
 		var tip = esc(tx("dict.speak", "发音"));
 		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(name) + "</span>"
-			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div><table class=\"jv-tab\">";
+			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div>" + tabopen("jv-tab");
 		var g = null;
 		var buf = [];
 		var i, rg;

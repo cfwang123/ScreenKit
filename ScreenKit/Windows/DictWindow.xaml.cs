@@ -53,6 +53,10 @@ sealed class ConjPane {
 	public Grid Table;
 	public int Index;
 	public int Cols;
+	/// <summary>上一次排版时的可视宽度，宽度变了才重排。</summary>
+	public double Vw = -1;
+	/// <summary>缩窗口时不要每一帧都重排，停下来再算。</summary>
+	public DispatcherTimer Wait;
 	public List<ConjRow> Rows;
 }
 
@@ -986,7 +990,9 @@ public partial class DictWindow : UserControl {
 			Content = pane.Table,
 		};
 		pane.Scroll.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.list." + n);
-		pane.Scroll.SizeChanged += (_, _) => layoutconj(pane);
+		pane.Wait = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
+		pane.Wait.Tick += (_, _) => { pane.Wait.Stop(); layoutconj(pane); };
+		pane.Scroll.SizeChanged += (_, _) => { pane.Wait.Stop(); pane.Wait.Start(); };
 		dock.Children.Add(pane.Scroll);
 		pane.Tab.Content = dock;
 		conjpanes.Add(pane);
@@ -1084,14 +1090,14 @@ public partial class DictWindow : UserControl {
 		})));
 	}
 
-	/// <summary>形态变化表：按宽度排 2～3 栏，每栏左边形变名、右边例句（并列的例句竖排），每句一个发音按钮。</summary>
+	/// <summary>形态变化表：栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。每格形变名在上、例句在下。</summary>
 	void fillconj(int ci) {
 		if (ci < 0 || ci >= conjpanes.Count) return;
 		var pane = conjpanes[ci];
 		if (pane.Rows == null) return;
 		var cols = conjcols(pane);
 		if (cols > 0) pane.Cols = cols;
-		if (pane.Cols < 2) pane.Cols = 2;
+		if (pane.Cols < 1) pane.Cols = 1;
 		var k = (pane.Q.Text ?? "").Trim().ToLowerInvariant();
 		var vis = new List<ConjRow>();
 		foreach (var r in pane.Rows) {
@@ -1103,17 +1109,28 @@ public partial class DictWindow : UserControl {
 		pane.Cnt.Text = string.Format(Loc.T("dict.conj.count"), vis.Count, pane.Rows.Count);
 	}
 
-	/// <summary>一栏至少要放得下「形变名＋一两个例句」，够三段宽就排 3 栏，否则 2 栏。</summary>
-	const double CONJMIN = 290;
+	/// <summary>一栏固定多宽；只有 1、2 栏时按窗口宽度均分。</summary>
+	const double CONJMIN = 200;
+
+	/// <summary>最多排几栏，免得窗口特别宽时排出一长串。</summary>
+	const int CONJMAXCOLS = 8;
 
 	int conjcols(ConjPane pane) {
 		var w = pane.Scroll == null ? 0 : pane.Scroll.ViewportWidth;
 		if (double.IsNaN(w) || w < 40) w = pane.Scroll == null ? 0 : pane.Scroll.ActualWidth;
 		if (double.IsNaN(w) || w < 40) return 0;
-		return w >= CONJMIN * 3 ? 3 : 2;
+		var n = (int)(w / CONJMIN);
+		if (n < 1) n = 1;
+		if (n > CONJMAXCOLS) n = CONJMAXCOLS;
+		return n;
 	}
 
 	void layoutconj(ConjPane pane) {
+		if (pane.Scroll == null || pane.Rows == null) return;
+		var vw = pane.Scroll.ViewportWidth;
+		if (vw < 80) return;                         // 还没排好，等宽度出来再算
+		if (Math.Abs(vw - pane.Vw) < 1 && pane.Cols > 0) return;
+		pane.Vw = vw;
 		var n = conjcols(pane);
 		if (n == 0 || n == pane.Cols) return;
 		fillconj(pane.Index);
@@ -1122,7 +1139,12 @@ public partial class DictWindow : UserControl {
 	/// <summary>把形变行排成表：组名单独占一行，其余按栏从左到右填，行高由这一行最高的一格决定。</summary>
 	Grid conjtable(List<ConjRow> vis, int cols) {
 		var grid = new Grid();
-		for (var c = 0; c < cols; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		for (var c = 0; c < cols; c++) {
+			// 1、2 栏时均分整行，再多就每栏固定宽度
+			grid.ColumnDefinitions.Add(new ColumnDefinition {
+				Width = cols <= 2 ? new GridLength(1, GridUnitType.Star) : new GridLength(CONJMIN),
+			});
+		}
 		var row = 0;
 		var slot = 0;
 		string last = null;
@@ -2185,6 +2207,13 @@ public partial class DictWindow : UserControl {
 		return sb.ToString();
 	}
 }
+
+
+
+
+
+
+
 
 
 
