@@ -6466,17 +6466,14 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Out("open fail B: " + DictDb.Error);
 				return 2;
 			}
-			var onlyA = 0;
+			var set = new HashSet<long>(a);
 			var onlyB = 0;
-			if (a.Count != b.Count) {
-				var set = new HashSet<long>(a);
-				foreach (var id in b) {
-					if (!set.Remove(id)) onlyB++;
-				}
-				onlyA = set.Count;
+			foreach (var id in b) {
+				if (!set.Remove(id)) onlyB++;
 			}
-			var mark = a.Count == b.Count ? "相同" : "不同";
-			if (a.Count != b.Count) diff++;
+			var onlyA = set.Count;
+			var mark = onlyA == 0 && onlyB == 0 ? "相同" : "不同";
+			if (onlyA != 0 || onlyB != 0) diff++;
 			Out($"q={q} A={a.Count} B={b.Count} {mark} onlyA={onlyA} onlyB={onlyB}");
 		}
 		DictDb.Close();
