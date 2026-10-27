@@ -25,7 +25,7 @@
 	var kind = "all", row = "", sep = " | ";
 
 	SK.regutil("u-jname", {
-		title: "日本人名",
+		title: "日本姓名查询",
 		go: "查询",
 		body: body,
 		open: open,

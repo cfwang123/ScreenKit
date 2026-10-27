@@ -64,7 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System tools: the file associations page lists every registered extension with its document type, default app and command line, filtered as you type.
 - Double-click the camera picture for fullscreen in the window and the web tool.
 - English word forms list every informal and dialect use of ain't for verbs, adjectives and nouns.
-- Web tools: a Japanese names tool that looks up readings for surnames and given names in both directions - kanji to kana and kana to kanji. It covers 97k surnames and 122k given names from JMnedict, shows population counts for the top 5,000 surnames, browses by kana row, and copies a row on click.
+- Web tools: a Japanese name lookup tool that reads surnames and given names in both directions - kanji to kana and kana to kanji. It covers 97k surnames and 122k given names from JMnedict, shows population counts for the top 5,000 surnames, browses by kana row, and lays results out in several columns with paging by button or by typing a page number; the text is selectable. The data does not ship with the app: the first use downloads jname.7z (about 1MB) from the fixed dict-db release, extracts web/jname-s.txt and web/jname-g.txt and reuses them, and the minimal package never includes them.
 - System tools: a context menu page lists the shell extensions and generic commands behind Explorer's right-click menus (files, folders, folder background, drives, desktop), with the registry key, DLL or command line, and the source program.
 
 #### Changed
@@ -86,7 +86,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
 - Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
 - Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる, and the word-forms tab conjugates the kana form too (くれない, not 呉れない).
-- Japanese names tool: the name data no longer ships in the package. It downloads jname.7z (about 1MB) from the fixed dict-db release on first use, extracts web/jname-s.txt and web/jname-g.txt, and reuses them afterwards. The minimal package never includes the data.
 - The minimal package no longer ships web/L.js (about 1.5MB). The language script is rebuilt from lang/*.toml on the first request and cached next to the web files.
 
 #### Fixed
@@ -166,7 +165,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统工具：文件关联页直接列出全部已注册的扩展名及类型、默认应用和命令行，输入即可筛选。
 - 窗口相机和网页相机双击画面全屏。
 - 英语词形变化为动词、形容词和名词列出 ain't 的全部口语和方言用法。
-- 网页工具：新增「日本人名」，查日本姓氏和名字的读音，汉字出假名、假名反查汉字；姓氏 9.7 万个、名字 12 万个（取自 JMnedict），前 5000 姓带人数，可按五十音行浏览，点一行复制。
+- 网页工具：新增「日本姓名查询」，查日本姓氏和名字的读音，汉字出假名、假名反查汉字；姓氏 9.7 万个、名字 12 万个（取自 JMnedict），前 5000 姓带人数，可按五十音行浏览，结果多栏排列、可翻页也可直接输入页码跳转，文字可选中复制。数据不随包发布：第一次使用时从固定的 dict-db 下载 jname.7z（约 1MB），解出 web/jname-s.txt、web/jname-g.txt 后直接用本机文件，精简包也不含这份数据。
 - 系统工具：新增「右键菜单」页，列出资源管理器右键菜单（文件、文件夹、文件夹背景、驱动器、桌面）里的外壳扩展和通用命令，带注册表项、DLL 或命令行和来源程序。
 
 #### 变更
@@ -188,7 +187,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
 - 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
 - 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる；形态变化也按假名变（くれない，而不是 呉れない）。
-- 日本人名工具：姓名数据不再随包发布，第一次使用时从固定的 dict-db 下载 jname.7z（约 1MB），解出 web/jname-s.txt、web/jname-g.txt，之后直接用本机文件；精简包也不含这份数据。
 - 精简包不再带 web/L.js（约 1.5MB）。界面语言脚本在第一次请求时按 lang/*.toml 重新合成，之后缓存在 web 目录。
 
 #### 修复
