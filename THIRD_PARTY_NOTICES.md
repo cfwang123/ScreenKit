@@ -35,6 +35,7 @@ Always verify the license of the **exact package version** you ship.
 | **ZXing.dll**, **SharpCompress.dll**, **e_sqlite3.dll** | Barcode, `tar.bz2` extract, dictionary | Not in the release archive. **Help → Install features** downloads them |
 | [Bogus](https://github.com/bchavez/Bogus) `Bogus.dll` 35.6.5 | Test data on the tools page | MIT. Not in the release archive. **Help → Install features** downloads it |
 | [NPinyin](https://www.nuget.org/packages/NPinyin) `NPinyin.dll` 0.2.6321.26573 | Chinese to pinyin and initials | AWangSoft Inc. © 2011. The nupkg ships no license file. Not in the release archive. **Help → Install features** downloads it |
+| **Japanese name data** (`web/jname-s.txt`, `web/jname-g.txt`, downloaded as `jname.7z` from the `dict-db` release) | Surname and given-name readings for the web name-lookup tool | Derived from [JMnedict](https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project), © EDRDG, **CC BY-SA 4.0**; the population ranking for the top 5,000 surnames comes from [siikamiika/japanese-family-names](https://github.com/siikamiika/japanese-family-names). Keep the attribution if you redistribute the data |
 
 ## Reference / research code
 
