@@ -34,6 +34,11 @@ public partial class SysToolWindow : Window {
 		public int Pid { get; set; }
 		public string Mem { get; set; }
 		public ulong MemBytes { get; set; }
+		public string Commit { get; set; }
+		public ulong CommitBytes { get; set; }
+		public uint Threads { get; set; }
+		public uint Handles { get; set; }
+		public string Start { get; set; }
 		public string Bits { get; set; }
 		public string Admin { get; set; }
 		public string Path { get; set; }
@@ -73,6 +78,7 @@ public partial class SysToolWindow : Window {
 		bprocopen.Click += (_, _) => openproc();
 		eproc.TextChanged += (_, _) => paintproc();
 		lvproc.SelectionChanged += (_, _) => showproc();
+		lvproc.MouseDoubleClick += (_, _) => copycmd();
 		blockfind.Click += (_, _) => loadlock();
 		blockfile.Click += (_, _) => pickfile();
 		blockdir.Click += (_, _) => pickdir();
@@ -119,10 +125,13 @@ public partial class SysToolWindow : Window {
 		colprocname.Header = Loc.T("systool.col.name");
 		colprocpid.Header = Loc.T("systool.col.pid");
 		colprocmem.Header = Loc.T("systool.col.mem");
+		colproccommit.Header = Loc.T("systool.col.commit");
+		colprocthreads.Header = Loc.T("systool.col.threads");
+		colprochandles.Header = Loc.T("systool.col.handles");
 		colprocbits.Header = Loc.T("systool.col.bits");
 		colprocelev.Header = Loc.T("systool.col.elev");
+		colprocstart.Header = Loc.T("systool.col.starttime");
 		colprocpath.Header = Loc.T("systool.col.path");
-		colproccmd.Header = Loc.T("systool.col.cmd");
 		collockname.Header = Loc.T("systool.col.name");
 		collockpid.Header = Loc.T("systool.col.pid");
 		collockpath.Header = Loc.T("systool.col.path");
@@ -190,10 +199,13 @@ public partial class SysToolWindow : Window {
 		var view = new List<ProcItem>();
 		foreach (var r in procs) {
 			var it = new ProcItem {
-				Name = r.Name, Pid = r.Pid, Mem = r.Mem, MemBytes = r.MemBytes, Path = r.Path, Cmd = r.Cmd,
+				Name = r.Name, Pid = r.Pid, Mem = r.Mem, MemBytes = r.MemBytes,
+				Commit = r.Commit, CommitBytes = r.CommitBytes, Threads = r.Threads,
+				Handles = r.Handles, Start = r.Start, Path = r.Path, Cmd = r.Cmd,
 				Bits = procbits(r.Bits), Admin = procelev(r.Elev),
 			};
-			if (q.Length == 0 || has(q, it.Name, it.Path, it.Cmd, it.Pid.ToString(), it.Mem, it.Bits, it.Admin))
+			if (q.Length == 0 || has(q, it.Name, it.Path, it.Cmd, it.Pid.ToString(), it.Mem, it.Commit,
+					it.Threads.ToString(), it.Handles.ToString(), it.Start, it.Bits, it.Admin))
 				view.Add(it);
 		}
 		fill(lvproc, view);
@@ -209,13 +221,30 @@ public partial class SysToolWindow : Window {
 			return;
 		}
 		bprocopen.IsEnabled = File.Exists(it.Path);
-		lbprocinfo.Text = join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, procmeta(it.Bits, it.Admin));
+		lbprocinfo.Text = join(
+			$"{it.Name}  {it.Pid}  {it.Mem}",
+			it.Path,
+			procmeta(it.Bits, it.Admin),
+			$"{Loc.T("systool.col.threads")} {it.Threads}  {Loc.T("systool.col.handles")} {it.Handles}  {Loc.T("systool.col.commit")} {it.Commit}",
+			$"{Loc.T("systool.proc.start")} {it.Start}");
 		eproccmd.Text = noquote(it.Cmd);
 	}
 
 	void copyproc() {
 		if (lvproc.SelectedItem is not ProcItem it) return;
-		setclip(join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, procmeta(it.Bits, it.Admin), noquote(it.Cmd)));
+		setclip(join(
+			$"{it.Name}  {it.Pid}  {it.Mem}",
+			it.Path,
+			procmeta(it.Bits, it.Admin),
+			$"{Loc.T("systool.col.threads")} {it.Threads}  {Loc.T("systool.col.handles")} {it.Handles}  {Loc.T("systool.col.commit")} {it.Commit}",
+			$"{Loc.T("systool.proc.start")} {it.Start}",
+			noquote(it.Cmd)));
+	}
+
+	// 双击只复制命令行，跟提示文字一致。
+	void copycmd() {
+		if (lvproc.SelectedItem is not ProcItem it) return;
+		setclip(noquote(it.Cmd));
 	}
 
 	static string procmeta(string bits, string admin) => $"{bits}  {admin}".Trim();

@@ -78,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean word forms add a classical ending group for verbs, adjectives and nouns.
 - System tools: click a column header to sort by that column, click again to sort in reverse.
 - Japanese word forms: ですよね added to the sentence-endings group (食べますよね / 食べませんよね).
+- System tools: the process list shows start time, handle count, thread count and commit size; double-click a row to copy its command line.
 
 #### Changed
 
@@ -110,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English verb objects follow the dictionary: intransitive, transitive, or two objects.
 - English verb objects can be typed, not only picked from the list.
 - The English irregular-verb page reads the single list kept in the conjugation data.
+- Dictionary verb forms for English can take one or two objects, typed or chosen like the word-form tool.
 
 #### Fixed
 
@@ -200,6 +202,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词形变化为动词、形容词和名词补上古代语词尾。
 - 系统工具：点列头按该列排序，再点同一列倒序。
 - 日语形态变化：「语气（终助词）」组补上 ですよね（食べますよね / 食べませんよね）。
+- 系统工具：进程列表显示启动时间、句柄数、线程数和提交大小；双击一行复制命令行。
 
 #### 变更
 
@@ -232,6 +235,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语动词的宾语个数默认按词典词性判断：不及物、及物或双宾语。
 - 英语词形变化的宾语可以自己输入，不必只从列表里选。
 - 英文不规则动词页改为读取词形变化里的那一份表，不再另存一份。
+- 词典里的英语动词变化可以选一个或两个宾语，和词形变化工具一样能自己输入。
 
 #### 修复
 

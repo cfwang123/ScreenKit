@@ -13,6 +13,11 @@ static class SysTool {
 		public string Name = "";
 		public string Mem = "";
 		public ulong MemBytes;
+		public string Commit = "";
+		public ulong CommitBytes;
+		public uint Threads;
+		public uint Handles;
+		public string Start = "";
 		public string Path = "";
 		public string Cmd = "";
 		public int Bits = 64;
@@ -76,7 +81,7 @@ static class SysTool {
 	public static List<ProcRow> Procs() {
 		var list = new List<ProcRow>();
 		using var search = new ManagementObjectSearcher(
-			"SELECT ProcessId,Name,ExecutablePath,CommandLine,WorkingSetSize FROM Win32_Process");
+			"SELECT ProcessId,Name,ExecutablePath,CommandLine,WorkingSetSize,ThreadCount,HandleCount,CreationDate FROM Win32_Process");
 		foreach (ManagementObject mo in search.Get()) {
 			using (mo) {
 				var row = new ProcRow();
@@ -86,6 +91,9 @@ static class SysTool {
 				row.Cmd = text(mo["CommandLine"]);
 				row.MemBytes = toulong(mo["WorkingSetSize"]);
 				row.Mem = bytes(row.MemBytes);
+				row.Threads = (uint)toulong(mo["ThreadCount"]);
+				row.Handles = (uint)toulong(mo["HandleCount"]);
+				row.Start = starttime(mo["CreationDate"]);
 				if (row.Name.Length == 0) row.Name = row.Pid.ToString();
 				procflags(row);
 				list.Add(row);
@@ -99,6 +107,18 @@ static class SysTool {
 		return list;
 	}
 
+	static string starttime(object v) {
+		try {
+			if (v is DateTime dt) return dt.ToString("yyyy-MM-dd HH:mm:ss");
+			var s = v?.ToString() ?? "";
+			// CIM_DATETIME：20261027091203.123456+480
+			if (s.Length >= 14 && char.IsDigit(s[0]))
+				return $"{s.Substring(0, 4)}-{s.Substring(4, 2)}-{s.Substring(6, 2)} {s.Substring(8, 2)}:{s.Substring(10, 2)}:{s.Substring(12, 2)}";
+		}
+		catch { }
+		return "";
+	}
+
 	// 平台位数与是否提权。64 位系统上 WOW64 进程算 32 位；打不开的进程只给系统位数。
 	static void procflags(ProcRow row) {
 		row.Bits = Environment.Is64BitOperatingSystem ? 64 : 32;
@@ -106,6 +126,7 @@ static class SysTool {
 		if (h == IntPtr.Zero) return;
 		try {
 			if (IsWow64Process(h, out var wow) && wow) row.Bits = 32;
+			meminfo(row, h);
 			if (!OpenProcessToken(h, 0x0008, out var tok)) return;
 			try {
 				if (GetTokenInformation(tok, 20, out var elev, 4, out _)) row.Elev = elev != 0 ? 1 : 0;
@@ -113,6 +134,15 @@ static class SysTool {
 			finally { CloseHandle(tok); }
 		}
 		finally { CloseHandle(h); }
+	}
+
+	// 提交大小：任务管理器「提交大小」对应的 pagefile 用量。
+	static void meminfo(ProcRow row, IntPtr h) {
+		var pmc = new PMC();
+		pmc.cb = (uint)Marshal.SizeOf(typeof(PMC));
+		if (!GetProcessMemoryInfo(h, ref pmc, (int)pmc.cb)) return;
+		row.CommitBytes = (ulong)pmc.PagefileUsage.ToInt64();
+		row.Commit = bytes(row.CommitBytes);
 	}
 
 	public static List<LockRow> Locks(string path, out string err) {
@@ -377,6 +407,11 @@ static class SysTool {
 		log($"self bits={selfrow.Bits} elev={selfrow.Elev}");
 		if (selfrow.Bits != (Environment.Is64BitOperatingSystem ? 64 : 32) || selfrow.Elev < 0) {
 			err("本进程的平台/权限不对");
+			return 1;
+		}
+		log($"self start={selfrow.Start} threads={selfrow.Threads} handles={selfrow.Handles} commit={selfrow.Commit}");
+		if (selfrow.Start.Length == 0 || selfrow.Threads == 0 || selfrow.Handles == 0 || selfrow.CommitBytes == 0) {
+			err("本进程的启动时间/线程/句柄/提交大小不对");
 			return 1;
 		}
 		var env = Env(out var warn);
@@ -676,6 +711,24 @@ static class SysTool {
 
 	[DllImport("kernel32.dll")]
 	static extern bool CloseHandle(IntPtr h);
+
+	[DllImport("psapi.dll")]
+	static extern bool GetProcessMemoryInfo(IntPtr h, ref PMC pmc, int cb);
+
+	[StructLayout(LayoutKind.Sequential)]
+	struct PMC {
+		public uint cb;
+		public uint PageFaultCount;
+		public IntPtr PeakWorkingSetSize;
+		public IntPtr WorkingSetSize;
+		public IntPtr QuotaPeakPagedPoolUsage;
+		public IntPtr QuotaPagedPoolUsage;
+		public IntPtr QuotaPeakNonPagedPoolUsage;
+		public IntPtr QuotaNonPagedPoolUsage;
+		public IntPtr PagefileUsage;
+		public IntPtr PeakPagefileUsage;
+		public IntPtr PrivateUsage;
+	}
 
 	[DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)]
 	static extern int RmStartSession(out uint pSessionHandle, int dwSessionFlags, StringBuilder strSessionKey);

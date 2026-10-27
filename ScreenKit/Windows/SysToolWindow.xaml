@@ -56,13 +56,16 @@
 						<ListView x:Name="lvproc" BorderBrush="{StaticResource BorderSoft}">
 							<ListView.View>
 								<GridView>
-									<GridViewColumn x:Name="colprocname" Width="145" DisplayMemberBinding="{Binding Name}"/>
-									<GridViewColumn x:Name="colprocpid" Width="60" DisplayMemberBinding="{Binding Pid}"/>
-									<GridViewColumn x:Name="colprocmem" Width="70" sk:GridViewSort.SortPath="MemBytes" DisplayMemberBinding="{Binding Mem}"/>
-									<GridViewColumn x:Name="colprocbits" Width="55" DisplayMemberBinding="{Binding Bits}"/>
-									<GridViewColumn x:Name="colprocelev" Width="75" DisplayMemberBinding="{Binding Admin}"/>
-									<GridViewColumn x:Name="colprocpath" Width="165" DisplayMemberBinding="{Binding Path}"/>
-									<GridViewColumn x:Name="colproccmd" Width="160" DisplayMemberBinding="{Binding Cmd}"/>
+									<GridViewColumn x:Name="colprocname" Width="120" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colprocpid" Width="50" DisplayMemberBinding="{Binding Pid}"/>
+									<GridViewColumn x:Name="colprocmem" Width="60" sk:GridViewSort.SortPath="MemBytes" DisplayMemberBinding="{Binding Mem}"/>
+									<GridViewColumn x:Name="colproccommit" Width="60" sk:GridViewSort.SortPath="CommitBytes" DisplayMemberBinding="{Binding Commit}"/>
+									<GridViewColumn x:Name="colprocthreads" Width="45" DisplayMemberBinding="{Binding Threads}"/>
+									<GridViewColumn x:Name="colprochandles" Width="45" DisplayMemberBinding="{Binding Handles}"/>
+									<GridViewColumn x:Name="colprocbits" Width="50" DisplayMemberBinding="{Binding Bits}"/>
+									<GridViewColumn x:Name="colprocelev" Width="65" DisplayMemberBinding="{Binding Admin}"/>
+									<GridViewColumn x:Name="colprocstart" Width="120" DisplayMemberBinding="{Binding Start}"/>
+									<GridViewColumn x:Name="colprocpath" Width="135" DisplayMemberBinding="{Binding Path}"/>
 								</GridView>
 							</ListView.View>
 						</ListView>
