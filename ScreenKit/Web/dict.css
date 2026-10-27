@@ -209,8 +209,8 @@ body.m .top { height: 44px; padding: 0 10px; }
 body.m .top strong { font-size: 15px; }
 body.m .bar { flex-wrap: wrap; padding: 6px 10px; gap: 6px; }
 body.m #fmt, body.m #export { display: none; }
-body.m .filts { flex: 1 1 100%; overflow-x: auto; }
-body.m #speak { height: 30px; }
+body.m .filts { flex: 1 1 auto; min-width: 0; overflow-x: auto; }
+body.m #speak { flex: none; height: 30px; margin-left: auto; }
 body.m .split { display: block; overflow: hidden; padding: 0 10px 6px; }
 body.m #hits { width: auto; min-width: 0; height: 100%; border: 0; }
 body.m #detail { height: 100%; border: 0; padding: 2px 0 24px; }
@@ -219,6 +219,7 @@ body.m.route-e #hits { display: none; }
 body.m.route-e #detail { display: block; }
 body.m.route-e #back { display: inline-flex; }
 body.m .ctab { table-layout: fixed; }
+
 
 
 
