@@ -48,7 +48,7 @@ sealed class JpConjLabels {
 	public string bekinai, monoda, kotoda, tsumori, yotei;
 	public string degree, gachi, kimi, ippou, bakari;
 	public string tokoro1, tokoro2, tokoro3;
-	public string confirm, kana, kashira, deshoune, janai;
+	public string confirm, kana, kashira, deshoune, janai, nodeha;
 	public string reason, nodakara, monode, okage;
 	public string naihasei, nasa, nasage, nasasugiru;
 	public string cop, degozaru, degozaimasu;
@@ -518,6 +518,7 @@ static class JpConj {
 			L.kashira = "かしら";
 			L.deshoune = "でしょうね";
 			L.janai = "んじゃないか";
+			L.nodeha = "のでは（＝のではないか）";
 			L.reason = "原因・理由";
 			L.nodakara = "のだから";
 			L.monode = "もので";
@@ -729,6 +730,7 @@ static class JpConj {
 		L.kashira = "kashira";
 		L.deshoune = "deshou ne";
 		L.janai = "n ja nai ka";
+		L.nodeha = "no de wa (= no de wa nai ka)";
 		L.reason = "Reason";
 		L.nodakara = "no dakara";
 		L.monode = "mono de";
@@ -1053,6 +1055,8 @@ static class JpConj {
 		rows.AddRange(pair(L.kashira, k.drop + "かしら", k.neg + "かしら", L.confirm));
 		rows.AddRange(pair(L.deshoune, k.drop + "でしょうね", k.neg + "でしょうね", L.confirm));
 		rows.AddRange(pair(L.janai, k.attrib + "んじゃないか", k.neg + "んじゃないか", L.confirm));
+		// 婉曲的推测：行くのでは（ないか）、学生なのでは（ないか）。比 んじゃないか 更书面、更委婉。
+		rows.AddRange(pair(L.nodeha, k.attrib + "のでは、" + k.attrib + "のではないか", k.neg + "のでは", L.confirm));
 		rows.AddRange(pair(L.nodakara, k.attrib + "のだから", k.neg + "のだから", L.reason));
 		rows.AddRange(pair(L.monode, k.attrib + "もので", k.neg + "もので", L.reason));
 		if (verb) rows.AddRange(pair(L.okage, k.ta + "おかげで", "", L.reason));
