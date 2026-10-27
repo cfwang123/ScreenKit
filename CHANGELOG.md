@@ -52,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - CLI --test-dict-senseonly checks that Definitions only hides example sentences.
 - CLI --test-dict-install downloads dict3-core.7z and rebuilds dict3.bin beside that exe.
 - Japanese name lookup splits a full name into a matching surname and given name.
+- Japanese conjugation handles -zuru verbs (信ずる, 命ずる, 重んずる) with their mixed じ/ぜ stems; the Japanese IME word list now includes their conjugated forms.
 
 #### Changed
 
@@ -61,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese name lookup no longer shows surname population, and each row has a speak button.
 - Korean entries list phrases under a Phrases heading, with each phrase and its Chinese gloss on one line told apart by colour.
 - Korean example sentences put the Chinese translation on the same line, in the same style as phrases.
+- Japanese name readings can generate a random name. Japanese and Korean full names from fake data are family name then given name, with no space.
 
 #### Fixed
 
@@ -77,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 命令行 --test-dict-senseonly 校验「仅释义」勾选后详情不再显示例句。
 - 命令行 --test-dict-install 按安装功能下载 dict3-core.7z，并在该程序旁重建 dict3.bin。
 - 日本姓名查询可以输入完整姓名，拆成能对上的姓和名。
+- 日语动词变形支持 ずる 动词（信ずる、命ずる、重んずる）的 じ／ぜ 混合活用；日语输入法词库也写入这些活用形。
 
 #### 变更
 
@@ -86,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日本姓名查询不再显示姓的人数，每条旁边可以听读音。
 - 韩语词条词组改为「词组：」列表，每条词组与中文释义排在同一行，用颜色区分。
 - 韩语例句的中文翻译也并到同一行，与词组排版一致。
+- 「日本姓名查询」改名为「日本姓名读法」，可以随机生成一个日本姓名。测试数据里的日语、韩语姓名改为姓在前、中间不空格。
 
 #### 修复
 

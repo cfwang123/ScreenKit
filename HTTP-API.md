@@ -377,7 +377,7 @@ Conjugation table for Japanese, Korean and English verbs, adjectives and nouns. 
 | `q` / `word` | string | Dictionary form, e.g. `食べる`, `하다`, `go`. Empty returns 802 |
 | `kind` | string | Japanese POS: `1` `2` `3` `ai` `an` `n`; guessed from the ending when omitted |
 | `flag` | string | Japanese specials: `iku` `kure` `aru` `arunai` `ute` |
-| `sub` | string | Japanese group 3: `suru` `kuru` |
+| `sub` | string | Japanese group 3: `suru` `kuru` `zuru` (信ずる, 重んずる …) |
 | `type` | string | Korean/English type or POS: `auto` `v` `a` `n` … |
 | `ui` | string | Label language: `zh` prefix for Chinese, otherwise English; defaults to the UI language |
 

@@ -312,9 +312,10 @@ static class JpConj {
 		var sub = "";
 		if (s.Contains("keiyodoshi")) kind = "an";
 		else if (s.Contains("keiyoushi")) kind = "ai";
+		// ずる动词的词典词性带 ichidan（「Ichidan verb - zuru verb …」），要先认 zuru。
+		else if (s.Contains("zuru verb")) { kind = "3"; sub = "zuru"; }
 		else if (s.Contains("ichidan")) kind = "2";
 		else if (s.Contains("kuru verb")) { kind = "3"; sub = "kuru"; }
-		else if (s.Contains("zuru verb")) { kind = "3"; sub = "zuru"; }
 		else if (s.Contains("suru verb") && !s.Contains("takes the aux")) { kind = "3"; sub = "suru"; }
 		else if (s.Contains("godan")) kind = "1";
 		else if (s.Contains("noun")) kind = "n";

@@ -236,9 +236,11 @@ static class ImeJaExpand {
 		else if (s.Contains("'u'") && s.Contains("ending (special")) flag = "ute";
 		else if (s.Contains("-aru special")) flag = "aru";
 		else if (s.Contains("irregular verb")) flag = "arunai";
-		if (s.Contains("ichidan verb") || s.Contains("ichidan")) kind = 2;
+		// ずる动词的词典词性写作「Ichidan verb - zuru verb (alternative form of -jiru verbs)」，
+		// 要排在 ichidan 前面，否则会按一段活用出 信ずます。
+		if (s.Contains("zuru verb")) { kind = 3; sub = "zuru"; }
+		else if (s.Contains("ichidan verb") || s.Contains("ichidan")) kind = 2;
 		else if (s.Contains("kuru verb")) { kind = 3; sub = "kuru"; }
-		else if (s.Contains("zuru verb")) { kind = 3; sub = "zuru"; }
 		else if (s.Contains("suru verb") && !s.Contains("takes the aux")) { kind = 3; sub = "suru"; }
 		else if (s.Contains("godan")) kind = 1;
 	}
