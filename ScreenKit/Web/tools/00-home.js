@@ -301,58 +301,6 @@
 					{
 						x:"button",
 						"type":"button",
-						"data-tool":"u-jverb",
-						"data-cat":"text",
-						"data-name":"日语词形变化 日语动词变形 活用 五段 一段 する くる いく い形容词 な形容词 名词 敬语 尊敬 谦让 方言 verb adjective noun",
-						"title":"列出动词、い形容词、な形容词、名词的变化，含补助动词、敬语和方言。输入框可下拉常见词和特殊变化，每项可以发音",
-						c:[
-						{x:"i.fa-solid.fa-language"},
-						{x:"span","data-k":"web.tool.jverb",c:"日语词形变化"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-jverb","title":"收藏"}
-					]
-					},
-					{
-						x:"button",
-						"type":"button",
-						"data-tool":"u-kverb",
-						"data-cat":"text",
-						"data-name":"韩语 韩文 动词 形容词 变化 活用 하다 먹다 살다 发音 conjugation korean verb",
-						"title":"输入韩语词典形，列出动词或形容词的变化，每条可以听发音",
-						c:[
-						{x:"i.fa-solid.fa-language"},
-						{x:"span","data-k":"web.tool.kverb",c:"韩语动词变化"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-kverb","title":"收藏"}
-					]
-					},
-					{
-						x:"button",
-						"type":"button",
-						"data-tool":"u-rverb",
-						"data-cat":"text",
-						"data-name":"俄语 俄文 动词 形容词 名词 变化 变位 变格 活用 читать красивый книга 完成体 未完成体 分词 副动词 格 动物 方言 conjugation declension russian",
-						"title":"输入俄语动词、形容词或名词，列出体、时态、命令式、假定式、语气、分词、副动词，或形容词、名词的变格和特殊形式",
-						c:[
-						{x:"i.fa-solid.fa-language"},
-						{x:"span","data-k":"web.tool.rverb",c:"俄语词形变化"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-rverb","title":"收藏"}
-					]
-					},
-					{
-						x:"button",
-						"type":"button",
-						"data-tool":"u-everb",
-						"data-cat":"text",
-						"data-name":"英语 英文 动词 时态 一般现在时 一般过去时 一般将来时 现在进行时 现在完成时 过去完成时 将来完成时 过去将来 被动语态 否定 疑问 变形 conjugation tense verb 形容词 比较级 最高级 名词 复数 所有格 冠词 adjective noun plural",
-						"title":"输入英语动词、形容词或名词，列出时态变化、比较级和最高级、复数和所有格，每项可以发音",
-						c:[
-						{x:"i.fa-solid.fa-clock"},
-						{x:"span","data-k":"web.tool.everb",c:"英语词形变化"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-everb","title":"收藏"}
-					]
-					},
-					{
-						x:"button",
-						"type":"button",
 						"data-tool":"u-mdread",
 						"data-cat":"text",
 						"data-name":"md 阅读器 markdown 预览 拖入",
@@ -491,6 +439,58 @@
 						{x:"i.fa-solid.fa-ruler"},
 						{x:"span","data-k":"web.tool.unit",c:"单位换算"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-unit","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-jverb",
+						"data-cat":"info",
+						"data-name":"日语词形变化 日语动词变形 活用 五段 一段 する くる いく い形容词 な形容词 名词 敬语 尊敬 谦让 方言 verb adjective noun",
+						"title":"列出动词、い形容词、な形容词、名词的变化，含补助动词、敬语和方言。输入框可下拉常见词和特殊变化，每项可以发音",
+						c:[
+						{x:"i.fa-solid.fa-language"},
+						{x:"span","data-k":"web.tool.jverb",c:"日语词形变化"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-jverb","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-kverb",
+						"data-cat":"info",
+						"data-name":"韩语 韩文 动词 形容词 变化 活用 하다 먹다 살다 发音 conjugation korean verb",
+						"title":"输入韩语词典形，列出动词或形容词的变化，每条可以听发音",
+						c:[
+						{x:"i.fa-solid.fa-language"},
+						{x:"span","data-k":"web.tool.kverb",c:"韩语动词变化"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-kverb","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-rverb",
+						"data-cat":"info",
+						"data-name":"俄语 俄文 动词 形容词 名词 变化 变位 变格 活用 читать красивый книга 完成体 未完成体 分词 副动词 格 动物 方言 conjugation declension russian",
+						"title":"输入俄语动词、形容词或名词，列出体、时态、命令式、假定式、语气、分词、副动词，或形容词、名词的变格和特殊形式",
+						c:[
+						{x:"i.fa-solid.fa-language"},
+						{x:"span","data-k":"web.tool.rverb",c:"俄语词形变化"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-rverb","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
+						"data-tool":"u-everb",
+						"data-cat":"info",
+						"data-name":"英语 英文 动词 时态 一般现在时 一般过去时 一般将来时 现在进行时 现在完成时 过去完成时 将来完成时 过去将来 被动语态 否定 疑问 变形 conjugation tense verb 形容词 比较级 最高级 名词 复数 所有格 冠词 adjective noun plural",
+						"title":"输入英语动词、形容词或名词，列出时态变化、比较级和最高级、复数和所有格，每项可以发音",
+						c:[
+						{x:"i.fa-solid.fa-clock"},
+						{x:"span","data-k":"web.tool.everb",c:"英语词形变化"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-everb","title":"收藏"}
 					]
 					},
 					{

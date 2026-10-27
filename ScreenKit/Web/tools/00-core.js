@@ -1608,7 +1608,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (spec.hideCopy) F.id("box-copy").style.display = "none";
 		if (spec.hideOut) F.id("box-out").parentElement.style.display = "none";
 		if (spec.open) spec.open();
-		if (spec.live !== false && textcard(name)) bindboxlive();
+		if (spec.live === true || (spec.live !== false && textcard(name))) bindboxlive();
 	}
 
 	function textcard(name){
