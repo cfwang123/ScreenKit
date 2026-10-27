@@ -77,6 +77,7 @@ static class Cli {
 				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-rebuild" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
 				or "--test-dict-scroll"
+				or "--test-dict-senseonly"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
 				or "--test-llm-continue"
 				or "--test-llm-chat"
@@ -450,6 +451,8 @@ static class Cli {
 					return testdicthost();
 				case "--test-dict-scroll":
 					return testdictscroll(Opt());
+				case "--test-dict-senseonly":
+					return testdictsenseonly();
 				case "--test-selbar":
 					return SelBar.Test(Out);
 				case "--test-dict-tr":
@@ -7022,6 +7025,71 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 	}
 
+	/// <summary>勾「仅释义」后详情不再显示例句，其它内容照旧。</summary>
+	static int testdictsenseonly() {
+		Out("=== 仅释义 --test-dict-senseonly ===");
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		DictHostWindow win = null;
+		try {
+			win = new DictHostWindow("hello", () => new OcrOptions(), _ => { });
+			win.Show();
+			win.host.bfilten.IsChecked = true;
+			var start = Environment.TickCount;
+			while (Environment.TickCount - start < 8000 && win.host.lhits.Items.Count == 0) {
+				pump();
+				System.Threading.Thread.Sleep(5);
+			}
+			if (win.host.lhits.Items.Count == 0) {
+				Err("FAIL: 没有查出结果");
+				return 1;
+			}
+			win.host.lhits.SelectedIndex = 0;
+			var before = "";
+			start = Environment.TickCount;
+			while (Environment.TickCount - start < 8000) {
+				pump();
+				before = detailtext(win.host);
+				if (before.Length > 0) break;
+				System.Threading.Thread.Sleep(5);
+			}
+			var label = Loc.T("dict.lab.example");
+			if (before.IndexOf(label, StringComparison.Ordinal) < 0) {
+				Err("FAIL: 第一条词条没有例句，无法比较");
+				return 2;
+			}
+			win.host.cbsenseonly.IsChecked = true;
+			for (var i = 0; i < 10; i++) pump();
+			var after = detailtext(win.host);
+			Out($"before={before.Length} after={after.Length} label={before.Contains(label)}/{after.Contains(label)}");
+			if (after.IndexOf(label, StringComparison.Ordinal) >= 0) {
+				Err("FAIL: 勾选后例句标签还在");
+				return 3;
+			}
+			if (after.Length >= before.Length) {
+				Err("FAIL: 勾选后详情没有变短");
+				return 4;
+			}
+			Out("=== OK：勾选仅释义后详情不再显示例句 ===");
+			return 0;
+		}
+		finally {
+			try { win?.Close(); } catch { }
+		}
+
+		static void pump() {
+			var frame = new DispatcherFrame();
+			Dispatcher.CurrentDispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => frame.Continue = false));
+			Dispatcher.PushFrame(frame);
+		}
+
+		static string detailtext(DictWindow d) {
+			var doc = d.edetail.Document;
+			if (doc == null) return "";
+			return new System.Windows.Documents.TextRange(doc.ContentStart, doc.ContentEnd).Text ?? "";
+		}
+	}
+
 	static int testdicttr() {
 		Out("=== 划词翻译立即开始 --test-dict-tr ===");
 		if (Application.Current != null)
@@ -7562,6 +7630,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
       --test-dict-scroll [词]  换词典语言后原词条仍选中并滚到它；词条不在新词典就回到顶部；划词浮窗切语言回顶部
+      --test-dict-senseonly  勾「仅释义」后详情不再显示例句，其它内容照旧
       --test-selbar  读本进程文本框的选中文字，并检查划词查词浮窗的位置和不抢焦点
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge

@@ -48,6 +48,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - CLI --test-dict-count compares full hit counts of two dict3.bin files, without the 4000-row cap.
 - CLI --test-dict-rebuild rebuilds dict3.bin from the core package and prints how long each stage takes.
+- Dictionary page adds a Definitions only checkbox that hides example sentences in the entry detail.
+- CLI --test-dict-senseonly checks that Definitions only hides example sentences.
 
 #### Fixed
 
@@ -60,6 +62,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 命令行 --test-dict-count 比较两份 dict3.bin 的全部命中数，不受 4000 条上限。
 - 命令行 --test-dict-rebuild 从核心包重建 dict3.bin，并打印各段耗时。
+- 词典页新增「仅释义」勾选框，勾选后词条详情不显示例句。
+- 命令行 --test-dict-senseonly 校验「仅释义」勾选后详情不再显示例句。
 
 #### 修复
 
