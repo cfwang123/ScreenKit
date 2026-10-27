@@ -63,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean entries list phrases under a Phrases heading, with each phrase and its Chinese gloss on one line told apart by colour.
 - Korean example sentences put the Chinese translation on the same line, in the same style as phrases.
 - Japanese name readings can generate a random name. Japanese and Korean full names from fake data are family name then given name, with no space.
+- Korean entry details indent the translated definitions and put a blank line before the phrase and example blocks.
 
 #### Fixed
 
@@ -90,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词条词组改为「词组：」列表，每条词组与中文释义排在同一行，用颜色区分。
 - 韩语例句的中文翻译也并到同一行，与词组排版一致。
 - 「日本姓名查询」改名为「日本姓名读法」，可以随机生成一个日本姓名。测试数据里的日语、韩语姓名改为姓在前、中间不空格。
+- 韩语词条详情里译文释义缩进，词组和例句前各空一行。
 
 #### 修复
 

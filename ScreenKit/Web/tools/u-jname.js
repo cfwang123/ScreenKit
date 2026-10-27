@@ -28,7 +28,7 @@
 	var markn = 1;
 
 	SK.regutil("u-jname", {
-		title: "日本姓名查询",
+		title: "日本姓名读法",
 		go: "查询",
 		body: body,
 		open: open,
@@ -44,6 +44,7 @@
 	function body(){
 		var i;
 		var html = '<div class="jn"><div class="uquery"><input id="jn-q" type="text" placeholder="输入汉字、假名或姓名，如 佐藤 / 佐藤太郎">'
+			+ '<button type="button" id="jn-rand">随机</button>'
 			+ '<span id="jn-msg" class="msg"></span></div>'
 			+ '<div class="jnseg" id="jn-seg">';
 		for (i = 0; i < KINDS.length; i++)
@@ -58,7 +59,7 @@
 			+ '<span id="jn-pages" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
 			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict。首次打开要下载约 1MB 数据，之后直接用本机文件。'
-			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会拆成姓和名再配读音；文字可以直接选中复制，喇叭听这一条的读音。</p></div>';
+			+ '输入汉字查读法，输入假名反查汉字。输入完整姓名（如 佐藤太郎）会拆成姓和名再配读音；点「随机」生成一个姓名。文字可以直接选中复制，喇叭听这一条的读音。</p></div>';
 		return html;
 	}
 
@@ -69,6 +70,8 @@
 		var list = F.id("jn-list");
 		if (!q || !list) return;
 		var timer = 0;
+		var randbtn = F.id("jn-rand");
+		if (randbtn) randbtn.onclick = rand;
 		q.oninput = function(){
 			clearTimeout(timer);
 			timer = setTimeout(paint, 120);
@@ -107,6 +110,29 @@
 		window.addEventListener("resize", function(){ render(); });
 		place();
 		load();
+	}
+
+	function rand(){
+		SK.post("/api/fake", { locale: "ja", kind: "name", n: 8 }, function(data){
+			var lines = String(data && data.text || "").split(/\r?\n/);
+			var q = F.id("jn-q");
+			var seg = F.id("jn-seg");
+			var i, line, pick;
+			if (!q) return;
+			kind = "n";
+			if (seg) mark(seg, "n");
+			place();
+			pick = "";
+			for (i = 0; i < lines.length; i++) {
+				line = lines[i].replace(/\s+/g, "");
+				if (!line) continue;
+				pick = line;
+				if (sur && giv && pairsof(line).length) break;
+			}
+			if (!pick) return;
+			q.value = pick;
+			load();
+		}, "jn-msg");
 	}
 
 	function place(){

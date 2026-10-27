@@ -1293,7 +1293,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 
 
 
-/* 日本姓名查询：类型切换、五十音行、结果列表。列表占满剩余高度，翻页条始终在下面。 */
+/* 日本姓名读法：类型切换、五十音行、结果列表。列表占满剩余高度，翻页条始终在下面。 */
 #box.panel.on:has(.jn) { overflow: hidden; }
 #box.panel.on:has(.jn) #box-body {
 	flex: 1 1 auto; min-height: 0; min-width: 0;
@@ -1304,6 +1304,14 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	flex: 1 1 auto; min-height: 0; min-width: 0;
 }
 .jn > .uquery, .jn > .jnseg, .jn > .jnidx, .jn > .jnpager, .jn > .hint { flex: none; }
+#jn-q { flex: none; width: 240px; max-width: 46%; }
+#jn-rand {
+	flex: none; height: 32px; padding: 0 12px; cursor: pointer;
+	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
+	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+#jn-rand:hover { background: #fff1e8; }
+.jn > .uquery .msg { margin-left: auto; }
 .jnscroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .jnseg, .jnidx { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
 .jnseg button, .jnidx button {

@@ -932,7 +932,8 @@ public partial class DictWindow : UserControl {
 						}
 					}
 					var p = para(0);
-					if (!numbered && !s.Sub) {
+					var withnum = !numbered && !s.Sub;
+					if (withnum) {
 						addrun(p, n + ". ", DRole.Number);
 						numbered = true;
 						n++;
@@ -941,6 +942,8 @@ public partial class DictWindow : UserControl {
 					addrun(p, text, DRole.Body, lang);
 					doc.Blocks.Add(p);
 					if (senseonly) curp = p;
+					// 韩语：编号行顶格，其下的中/英/日释义缩进。
+					if (e.Dict == "ko" && !withnum) indent(p);
 				}
 				// 仅释义只出一种语言的释义：界面语言优先，没有就英文、中文、日文、韩文依次回退。
 				void glossone(DictSense sn) {
@@ -969,8 +972,11 @@ public partial class DictWindow : UserControl {
 					gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
 				}
 				if (e.Dict == "ko" && s.Phrases.Count > 0 && s.Idiom.Length == 0) {
-					// 韩语：词组与中文释义排成一行，用颜色区分，前面加「词组：」列表头。
-					doc.Blocks.Add(one(Loc.T("dict.lab.phrase") + "：", DRole.Label, 0));
+					// 韩语：词组与中文释义排成一行，用颜色区分，前面加「词组：」列表头，并缩进。
+					doc.Blocks.Add(para(4));
+					var phhead = one(Loc.T("dict.lab.phrase") + "：", DRole.Label, 0);
+					indent(phhead);
+					doc.Blocks.Add(phhead);
 					foreach (var ph in s.Phrases) {
 						if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
 						var p = para(0);
@@ -982,6 +988,7 @@ public partial class DictWindow : UserControl {
 							addrun(p, "  ", DRole.Body);
 							addrun(p, ph.Zh, DRole.Label, "zh");
 						}
+						indent(p);
 						doc.Blocks.Add(p);
 					}
 				}
@@ -1005,7 +1012,12 @@ public partial class DictWindow : UserControl {
 					}
 				}
 				if (!(cbsenseonly.IsChecked == true)) {
-					if (s.Sentences.Count > 0) doc.Blocks.Add(one(Loc.T("dict.lab.example"), DRole.ExLabel, 0));
+					if (s.Sentences.Count > 0) {
+						if (e.Dict == "ko") doc.Blocks.Add(para(4));
+						var exhead = one(Loc.T("dict.lab.example"), DRole.ExLabel, 0);
+						if (e.Dict == "ko") indent(exhead);
+						doc.Blocks.Add(exhead);
+					}
 					var exlang = entrylang;
 					foreach (var ex in s.Sentences) {
 						if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
@@ -1023,6 +1035,7 @@ public partial class DictWindow : UserControl {
 							addrun(ep, "  ", DRole.Body);
 							addrun(ep, ex.Zh, DRole.Label, "zh");
 						}
+						if (e.Dict == "ko") indent(ep);
 						doc.Blocks.Add(ep);
 						if (ex.Zh.Length > 0 && !same) {
 							var z = para(0);
@@ -1148,8 +1161,9 @@ public partial class DictWindow : UserControl {
 		}
 		foreach (var t in texts) {
 			if (lang == "ja") {
-				if (Has(t, "kuru verb")) put("v", "3", "kuru");
-				else if (Has(t, "zuru verb")) put("v", "3", "zuru");
+				// ずる动词的词性带 ichidan（「Ichidan verb - zuru verb …」），zuru 要排在前面。
+				if (Has(t, "zuru verb")) put("v", "3", "zuru");
+				else if (Has(t, "kuru verb")) put("v", "3", "kuru");
 				else if (Has(t, "suru verb") || Has(t, "aux. verb suru")) put("v", "3", "suru");
 				else if (Has(t, "ichidan verb")) put("v", "2", "");
 				else if (Has(t, "godan verb")) put("v", "1", "");
@@ -2408,6 +2422,13 @@ public partial class DictWindow : UserControl {
 
 	static Paragraph para(double bottom) {
 		return new Paragraph { Margin = new Thickness(0, 0, 0, bottom), LineHeight = 18 };
+	}
+
+	/// <summary>段落左侧缩进，韩语的释义行、词组和例句用。</summary>
+	static void indent(Paragraph p) {
+		if (p == null) return;
+		var m = p.Margin;
+		p.Margin = new Thickness(16, m.Top, m.Right, m.Bottom);
 	}
 
 	static Paragraph one(string text, DRole role, double bottom, string lang = null) {

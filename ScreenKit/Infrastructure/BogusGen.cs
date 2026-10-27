@@ -348,12 +348,19 @@ static class BogusGen {
 		}
 	}
 
-	/// <summary>中文姓名是姓在前，中间不空格。Bogus 的 FullName 是名在前。</summary>
+	/// <summary>中文、日语、韩语姓名是姓在前，中间不空格。其它语言用 Bogus 的 FullName。</summary>
 	static string zhname(object faker, string locale) {
 		var name = prop(faker, "Name");
-		if (locale.StartsWith("zh", StringComparison.OrdinalIgnoreCase))
-			return callstr(name, "LastName") + callstr(name, "FirstName");
+		if (familyfirst(locale))
+			return $"{callstr(name, "LastName")}{callstr(name, "FirstName")}";
 		return callstr(name, "FullName");
+	}
+
+	static bool familyfirst(string locale) {
+		if (string.IsNullOrEmpty(locale)) return false;
+		return locale.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+			|| locale.StartsWith("ja", StringComparison.OrdinalIgnoreCase)
+			|| locale.StartsWith("ko", StringComparison.OrdinalIgnoreCase);
 	}
 
 	/// <summary>
@@ -366,10 +373,7 @@ static class BogusGen {
 		var name = prop(faker, "Name");
 		var last = callstr(name, "LastName");
 		var first = callstr(name, "FirstName");
-		var familyfirst = locale.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-			|| locale.StartsWith("ja", StringComparison.OrdinalIgnoreCase)
-			|| locale.StartsWith("ko", StringComparison.OrdinalIgnoreCase);
-		var full = (familyfirst ? last + first : first + last).Replace(" ", "");
+		var full = (familyfirst(locale) ? last + first : first + last).Replace(" ", "");
 		if (!hasletter(full)) return raw.Length > 0 ? raw : full;
 		var pick = num(faker, 0, 2);
 		if (pick == 0) return full + num(faker, 0, 99).ToString(CultureInfo.InvariantCulture);

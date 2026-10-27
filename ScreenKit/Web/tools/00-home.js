@@ -459,11 +459,11 @@
 						"type":"button",
 						"data-tool":"u-jname",
 						"data-cat":"info",
-						"data-name":"日本姓名查询 日本人名 姓名读音 姓氏 名字 苗字 読み方 name surname reading",
-						"title":"查日本姓氏和名字的读法。输入完整姓名会拆成姓和名并配上读音，每条可以听",
+						"data-name":"日本姓名读法 日本姓名查询 日本人名 姓名读音 姓氏 名字 苗字 読み方 随机 name surname reading",
+						"title":"查日本姓氏和名字的读法。输入完整姓名会拆成姓和名并配上读音，也可以随机生成一个姓名，每条可以听",
 						c:[
 						{x:"i.fa-solid.fa-id-card"},
-						{x:"span",c:"日本姓名查询"},
+						{x:"span",c:"日本姓名读法"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-jname","title":"收藏"}
 					]
 					},
