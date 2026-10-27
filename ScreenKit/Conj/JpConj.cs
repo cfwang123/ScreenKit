@@ -34,7 +34,7 @@ sealed class JpConjLabels {
 	public string rough, zo, ze, wa, sa, me, kke, mon, tekure, kusaru, koku;
 	public string end, endyo, enddesuyo, endne, enddesune, endyone, enddesuyone, endwayo, endno, endkana, endkashira, endkoto;
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
-	public string jane, njane, kayo, jyan, jnet, nakune;
+	public string jane, njane, kayo, jyan, jnet, nakune, dato;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, rentai;
@@ -458,6 +458,7 @@ static class JpConj {
 			L.jyan = "やん（关西＝じゃん）";
 			L.jnet = "网络（笑）";
 			L.nakune = "なくね（＝ないよね）";
+			L.dato = "だと（传闻・引用）";
 			L.jnari = "なり（武士）";
 			L.jdesourou = "でそうろう（文语）";
 			L.jojaru = "でおじゃる（古风）";
@@ -667,6 +668,7 @@ static class JpConj {
 		L.jyan = "yan (Kansai = jan)";
 		L.jnet = "net slang (lol)";
 		L.nakune = "naku ne (= nai yo ne)";
+		L.dato = "da to (hearsay)";
 		L.jnari = "nari (samurai)";
 		L.jdesourou = "de sourou (classical)";
 		L.jojaru = "de ojaru (archaic)";
@@ -790,7 +792,7 @@ static class JpConj {
 			row(L.deshou, word + "でしょう、" + s + "くないでしょう、" + s + "かったでしょう、" + s + "くなかったでしょう"),
 			row(L.tarou, s + "かったろう、" + s + "くなかったろう"),
 			row(L.nda, word + "んだ、" + s + "くないんだ"),
-			row(L.tte, word + "って、" + s + "くないって"),
+			row(L.tte, word + "って、" + word + "んだって、" + s + "くないって、" + s + "くないんだって"),
 		};
 		var k = new JpConjForms {
 			plain = word, pred = word, drop = word, attrib = word, attribn = word,
@@ -845,7 +847,7 @@ static class JpConj {
 			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
 			row(L.tarou, word + "だったろう、" + word + "ではなかったろう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
-			row(L.tte, word + "だって、" + word + "ではないって"),
+			row(L.tte, word + "だって、" + word + "なんだって、" + word + "ではないって"),
 		};
 		var k = new JpConjForms {
 			plain = word, pred = word + "だ", drop = word, attrib = word + "な", attribn = word + "な",
@@ -884,7 +886,7 @@ static class JpConj {
 			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
 			row(L.tarou, word + "だったろう、" + word + "ではなかったろう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
-			row(L.tte, word + "だって、" + word + "ではないって"),
+			row(L.tte, word + "だって、" + word + "なんだって、" + word + "ではないって"),
 		};
 		var k = new JpConjForms {
 			plain = word, pred = word + "だ", drop = word, attrib = word + "な", attribn = word + "の",
@@ -933,7 +935,7 @@ static class JpConj {
 		rows.Add(row(L.tai, tai));
 		rows.Add(row(L.takunai, cut(tai, 2) + "たくない"));
 		rows.Add(row(L.nda, plain + "んだ、" + nai + "んだ"));
-		rows.Add(row(L.tte, plain + "って、" + nai + "って"));
+		rows.Add(row(L.tte, plain + "って、" + plain + "んだって、" + nai + "って、" + nai + "んだって"));
 		rows.Add(row(L.noda, plain + "のです、" + plain + "んです"));
 		rows.Add(row(L.kke, ta + "っけ、" + plain + "っけ"));
 		rows.Add(row(L.mon, plain + "もん、" + plain + "んだもん"));
@@ -1063,6 +1065,8 @@ static class JpConj {
 		var dan = kind == "v" || kind == "i" ? "" : "だ";
 		var na = kind == "a" || kind == "n" ? "な" : "";
 		var pol = kind == "v" ? masu : plain + "です";
+		// だとの接续：动词和い形容词接 んだと，な形容词和名词接 だと。
+		var dato = kind == "v" || kind == "i" ? plain + "んだと" : plain + "だと";
 		var rows = new List<ConjRow> {
 			new(L.endyo, plain + dan + "よ、" + nai + "よ", L.end),
 			new(L.enddesuyo, pol + "よ、" + polneg + "よ", L.end),
@@ -1100,6 +1104,9 @@ static class JpConj {
 			new(L.nakune, cut(nai, 1) + "くね？、" + cut(nai, 1) + "くねえか", L.end),
 			// 网络上的玩笑说法：句尾加笑（ｗ／草），否定同样接。
 			new(L.jnet, plain + "ｗ、" + plain + "草、" + nai + "ｗ、" + nai + "草", L.end),
+			// 传闻・引用：行くんだと、学生だと（「〜だと思う／〜だと言う」的省略）。否定接 ない：
+			// 行かないんだと、行かないだと（反问）。
+			new(L.dato, dato + "、" + dato + "さ、" + nai + "んだと、" + nai + "だと", L.end),
 		};
 		if (kind == "v") {
 			rows.Add(new ConjRow(L.endkoto, plain + "こと、" + nai + "こと", L.end));

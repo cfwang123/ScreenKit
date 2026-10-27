@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese conjugation handles -zuru verbs (信ずる, 命ずる, 重んずる) with their mixed じ/ぜ stems; the Japanese IME word list now includes their conjugated forms.
 - Japanese conjugation table adds colloquial and net endings: じゃん／じゃんね, じゃね？／じゃねえか, んじゃね／なんじゃね, かよ, 〜ｗ／〜草, verb だろ, Kansai やん, plus くねえ／じゃねえ negative variants.
 - Every colloquial ending row also shows its negative (行かないじゃん, 行かないんじゃね？, 学生じゃなくね？, 行かへんやん), and a new 〜なくね row covers 高くなくね／行かなくね.
+- The って row now covers んだって hearsay (行くんだって, 学生なんだって), and a new だと row adds 行くんだと／学生だと with んだとさ and the negative 行かないんだと／行かないだと.
 
 #### Changed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语动词变形支持 ずる 动词（信ずる、命ずる、重んずる）的 じ／ぜ 混合活用；日语输入法词库也写入这些活用形。
 - 日语变化表补充口语与网络说法：じゃん／じゃんね、じゃね？／じゃねえか、んじゃね／なんじゃね、かよ、〜ｗ／〜草、动词的だろ，以及关西的やん；い形容词和な形容词、名词的否定也补上 くねえ／じゃねえ。
 - 口语语气行都补上否定说法（行かないじゃん、行かないんじゃね？、学生じゃなくね？、行かへんやん），并新增「〜なくね」行（高くなくね、行かなくね）。
+- 「って」行补上 んだって 传闻形（行くんだって、学生なんだって），新增「だと」行：行くんだと、学生だと、んだとさ，以及否定的 行かないんだと、行かないだと。
 
 #### 变更
 
