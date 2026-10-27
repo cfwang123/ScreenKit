@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese name lookup splits a full name into a matching surname and given name.
 - Japanese conjugation handles -zuru verbs (信ずる, 命ずる, 重んずる) with their mixed じ/ぜ stems; the Japanese IME word list now includes their conjugated forms.
 - Japanese conjugation table adds colloquial and net endings: じゃん／じゃんね, じゃね？／じゃねえか, んじゃね／なんじゃね, かよ, 〜ｗ／〜草, verb だろ, Kansai やん, plus くねえ／じゃねえ negative variants.
+- Every colloquial ending row also shows its negative (行かないじゃん, 行かないんじゃね？, 学生じゃなくね？, 行かへんやん), and a new 〜なくね row covers 高くなくね／行かなくね.
 
 #### Changed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean entry details indent the translated definitions and put a blank line before the phrase and example blocks.
 - English entry details indent the translated definitions, list phrases under a Phrases heading with indented definitions and examples, and put example translations on the same line.
 - Name search lists each matched surname and given name on its own row, including cuts where only one side matches, and readings are shown in full.
+- Japanese name readings no longer has a full-name tab. Searching a full name under All shows one surname and one given name.
 
 #### Fixed
 
@@ -85,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日本姓名查询可以输入完整姓名，拆成能对上的姓和名。
 - 日语动词变形支持 ずる 动词（信ずる、命ずる、重んずる）的 じ／ぜ 混合活用；日语输入法词库也写入这些活用形。
 - 日语变化表补充口语与网络说法：じゃん／じゃんね、じゃね？／じゃねえか、んじゃね／なんじゃね、かよ、〜ｗ／〜草、动词的だろ，以及关西的やん；い形容词和な形容词、名词的否定也补上 くねえ／じゃねえ。
+- 口语语气行都补上否定说法（行かないじゃん、行かないんじゃね？、学生じゃなくね？、行かへんやん），并新增「〜なくね」行（高くなくね、行かなくね）。
 
 #### 变更
 
@@ -98,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词条详情里译文释义缩进，词组和例句前各空一行。
 - 英语词条详情里译文释义缩进，词组改为「词组：」列表（词组下的释义和例句缩进），例句中文并到同一行。
 - 搜索姓名时，对上的姓和名各占一行，只对上其中一边也会列出，不同切分长度都会显示；读音不再省略。
+- 日本姓名读法去掉「姓名」分类。在「全部」里搜索完整姓名时，只显示最匹配的一姓和一名。
 
 #### 修复
 

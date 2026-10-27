@@ -34,7 +34,7 @@ sealed class JpConjLabels {
 	public string rough, zo, ze, wa, sa, me, kke, mon, tekure, kusaru, koku;
 	public string end, endyo, enddesuyo, endne, enddesune, endyone, enddesuyone, endwayo, endno, endkana, endkashira, endkoto;
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
-	public string jane, njane, kayo, jyan, jnet;
+	public string jane, njane, kayo, jyan, jnet, nakune;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, rentai;
@@ -457,6 +457,7 @@ static class JpConj {
 			L.kayo = "かよ（反语）";
 			L.jyan = "やん（关西＝じゃん）";
 			L.jnet = "网络（笑）";
+			L.nakune = "なくね（＝ないよね）";
 			L.jnari = "なり（武士）";
 			L.jdesourou = "でそうろう（文语）";
 			L.jojaru = "でおじゃる（古风）";
@@ -665,6 +666,7 @@ static class JpConj {
 		L.kayo = "ka yo (backtalk)";
 		L.jyan = "yan (Kansai = jan)";
 		L.jnet = "net slang (lol)";
+		L.nakune = "naku ne (= nai yo ne)";
 		L.jnari = "nari (samurai)";
 		L.jdesourou = "de sourou (classical)";
 		L.jojaru = "de ojaru (archaic)";
@@ -1089,17 +1091,20 @@ static class JpConj {
 			new(L.jssu, plain + "っす、" + nai + "っす", L.end),
 			new(L.jssho, plain + "っしょ、" + nai + "っしょ", L.end),
 			// 口语的断定・反问：じゃん（＝じゃないか）、じゃね、んじゃね（な形容词和名词是 なんじゃね）。
-			new(L.jjan, plain + "じゃん、" + plain + "じゃんね、" + plain + "じゃんか、" + nai + "じゃん", L.end),
-			new(L.jane, plain + "じゃね？、" + plain + "じゃねえか", L.end),
-			new(L.njane, plain + na + "んじゃね？、" + plain + na + "んじゃねえか", L.end),
+			// 每行都把否定接上：行かないじゃん、行かないんじゃね？、学生じゃなくね？
+			new(L.jjan, plain + "じゃん、" + plain + "じゃんね、" + plain + "じゃんか、" + nai + "じゃん、" + nai + "じゃんね", L.end),
+			new(L.jane, plain + "じゃね？、" + plain + "じゃねえか、" + nai + "じゃね？、" + nai + "じゃねえか", L.end),
+			new(L.njane, plain + na + "んじゃね？、" + plain + na + "んじゃねえか、" + nai + "んじゃね？、" + nai + "んじゃねえか", L.end),
 			new(L.kayo, plain + "かよ、" + nai + "かよ", L.end),
-			// 网络上的玩笑说法：句尾加笑（ｗ／草）。
-			new(L.jnet, plain + "ｗ、" + plain + "草", L.end),
+			// 「〜なくね？」＝「〜ないよね？」：高くなくね、行かなくね、学生じゃなくね。
+			new(L.nakune, cut(nai, 1) + "くね？、" + cut(nai, 1) + "くねえか", L.end),
+			// 网络上的玩笑说法：句尾加笑（ｗ／草），否定同样接。
+			new(L.jnet, plain + "ｗ、" + plain + "草、" + nai + "ｗ、" + nai + "草", L.end),
 		};
 		if (kind == "v") {
 			rows.Add(new ConjRow(L.endkoto, plain + "こと、" + nai + "こと", L.end));
-			// 动词的推量：行くだろ／行くだろう（形容词、名词在各自的表里已有）。
-			rows.Add(new ConjRow(L.darou, plain + "だろ、" + plain + "だろう", L.end));
+			// 动词的推量：行くだろ／行くだろう、行かないだろ／行かないだろう（形容词、名词在各自的表里已有）。
+			rows.Add(new ConjRow(L.darou, plain + "だろ、" + plain + "だろう、" + nai + "だろ、" + nai + "だろう", L.end));
 		}
 		if (kind == "a" || kind == "n") rows.Add(new ConjRow(L.jnari, plain + "なり、" + nai + "なり", L.end));
 		if (kind == "n") rows.Add(new ConjRow(L.me, plain + "め", L.end));
@@ -1227,8 +1232,8 @@ static class JpConj {
 		if (!aru) {
 			rows.Add(new ConjRow(L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks));
 			rows.Add(new ConjRow(L.gson, ren + "はる", L.dks));
-			// 关西的「〜やん」就是标准语的「〜じゃん」。
-			rows.Add(new ConjRow(L.jyan, std.plain + "やん", L.dks));
+			// 关西的「〜やん」就是标准语的「〜じゃん」，否定用关西的 へん。
+			rows.Add(new ConjRow(L.jyan, std.plain + "やん、" + nai + "やん", L.dks));
 			if (!kure) rows.Add(new ConjRow(L.cmd, ren + "なはれ", L.dks));
 		}
 		// 九州（博多）：ない＝ん，ている＝とる，一段とサ変的命令＝れ
@@ -1256,7 +1261,7 @@ static class JpConj {
 			new(L.nai, ji + "へん", L.dks),
 			new(L.naide, ji + "んといて", L.dks),
 			new(L.gson, ji + "はる", L.dks),
-			new(L.jyan, std.plain + "やん", L.dks),
+			new(L.jyan, std.plain + "やん、" + ji + "へんやん", L.dks),
 			new(L.cmd, ji + "なはれ", L.dks),
 			new(L.nai, ji + "ん", L.dky),
 			new(L.teiru, tes + "とる", L.dky),
