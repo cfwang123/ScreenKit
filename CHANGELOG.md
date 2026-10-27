@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary word-forms tab: each form has a speaker button
 - Web dictionary: a phone layout that shows one page at a time with a back button, opens automatically on phones, and can be switched to and from the desktop layout. Every page has its own hash URL (#/q/<query>, #/q/<query>/e/<entry>, .../c/<word-forms tab>) so refresh and browser back work.
 - Japanese word forms: the contracted ちゃう / じゃう forms (食べちゃう, 飲んじゃう, しちゃう) and their past forms, listed under te-form +.
+- Japanese word forms: the casual contraction of ている (食べてる, 飲んでる), with its past, negative and polite forms, listed under te-form +.
 
 #### Changed
 
@@ -166,6 +167,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典形态变化页：每行加了发音按钮
 - 网页词典：增加手机版（一屏一页、带返回按钮），手机上自动进入，也能和电脑版互相切换；每个页面有独立地址（#/q/<查询词>、#/q/<查询词>/e/<词条>、…/c/<变形标签>），刷新和后退都能回到原处。
 - 日语形态变化：补上口语缩略的 ちゃう／じゃう 形（食べちゃう、飲んじゃう、しちゃう）及其过去形，归在「て形＋」组里。
+- 日语形态变化：补上 ている 的口语缩略（食べてる、飲んでる）及其过去、否定、敬体形，归在「て形＋」组里。
 
 #### 变更
 

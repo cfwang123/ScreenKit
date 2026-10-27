@@ -30,6 +30,7 @@ sealed class JpConjLabels {
 	public string tekuru, teiku, tekudasai;
 	public string mashou, mashouka, masenka;
 	public string kchau, kchatta;
+	public string teru, teta, tenai, temasu;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, sa, rentai;
@@ -400,6 +401,10 @@ static class JpConj {
 			L.mashou = "ましょう";
 			L.mashouka = "ましょうか";
 			L.masenka = "ませんか";
+			L.teru = "てる";
+			L.teta = "てた";
+			L.tenai = "てない";
+			L.temasu = "てます";
 			L.kchau = "ちゃう・じゃう";
 			L.kchatta = "ちゃった・じゃった";
 			L.ai = "い形容词";
@@ -559,6 +564,10 @@ static class JpConj {
 		L.mashou = "mashou";
 		L.mashouka = "mashou ka";
 		L.masenka = "masen ka";
+			L.teru = "teru";
+			L.teta = "teta";
+			L.tenai = "tenai";
+			L.temasu = "temasu";
 			L.kchau = "chau / jau";
 			L.kchatta = "chatta / jatta";
 		L.ai = "i-adjective";
@@ -974,6 +983,11 @@ static class JpConj {
 		};
 		var teerows = new List<ConjRow> {
 			row(L.teiru, te + "いる"),
+			// ている 的口语缩略：てる・でる
+			row(L.teru, te + "る"),
+			row(L.teta, te + "た"),
+			row(L.tenai, te + "ない"),
+			row(L.temasu, te + "ます"),
 			row(L.teoku, te + "おく"),
 			row(L.teshimau, te + "しまう"),
 			// てしまう 的口语缩略：て＋ちゃう、で＋じゃう
