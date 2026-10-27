@@ -34,7 +34,7 @@ sealed class JpConjLabels {
 	public string rough, zo, ze, wa, sa, me, kke, mon, tekure, kusaru, koku;
 	public string end, endyo, enddesuyo, endne, enddesune, endyone, enddesuyone, endwayo, endno, endkana, endkashira, endkoto;
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
-	public string jane, njane, kayo, jyan, jnet, nakune, dato;
+	public string jane, njane, kayo, nokayo, jyan, jnet, nakune, dato;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, rentai;
@@ -455,6 +455,7 @@ static class JpConj {
 			L.jane = "じゃね（＝じゃないか）";
 			L.njane = "んじゃね／なんじゃね";
 			L.kayo = "かよ（反语）";
+			L.nokayo = "のかよ（詰问）";
 			L.jyan = "やん（关西＝じゃん）";
 			L.jnet = "网络（笑）";
 			L.nakune = "なくね（＝ないよね）";
@@ -665,6 +666,7 @@ static class JpConj {
 		L.jane = "ja ne (= ja nai ka)";
 		L.njane = "n ja ne / nan ja ne";
 		L.kayo = "ka yo (backtalk)";
+		L.nokayo = "no ka yo (demanding)";
 		L.jyan = "yan (Kansai = jan)";
 		L.jnet = "net slang (lol)";
 		L.nakune = "naku ne (= nai yo ne)";
@@ -1095,11 +1097,12 @@ static class JpConj {
 			new(L.jssu, plain + "っす、" + nai + "っす", L.end),
 			new(L.jssho, plain + "っしょ、" + nai + "っしょ", L.end),
 			// 口语的断定・反问：じゃん（＝じゃないか）、じゃね、んじゃね（な形容词和名词是 なんじゃね）。
-			// 每行都把否定接上：行かないじゃん、行かないんじゃね？、学生じゃなくね？
-			new(L.jjan, plain + "じゃん、" + plain + "じゃんね、" + plain + "じゃんか、" + nai + "じゃん、" + nai + "じゃんね", L.end),
-			new(L.jane, plain + "じゃね？、" + plain + "じゃねえか、" + nai + "じゃね？、" + nai + "じゃねえか", L.end),
+			// 否定接在 ない 后面：行かないじゃん、行かないんじゃね？、学生じゃなくね？
+			new(L.jjan, plain + "じゃん、" + plain + "じゃんね、" + plain + "じゃんか、" + nai + "じゃん", L.end),
+			new(L.jane, kind == "a" || kind == "n"
+				? plain + "じゃね？、" + plain + "じゃねえか"
+				: plain + "じゃないか、" + plain + "じゃねえか", L.end),
 			new(L.njane, plain + na + "んじゃね？、" + plain + na + "んじゃねえか、" + nai + "んじゃね？、" + nai + "んじゃねえか", L.end),
-			new(L.kayo, plain + "かよ、" + nai + "かよ", L.end),
 			// 「〜なくね？」＝「〜ないよね？」：高くなくね、行かなくね、学生じゃなくね。
 			new(L.nakune, cut(nai, 1) + "くね？、" + cut(nai, 1) + "くねえか", L.end),
 			// 网络上的玩笑说法：句尾加笑（ｗ／草），否定同样接。
@@ -1108,6 +1111,11 @@ static class JpConj {
 			// 行かないんだと、行かないだと（反问）。
 			new(L.dato, dato + "、" + dato + "さ、" + nai + "んだと、" + nai + "だと", L.end),
 		};
+		// 「〜かよ」是反语、吐槽，接动词、い形容词、名词；な形容词要说 静かなのかよ，不列。
+		// 它本身不接否定，「行かないかよ」不自然，否定用下面的 のかよ。
+		if (kind != "a") rows.Add(new ConjRow(L.kayo, plain + "かよ", L.end));
+		// 詰問的「〜のかよ」：行くのかよ、行かないのかよ；な形容词、名词中间加 な。
+		rows.Add(new ConjRow(L.nokayo, plain + na + "のかよ、" + nai + "のかよ", L.end));
 		if (kind == "v") {
 			rows.Add(new ConjRow(L.endkoto, plain + "こと、" + nai + "こと", L.end));
 			// 动词的推量：行くだろ／行くだろう、行かないだろ／行かないだろう（形容词、名词在各自的表里已有）。
