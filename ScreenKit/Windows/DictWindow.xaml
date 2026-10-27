@@ -5,40 +5,10 @@
         FontFamily="Segoe UI, Microsoft YaHei UI"
         FontSize="13"
         AutomationProperties.AutomationId="dict.window">
-	<UserControl.Resources>
-		<DataTemplate x:Key="ConjRowTemplate">
-			<StackPanel>
-				<TextBlock Text="{Binding G}" Visibility="{Binding HeadVis}"
-				           FontWeight="SemiBold" Foreground="#8830A8"
-				           Margin="0,8,0,2" TextWrapping="Wrap"/>
-				<Grid Visibility="{Binding RowVis}">
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="220"/>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="Auto"/>
-					</Grid.ColumnDefinitions>
-					<TextBlock Text="{Binding L}" Foreground="#285AAA"
-					           TextWrapping="Wrap" Margin="0,0,8,0"/>
-					<TextBlock Grid.Column="1" Text="{Binding V}" TextWrapping="Wrap"/>
-					<Button Grid.Column="2" Content="🔊" FontSize="13" Width="26" Height="26"
-					        Margin="4,0,0,0" Padding="0" VerticalAlignment="Top"
-					        Background="Transparent" BorderThickness="0" Foreground="#2878BE"
-					        Cursor="Hand" Focusable="False"
-					        AutomationProperties.AutomationId="dict.conj.speak"/>
-				</Grid>
-			</StackPanel>
-		</DataTemplate>
-		<Style x:Key="ConjItemStyle" TargetType="ListBoxItem">
-			<Setter Property="Padding" Value="2,0"/>
-			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-			<Setter Property="Focusable" Value="False"/>
-		</Style>
-	</UserControl.Resources>
 	<Grid Margin="10">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 		<DockPanel Grid.Row="0" Margin="0,0,0,6" LastChildFill="True">
 			<Button x:Name="bspeak" DockPanel.Dock="Right" Content="发音" Height="28" MinWidth="52"
@@ -133,7 +103,5 @@
 				</TabItem>
 			</TabControl>
 		</Grid>
-		<TextBlock x:Name="lbstatus" Grid.Row="2" Margin="2,6,0,0" FontSize="12"
-		           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>
 	</Grid>
 </UserControl>

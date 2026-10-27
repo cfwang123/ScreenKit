@@ -89,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
 - Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
 - Japanese word forms: N5-N0 grammar patterns now show at the end of the table
+- Dictionary word-forms: a row that lists several examples gives each example its own speaker button; the main-window list lays the forms out in 2-3 columns, with the form name above its examples and group names on their own row.
 
 #### Fixed
 
@@ -187,6 +188,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
 - 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
 - 日语词形变化：N5~N0 句型移到整张表的最后
+- 词典形态变化：一行并列多个例句时每句一个发音按钮；主窗口按宽度排 2～3 栏，形变名在上、例句在下，分组名单独占一行。
 
 #### 修复
 
@@ -2448,3 +2450,4 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复 PerMonitorV2 DPI 裁剪问题和副屏 DXGI 黑屏/拉伸问题。
 - OCR 忙碌状态不再阻止应用新截取的图片。
 - 修复屏幕录制 WASAPI 静音填充导致的音画不同步。
+

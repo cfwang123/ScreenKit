@@ -141,11 +141,19 @@ button, input, select { font: inherit; }
 	border-radius: 8px;
 }
 .ccnt { color: var(--muted); font-size: 13px; white-space: nowrap; }
-.ctab { width: 100%; border-collapse: collapse; }
-.ctab td { padding: 3px 6px; vertical-align: top; border-bottom: 1px solid #f0ebe4; }
-.ctab .cgrp { background: #f6f3ee; color: #8830a8; font-weight: 600; }
-.ctab .clab { width: 40%; color: #285aaa; }
-.ctab .cval { color: var(--ink); }
+/* 形态变化：格子按宽度排 1～3 栏（栏数由脚本算），组标题占满一行 */
+.cgrid { display: grid; gap: 8px; }
+.cgrp { grid-column: 1 / -1; color: #8830a8; font-weight: 600; background: #f6f3ee; border-radius: 6px; padding: 3px 8px; }
+.ccell {
+	min-width: 0;
+	border: 1px solid #f0ebe4;
+	border-radius: 8px;
+	padding: 5px 8px 6px;
+}
+.clab { color: #285aaa; font-size: 12px; }
+.cex { color: var(--ink); overflow-wrap: anywhere; }
+/* 每条例句一个喇叭，按钮跟着文字走，不撑高行 */
+.spk.sm { width: 20px; height: 20px; margin-left: 2px; vertical-align: middle; }
 #detail button.link {
 	border: 0;
 	padding: 0;

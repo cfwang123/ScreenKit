@@ -38,27 +38,21 @@ public sealed class DictRow : INotifyPropertyChanged {
 	public override string ToString() => Title ?? "";
 }
 
-/// <summary>形态变化页的一行：组标题行，或「形态名 / 变形」两列。</summary>
-public sealed class ConjItem {
-	public string G { get; set; } = "";
-	public string L { get; set; } = "";
-	public string V { get; set; } = "";
-	public Visibility HeadVis { get; set; } = Visibility.Collapsed;
-	public Visibility RowVis { get; set; } = Visibility.Visible;
-}
-
 /// <summary>词条能变形的词性：动词、形容词、名词；日语动词再带五段/一段/サ変/カ変。</summary>
 sealed class ConjCat {
 	public string Cat = "", Kind = "", Sub = "";
 }
 
-/// <summary>一个「形态变化」标签页：自己的过滤框、计数和列表。</summary>
+/// <summary>一个「形态变化」标签页：自己的过滤框、计数，和按宽度排 2～3 栏的表。</summary>
 sealed class ConjPane {
 	public TabItem Tab;
 	public TextBlock Meta;
 	public TextBox Q;
 	public TextBlock Cnt;
-	public ListBox List;
+	public ScrollViewer Scroll;
+	public Grid Table;
+	public int Index;
+	public int Cols;
 	public List<ConjRow> Rows;
 }
 
@@ -81,6 +75,7 @@ public partial class DictWindow : UserControl {
 	static readonly Brush CExLabel = freeze(20, 130, 70);
 	static readonly Brush CExample = freeze(45, 120, 75);
 	static readonly Brush CSpeak = freeze(40, 120, 190);
+	static readonly Brush CLine = freeze(240, 235, 228);
 
 	TtsPlayer player;
 	DispatcherTimer tick;
@@ -121,6 +116,9 @@ public partial class DictWindow : UserControl {
 	List<ConjCat> concats = new();
 	List<ConjPane> conjpanes = new();
 	int conjgen;
+
+	/// <summary>最近一次搜索的状态文字。界面不再显示状态栏，留给 --test-dict 这类自测读。</summary>
+	internal string Status = "";
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
 	public Action<string> OnTranslate;
@@ -329,17 +327,12 @@ public partial class DictWindow : UserControl {
 			try { DictDb.Close(); } catch { }
 			return;
 		}
-		if (DictDb.Ready) {
-			if (string.IsNullOrWhiteSpace(lbstatus.Text))
-				lbstatus.Text = Loc.T("dict.ready");
-			return;
-		}
+		if (DictDb.Ready) return;
 		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
 		if (!DictDb.Init(path)) {
-			lbstatus.Text = DictDb.Error == "missing" ? Loc.T("dict.missing") : DictDb.Error;
+			say(DictDb.Error == "missing" ? Loc.T("dict.missing") : DictDb.Error);
 			return;
 		}
-		lbstatus.Text = Loc.T("dict.ready");
 	}
 
 	void runsearch() {
@@ -353,13 +346,12 @@ public partial class DictWindow : UserControl {
 			lhits.ItemsSource = null;
 			filling = false;
 			cleardetail();
-			if (DictDb.Ready) lbstatus.Text = Loc.T("dict.ready");
 			return;
 		}
 		ensuredb();
 		if (!DictDb.Ready) return;
 		var g = ++gen;
-		lbstatus.Text = Loc.T("dict.searching");
+		Status = Loc.T("dict.searching");
 		var took = new int[1];
 		var limit = searchlimit();
 		Task.Run(() => {
@@ -378,7 +370,7 @@ public partial class DictWindow : UserControl {
 				if (g != gen) return;
 				var hits = t.Result ?? new List<DictHit>();
 				if (hits.Count == 1 && hits[0].Id == 0 && hits[0].Headword.Length == 0 && hits[0].Preview.Length > 0) {
-					lbstatus.Text = hits[0].Preview;
+					Status = hits[0].Preview;
 					return;
 				}
 				showhits(hits, took[0], keep);
@@ -435,10 +427,10 @@ public partial class DictWindow : UserControl {
 		if (rows.Count > 0) lhits.SelectedIndex = pick;
 		filling = false;
 		if (ms < 0) ms = 0;
-		lbstatus.Text = Loc.T("dict.count", rows.Count, ms);
 		if (rows.Count > 0) loaddetail(rows[pick]);
 		else cleardetail();
 		keepview(rows, pick, keepid, keep);
+		Status = Loc.T("dict.count", rows.Count, ms);
 	}
 
 	void onrowload(object sender, RoutedEventArgs e) {
@@ -500,15 +492,6 @@ public partial class DictWindow : UserControl {
 		_ = speak(say, speaklang(row.Dict));
 	}
 
-	/// <summary>形态变化页每行的发音：读这一行的变形结果。</summary>
-	void onconjspeak(object sender, RoutedEventArgs e) {
-		if (e.OriginalSource is not Button b) return;
-		if (b.DataContext is not ConjItem item) return;
-		e.Handled = true;
-		if (string.IsNullOrEmpty(item.V)) return;
-		_ = speak(item.V, speaklang(curlang));
-	}
-
 	int exportgen;
 	bool exporting;
 	const string EXPORT_TABLE_CSS =
@@ -527,7 +510,7 @@ public partial class DictWindow : UserControl {
 		if (!DictDb.Ready) return;
 		var q = esearch.Text ?? "";
 		if (string.IsNullOrWhiteSpace(q)) {
-			lbstatus.Text = Loc.T("dict.export.empty");
+			say(Loc.T("dict.export.empty"));
 			return;
 		}
 		var dict = filter ?? "";
@@ -544,7 +527,6 @@ public partial class DictWindow : UserControl {
 		exporting = true;
 		bexport.IsEnabled = false;
 		var gen = ++exportgen;
-		lbstatus.Text = Loc.T("dict.export.search");
 		Task.Run(() => writeexport(path, kind, q, dict, gen));
 	}
 
@@ -602,7 +584,6 @@ public partial class DictWindow : UserControl {
 						var total = ids.Count;
 						Dispatcher.BeginInvoke(new Action(() => {
 							if (gen != exportgen) return;
-							lbstatus.Text = Loc.T("dict.export.busy", done, total);
 						}));
 					}
 				}
@@ -611,7 +592,7 @@ public partial class DictWindow : UserControl {
 				var count = n;
 				Dispatcher.BeginInvoke(new Action(() => {
 					if (gen != exportgen) return;
-					lbstatus.Text = Loc.T("dict.export.done", count);
+					say(Loc.T("dict.export.done", count));
 				}));
 			}
 		}
@@ -619,7 +600,7 @@ public partial class DictWindow : UserControl {
 			var msg = ex.Message;
 			Dispatcher.BeginInvoke(new Action(() => {
 				if (gen != exportgen) return;
-				lbstatus.Text = Loc.T("dict.export.fail", msg);
+				say(Loc.T("dict.export.fail", msg));
 			}));
 		}
 		finally {
@@ -984,15 +965,17 @@ public partial class DictWindow : UserControl {
 		top.Children.Add(row);
 		DockPanel.SetDock(top, Dock.Top);
 		dock.Children.Add(top);
-		pane.List = new ListBox {
+		pane.Index = n;
+		pane.Table = new Grid();
+		pane.Scroll = new ScrollViewer {
+			VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+			HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
 			BorderThickness = new Thickness(0),
-			ItemTemplate = (DataTemplate)FindResource("ConjRowTemplate"),
-			ItemContainerStyle = (Style)FindResource("ConjItemStyle"),
+			Content = pane.Table,
 		};
-		pane.List.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.list." + n);
-		pane.List.AddHandler(Button.ClickEvent, new RoutedEventHandler(onconjspeak));
-		ScrollViewer.SetHorizontalScrollBarVisibility(pane.List, ScrollBarVisibility.Disabled);
-		dock.Children.Add(pane.List);
+		pane.Scroll.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.list." + n);
+		pane.Scroll.SizeChanged += (_, _) => layoutconj(pane);
+		dock.Children.Add(pane.Scroll);
 		pane.Tab.Content = dock;
 		conjpanes.Add(pane);
 		dtabc.Items.Add(pane.Tab);
@@ -1089,27 +1072,192 @@ public partial class DictWindow : UserControl {
 		})));
 	}
 
+	/// <summary>形态变化表：按宽度排 2～3 栏，每栏左边形变名、右边例句（并列的例句竖排），每句一个发音按钮。</summary>
 	void fillconj(int ci) {
 		if (ci < 0 || ci >= conjpanes.Count) return;
 		var pane = conjpanes[ci];
 		if (pane.Rows == null) return;
+		var cols = conjcols(pane);
+		if (cols > 0) pane.Cols = cols;
+		if (pane.Cols < 2) pane.Cols = 2;
 		var k = (pane.Q.Text ?? "").Trim().ToLowerInvariant();
-		var items = new List<ConjItem>();
-		string last = null;
-		var n = 0;
+		var vis = new List<ConjRow>();
 		foreach (var r in pane.Rows) {
 			if (k.Length > 0 && !(r.L + " " + r.V).ToLowerInvariant().Contains(k)) continue;
-			n++;
+			vis.Add(r);
+		}
+		pane.Table = conjtable(vis, pane.Cols);
+		pane.Scroll.Content = pane.Table;
+		pane.Cnt.Text = string.Format(Loc.T("dict.conj.count"), vis.Count, pane.Rows.Count);
+	}
+
+	/// <summary>一栏至少要放得下「形变名＋一两个例句」，够三段宽就排 3 栏，否则 2 栏。</summary>
+	const double CONJMIN = 290;
+
+	int conjcols(ConjPane pane) {
+		var w = pane.Scroll == null ? 0 : pane.Scroll.ViewportWidth;
+		if (double.IsNaN(w) || w < 40) w = pane.Scroll == null ? 0 : pane.Scroll.ActualWidth;
+		if (double.IsNaN(w) || w < 40) return 0;
+		return w >= CONJMIN * 3 ? 3 : 2;
+	}
+
+	void layoutconj(ConjPane pane) {
+		var n = conjcols(pane);
+		if (n == 0 || n == pane.Cols) return;
+		fillconj(pane.Index);
+	}
+
+	/// <summary>把形变行排成表：组名单独占一行，其余按栏从左到右填，行高由这一行最高的一格决定。</summary>
+	Grid conjtable(List<ConjRow> vis, int cols) {
+		var grid = new Grid();
+		for (var c = 0; c < cols; c++) grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		var row = 0;
+		var slot = 0;
+		string last = null;
+		foreach (var r in vis) {
 			if (r.G != last) {
 				last = r.G;
-				if (!string.IsNullOrEmpty(last))
-					items.Add(new ConjItem { G = last, HeadVis = Visibility.Visible, RowVis = Visibility.Collapsed });
+				if (!string.IsNullOrEmpty(last)) {
+					if (slot > 0) { conjpad(grid, row, slot, cols); row++; slot = 0; }
+					grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+					var head = conjband(last, row > 0);
+					Grid.SetRow(head, row);
+					Grid.SetColumnSpan(head, cols);
+					grid.Children.Add(head);
+					row++;
+				}
 			}
-			items.Add(new ConjItem { L = r.L, V = r.V });
+			if (slot == 0) grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			var cell = conjitem(r.L, r.V, row > 0);
+			Grid.SetRow(cell, row);
+			Grid.SetColumn(cell, slot);
+			grid.Children.Add(cell);
+			slot++;
+			if (slot >= cols) { slot = 0; row++; }
 		}
-		if (n == 0) items.Add(new ConjItem { L = Loc.T("dict.conj.empty") });
-		pane.List.ItemsSource = items;
-		pane.Cnt.Text = string.Format(Loc.T("dict.conj.count"), n, pane.Rows.Count);
+		if (vis.Count == 0) {
+			grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			var none = conjband(Loc.T("dict.conj.empty"), false);
+			Grid.SetRow(none, 0);
+			Grid.SetColumnSpan(none, cols);
+			grid.Children.Add(none);
+			return grid;
+		}
+		if (slot > 0) conjpad(grid, row, slot, cols);
+		return grid;
+	}
+
+	// 一行的最后几栏没内容也要占位，横线才会从左贯通到右。
+	static void conjpad(Grid grid, int row, int from, int cols) {
+		for (var c = from; c < cols; c++) {
+			var a = conjempty(row > 0);
+			Grid.SetRow(a, row);
+			Grid.SetColumn(a, c);
+			grid.Children.Add(a);
+		}
+	}
+
+	static Border conjempty(bool line) => new Border {
+		BorderBrush = CLine,
+		BorderThickness = new Thickness(0, line ? 1 : 0, 0, 0),
+	};
+
+	/// <summary>表格里的一格：除第一行外顶上一条细分隔线。</summary>
+	static Border conjcell(UIElement child, Thickness pad, bool line) => new Border {
+		BorderBrush = CLine,
+		BorderThickness = new Thickness(0, line ? 1 : 0, 0, 0),
+		Padding = pad,
+		Child = child,
+	};
+
+	/// <summary>一格：形变名在上、例句在下竖排，每句尾巴一个喇叭。</summary>
+	Border conjitem(string label, string value, bool line) {
+		var stack = new StackPanel();
+		stack.Children.Add(new TextBlock {
+			Text = label,
+			FontSize = 12,
+			Foreground = CPron,
+			TextWrapping = TextWrapping.Wrap,
+		});
+		var parts = conjparts(value);
+		for (var i = 0; i < parts.Count; i += 2) {
+			var s = parts[i].Trim();
+			if (s.Length == 0) continue;
+			var t = new TextBlock { TextWrapping = TextWrapping.Wrap };
+			t.Inlines.Add(new Run(s));
+			var spk = conjsay(s);
+			if (spk.Length > 0) t.Inlines.Add(new InlineUIContainer(conjspk(spk)) { BaselineAlignment = BaselineAlignment.Center });
+			stack.Children.Add(t);
+		}
+		return conjcell(stack, new Thickness(0, 3, 10, 3), line);
+	}
+
+	/// <summary>组名（传闻・推量、方言・关西之类），单独占一行、横跨所有栏。</summary>
+	static Border conjband(string g, bool line) => conjcell(new TextBlock {
+		Text = g,
+		FontSize = 12,
+		FontWeight = FontWeights.SemiBold,
+		Foreground = CPos,
+		TextWrapping = TextWrapping.Wrap,
+	}, new Thickness(0, 8, 0, 3), line);
+
+	/// <summary>一个小喇叭，点一下只读这句。</summary>
+	Button conjspk(string say) {
+		var b = new Button {
+			Content = "🔊",
+			FontSize = 11,
+			Width = 16,
+			Height = 16,
+			Padding = new Thickness(0),
+			Margin = new Thickness(3, 0, 1, 0),
+			BorderThickness = new Thickness(0),
+			Background = Brushes.Transparent,
+			Foreground = CSpeak,
+			Cursor = Cursors.Hand,
+			Focusable = false,
+			ToolTip = Loc.T("dict.speak"),
+		};
+		b.SetValue(System.Windows.Automation.AutomationProperties.AutomationIdProperty, "dict.conj.speak");
+		b.Click += (_, _) => _ = speak(say, speaklang(curlang));
+		return b;
+	}
+
+	/// <summary>一行里的例句分隔符：日语、韩语、英语各自用什么并列，都算断句点。</summary>
+	static readonly string[] CONJSEPS = { "\n", "、", " · ", " / " };
+
+	/// <summary>把一行拆成「例句、分隔符、例句…」，偶数位是例句，奇数位是原样的分隔符。</summary>
+	static List<string> conjparts(string v) {
+		var parts = new List<string>();
+		var s = v ?? "";
+		var start = 0;
+		var i = 0;
+		while (i < s.Length) {
+			var len = 0;
+			foreach (var sep in CONJSEPS) {
+				if (i + sep.Length > s.Length) continue;
+				if (string.CompareOrdinal(s, i, sep, 0, sep.Length) != 0) continue;
+				len = sep.Length;
+				break;
+			}
+			if (len == 0) { i++; continue; }
+			parts.Add(s.Substring(start, i - start));
+			parts.Add(s.Substring(i, len));
+			i += len;
+			start = i;
+		}
+		parts.Add(s.Substring(start));
+		return parts;
+	}
+
+	/// <summary>读这句时用的文字：去掉「肯定：」这类只用于显示的前缀。</summary>
+	static string conjsay(string s) {
+		var t = (s ?? "").Trim();
+		if (t.Length == 0) return "";
+		var c = t.LastIndexOf('：');
+		if (c >= 0 && c + 1 < t.Length) return t.Substring(c + 1).Trim();
+		c = t.LastIndexOf(": ", StringComparison.Ordinal);
+		if (c >= 0 && c + 2 < t.Length) return t.Substring(c + 2).Trim();
+		return t;
 	}
 
 	void openselpop() {
@@ -1671,6 +1819,14 @@ public partial class DictWindow : UserControl {
 		}
 	}
 
+	/// <summary>词典页不再有状态栏，需要提示的事情走轻提示。</summary>
+	void say(string text) {
+		if (string.IsNullOrWhiteSpace(text)) return;
+		var w = Window.GetWindow(this);
+		if (w == null) return;
+		UiToast.Show(w, text);
+	}
+
 	static void copytext(string text) {
 		if (string.IsNullOrEmpty(text)) return;
 		try { Clipboard.SetText(text); }
@@ -1680,7 +1836,7 @@ public partial class DictWindow : UserControl {
 	async Task speak(string text, string lang) {
 		if (speaking) return;
 		if (string.IsNullOrWhiteSpace(text)) {
-			lbstatus.Text = lang == "zh" ? Loc.T("dict.nozh") : Loc.T("dict.noword");
+			say(lang == "zh" ? Loc.T("dict.nozh") : Loc.T("dict.noword"));
 			return;
 		}
 		speaking = true;
@@ -1691,17 +1847,13 @@ public partial class DictWindow : UserControl {
 			var use = DictTts.ResolveEngine(pref.Engine, lang);
 			if (use == DictTts.CHROME) {
 				await Task.Run(() => chromeread(o, lang, DictTts.VoiceOf(pref, lang, use), text, pref.Rate, CancellationToken.None)).ConfigureAwait(true);
-				lbstatus.Text = Loc.T("dict.speaking", langlabel(lang));
 				return;
 			}
 			var path = await DictTts.EnsureWav(pref, lang, text).ConfigureAwait(true);
 			player.PlayFile(path);
-			lbstatus.Text = Loc.T("dict.speaking", langlabel(lang));
 		}
 		catch (Exception ex) {
-			lbstatus.Text = ex.Message == "novoice"
-				? Loc.T("dict.novoice", langlabel(lang))
-				: ex.Message;
+			say(ex.Message == "novoice" ? Loc.T("dict.novoice", langlabel(lang)) : ex.Message);
 		}
 		finally { speaking = false; }
 	}
@@ -2021,3 +2173,5 @@ public partial class DictWindow : UserControl {
 		return sb.ToString();
 	}
 }
+
+

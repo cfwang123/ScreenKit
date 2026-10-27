@@ -6775,7 +6775,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		var bad = 0;
 		try {
 			var n = waithits(win, 8000);
-			Out("hits=" + n + " status=" + win.host.lbstatus.Text);
+			Out("hits=" + n + " status=" + win.host.Status);
 			if (n <= 0) {
 				Err("FAIL: 没有查出结果");
 				return 1;
@@ -6886,7 +6886,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var saw = false;
 			while (Environment.TickCount - start < ms) {
 				pump();
-				var s = d.host.lbstatus.Text ?? "";
+				var s = d.host.Status ?? "";
 				if (!saw) saw = s == searching;
 				else if (s.Length > 0 && s != searching) {
 					for (var i = 0; i < 8; i++) pump();
@@ -8413,3 +8413,4 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		try { log?.WriteLine("[ERR] " + s); } catch { }
 	}
 }
+

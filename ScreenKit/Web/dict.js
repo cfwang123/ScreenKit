@@ -454,42 +454,23 @@
 					host.appendChild(one(t("dict.conj.empty") || "没有匹配的形态", "pron", ""));
 					return;
 				}
-				var tb = document.createElement("table");
-				tb.className = "ctab";
-				var last = null, tr, td;
+				var grid = document.createElement("div");
+				grid.className = "cgrid";
+				var last = null;
 				for (i2 = 0; i2 < vis.length; i2++) {
 					if (vis[i2].g !== last) {
 						last = vis[i2].g;
-						tr = document.createElement("tr");
-						td = document.createElement("td");
-						td.className = "cgrp";
-						td.colSpan = 2;
-						td.textContent = last;
-						tr.appendChild(td);
-						tb.appendChild(tr);
+						if (last) {
+							var gh = document.createElement("div");
+							gh.className = "cgrp";
+							gh.textContent = last;
+							grid.appendChild(gh);
+						}
 					}
-					tr = document.createElement("tr");
-					td = document.createElement("td");
-					td.className = "clab";
-					td.textContent = vis[i2].l;
-					tr.appendChild(td);
-					td = document.createElement("td");
-					td.className = "cval";
-					td.textContent = vis[i2].v;
-					if (vis[i2].v) {
-						var say = document.createElement("button");
-						say.type = "button";
-						say.className = "spk";
-						say.setAttribute("data-say", vis[i2].v);
-						say.setAttribute("data-lang", lang);
-						say.textContent = "🔊";
-						td.appendChild(document.createTextNode(" "));
-						td.appendChild(say);
-					}
-					tr.appendChild(td);
-					tb.appendChild(tr);
+					grid.appendChild(conjcell(vis[i2], lang));
 				}
-				host.appendChild(tb);
+				host.appendChild(grid);
+				gridcols(grid);
 			}
 			q.addEventListener("input", draw);
 			draw();
@@ -502,6 +483,89 @@
 	function conjbase(s){
 		return String(s || "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹₀-₉①-⑳㉑-㉟]+$/, "").trim();
 	}
+
+	// 一行里并列多个例句时按分隔符拆开：偶数位是例句，奇数位是原样的分隔符。
+	var CONJSEPS = ["\n", "、", " · ", " / "];
+
+	function conjparts(v){
+		var s = String(v || ""), parts = [], start = 0, i = 0, j, len, sep;
+		while (i < s.length) {
+			len = 0;
+			for (j = 0; j < CONJSEPS.length; j++) {
+				sep = CONJSEPS[j];
+				if (s.substr(i, sep.length) === sep) { len = sep.length; break; }
+			}
+			if (!len) { i++; continue; }
+			parts.push(s.slice(start, i));
+			parts.push(s.substr(i, len));
+			i += len;
+			start = i;
+		}
+		parts.push(s.slice(start));
+		return parts;
+	}
+
+	// 读这句时用的文字：去掉「肯定：」这类只用于显示的前缀。
+	function conjsay(s){
+		var t = String(s || "").trim();
+		if (!t) return "";
+		var c = t.lastIndexOf("：");
+		if (c >= 0 && c + 1 < t.length) return t.slice(c + 1).trim();
+		c = t.lastIndexOf(": ");
+		if (c >= 0 && c + 2 < t.length) return t.slice(c + 2).trim();
+		return t;
+	}
+
+	// 一格：形态名一行，下面每条例句一行；并列的例句竖排，每句尾巴一个喇叭。
+	function conjcell(r, lang){
+		var box = document.createElement("div");
+		box.className = "ccell";
+		var lab = document.createElement("div");
+		lab.className = "clab";
+		lab.textContent = r.l || "";
+		box.appendChild(lab);
+		var segs = conjparts(r.v), i, s, sy, b;
+		for (i = 0; i < segs.length; i += 2) {
+			s = String(segs[i] || "").trim();
+			if (!s) continue;
+			var line = document.createElement("div");
+			line.className = "cex";
+			line.appendChild(document.createTextNode(s));
+			sy = conjsay(s);
+			if (sy) {
+				b = document.createElement("button");
+				b.type = "button";
+				b.className = "spk sm";
+				b.setAttribute("data-say", sy);
+				b.setAttribute("data-lang", lang);
+				b.textContent = "🔊";
+				line.appendChild(b);
+			}
+			box.appendChild(line);
+		}
+		return box;
+	}
+
+	// 按可用宽度排 1～3 栏；窗口宽度变了重排。
+	var gridwatch = null, gtimer = 0;
+
+	function gridcols(grid){
+		if (!grid) return;
+		gridwatch = grid;
+		var w = grid.clientWidth;
+		if (!w) w = grid.parentNode ? grid.parentNode.clientWidth : 0;
+		if (!w) return;
+		var n = Math.floor((w + 8) / 248);
+		if (n < 1) n = 1;
+		if (n > 3) n = 3;
+		grid.style.gridTemplateColumns = "repeat(" + n + ", minmax(0, 1fr))";
+	}
+
+	window.addEventListener("resize", function(){
+		if (!gridwatch) return;
+		clearTimeout(gtimer);
+		gtimer = setTimeout(function(){ gridcols(gridwatch); }, 120);
+	});
 
 	// 形态页顶上那行：实际判定的类型和特殊变化（1类/2类/3类、い/な形容词、不规则说明）。
 	function conjmeta(d){
