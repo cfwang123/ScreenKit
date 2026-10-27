@@ -455,9 +455,13 @@ static class SysTool {
 					};
 					using (var hk = key.OpenSubKey(name))
 						row.Clsid = (hk?.GetValue(null) as string ?? "").Trim();
+					// 子键名本身就是 CLSID 时（如 Start Menu Pin），按 CLSID 取 DLL 和说明。
+					if (row.Clsid.Length == 0 && name.Length > 2 && name[0] == '{') row.Clsid = name;
 					row.Cmd = clsidpath(row.Clsid);
 					row.Company = descr(row.Cmd);
-					if (row.Name.Length == 0) row.Name = clsidname(row.Clsid);
+					var friendly = clsidname(row.Clsid);
+					if (row.Name.Length == 0 || row.Name[0] == '{')
+						row.Name = friendly.Length > 0 ? friendly : name.Trim('{', '}');
 					list.Add(row);
 				}
 			}

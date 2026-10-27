@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Double-click the camera picture for fullscreen in the window and the web tool.
 - English word forms list every informal and dialect use of ain't for verbs, adjectives and nouns.
 - Web tools: a Japanese names tool that looks up readings for surnames and given names in both directions - kanji to kana and kana to kanji. It covers 97k surnames and 122k given names from JMnedict, shows population counts for the top 5,000 surnames, browses by kana row, and copies a row on click.
+- System tools: a context menu page lists the shell extensions and generic commands behind Explorer's right-click menus (files, folders, folder background, drives, desktop), with the registry key, DLL or command line, and the source program.
 
 #### Changed
 
@@ -164,6 +165,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 窗口相机和网页相机双击画面全屏。
 - 英语词形变化为动词、形容词和名词列出 ain't 的全部口语和方言用法。
 - 网页工具：新增「日本人名」，查日本姓氏和名字的读音，汉字出假名、假名反查汉字；姓氏 9.7 万个、名字 12 万个（取自 JMnedict），前 5000 姓带人数，可按五十音行浏览，点一行复制。
+- 系统工具：新增「右键菜单」页，列出资源管理器右键菜单（文件、文件夹、文件夹背景、驱动器、桌面）里的外壳扩展和通用命令，带注册表项、DLL 或命令行和来源程序。
 
 #### 变更
 
