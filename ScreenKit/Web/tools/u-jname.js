@@ -53,7 +53,7 @@
 			+ '<span id="jn-page" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
 			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict；前 5000 姓带人数（来自名字由来排名）。首次打开要下载约 1MB 数据，之后直接用本机文件。'
-			+ '输入汉字查读法，输入假名反查汉字；点一行复制。</p>';
+			+ '输入汉字查读法，输入假名反查汉字；文字可以直接选中复制。</p>';
 		return html;
 	}
 
@@ -82,16 +82,7 @@
 			mark(idx, row || "");
 			paint();
 		};
-		list.onclick = function(ev){
-			var el = ev.target;
-			while (el && el !== list) {
-				if (el.getAttribute && F.attr(el, "data-k")) {
-					SK.copytext(F.attr(el, "data-k"), "jn-msg");
-					return;
-				}
-				el = el.parentNode;
-			}
-		};
+
 		var prev = F.id("jn-prev");
 		var next = F.id("jn-next");
 		if (prev) prev.onclick = function(){ goto(page - 1); };
@@ -211,17 +202,16 @@
 		if (box && box.scrollIntoView) box.scrollIntoView({ block: "nearest" });
 	}
 
-	// 一行只放表记和主读法，其余读法放在悬停提示里，窄栏也不会折行
+	// 一行只放表记和主读法，其余读法放在悬停提示里；文字可以直接选中复制
 	function rowhtml(hit){
 		var r = hit.r;
 		var pop = r.p > 0 ? (r.p >= 10000 ? Math.round(r.p / 10000) + " 万" : r.p + " 人") : "";
 		var tip = r.k + " " + r.y.join("、");
-		return '<button type="button" class="jnrow" data-k="' + esc(tip) + '"'
-			+ ' title="' + esc(tip) + '（点击复制）">'
+		return '<div class="jnrow" title="' + esc(tip) + '">'
 			+ '<span class="jnk">' + esc(r.k) + "</span>"
 			+ '<span class="jny">' + esc(r.y[0]) + "</span>"
 			+ (kind === "all" ? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "")
-			+ '<span class="jnp">' + esc(pop) + "</span></button>";
+			+ '<span class="jnp">' + esc(pop) + "</span></div>";
 	}
 
 	function collect(list, issur, q, hits){

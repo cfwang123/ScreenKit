@@ -1312,11 +1312,12 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .jnpager .msg { color: var(--muted); font-size: 13px; }
 .jnrow {
 	display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 3px 7px;
-	text-align: left; cursor: pointer; border: 1px solid transparent; border-radius: 8px;
+	border: 1px solid transparent; border-radius: 8px;
 	background: transparent; color: var(--ink);
 	white-space: nowrap; overflow: hidden; break-inside: avoid;
+	user-select: text; -webkit-user-select: text; cursor: text;
 }
-.jnrow:hover { border-color: var(--line); background: var(--card); }
+.jnrow:hover { background: var(--card); }
 .jnrow .jnk { font: 600 15px/1.3 "Yu Gothic UI", "Microsoft YaHei UI", sans-serif; flex: none; }
 .jnrow .jny { color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; }
 .jnrow .jnt { margin-left: auto; color: var(--muted); font-size: 12px; }
