@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English verb forms can take one or two objects and use them in every form.
 - Japanese word forms: い-adjectives, な-adjectives and nouns now also list the N5-N1 patterns that fit them (てもいい, とき, ので, らしい, まま, くせに, 一方だ and so on), with the ending conjugated for each part of speech.
 - Japanese word forms: a character-speech group for fiction and subculture registers - でござる, であります, にゃ, なのだ, ですわ, のじゃ, っす, っしょ, じゃん, なり, で候, でおじゃる - on verbs, adjectives and nouns.
+- Korean word forms add contractions, colloquial endings and literary forms for verbs, adjectives and nouns.
 
 #### Changed
 
@@ -176,6 +177,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词形变化在选择动词后可以带一个或两个宾语，所有变化都会用上。
 - 日语形态变化：い形容词、な形容词、名词也补上能接的 N5~N1 句型（てもいい、とき、ので、らしい、まま、くせに、一方だ 等），词尾按词性变形。
 - 日语形态变化：新增「角色语」组，收武士、军队、猫语、大小姐、老人、体育会、辣妹、网络等小圈子说法（でござる、であります、にゃ、なのだ、ですわ、のじゃ、っす、っしょ、じゃん、なり、で候、でおじゃる），动词、形容词、名词都有。
+- 韩语词形变化为动词、形容词和名词补上省略、口语和书面用法。
 
 #### 变更
 
