@@ -50,7 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader keeps txt and md files in the browser instead of uploading them, prepares the next sentence while the current one still plays, and a voice install no longer switches the browser in front into reading mode. The in-browser model list marks which Chrome voice packs are installed.
 - Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 - The Chrome model page can play a short test line for an installed voice.
-- Japanese word forms: verbs by class plus i-adjectives, na-adjectives and nouns, with politeness levels, auxiliary and modality patterns, dialect forms, character speech (でござる, にゃ, ですわ, のじゃ ...), rough and masculine forms, literary forms, sentence-ending particles, and N5-N1 sentence patterns (classical N0 and compound verbs included, listed at the end of the table). Colloquial contractions sit in the same cell as the full form (ている/てる, ておく/とく, てしまう/ちゃう, ては/ちゃ, ら抜き ...), a sentence-ending row shows both the affirmative and the negative, and every form has a speak button.
+- Japanese word forms: verbs by class plus i-adjectives, na-adjectives and nouns, with politeness levels, auxiliary and modality patterns, dialect forms, rough and masculine forms, literary forms, and a sentence-endings group that also holds character speech (であります, にゃ, なのだ, ですわ, っす, っしょ, じゃん) and samurai/archaic endings, plus N5-N1 sentence patterns (classical N0 and compound verbs included, listed at the end of the table). Colloquial contractions sit in the same cell as the full form (ている/てる, ておく/とく, てしまう/ちゃう, ては/ちゃ, ら抜き ...), a sentence-ending row shows both the affirmative and the negative, and every form has a speak button.
 - Korean word forms: verbs, adjectives and nouns by type, with speech levels, dialect groups (Munhwao, DPRK broadcast, Yanbian), grammar patterns, auxiliaries, quotation, contractions, colloquial, literary, character-speech, in-group, rough and classical endings, and a speak button on each form.
 - English word forms: verb tenses and moods, irregular verbs, adjectives and nouns, with British, American and Australian variants; a verb takes one or two objects, typed or picked, and every form has a speak button.
 - Russian word forms: verb conjugation, adjective and noun declension, with colloquial and dialect variants, and a speak button on each form.
@@ -82,7 +82,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM translation runs at most 2 at a time and retries 429/503 quickly; extra requests return code 503 after 300 ms
 - Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
 - Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる, and the word-forms tab conjugates the kana form too (くれない, not 呉れない).
-- Japanese word forms: character-speech endings (であります, にゃ, なのだ, ですわ, っす, っしょ, じゃん) now sit in the sentence-endings group instead of a separate one.
 
 #### Fixed
 
@@ -146,7 +145,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器的 txt、md 存在浏览器里，不再上传到程序；读当前句时提前准备下一句，缩短两句之间的停顿；语音安装不再把当前浏览器切进阅读模式；浏览器小模型选 Chrome 发音时会标出该语音包是否已安装。
 - 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 - Chrome 模型页可以为已安装的语音试听一句。
-- 日语词形变化：动词按 1/2/3 类列出，也支持い形容词、な形容词和名词，含敬语、补助动词、语气句型、方言说法、角色语（でござる、にゃ、ですわ、のじゃ 等）、粗俗／男性语、书面语和「语气（终助词）」组，以及 N5～N1 句型（含文语 N0 和复合动词，排在整张表最后）。口语缩略和原形排在同一格里（ている/てる、ておく/とく、てしまう/ちゃう、ては/ちゃ、ら抜き 等），语气组的每行同时给肯定和否定两式，每项可发音。
+- 日语词形变化：动词按 1/2/3 类列出，也支持い形容词、な形容词和名词，含敬语、补助动词、方言说法、粗俗／男性语、书面语，以及把角色语（であります、にゃ、なのだ、ですわ、っす、っしょ、じゃん、でござる、のじゃ 等）和武士・古风说法一起收进来的「语气（终助词）」组，还有 N5～N1 句型（含文语 N0 和复合动词，排在整张表最后）。口语缩略和原形排在同一格里（ている/てる、ておく/とく、てしまう/ちゃう、ては/ちゃ、ら抜き 等），语气组的每行同时给肯定和否定两式，每项可发音。
 - 韩语词形变化：按类型列出动词、形容词和名词的变化，含语体、方言分组（朝鲜文化语、朝鲜播音体、延边朝鲜语）、句型、补助动词、引用、口语缩略、书面语、角色语、小圈子用语、粗俗和古代语词尾，每项可发音。
 - 英语词形变化：动词时态与语气、不规则动词、形容词和名词，含英美澳写法差异；动词可以带一个或两个宾语（可选也可自己输入），每项可发音。
 - 俄语词形变化：动词变位、形容词和名词变格，含口语和方言说法，每项可发音。
@@ -178,7 +177,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - LLM 翻译最多同时 2 路，429/503 快速退避重试；超出的请求 300 毫秒后返回 code 503
 - 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
 - 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる；形态变化也按假名变（くれない，而不是 呉れない）。
-- 日语形态变化：角色语的说法（であります、にゃ、なのだ、ですわ、っす、っしょ、じゃん）并入「语气（终助词）」组，不再单独成组。
 
 #### 修复
 
