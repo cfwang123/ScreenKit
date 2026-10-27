@@ -418,7 +418,8 @@
 		pane.appendChild(host);
 
 		var lang = e.dict || "";
-		var word = conjbase(e.word || "");
+		// 变形用表记的第一个（日语通常只写假名的词条就是假名）
+		var word = conjbase((e.forms && e.forms[0]) || e.word || "");
 		var params = { lang: lang, q: word, ui: langs()[langAt] || "zh" };
 		if (lang === "ja") {
 			if (cat.kind) params.kind = cat.kind;

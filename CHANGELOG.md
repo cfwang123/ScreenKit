@@ -90,7 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese, Korean and English word forms are now computed by the app itself and served by the new /api/conj endpoint; the web tools fetch the table from it
 - Japanese word forms: N5-N0 grammar patterns now show at the end of the table
 - Word forms, in the four word-form tools and in the dictionary on both the web page and the main window: a form name sits above its forms, several examples stack with one speaker button each, group names take their own row, and the table runs 1-4 columns in the tools and 2-3 in the dictionary.
-- Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる.
+- Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる, and the word-forms tab conjugates the kana form too (くれない, not 呉れない).
 
 #### Fixed
 
@@ -190,7 +190,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日/韩/英词形变化改由程序端计算，新增 /api/conj 接口，网页工具改为调用该接口渲染
 - 日语词形变化：N5~N0 句型移到整张表的最后
 - 词形变化（四个词形工具，以及网页和主窗口的词典）：形变名在上、例句在下竖排，每句一个发音按钮，分组名单独占一行；工具按宽度排 1～4 栏，词典 2～3 栏。
-- 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる。
+- 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる；形态变化也按假名变（くれない，而不是 呉れない）。
 
 #### 修复
 
@@ -2452,6 +2452,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复 PerMonitorV2 DPI 裁剪问题和副屏 DXGI 黑屏/拉伸问题。
 - OCR 忙碌状态不再阻止应用新截取的图片。
 - 修复屏幕录制 WASAPI 静音填充导致的音画不同步。
+
 
 
 

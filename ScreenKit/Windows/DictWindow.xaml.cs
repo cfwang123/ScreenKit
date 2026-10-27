@@ -88,6 +88,8 @@ public partial class DictWindow : UserControl {
 	bool suppress;
 	long wantid;
 	string curword = "";
+	/// <summary>变形用的词形：日语通常只写假名的词条用假名，其它情况和 curword 一样。</summary>
+	string conjword = "";
 	string curspeak = "";
 	string curlang = "";
 	string filter = "";
@@ -763,6 +765,7 @@ public partial class DictWindow : UserControl {
 	void cleardetail() {
 		HideOutside();
 		curword = "";
+		conjword = "";
 		curspeak = "";
 		curlang = "";
 		concats.Clear();
@@ -777,6 +780,7 @@ public partial class DictWindow : UserControl {
 		HideOutside();
 		curlang = e.Dict ?? "";
 		curword = e.Word.Length > 0 ? e.Word : e.Headword;
+		conjword = headforms(e)[0];
 		curspeak = curlang == "ja" ? DictDb.JaSpeak(curword, e.Kanji, e.Pron) : SpeakHead(curword, curlang);
 		var doc = newdoc();
 		var entrylang = speaklang(curlang);
@@ -1060,7 +1064,7 @@ public partial class DictWindow : UserControl {
 		var cat = concats[ci];
 		var lang = curlang;
 		var ja = lang == "ja";
-		var word = conjbase(curword);
+		var word = conjbase(conjword.Length > 0 ? conjword : curword);
 		if (ja && cat.Sub == "suru" && !word.EndsWith("する", StringComparison.Ordinal)) word += "する";
 		var g = ++conjgen;
 		pane.Cnt.Text = "";
@@ -2181,6 +2185,7 @@ public partial class DictWindow : UserControl {
 		return sb.ToString();
 	}
 }
+
 
 
 
