@@ -50,7 +50,8 @@
 			html += '<button type="button" data-row="' + ROWS[i].id + '">' + ROWS[i].name + "</button>";
 		html += '</div><div class="jnlist" id="jn-list"></div>'
 			+ '<div class="jnpager" id="jn-pager"><button type="button" id="jn-prev">‹</button>'
-			+ '<span id="jn-page" class="msg"></span>'
+			+ '<input id="jn-page" class="jnpi" type="text" inputmode="numeric" maxlength="7" title="输入页码后回车跳转">'
+			+ '<span id="jn-pages" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
 			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict；前 5000 姓带人数（来自名字由来排名）。首次打开要下载约 1MB 数据，之后直接用本机文件。'
 			+ '输入汉字查读法，输入假名反查汉字；文字可以直接选中复制。</p>';
@@ -85,6 +86,16 @@
 
 		var prev = F.id("jn-prev");
 		var next = F.id("jn-next");
+		var pin = F.id("jn-page");
+		if (pin) {
+			pin.onkeydown = function(ev){
+				if (ev.key === "Enter") {
+					ev.preventDefault();
+					jumpto();
+				}
+			};
+			pin.onblur = jumpto;
+		}
 		if (prev) prev.onclick = function(){ goto(page - 1); };
 		if (next) next.onclick = function(){ goto(page + 1); };
 		window.addEventListener("resize", function(){ render(); });
@@ -188,11 +199,23 @@
 		for (var i = 0; i < slice.length; i++) html.push(rowhtml(slice[i]));
 		box.innerHTML = html.length ? html.join("") : '<p class="jnnone">没有匹配的姓名</p>';
 		SK.msg("jn-msg", hits.length ? "共 " + hits.length + " 条" : "");
-		SK.msg("jn-page", hits.length ? "第 " + (page + 1) + " / " + pages + " 页" : "");
+		var pin = F.id("jn-page");
+		if (pin && document.activeElement !== pin) pin.value = hits.length ? String(page + 1) : "";
+		SK.msg("jn-pages", hits.length ? "/ " + pages + " 页" : "");
 		var prev = F.id("jn-prev");
 		var next = F.id("jn-next");
 		if (prev) prev.disabled = page <= 0;
 		if (next) next.disabled = page >= pages - 1;
+	}
+
+	// 输入页码跳转：留空、不是数字或超出范围都落回最近的页，输入框里换成实际页码
+	function jumpto(){
+		var pin = F.id("jn-page");
+		if (!pin) return;
+		var n = parseInt(String(pin.value).replace(/[^0-9]/g, ""), 10);
+		if (n > 0) goto(n - 1);
+		else render();
+		pin.value = hits.length ? String(page + 1) : "";
 	}
 
 	function goto(n){

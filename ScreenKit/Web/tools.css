@@ -1310,6 +1310,11 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 }
 .jnpager button:disabled { opacity: .4; cursor: default; }
 .jnpager .msg { color: var(--muted); font-size: 13px; }
+#jn-pager .jnpi { flex: none; 
+	width: 56px; height: 28px; margin: 0; padding: 0 6px; text-align: center;
+	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
+	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
 .jnrow {
 	display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 3px 7px;
 	border: 1px solid transparent; border-radius: 8px;
