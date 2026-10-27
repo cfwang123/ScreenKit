@@ -34,6 +34,7 @@ sealed class JpConjLabels {
 	public string rough, zo, ze, wa, sa, me, kke, mon, tekure, kusaru, koku;
 	public string end, endyo, enddesuyo, endne, enddesune, endyone, enddesuyone, endwayo, endno, endkana, endkashira, endkoto;
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
+	public string jane, njane, kayo, jyan, jnet;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, rentai;
@@ -451,6 +452,11 @@ static class JpConj {
 			L.jssu = "っす（体育会）";
 			L.jssho = "っしょ（辣妹）";
 			L.jjan = "じゃん（口语）";
+			L.jane = "じゃね（＝じゃないか）";
+			L.njane = "んじゃね／なんじゃね";
+			L.kayo = "かよ（反语）";
+			L.jyan = "やん（关西＝じゃん）";
+			L.jnet = "网络（笑）";
 			L.jnari = "なり（武士）";
 			L.jdesourou = "でそうろう（文语）";
 			L.jojaru = "でおじゃる（古风）";
@@ -654,6 +660,11 @@ static class JpConj {
 		L.jssu = "ssu (sports club)";
 		L.jssho = "ssho (gal)";
 		L.jjan = "jan (casual)";
+		L.jane = "ja ne (= ja nai ka)";
+		L.njane = "n ja ne / nan ja ne";
+		L.kayo = "ka yo (backtalk)";
+		L.jyan = "yan (Kansai = jan)";
+		L.jnet = "net slang (lol)";
 		L.jnari = "nari (samurai)";
 		L.jdesourou = "de sourou (classical)";
 		L.jojaru = "de ojaru (archaic)";
@@ -758,7 +769,7 @@ static class JpConj {
 		var rows = new List<ConjRow> {
 			row(L.dict, word),
 			row(L.pol, word + "です"),
-			row(L.nai, s + "くない"),
+			row(L.nai, s + "くない、" + s + "くねえ"),
 			row(L.polneg, s + "くありません"),
 			row(L.ta, s + "かった"),
 			row(L.polpast, s + "かったです"),
@@ -811,7 +822,7 @@ static class JpConj {
 		var rows = new List<ConjRow> {
 			row(L.dict, word + "だ"),
 			row(L.pol, word + "です"),
-			row(L.nai, word + "ではない、" + word + "じゃない"),
+			row(L.nai, word + "ではない、" + word + "じゃない、" + word + "じゃねえ"),
 			row(L.polneg, word + "ではありません"),
 			row(L.ta, word + "だった"),
 			row(L.polpast, word + "でした"),
@@ -855,7 +866,7 @@ static class JpConj {
 		var rows = new List<ConjRow> {
 			row(L.dict, word + "だ"),
 			row(L.pol, word + "です"),
-			row(L.nai, word + "ではない、" + word + "じゃない"),
+			row(L.nai, word + "ではない、" + word + "じゃない、" + word + "じゃねえ"),
 			row(L.polneg, word + "ではありません"),
 			row(L.ta, word + "だった"),
 			row(L.polpast, word + "でした"),
@@ -1044,7 +1055,8 @@ static class JpConj {
 	}
 
 	// 句尾的语气助词：中性（よ・ね・よね）、女性（わよ・の・こと）、男性（ぞ・ぜ・さ・わ）、
-	// 武士・古风（のじゃ・でござる・でそうろう・なり・でおじゃる）合成一组，都带肯定和否定两式。
+	// 武士・古风（のじゃ・でござる・でそうろう・なり・でおじゃる）、角色语（にゃ・っす・っしょ）合成一组，
+	// 都带肯定和否定两式。最后是口语和网络上的说法（じゃん・じゃね・んじゃね・かよ・ｗ）。
 	static List<ConjRow> endrows(JpConjLabels L, string plain, string masu, string kind, string nai, string polneg) {
 		var dan = kind == "v" || kind == "i" ? "" : "だ";
 		var na = kind == "a" || kind == "n" ? "な" : "";
@@ -1076,9 +1088,19 @@ static class JpConj {
 			new(L.jdesuwa, kind == "v" ? masu + "わ、" + cut(masu, 2) + "ませんわ" : plain + "ですわ、" + nai + "ですわ", L.end),
 			new(L.jssu, plain + "っす、" + nai + "っす", L.end),
 			new(L.jssho, plain + "っしょ、" + nai + "っしょ", L.end),
-			new(L.jjan, plain + "じゃん、" + nai + "じゃん", L.end),
+			// 口语的断定・反问：じゃん（＝じゃないか）、じゃね、んじゃね（な形容词和名词是 なんじゃね）。
+			new(L.jjan, plain + "じゃん、" + plain + "じゃんね、" + plain + "じゃんか、" + nai + "じゃん", L.end),
+			new(L.jane, plain + "じゃね？、" + plain + "じゃねえか", L.end),
+			new(L.njane, plain + na + "んじゃね？、" + plain + na + "んじゃねえか", L.end),
+			new(L.kayo, plain + "かよ、" + nai + "かよ", L.end),
+			// 网络上的玩笑说法：句尾加笑（ｗ／草）。
+			new(L.jnet, plain + "ｗ、" + plain + "草", L.end),
 		};
-		if (kind == "v") rows.Add(new ConjRow(L.endkoto, plain + "こと、" + nai + "こと", L.end));
+		if (kind == "v") {
+			rows.Add(new ConjRow(L.endkoto, plain + "こと、" + nai + "こと", L.end));
+			// 动词的推量：行くだろ／行くだろう（形容词、名词在各自的表里已有）。
+			rows.Add(new ConjRow(L.darou, plain + "だろ、" + plain + "だろう", L.end));
+		}
 		if (kind == "a" || kind == "n") rows.Add(new ConjRow(L.jnari, plain + "なり、" + nai + "なり", L.end));
 		if (kind == "n") rows.Add(new ConjRow(L.me, plain + "め", L.end));
 		return rows;
@@ -1205,6 +1227,8 @@ static class JpConj {
 		if (!aru) {
 			rows.Add(new ConjRow(L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks));
 			rows.Add(new ConjRow(L.gson, ren + "はる", L.dks));
+			// 关西的「〜やん」就是标准语的「〜じゃん」。
+			rows.Add(new ConjRow(L.jyan, std.plain + "やん", L.dks));
 			if (!kure) rows.Add(new ConjRow(L.cmd, ren + "なはれ", L.dks));
 		}
 		// 九州（博多）：ない＝ん，ている＝とる，一段とサ変的命令＝れ
@@ -1232,6 +1256,7 @@ static class JpConj {
 			new(L.nai, ji + "へん", L.dks),
 			new(L.naide, ji + "んといて", L.dks),
 			new(L.gson, ji + "はる", L.dks),
+			new(L.jyan, std.plain + "やん", L.dks),
 			new(L.cmd, ji + "なはれ", L.dks),
 			new(L.nai, ji + "ん", L.dky),
 			new(L.teiru, tes + "とる", L.dky),

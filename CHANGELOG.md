@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - CLI --test-dict-install downloads dict3-core.7z and rebuilds dict3.bin beside that exe.
 - Japanese name lookup splits a full name into a matching surname and given name.
 - Japanese conjugation handles -zuru verbs (信ずる, 命ずる, 重んずる) with their mixed じ/ぜ stems; the Japanese IME word list now includes their conjugated forms.
+- Japanese conjugation table adds colloquial and net endings: じゃん／じゃんね, じゃね？／じゃねえか, んじゃね／なんじゃね, かよ, 〜ｗ／〜草, verb だろ, Kansai やん, plus くねえ／じゃねえ negative variants.
 
 #### Changed
 
@@ -83,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 命令行 --test-dict-install 按安装功能下载 dict3-core.7z，并在该程序旁重建 dict3.bin。
 - 日本姓名查询可以输入完整姓名，拆成能对上的姓和名。
 - 日语动词变形支持 ずる 动词（信ずる、命ずる、重んずる）的 じ／ぜ 混合活用；日语输入法词库也写入这些活用形。
+- 日语变化表补充口语与网络说法：じゃん／じゃんね、じゃね？／じゃねえか、んじゃね／なんじゃね、かよ、〜ｗ／〜草、动词的だろ，以及关西的やん；い形容词和な形容词、名词的否定也补上 くねえ／じゃねえ。
 
 #### 变更
 
