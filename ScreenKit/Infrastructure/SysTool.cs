@@ -330,6 +330,12 @@ static class SysTool {
 			err("进程列表没有本进程");
 			return 1;
 		}
+		var selfrow = procs.Find(x => x.Pid == self);
+		log($"self bits={selfrow.Bits} elev={selfrow.Elev}");
+		if (selfrow.Bits != (Environment.Is64BitOperatingSystem ? 64 : 32) || selfrow.Elev < 0) {
+			err("本进程的平台/权限不对");
+			return 1;
+		}
 		var env = Env(out var warn);
 		log($"env={env.Count} {warn}");
 		if (env.Count < 1) {

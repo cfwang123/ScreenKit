@@ -30,9 +30,10 @@ public partial class SysToolWindow : Window {
 		public string Name { get; set; }
 		public int Pid { get; set; }
 		public string Mem { get; set; }
+		public string Bits { get; set; }
+		public string Admin { get; set; }
 		public string Path { get; set; }
 		public string Cmd { get; set; }
-		public string Meta { get; set; }
 	}
 
 	sealed class LockItem {
@@ -114,6 +115,8 @@ public partial class SysToolWindow : Window {
 		colprocname.Header = Loc.T("systool.col.name");
 		colprocpid.Header = Loc.T("systool.col.pid");
 		colprocmem.Header = Loc.T("systool.col.mem");
+		colprocbits.Header = Loc.T("systool.col.bits");
+		colprocelev.Header = Loc.T("systool.col.elev");
 		colprocpath.Header = Loc.T("systool.col.path");
 		colproccmd.Header = Loc.T("systool.col.cmd");
 		collockname.Header = Loc.T("systool.col.name");
@@ -183,9 +186,10 @@ public partial class SysToolWindow : Window {
 		foreach (var r in procs) {
 			var it = new ProcItem {
 				Name = r.Name, Pid = r.Pid, Mem = r.Mem, Path = r.Path, Cmd = r.Cmd,
-				Meta = $"{procbits(r.Bits)}  {procelev(r.Elev)}".Trim(),
+				Bits = procbits(r.Bits), Admin = procelev(r.Elev),
 			};
-			if (q.Length == 0 || has(q, it.Name, it.Path, it.Cmd, it.Pid.ToString(), it.Mem, it.Meta)) view.Add(it);
+			if (q.Length == 0 || has(q, it.Name, it.Path, it.Cmd, it.Pid.ToString(), it.Mem, it.Bits, it.Admin))
+				view.Add(it);
 		}
 		lvproc.ItemsSource = view;
 		lbprocstat.Text = Loc.T("systool.stat", view.Count, procs.Count);
@@ -200,14 +204,16 @@ public partial class SysToolWindow : Window {
 			return;
 		}
 		bprocopen.IsEnabled = File.Exists(it.Path);
-		lbprocinfo.Text = join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Meta);
+		lbprocinfo.Text = join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, procmeta(it.Bits, it.Admin));
 		eproccmd.Text = noquote(it.Cmd);
 	}
 
 	void copyproc() {
 		if (lvproc.SelectedItem is not ProcItem it) return;
-		setclip(join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, it.Meta, noquote(it.Cmd)));
+		setclip(join($"{it.Name}  {it.Pid}  {it.Mem}", it.Path, procmeta(it.Bits, it.Admin), noquote(it.Cmd)));
 	}
+
+	static string procmeta(string bits, string admin) => $"{bits}  {admin}".Trim();
 
 	static string procbits(int bits) => label($"systool.proc.bit{bits}", $"{bits} 位");
 

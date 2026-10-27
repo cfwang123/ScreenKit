@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese word forms: い-adjectives, な-adjectives and nouns now also list the N5-N1 patterns that fit them (てもいい, とき, ので, らしい, まま, くせに, 一方だ and so on), with the ending conjugated for each part of speech.
 - Japanese word forms: a character-speech group for fiction and subculture registers - でござる, であります, にゃ, なのだ, ですわ, のじゃ, っす, っしょ, じゃん, なり, で候, でおじゃる - on verbs, adjectives and nouns.
 - Korean word forms add contractions, colloquial endings and literary forms for verbs, adjectives and nouns.
+- System tools: the process list and details show whether a process is 32-bit or 64-bit and whether it runs elevated.
 
 #### Changed
 
@@ -143,6 +144,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome offline speech now opens its page when the app runs as administrator; Chrome restarts itself with lower rights and the launcher exits first, so the real browser is waited for and reused.
 - Chrome speech fails after 10 seconds when the voice never starts, and cancels the stuck utterance, instead of waiting for the long timeout.
 - Main window dictionary: the word-forms tab for Japanese nouns showed the group-1 verb error instead of noun forms.
+- English word forms show the object choice for auto-detected verbs as well as the Verb type.
+- Tool windows such as system tools could not be opened again after closing them once.
 
 #### Security / privacy notes
 
@@ -178,6 +181,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语形态变化：い形容词、な形容词、名词也补上能接的 N5~N1 句型（てもいい、とき、ので、らしい、まま、くせに、一方だ 等），词尾按词性变形。
 - 日语形态变化：新增「角色语」组，收武士、军队、猫语、大小姐、老人、体育会、辣妹、网络等小圈子说法（でござる、であります、にゃ、なのだ、ですわ、のじゃ、っす、っしょ、じゃん、なり、で候、でおじゃる），动词、形容词、名词都有。
 - 韩语词形变化为动词、形容词和名词补上省略、口语和书面用法。
+- 系统工具：进程列表和详情显示 32/64 位与是否以管理员身份运行。
 
 #### 变更
 
@@ -251,6 +255,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 程序以管理员身份运行时，Chrome 朗读不再报「Chrome 没有打开朗读页」：Chrome 会降权重启、启动器先退出，现在按调试口等真正的浏览器并复用它。
 - Chrome 朗读 10 秒还没开始出声就判失败并取消卡住的那句，不再一直等到超时。
 - 主窗口词典：日语名词的形态变化页显示「1类词尾要是う段假名」，没有名词变化内容。
+- 英语词形变化在自动识别为动词时也显示宾语选择，不必先把类型改成动词。
+- 系统工具等工具窗口关掉后，再从菜单打开会没有反应。
 
 #### 安全与隐私
 

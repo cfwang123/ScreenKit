@@ -55,11 +55,13 @@
 						<ListView x:Name="lvproc" BorderBrush="{StaticResource BorderSoft}">
 							<ListView.View>
 								<GridView>
-									<GridViewColumn x:Name="colprocname" Width="160" DisplayMemberBinding="{Binding Name}"/>
-									<GridViewColumn x:Name="colprocpid" Width="70" DisplayMemberBinding="{Binding Pid}"/>
-									<GridViewColumn x:Name="colprocmem" Width="80" DisplayMemberBinding="{Binding Mem}"/>
-									<GridViewColumn x:Name="colprocpath" Width="240" DisplayMemberBinding="{Binding Path}"/>
-									<GridViewColumn x:Name="colproccmd" Width="240" DisplayMemberBinding="{Binding Cmd}"/>
+									<GridViewColumn x:Name="colprocname" Width="150" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colprocpid" Width="60" DisplayMemberBinding="{Binding Pid}"/>
+									<GridViewColumn x:Name="colprocmem" Width="70" DisplayMemberBinding="{Binding Mem}"/>
+									<GridViewColumn x:Name="colprocbits" Width="55" DisplayMemberBinding="{Binding Bits}"/>
+									<GridViewColumn x:Name="colprocelev" Width="75" DisplayMemberBinding="{Binding Admin}"/>
+									<GridViewColumn x:Name="colprocpath" Width="190" DisplayMemberBinding="{Binding Path}"/>
+									<GridViewColumn x:Name="colproccmd" Width="180" DisplayMemberBinding="{Binding Cmd}"/>
 								</GridView>
 							</ListView.View>
 						</ListView>
