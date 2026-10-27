@@ -1,7 +1,7 @@
 # ScreenKit HTTP API
 
 **Languages:** [English](HTTP-API.md) · [中文](HTTP接口文档.md)
-
+ 
 Local HTTP API: OCR endpoints, plus ASR / TTS / ITN / barcode / face extensions.
 
 LAN access is on by default. Turn it off to listen on this PC only. **Do not** expose this port on untrusted networks.
