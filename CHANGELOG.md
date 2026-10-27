@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary install downloads dict3-core.7z and builds the local index.
 - With Definitions only, the sub-senses of one sense are merged into a single line separated by semicolons.
 - Japanese name lookup no longer shows surname population, and each row has a speak button.
+- Korean entries list phrases under a Phrases heading, with each phrase and its Chinese gloss on one line told apart by colour.
 
 #### Fixed
 
@@ -82,6 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典安装改为下载 dict3-core.7z，解压后在本机建立索引。
 - 「仅释义」时，同一义项下的多条子义项合并成一行，用「; 」分隔。
 - 日本姓名查询不再显示姓的人数，每条旁边可以听读音。
+- 韩语词条词组改为「词组：」列表，每条词组与中文释义排在同一行，用颜色区分。
 
 #### 修复
 

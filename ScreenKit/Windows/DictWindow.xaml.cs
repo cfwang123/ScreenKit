@@ -968,7 +968,24 @@ public partial class DictWindow : UserControl {
 					gloss(Loc.T("dict.lab.en"), s.En, s.EnDef, "en");
 					gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
 				}
-				foreach (var ph in s.Phrases) {
+				if (e.Dict == "ko" && s.Phrases.Count > 0 && s.Idiom.Length == 0) {
+					// 韩语：词组与中文释义排成一行，用颜色区分，前面加「词组：」列表头。
+					doc.Blocks.Add(one(Loc.T("dict.lab.phrase") + "：", DRole.Label, 0));
+					foreach (var ph in s.Phrases) {
+						if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
+						var p = para(0);
+						addrun(p, "· ", DRole.Number);
+						if (ph.Text.Length > 0) addrun(p, ph.Text, DRole.Body, entrylang);
+						var say = examplesrc(ph.Text);
+						if (say.Length > 0) addspeak(p, say, entrylang);
+						if (ph.Zh.Length > 0) {
+							addrun(p, "  ", DRole.Body);
+							addrun(p, ph.Zh, DRole.Label, "zh");
+						}
+						doc.Blocks.Add(p);
+					}
+				}
+				else foreach (var ph in s.Phrases) {
 					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
 					var p = para(0);
 					addrun(p, Loc.T("dict.lab.phrase") + " ", DRole.Label);
