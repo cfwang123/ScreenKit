@@ -50,7 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Novel reader keeps txt and md files in the browser instead of uploading them, prepares the next sentence while the current one still plays, and a voice install no longer switches the browser in front into reading mode. The in-browser model list marks which Chrome voice packs are installed.
 - Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 - The Chrome model page can play a short test line for an installed voice.
-- Japanese word forms: verbs by class plus i-adjectives, na-adjectives and nouns, with honorifics, auxiliaries, contractions, dialect forms, N5-N1 grammar patterns, rough and masculine speech, literary forms and sentence-ending particles. Casual, feminine, masculine, samurai and character-speech endings share one group, and every form has a speak button.
+- Japanese word forms: verbs by class plus i-adjectives, na-adjectives and nouns, with honorifics, auxiliaries, contractions, dialect forms, N5-N1 grammar patterns, rough and masculine speech, literary forms and sentence-ending particles, and every form has a speak button.
 - Korean word forms: verbs, adjectives and nouns by type, with speech levels, dialect groups (Munhwao, DPRK broadcast, Yanbian), grammar patterns, auxiliaries, quotation, contractions, colloquial, literary, character-speech, in-group, rough and classical endings, and a speak button on each form.
 - English word forms: verb tenses and moods, irregular verbs, adjectives and nouns, with British, American and Australian variants; a verb takes one or two objects, typed or picked, and every form has a speak button.
 - Russian word forms: verb conjugation, adjective and noun declension, with colloquial and dialect variants, and a speak button on each form.
@@ -152,7 +152,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器的 txt、md 存在浏览器里，不再上传到程序；读当前句时提前准备下一句，缩短两句之间的停顿；语音安装不再把当前浏览器切进阅读模式；浏览器小模型选 Chrome 发音时会标出该语音包是否已安装。
 - 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 - Chrome 模型页可以为已安装的语音试听一句。
-- 日语词形变化：动词按 1/2/3 类列出，也支持い形容词、な形容词和名词，含敬语、补助动词、口语缩略、方言说法、N5~N1 句型、粗俗／男性语和书面语，以及语气终助词（口语、女性、男性、武士、角色语合成一组）。每项可发音。
+- 日语词形变化：动词按 1/2/3 类列出，也支持い形容词、な形容词和名词，含敬语、补助动词、口语缩略、方言说法、N5~N1 句型、粗俗／男性语和书面语，以及语气终助词。每项可发音。
 - 韩语词形变化：按类型列出动词、形容词和名词的变化，含语体、方言分组（朝鲜文化语、朝鲜播音体、延边朝鲜语）、句型、补助动词、引用、口语缩略、书面语、角色语、小圈子用语、粗俗和古代语词尾，每项可发音。
 - 英语词形变化：动词时态与语气、不规则动词、形容词和名词，含英美澳写法差异；动词可以带一个或两个宾语（可选也可自己输入），每项可发音。
 - 俄语词形变化：动词变位、形容词和名词变格，含口语和方言说法，每项可发音。
