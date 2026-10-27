@@ -507,20 +507,21 @@
 		}
 	}
 
-	// 一行放表记、读音和发音。其余读法在悬停提示里。不显示姓的人数。
+	// 表记旁边把全部读法竖着排开，每个读法一个发音按钮。不显示姓的人数。
 	function rowhtml(hit){
 		var r = hit.r;
-		var y = hit.y || (r.y.length ? r.y[0] : "");
-		var tip = r.k + " " + r.y.join("、");
-		var spk = y
-			? '<button type="button" class="jn-spk" data-v="' + esc(y) + '" title="' + esc(tx("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>'
-			: "";
-		var tag = kind === "all"
-			? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "";
-		return '<div class="jnrow" title="' + esc(tip) + '">'
+		var i, y, lines, spk, tag;
+		lines = "";
+		for (i = 0; i < r.y.length; i++) {
+			y = r.y[i];
+			if (!y) continue;
+			spk = '<button type="button" class="jn-spk" data-v="' + esc(y) + '" title="' + esc(tx("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>';
+			lines += '<span class="jnyline"><span class="jny">' + esc(y) + "</span>" + spk + "</span>";
+		}
+		tag = kind === "all" ? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "";
+		return '<div class="jnrow">'
 			+ '<span class="jnk">' + esc(r.k) + "</span>"
-			+ '<span class="jny">' + esc(y) + "</span>"
-			+ spk
+			+ '<span class="jnys">' + lines + "</span>"
 			+ tag
 			+ "</div>";
 	}

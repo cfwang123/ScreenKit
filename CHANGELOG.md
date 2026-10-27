@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English entry details indent the translated definitions, list phrases under a Phrases heading with indented definitions and examples, and put example translations on the same line.
 - Name search lists each matched surname and given name on its own row, including cuts where only one side matches, and readings are shown in full.
 - Japanese name readings no longer has a full-name tab. Searching a full name under All shows one surname and one given name.
+- Each Japanese name lists every reading in a vertical stack, with a speak button on each one.
 
 #### Fixed
 
@@ -104,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词条详情里译文释义缩进，词组改为「词组：」列表（词组下的释义和例句缩进），例句中文并到同一行。
 - 搜索姓名时，对上的姓和名各占一行，只对上其中一边也会列出，不同切分长度都会显示；读音不再省略。
 - 日本姓名读法去掉「姓名」分类。在「全部」里搜索完整姓名时，只显示最匹配的一姓和一名。
+- 日本姓名的每条结果竖排显示全部读法，每个读法都有发音按钮。
 
 #### 修复
 
