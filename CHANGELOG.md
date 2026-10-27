@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese name readings no longer has a full-name tab. Searching a full name under All shows one surname and one given name.
 - Each Japanese name lists every reading in a vertical stack, with a speak button on each one.
 - Dictionary entries are built once as a compact JSON of rendered lines and inline runs; the WPF dictionary, web dictionary and reader render the same document, and Definitions only is a builder parameter.
+- Japanese name results line up in rows, 60 per page, and scroll inside the list.
 
 #### Fixed
 
@@ -109,6 +110,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日本姓名读法去掉「姓名」分类。在「全部」里搜索完整姓名时，只显示最匹配的一姓和一名。
 - 日本姓名的每条结果竖排显示全部读法，每个读法都有发音按钮。
 - 词典词条改为先生成「行 + 行内块」的紧凑 JSON，WPF 词典、网页词典和阅读器渲染同一份文档；「仅释义」作为生成参数传入。
+- 日本姓名结果按行对齐，每页固定 60 条，超出部分在列表里滚动。
 
 #### 修复
 

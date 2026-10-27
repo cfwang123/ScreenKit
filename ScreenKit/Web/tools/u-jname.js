@@ -105,7 +105,7 @@
 		if (prev) prev.onclick = function(){ goto(page - 1); };
 		if (next) next.onclick = function(){ goto(page + 1); };
 		list.onclick = onlist;
-		window.addEventListener("resize", function(){ render(); });
+		window.addEventListener("resize", function(){ render(true); });
 		place();
 		load();
 	}
@@ -237,7 +237,7 @@
 	}
 
 	// 每页固定条数，按行从左到右排。超出列表高度时在列表里滚动。
-	function render(){
+	function render(keep){
 		var box = F.id("jn-list");
 		var scroll, pages, from, slice;
 		if (!box) return;
@@ -255,7 +255,7 @@
 		from = page * PERPAGE;
 		slice = hits.slice(from, from + PERPAGE);
 		filllist(box, slice);
-		if (scroll) scroll.scrollTop = 0;
+		if (scroll && !keep) scroll.scrollTop = 0;
 		pager(pages);
 	}
 
