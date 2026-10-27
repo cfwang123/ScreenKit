@@ -625,7 +625,7 @@
 		var forms = e.forms && e.forms.length ? e.forms : [word];
 		for (var fi = 0; fi < forms.length; fi++) {
 			if (!forms[fi]) continue;
-			add(head, (fi ? "  " : "") + forms[fi], "", lang);
+			add(head, forms[fi], "", lang);
 		}
 		box.appendChild(head);
 		var reading = e.pron || e.reading || "";
