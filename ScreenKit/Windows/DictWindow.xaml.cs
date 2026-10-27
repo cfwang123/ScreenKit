@@ -139,7 +139,7 @@ public partial class DictWindow : UserControl {
 	int objci = -1;
 	bool objlock;
 
-	/// <summary>最近一次搜索的状态文字。界面不再显示状态栏，留给 --test-dict 这类自测读。</summary>
+	/// <summary>最近一次搜索的状态文字，与底部状态栏同步；自测读这个字段。</summary>
 	internal string Status = "";
 
 	/// <summary>选区「翻译」：主窗打开翻译小窗、填入原文并立即翻译。</summary>
@@ -349,6 +349,11 @@ public partial class DictWindow : UserControl {
 		if (tick != null && !tick.IsEnabled) tick.Start();
 	}
 
+	void setstatus(string text) {
+		Status = text ?? "";
+		lbstatus.Text = Status;
+	}
+
 	void ensuredb() {
 		var o = Options != null ? Options() : null;
 		if (o != null && !o.ModDict) {
@@ -358,7 +363,7 @@ public partial class DictWindow : UserControl {
 		if (DictDb.Ready) return;
 		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
 		if (!DictDb.Init(path)) {
-			say(DictDb.Error == "missing" ? Loc.T("dict.missing") : DictDb.Error);
+			setstatus(DictDb.Error == "missing" ? Loc.T("dict.missing") : DictDb.Error);
 			return;
 		}
 	}
@@ -374,12 +379,13 @@ public partial class DictWindow : UserControl {
 			lhits.ItemsSource = null;
 			filling = false;
 			cleardetail();
+			setstatus("");
 			return;
 		}
 		ensuredb();
 		if (!DictDb.Ready) return;
 		var g = ++gen;
-		Status = Loc.T("dict.searching");
+		setstatus(Loc.T("dict.searching"));
 		var took = new int[1];
 		var limit = searchlimit();
 		Task.Run(() => {
@@ -398,7 +404,7 @@ public partial class DictWindow : UserControl {
 				if (g != gen) return;
 				var hits = t.Result ?? new List<DictHit>();
 				if (hits.Count == 1 && hits[0].Id == 0 && hits[0].Headword.Length == 0 && hits[0].Preview.Length > 0) {
-					Status = hits[0].Preview;
+					setstatus(hits[0].Preview);
 					return;
 				}
 				showhits(hits, took[0], keep);
@@ -458,7 +464,7 @@ public partial class DictWindow : UserControl {
 		if (rows.Count > 0) loaddetail(rows[pick]);
 		else cleardetail();
 		keepview(rows, pick, keepid, keep);
-		Status = Loc.T("dict.count", rows.Count, ms);
+		setstatus(Loc.T("dict.count", rows.Count, ms));
 	}
 
 	void onrowload(object sender, RoutedEventArgs e) {

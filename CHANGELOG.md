@@ -40,6 +40,28 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Added
+
+- CLI --test-dict-count compares full hit counts of two dict3.bin files, without the 4000-row cap.
+
+#### Fixed
+
+- Restore the result count and elapsed time under the dictionary page search results.
+
+### 中文
+
+#### 新增
+
+- 命令行 --test-dict-count 比较两份 dict3.bin 的全部命中数，不受 4000 条上限。
+
+#### 修复
+
+- 词典页恢复搜索结果下方的结果条数和用时显示。
+
 ## v1.0.30 (2026-10-27)
 
 ### English

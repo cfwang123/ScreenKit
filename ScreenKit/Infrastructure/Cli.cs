@@ -74,7 +74,7 @@ static class Cli {
 				or "--test-mem-load"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
-				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
+				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
 				or "--test-dict-scroll"
 				or "--test-cast" or "--test-cast-recv" or "--test-aoa"
@@ -438,6 +438,8 @@ static class Cli {
 					if (i + 1 < args.Length && int.TryParse(args[i + 1], out var bv)) { Next(); bn = bv; }
 					return testdictbench(bq, bn);
 				}
+				case "--test-dict-count":
+					return testdictcount(args, i);
 				case "--test-dict-sel":
 					return testselcopy();
 				case "--test-dict-word":
@@ -6438,6 +6440,56 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return 0;
 	}
 
+	/// <summary>两个词库对同一批词的全部命中数。不受界面 4000 条限制。默认词都是三字以上、命中很多的片段。</summary>
+	static int testdictcount(string[] args, int at) {
+		if (at + 2 >= args.Length) {
+			Out("用法: --test-dict-count <甲.bin> <乙.bin> [词...]");
+			return 2;
+		}
+		var pathA = args[at + 1];
+		var pathB = args[at + 2];
+		var qs = new List<string>();
+		for (var j = at + 3; j < args.Length; j++) {
+			if (args[j].Length > 0 && args[j][0] != '-') qs.Add(args[j]);
+		}
+		if (qs.Count == 0)
+			qs.AddRange(new[] { "ing", "tion", "ter", "ent", "ate", "con", "the", "inter", "ment", "ness" });
+		var diff = 0;
+		foreach (var q in qs) {
+			var a = dictids(pathA, q);
+			if (a == null) {
+				Out("open fail A: " + DictDb.Error);
+				return 2;
+			}
+			var b = dictids(pathB, q);
+			if (b == null) {
+				Out("open fail B: " + DictDb.Error);
+				return 2;
+			}
+			var onlyA = 0;
+			var onlyB = 0;
+			if (a.Count != b.Count) {
+				var set = new HashSet<long>(a);
+				foreach (var id in b) {
+					if (!set.Remove(id)) onlyB++;
+				}
+				onlyA = set.Count;
+			}
+			var mark = a.Count == b.Count ? "相同" : "不同";
+			if (a.Count != b.Count) diff++;
+			Out($"q={q} A={a.Count} B={b.Count} {mark} onlyA={onlyA} onlyB={onlyB}");
+		}
+		DictDb.Close();
+		Out(diff == 0 ? "count ok" : "count diff " + diff);
+		return diff == 0 ? 0 : 1;
+	}
+
+	static List<long> dictids(string path, string q) {
+		DictDb.Close();
+		if (!DictDb.Init(path)) return null;
+		return DictDb.SearchIds(q, "");
+	}
+
 	static int testdictbench(string q, int limit) {
 		if (limit < 1) limit = 1;
 		if (limit > DictDb.SEARCH_MAX) limit = DictDb.SEARCH_MAX;
@@ -7374,6 +7426,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-mem-win
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
+  ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
   ScreenKit --test-dict-tts
@@ -7488,6 +7541,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
       --test-dict-search  只读查询 exe 旁 dict3.bin（默认 学生 与 hello）；韩语词组行有发音按钮
       --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数]，默认 1000 条
+      --test-dict-count <甲.bin> <乙.bin> [词...]  比较两个词库的全部命中数（不受 4000 条限制）。不给词时用 ing、tion 等命中很多的片段
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
@@ -7602,6 +7656,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-mem-win
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
+  ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
   ScreenKit --test-dict-tts
