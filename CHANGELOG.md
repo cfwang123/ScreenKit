@@ -109,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる, and the word-forms tab conjugates the kana form too (くれない, not 呉れない).
 - English verb objects follow the dictionary: intransitive, transitive, or two objects.
 - English verb objects can be typed, not only picked from the list.
+- The English irregular-verb page reads the single list kept in the conjugation data.
 
 #### Fixed
 
@@ -230,6 +231,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる；形态变化也按假名变（くれない，而不是 呉れない）。
 - 英语动词的宾语个数默认按词典词性判断：不及物、及物或双宾语。
 - 英语词形变化的宾语可以自己输入，不必只从列表里选。
+- 英文不规则动词页改为读取词形变化里的那一份表，不再另存一份。
 
 #### 修复
 

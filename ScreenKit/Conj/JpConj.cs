@@ -925,11 +925,9 @@ static class JpConj {
 		rows.AddRange(evidrows(L, verbforms(plain, masu, nai, te, ta)));
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
 		rows.AddRange(naihaseirows(L, nai));
-		rows.AddRange(keigo(plain, masu, pas, L));
+		rows.AddRange(keigo(plain, masu, pas, L, te));
 		rows.AddRange(jargonrows(L, plain, "v", masu, nai));
 		rows.AddRange(endrows(L, plain, masu, "v", nai, cut(masu, 2) + "ません"));
-		// 尊敬语命令：～ていらっしゃい／～てらっしゃい（行ってらっしゃい）
-		if (!issonkearu(plain) && !isaru(plain)) rows.Add(new ConjRow(L.terasshai, te + "いらっしゃい、" + te + "らっしゃい", L.gson));
 		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
 		var tail = JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, cau));
 		return new JpConjPacked { plain = plain, masu = masu, te = te, ta = ta, nai = nai, rows = rows, tail = tail };
@@ -1394,7 +1392,7 @@ static class JpConj {
 
 	// ───────── 敬语 ─────────
 
-	static List<ConjRow> keigo(string word, string masu, string pas, JpConjLabels L) {
+	static List<ConjRow> keigo(string word, string masu, string pas, JpConjLabels L, string te) {
 		if (issonkearu(word)) return new List<ConjRow>();
 		var ren = cut(masu, 2);
 		var spec = lexof(word);
@@ -1424,6 +1422,8 @@ static class JpConj {
 		pushm(rows, L.itasm, itas, L.gken);
 		pushk(rows, L.tei, tei, L.gtei);
 		pushm(rows, L.teim, tei, L.gtei);
+		// 尊敬语命令：～ていらっしゃい／～てらっしゃい（行ってらっしゃい），和上面的尊敬语同一组。
+		if (!issonkearu(word) && !isaru(word)) rows.Add(new ConjRow(L.terasshai, te + "いらっしゃい、" + te + "らっしゃい", L.gson));
 		return rows;
 	}
 

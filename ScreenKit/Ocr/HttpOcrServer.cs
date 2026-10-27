@@ -343,6 +343,15 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 
+			if (path is "/api/conj/irr" or "/api/conj/irr/") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "conj/irr 仅支持 GET"));
+					return;
+				}
+				handleirr(ctx);
+				return;
+			}
+
 			if (path is "/api/conj" or "/api/conj/") {
 				if (!isget(req) && !ispost(req)) {
 					writejson(ctx, 405, err(805, "conj 仅支持 GET 或 POST"));
@@ -741,6 +750,21 @@ sealed partial class HttpOcrServer : IDisposable {
 		string.Equals(req.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase);
 
 	// ───────── status / ASR / TTS / ITN ─────────
+
+	/// <summary>英语不规则动词表，数据在 EnConj.IR。GET /api/conj/irr</summary>
+	void handleirr(SockCtx ctx) {
+		var arr = new JsonArray();
+		foreach (var row in EnConj.Irregulars) {
+			if (row == null || row.Length < 5) continue;
+			var one = new JsonArray { row[0] ?? "", row[1] ?? "", row[2] ?? "", row[3] ?? "", row[4] ?? "" };
+			if (row.Length >= 7) one.Add(new JsonArray { row[5] ?? "", row[6] ?? "" });
+			arr.Add(one);
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject { ["rows"] = arr },
+		});
+	}
 
 	/// <summary>日/韩/英动词变形：GET/POST /api/conj?lang=ja|ko|en&amp;q=…&amp;kind=&amp;flag=&amp;sub=&amp;type=&amp;ui=zh&amp;o1=&amp;o2=</summary>
 	void handleconj(SockCtx ctx) {
