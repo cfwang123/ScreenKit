@@ -29,8 +29,8 @@ sealed class JpConjLabels {
 	public string teoku, teshimau, temiru, tearu;
 	public string tekuru, teiku, tekudasai;
 	public string mashou, mashouka, masenka;
-	public string kchau, kchatta;
-	public string teru, teta, tenai, temasu;
+	public string teita, teinai, teimasu, teshimatta, tewa;
+	public string nakereba, nakucha, noda, terasshai;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
 	public string adv, naru, sa, rentai;
@@ -401,12 +401,15 @@ static class JpConj {
 			L.mashou = "ましょう";
 			L.mashouka = "ましょうか";
 			L.masenka = "ませんか";
-			L.teru = "てる";
-			L.teta = "てた";
-			L.tenai = "てない";
-			L.temasu = "てます";
-			L.kchau = "ちゃう・じゃう";
-			L.kchatta = "ちゃった・じゃった";
+			L.teita = "ていた";
+			L.teinai = "ていない";
+			L.teimasu = "ています";
+			L.teshimatta = "てしまった";
+			L.tewa = "ては";
+			L.nakereba = "なければ";
+			L.nakucha = "なくては";
+			L.noda = "のです";
+			L.terasshai = "ていらっしゃい";
 			L.ai = "い形容词";
 			L.an = "な形容词";
 			L.nn = "名词";
@@ -564,12 +567,15 @@ static class JpConj {
 		L.mashou = "mashou";
 		L.mashouka = "mashou ka";
 		L.masenka = "masen ka";
-			L.teru = "teru";
-			L.teta = "teta";
-			L.tenai = "tenai";
-			L.temasu = "temasu";
-			L.kchau = "chau / jau";
-			L.kchatta = "chatta / jatta";
+			L.teita = "teita";
+			L.teinai = "teinai";
+			L.teimasu = "teimasu";
+			L.teshimatta = "teshimatta";
+			L.tewa = "tewa";
+			L.nakereba = "nakereba";
+			L.nakucha = "nakucha";
+			L.noda = "noda";
+			L.terasshai = "teirasshai";
 		L.ai = "i-adjective";
 		L.an = "na-adjective";
 		L.nn = "noun";
@@ -679,7 +685,8 @@ static class JpConj {
 			row(L.polpastneg, s + "くありませんでした"),
 			row(L.te, s + "くて、" + s + "くなくて"),
 			row(L.adv, s + "く"),
-			row(L.ba, s + "ければ、" + s + "くなければ"),
+			row(L.ba, s + "ければ、" + s + "けりゃ"),
+			row(L.nakereba, s + "くなければ、" + s + "くなきゃ"),
 			row(L.tara, s + "かったら、" + s + "くなかったら"),
 			row(L.naru, s + "くなる"),
 			row(L.souda, (irri(word) ? s + "さそうだ" : s + "そうだ") + "、" + s + "くなさそうだ"),
@@ -731,7 +738,8 @@ static class JpConj {
 			row(L.te, word + "で、" + word + "ではなくて"),
 			row(L.rentai, word + "な、" + word + "でない"),
 			row(L.adv, word + "に"),
-			row(L.ba, word + "なら、" + word + "でなければ"),
+			row(L.ba, word + "なら、" + word + "なりゃ"),
+			row(L.nakereba, word + "でなければ、" + word + "じゃなきゃ"),
 			row(L.tara, word + "だったら、" + word + "ではなかったら"),
 			row(L.naru, word + "になる"),
 			row(L.dearu, word + "である、" + word + "ではない"),
@@ -772,7 +780,8 @@ static class JpConj {
 			row(L.polpastneg, word + "ではありませんでした"),
 			row(L.te, word + "で、" + word + "ではなくて"),
 			row(L.rentai, word + "の、" + word + "でない"),
-			row(L.ba, word + "なら、" + word + "でなければ"),
+			row(L.ba, word + "なら、" + word + "なりゃ"),
+			row(L.nakereba, word + "でなければ、" + word + "じゃなきゃ"),
 			row(L.tara, word + "だったら、" + word + "ではなかったら"),
 			row(L.dearu, word + "である、" + word + "ではない"),
 			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
@@ -812,13 +821,15 @@ static class JpConj {
 			row(L.te, te),
 			row(L.ta, ta),
 			row(L.tara, ta + "ら、" + cut(nai, 2) + "なかったら"),
-			row(L.ba, ba + "、" + cut(nai, 1) + "ければ"),
+			row(L.ba, ba + "、" + ryaf(ba)),
+			row(L.nakereba, cut(nai, 2) + "なければ、" + cut(nai, 2) + "なきゃ"),
+			row(L.nakucha, cut(nai, 2) + "なくては、" + cut(nai, 2) + "なくちゃ"),
 			row(L.cmd, cmd),
 		};
 		rows.AddRange(nasairows(L, plain, cut(masu, 2)));
 		rows.Add(row(L.stop, plain + "な"));
 		rows.Add(row(L.vol, vol));
-		rows.Add(row(L.pot, pot));
+		rows.Add(row(L.pot, pot.Contains("られる") ? pot + "、" + pot.Replace("られる", "れる") : pot));
 		rows.Add(row(L.pas, pas));
 		rows.Add(row(L.cau, cau));
 		rows.Add(row(L.cap, cap));
@@ -826,11 +837,14 @@ static class JpConj {
 		rows.Add(row(L.takunai, cut(tai, 2) + "たくない"));
 		rows.Add(row(L.nda, plain + "んだ、" + nai + "んだ"));
 		rows.Add(row(L.tte, plain + "って、" + nai + "って"));
+		rows.Add(row(L.noda, plain + "のです、" + plain + "んです"));
 		rows.AddRange(auxrows(L, plain, masu, te, nai));
 		rows.AddRange(evidrows(L, verbforms(plain, masu, nai, te, ta)));
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
 		rows.AddRange(naihaseirows(L, nai));
 		rows.AddRange(keigo(plain, masu, pas, L));
+		// 尊敬语命令：～ていらっしゃい／～てらっしゃい（行ってらっしゃい）
+		if (!issonkearu(plain) && !isaru(plain)) rows.Add(new ConjRow(L.terasshai, te + "いらっしゃい、" + te + "らっしゃい", L.gson));
 		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
 		var tail = JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, cau));
 		return new JpConjPacked { plain = plain, masu = masu, te = te, ta = ta, nai = nai, rows = rows, tail = tail };
@@ -981,22 +995,23 @@ static class JpConj {
 			row(L.kakaru, ren + "かかる"),
 			row(L.sokonau, ren + "そこなう"),
 		};
+		// 每个形都把原形和口语缩略排在一起，中间用顿号分开。
+		var stem = cut(te, 1);
+		var cha = te.EndsWith("で") ? "じゃ" : "ちゃ";
+		var toku = stem + (te.EndsWith("で") ? "どく" : "とく");
 		var teerows = new List<ConjRow> {
-			row(L.teiru, te + "いる"),
-			// ている 的口语缩略：てる・でる
-			row(L.teru, te + "る"),
-			row(L.teta, te + "た"),
-			row(L.tenai, te + "ない"),
-			row(L.temasu, te + "ます"),
-			row(L.teoku, te + "おく"),
-			row(L.teshimau, te + "しまう"),
-			// てしまう 的口语缩略：て＋ちゃう、で＋じゃう
-			row(L.kchau, cut(te, 1) + (te.EndsWith("で") ? "じゃう" : "ちゃう")),
-			row(L.kchatta, cut(te, 1) + (te.EndsWith("で") ? "じゃった" : "ちゃった")),
+			row(L.teiru, te + "いる、" + te + "る"),
+			row(L.teita, te + "いた、" + te + "た"),
+			row(L.teinai, te + "いない、" + te + "ない"),
+			row(L.teimasu, te + "います、" + te + "ます"),
+			row(L.teoku, te + "おく、" + toku),
+			row(L.teshimau, te + "しまう、" + stem + cha + "う"),
+			row(L.teshimatta, te + "しまった、" + stem + cha + "った"),
+			row(L.tewa, te + "は、" + stem + cha),
 			row(L.temiru, te + "みる"),
 			row(L.tearu, te + "ある"),
-			row(L.tekuru, te + "くる"),
-			row(L.teiku, te + "いく"),
+			row(L.tekuru, te + "くる、" + te + "く、" + te + "来い"),
+			row(L.teiku, te + "いく、" + te + "く"),
 			row(L.tekudasai, te + "ください"),
 		};
 		var polrows = new List<ConjRow> {
@@ -1008,6 +1023,18 @@ static class JpConj {
 		outs.AddRange(setgroup(teerows, L.auxte));
 		outs.AddRange(setgroup(polrows, L.auxpol));
 		return outs;
+	}
+
+	// ば形 → 口语缩略：行けば→行きゃ、食べれば→食べりゃ、すれば→すりゃ。
+	static string ryaf(string ba) {
+		if (string.IsNullOrEmpty(ba) || !ba.EndsWith("ば")) return ba;
+		var s = ba.Substring(0, ba.Length - 1);
+		const string e = "けれせてねめげべでへ";
+		const string i = "きりしちにみぎびぢひ";
+		var last = s[s.Length - 1];
+		var n = e.IndexOf(last);
+		if (n < 0) return s + "ゃ";
+		return s.Substring(0, s.Length - 1) + i[n] + "ゃ";
 	}
 
 	static List<ConjRow> setgroup(List<ConjRow> rows, string g) {
