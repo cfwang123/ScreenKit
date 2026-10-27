@@ -25,5 +25,7 @@ sealed class ConjResult {
 	public string Name = "";
 	public string Note = "";
 	public string Irr = "";
+	/// <summary>v 动词、a 形容词、n 名词。网页据此决定要不要显示宾语。</summary>
+	public string Kind = "";
 	public List<ConjRow> Rows = new();
 }

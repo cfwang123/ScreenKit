@@ -188,6 +188,9 @@ static class KoConj {
 		["mood"] = new[] { "语气", "양태", "Mood" },
 		["ellip"] = new[] { "省略", "준말", "Contraction" },
 		["talk"] = new[] { "口语", "구어", "Colloquial" },
+		["role"] = new[] { "角色语", "역할어", "Character" },
+		["circle"] = new[] { "小圈子", "은어", "In-group" },
+		["rough"] = new[] { "粗俗", "속어", "Vulgar" },
 	};
 
 	private static readonly Dictionary<string, string[]> NOTE = new() {
@@ -505,6 +508,26 @@ static class KoConj {
 		["haeuuna"] = new[] { "书面转折 하였으나", "하였으나", "hayeoseuna" },
 		["haeumyeo"] = new[] { "书面同时 하였으며", "하였으며", "hayeoseumyeo" },
 		["haeumeuro"] = new[] { "书面原因 하였으므로", "하였으므로", "hayeoseumeuro" },
+		["guryeo"] = new[] { "老人 구려", "구려", "guryeo" },
+		["gumeon"] = new[] { "老人 구먼", "구먼", "gumeon" },
+		["negeu"] = new[] { "老人 네그려", "네그려", "negeuryeo" },
+		["aegyo"] = new[] { "撒娇 여/염", "여/염", "aegyo" },
+		["nyang"] = new[] { "猫 냥", "냥", "nyang" },
+		["neunyo"] = new[] { "古装疑问", "느뇨", "neunyo" },
+		["riikka"] = new[] { "古装 리이까", "리이까", "riikka" },
+		["saopka"] = new[] { "古装 사옵나이까", "사옵나이까", "saopnaikka" },
+		["jirong"] = new[] { "孩子 지롱", "지롱", "jirong" },
+		["yong"] = new[] { "网络 용", "용", "yong" },
+		["sam"] = new[] { "网络 삼", "삼", "sam" },
+		["sem"] = new[] { "网络 셈", "셈", "sem" },
+		["dang"] = new[] { "网络 당", "당", "dang" },
+		["geoim"] = new[] { "网络 거임", "거임", "geoim" },
+		["imda"] = new[] { "撒娇 임다", "임다", "imda" },
+		["nya"] = new[] { "粗问 냐", "냐", "nya" },
+		["masem"] = new[] { "粗禁 마셈", "마셈", "masem" },
+		["llla"] = new[] { "吓唬 ㄹ라", "ㄹ라", "lla" },
+		["cheo"] = new[] { "脏强调 쳐", "쳐", "cheo" },
+		["daeda"] = new[] { "一个劲儿", "대다", "daeda" },
 	};
 
 	/// <summary>
@@ -980,6 +1003,9 @@ static class KoConj {
 	private static string repend(string s, string suffix, string rep) =>
 		s.EndsWith(suffix, StringComparison.Ordinal) ? s.Substring(0, s.Length - suffix.Length) + rep : s;
 
+	// 해요体末尾的 요 换成撒娇或网络用的 여、염、용
+	private static string yoswap(string hey, string tail) => repend(hey, "요", tail);
+
 	// ==================== 结果打包 ====================
 
 	private static ConjResult fail(int li) => new() {
@@ -1326,6 +1352,30 @@ static class KoConj {
 		if (verb || adj || itda) add("tryban", "봐", ba + " 봐");
 		add("gu", "구", jn(syls) + "구");
 		add("guyo", "구요", jn(syls) + "구요");
+		// 角色语、网络小圈子、粗俗词尾。구려/구먼 与 구나 同接；네그려、삼、셈 在 ㄹ 后脱落。
+		cur = g("role");
+		add("guryeo", "구려", gutail + "구려");
+		add("gumeon", "구먼", gutail + "구먼");
+		add("negeu", "네그려", dropr(syls, "네그려"));
+		add("aegyo", "여/염", yoswap(hey, "여") + " / " + yoswap(hey, "염"));
+		add("nyang", "냥", repend(plainnow, "다", "다냥"));
+		add("neunyo", "느뇨", kind == "a" && !eobs ? pluseu(st, "뇨", true) : dropr(syls, "느뇨"));
+		add("riikka", "리이까", pluseu(st, "리이까", true));
+		add("saopka", "사옵나이까", repend(saop(syls), "니다", "나이까"));
+		add("jirong", "지롱", past + "지롱");
+		cur = g("circle");
+		add("yong", "용", yoswap(hey, "용"));
+		add("sam", "삼", dropr(syls, "삼"));
+		add("sem", "셈", dropr(syls, "셈"));
+		add("dang", "당", repend(plainnow, "다", "당") + " / " + past + "당");
+		add("geoim", "거임", nowmod + " 거임");
+		add("imda", "임다", mieum(syls, irr) + "다");
+		cur = g("rough");
+		add("nya", "냐", dropr(syls, "냐?") + " / " + past + "냐?");
+		if (verb || adj || itda) add("masem", "마셈", jn(syls) + "지 마셈");
+		add("llla", "ㄹ라", rl + "라");
+		if (verb || adj || itda) add("cheo", "쳐", "쳐" + ba);
+		if (verb) add("daeda", "대다", ba + " 대");
 		rows.AddRange(dialectrows(syls, irr, kind, li));
 		rows.AddRange(koreanrows(word, syls, irr, kind, li));
 		return rows;
@@ -1767,6 +1817,27 @@ static class KoConj {
 		add("danikka", "다니까", copart(noun, bat, "라니까", "라니까"));
 		add("gu", "구", copart(noun, bat, "구", "구"));
 		add("guyo", "구요", copart(noun, bat, "구요", "구요"));
+		var nhey = copart(noun, bat, "에요", "예요");
+		cur = g("role");
+		add("guryeo", "구려", copart(noun, bat, "구려", "구려"));
+		add("gumeon", "구먼", copart(noun, bat, "구먼", "구먼"));
+		add("negeu", "네그려", copart(noun, bat, "네그려", "네그려"));
+		add("aegyo", "여/염", yoswap(nhey, "여") + " / " + yoswap(nhey, "염"));
+		add("nyang", "냥", copart(noun, bat, "다냥", "다냥"));
+		add("neunyo", "느뇨", copart(noun, bat, "뇨", "뇨"));
+		add("riikka", "리이까", copart(noun, bat, "리이까", "리이까"));
+		add("saopka", "사옵나이까", copart(noun, bat, "옵나이까", "옵나이까"));
+		add("jirong", "지롱", copart(noun, bat, "었지롱", "였지롱"));
+		cur = g("circle");
+		add("yong", "용", yoswap(nhey, "용"));
+		add("sam", "삼", copart(noun, bat, "삼", "삼"));
+		add("sem", "셈", copart(noun, bat, "셈", "셈"));
+		add("dang", "당", copart(noun, bat, "당", "당") + " / " + copart(noun, bat, "었당", "였당"));
+		add("geoim", "거임", noun + "인 거임");
+		add("imda", "임다", noun + "임다");
+		cur = g("rough");
+		add("nya", "냐", copart(noun, bat, "냐?", "냐?") + " / " + copart(noun, bat, "었냐?", "였냐?"));
+		add("llla", "ㄹ라", noun + "일라");
 		rows.AddRange(copuladialect(noun, bat, li));
 		rows.AddRange(koreancopularows(noun, li));
 		return rows;

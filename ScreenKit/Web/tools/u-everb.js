@@ -569,9 +569,15 @@
 		if (cur) sel.value = cur;
 	}
 
+	var lastkind = "";
+
+	// 类型选了动词，或自动识别成动词，都显示宾语。形容词和名词不显示。
 	function verbpick(){
 		var sel = F.id("ev-sel");
-		return !!(sel && sel.value === "v");
+		var v = sel && sel.value ? sel.value : "auto";
+		if (v === "a" || v === "n") return false;
+		if (v === "v") return true;
+		return lastkind !== "a" && lastkind !== "n";
 	}
 
 	function showobj(){
@@ -673,6 +679,8 @@
 		var sel = F.id("ev-sel");
 		var word = norm(box ? box.value : "");
 		if (!word) {
+			lastkind = "";
+			showobj();
 			paint("", "", []);
 			SK.msg("box-msg", "");
 			return;
@@ -696,6 +704,8 @@
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
+				lastkind = d.kind || "";
+				showobj();
 				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc, miss));
 				SK.msg("box-msg", "");
 			});

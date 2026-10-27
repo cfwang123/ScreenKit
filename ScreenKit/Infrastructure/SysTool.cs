@@ -297,6 +297,14 @@ static class SysTool {
 		return list;
 	}
 
+	public sealed class ExtRow {
+		public string Ext = "";
+		public string Type = "";
+		public string App = "";
+		public string Exe = "";
+		public string Cmd = "";
+	}
+
 	public static AssocRow Assoc(string ext, out string err) {
 		err = null;
 		var row = new AssocRow();
@@ -312,6 +320,39 @@ static class SysTool {
 		row.Cmd = assocstr(1, ext);
 		if (row.App.Length == 0 && row.Exe.Length == 0 && row.Cmd.Length == 0) err = "none";
 		return row;
+	}
+
+	// 列出 HKCR 里注册的全部扩展名，逐个取生效的默认程序（含用户设置 UserChoice）。
+	public static List<ExtRow> Exts() {
+		var list = new List<ExtRow>();
+		string[] names;
+		try { names = Registry.ClassesRoot.GetSubKeyNames(); }
+		catch { return list; }
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var name in names) {
+			if (name.Length < 2 || name.Length > 32) continue;
+			if (name[0] != '.') continue;
+			if (name.IndexOf(' ') >= 0 || name.IndexOf('\\') >= 0) continue;
+			if (!seen.Add(name)) continue;
+			var row = new ExtRow { Ext = name };
+			row.App = assocstr(4, name);
+			row.Exe = assocstr(2, name);
+			row.Cmd = assocstr(1, name);
+			if (row.App.Length == 0 && row.Exe.Length == 0 && row.Cmd.Length == 0) continue;
+			row.Type = assocstr(3, name);
+			if (row.Type.Length == 0) row.Type = progid(name);
+			list.Add(row);
+		}
+		list.Sort((a, b) => string.Compare(a.Ext, b.Ext, StringComparison.OrdinalIgnoreCase));
+		return list;
+	}
+
+	static string progid(string ext) {
+		try {
+			using var key = Registry.ClassesRoot.OpenSubKey(ext);
+			return (key?.GetValue(null) as string ?? "").Trim();
+		}
+		catch { return ""; }
 	}
 
 	public static int Test(Action<string> log, Action<string> err) {
@@ -401,6 +442,12 @@ static class SysTool {
 		log($"assoc={assoc.App} {assoc.Exe} {assocerr}");
 		if (assocerr != null || assoc.Exe.Length == 0) {
 			err("txt 没有默认程序");
+			return 1;
+		}
+		var exts = Exts();
+		log($"ext={exts.Count}");
+		if (exts.Count < 50) {
+			err("文件关联太少");
 			return 1;
 		}
 		log("=== OK：系统工具 ===");

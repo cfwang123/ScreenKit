@@ -71,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese word forms: a character-speech group for fiction and subculture registers - でござる, であります, にゃ, なのだ, ですわ, のじゃ, っす, っしょ, じゃん, なり, で候, でおじゃる - on verbs, adjectives and nouns.
 - Korean word forms add contractions, colloquial endings and literary forms for verbs, adjectives and nouns.
 - System tools: the process list and details show whether a process is 32-bit or 64-bit and whether it runs elevated.
+- Japanese word forms: rough/masculine speech (ぞ, ぜ, わ, さ, くさる, こく, ない becomes ねえ/んない, ちまう, っけ, もん) and literary forms (たる, ごとき, ごとく, にて for nouns and na-adjectives; 高し, 高からず, 高き, 高けれ, 高かるべし for i-adjectives). The ojou-sama form now uses ますわ for verbs (食べますわ), since です cannot follow a plain verb.
 
 #### Changed
 
@@ -182,6 +183,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语形态变化：新增「角色语」组，收武士、军队、猫语、大小姐、老人、体育会、辣妹、网络等小圈子说法（でござる、であります、にゃ、なのだ、ですわ、のじゃ、っす、っしょ、じゃん、なり、で候、でおじゃる），动词、形容词、名词都有。
 - 韩语词形变化为动词、形容词和名词补上省略、口语和书面用法。
 - 系统工具：进程列表和详情显示 32/64 位与是否以管理员身份运行。
+- 日语形态变化：补上粗俗／男性语（ぞ、ぜ、わ、さ、くさる、こく，ない 的 ねえ／んない，ちまう，っけ，もん）和书面语（名词・な形容词的 たる、ごとき、ごとく、にて；い形容词的 高し、高からず、高き、高けれ、高かるべし）。大小姐语里的 ですわ 对动词改用 ますわ（食べますわ），因为 です 不能接动词辞书形。
 
 #### 变更
 

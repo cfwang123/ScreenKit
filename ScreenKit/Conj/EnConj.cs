@@ -496,11 +496,14 @@ static class EnConj {
 		if (MODALS.Contains(head)) return fail(L("modal"));
 		var kind = string.IsNullOrEmpty(type) ? "auto" : type;
 		if (kind == "auto") kind = detect(head, tail);
+		ConjResult r;
 		if (kind == "a" || kind == "n") {
 			if (tail.Length > 0) return fail(L("bad"));
-			return kind == "a" ? buildadj(head, zh) : buildnoun(head, zh);
+			r = kind == "a" ? buildadj(head, zh) : buildnoun(head, zh);
 		}
-		return buildverb(head, tail, zh, obj1, obj2);
+		else r = buildverb(head, tail, zh, obj1, obj2);
+		if (r.Ok) r.Kind = kind == "a" || kind == "n" ? kind : "v";
+		return r;
 	}
 
 	static ConjResult buildverb(string head, string tail, bool zh, string obj1, string obj2) {

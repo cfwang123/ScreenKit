@@ -367,12 +367,32 @@
 					<TextBlock x:Name="lbassochint" TextWrapping="Wrap" Margin="0,0,0,8"
 					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
 					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbassocfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
 						<Button x:Name="bassoccopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
-						<Button x:Name="bassocfind" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bassocrefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
 						<TextBox x:Name="eassoc" Height="32" Padding="8,4" Margin="0,0,8,0"
 						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 					</DockPanel>
-					<TextBox x:Name="eassocdetail" Grid.Row="2" Style="{StaticResource DetailBox}" FontSize="13"/>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvassoc" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colassocext" Width="120" DisplayMemberBinding="{Binding Ext}"/>
+									<GridViewColumn x:Name="colassoctype" Width="200" DisplayMemberBinding="{Binding Type}"/>
+									<GridViewColumn x:Name="colassocapp" Width="160" DisplayMemberBinding="{Binding App}"/>
+									<GridViewColumn x:Name="colassocexe" Width="300" DisplayMemberBinding="{Binding Exe}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="eassocdetail" Grid.Column="2" Style="{StaticResource DetailBox}" FontSize="13"/>
+					</Grid>
 					<TextBlock x:Name="lbassocstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>

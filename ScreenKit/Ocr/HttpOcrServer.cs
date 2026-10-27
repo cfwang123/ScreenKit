@@ -775,6 +775,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				["name"] = r.Name ?? "",
 				["note"] = r.Note ?? "",
 				["irr"] = r.Irr ?? "",
+				["kind"] = r.Kind ?? "",
 				["rows"] = arr,
 			},
 		});

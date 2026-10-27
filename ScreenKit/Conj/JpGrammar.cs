@@ -190,6 +190,8 @@ static class JpGrammar {
 		new JpPat("ren", "かねる", "", "", "かねる", "kaneru", "comp"),
 		new JpPat("ren", "あぐねる", "", "", "あぐねる", "aguneru", "comp"),
 		new JpPat("ren", "尽くす", "", "", "尽くす", "tsukusu", "comp"),
+		new JpPat("ren", "くさる", "", "", "くさる（粗）", "kusaru (rough)", "comp"),
+		new JpPat("ren", "こく", "", "", "こく（粗）", "koku (rough)", "comp"),
 	};
 
 	/// <summary>接续类型取基础形。</summary>
@@ -280,6 +282,20 @@ static class JpGrammar {
 		add("n2", "に違いない", "ni chigai nai", i ? plain + "に違いない" : word + "に違いない");
 		// N1
 		add("n1", "ものを", "mono o", ta + "ものを");
+		// 文语
+		if (i) {
+			add("bun", "〜し（文语终止）", "shi (classical)", s + "し");
+			add("bun", "〜からず（文语否定）", "karazu (classical)", s + "からず");
+			add("bun", "〜き（文语连体）", "ki (classical)", s + "き");
+			add("bun", "〜けれ（文语假定）", "kere (classical)", s + "けれ");
+			add("bun", "〜かるべし", "karu beshi", s + "かるべし");
+		} else {
+			add("bun", "たる（书面）", "taru (literary)", word + "たる");
+			add("bun", "ごとき（书面）", "gotoki (literary)", word + "ごとき");
+			add("bun", "ごとく（书面）", "gotoku (literary)", word + "ごとく");
+			add("bun", "にて（书面）", "nite (literary)", word + "にて");
+			add("bun", "たる者", "taru mono", word + "たる者");
+		}
 		return rows;
 	}
 
