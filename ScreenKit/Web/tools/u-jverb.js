@@ -305,7 +305,7 @@
 				html += flushrows(buf, tip);
 				buf = [];
 				g = rg;
-				if (g) html += '<tr><td class="kv-g" colspan="' + perline * 2 + '">' + esc(g) + "</td></tr>";
+				if (g) html += '<tr><td class="kv-g" colspan="' + perline + '">' + esc(g) + "</td></tr>";
 			}
 			buf.push(rows[i]);
 		}
@@ -318,7 +318,7 @@
 		for (j = 0; j < buf.length; j += perline) {
 			html += "<tr>";
 			for (k = 0; k < perline; k++) {
-				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="c-k"></td>';
 			}
 			html += "</tr>";
 		}
@@ -359,15 +359,14 @@
 
 	function cellhtml(item, tip){
 		var forms = String(item[1] || "").split("、");
-		var bits = "";
+		var html = '<td class="c-k"><div class="clab">' + esc(item[0]) + "</div>";
 		var i;
 		for (i = 0; i < forms.length; i++) {
 			if (!forms[i]) continue;
-			if (bits) bits += "<br>";
-			bits += '<span class="jv-u"><span>' + esc(forms[i]) + "</span>"
-				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button></span>';
+			html += '<div class="cex"><span>' + esc(forms[i]) + "</span>"
+				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button></div>';
 		}
-		return '<td class="jv-k">' + esc(item[0]) + '</td><td class="jv-v">' + bits + "</td>";
+		return html + "</td>";
 	}
 
 	function esc(s){

@@ -473,8 +473,10 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .jv-tab td { padding: 1px 0; vertical-align: middle; white-space: nowrap; }
 .jv-tab .jv-k { color: var(--muted); font-size: 12px; width: 7.2em; padding-right: 6px; }
 .jv-tab .jv-v { padding-right: 22px; }
-#jv-out .jv-tab .jv-k { white-space: nowrap; }
-#jv-out .jv-tab .jv-v { white-space: normal; }
+/* 一格：名称在上、词形在下竖排，每行按宽度排 1～4 格 */
+.jv-tab .c-k { white-space: normal; padding: 2px 14px 3px 0; vertical-align: top; }
+.jv-tab .c-k .clab { color: var(--muted); font-size: 12px; }
+.jv-tab .c-k .cex { white-space: nowrap; }
 #jv-out .jv-tab .jv-u { display: inline-block; white-space: nowrap; }
 .jv-tab .jv-spk {
 	width: 22px; height: 22px; min-height: 0; margin: 0 4px 0 1px; padding: 0;

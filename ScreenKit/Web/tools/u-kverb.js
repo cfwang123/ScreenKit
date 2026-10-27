@@ -327,7 +327,7 @@
 				html += flush(buf, tip);
 				buf = [];
 				g = rows[i].g;
-				html += '<tr><td class="kv-g" colspan="' + perline * 2 + '">' + esc(g) + "</td></tr>";
+				html += '<tr><td class="kv-g" colspan="' + perline + '">' + esc(g) + "</td></tr>";
 			}
 			buf.push(rows[i]);
 		}
@@ -340,7 +340,7 @@
 		for (j = 0; j < buf.length; j += perline) {
 			html += "<tr>";
 			for (k = 0; k < perline; k++) {
-				html += j + k < buf.length ? cell(buf[j + k], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+				html += j + k < buf.length ? cell(buf[j + k], tip) : '<td class="c-k"></td>';
 			}
 			html += "</tr>";
 		}
@@ -349,15 +349,14 @@
 
 	function cell(item, tip){
 		var forms = String(item.text || "").split(" / ");
-		var html = "";
+		var html = '<td class="c-k"><div class="clab">' + esc(item.name) + "</div>";
 		var i;
 		for (i = 0; i < forms.length; i++) {
 			if (!forms[i]) continue;
-			if (html) html += "<br>";
-			html += "<span>" + esc(forms[i]) + "</span>"
-				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button>';
+			html += '<div class="cex"><span>' + esc(forms[i]) + "</span>"
+				+ '<button type="button" class="jv-spk" data-v="' + esc(forms[i]) + '" title="' + tip + '"><i class="fa-solid fa-volume-high"></i></button></div>';
 		}
-		return '<td class="jv-k">' + esc(item.name) + '</td><td class="jv-v">' + html + "</td>";
+		return html + "</td>";
 	}
 
 	function esc(s){
@@ -612,3 +611,4 @@
 		return window.performance && window.performance.now ? window.performance.now() : Date.now();
 	}
 })();
+

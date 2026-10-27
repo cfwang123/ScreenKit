@@ -1849,7 +1849,7 @@
 				html += flushrows(buf, tip);
 				buf = [];
 				g = rows[i].g;
-				if (g) html += '<tr><td class="kv-g" colspan="' + perline * 2 + '">' + esc(g) + "</td></tr>";
+				if (g) html += '<tr><td class="kv-g" colspan="' + perline + '">' + esc(g) + "</td></tr>";
 			}
 			buf.push(rows[i]);
 		}
@@ -1862,7 +1862,7 @@
 		for (j = 0; j < buf.length; j += perline) {
 			html += "<tr>";
 			for (k = 0; k < perline; k++) {
-				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="jv-k"></td><td class="jv-v"></td>';
+				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="c-k"></td>';
 			}
 			html += "</tr>";
 		}
@@ -1870,13 +1870,13 @@
 	}
 
 	function cellhtml(item, tip){
-		var html = '<td class="jv-k">' + esc(item.name) + '</td><td class="jv-v"><span>'
+		var html = '<td class="c-k"><div class="clab">' + esc(item.name) + '</div><div class="cex"><span>'
 			+ esc(item.text) + "</span>";
 		if (item.text && item.text !== "—") {
 			html += '<button type="button" class="jv-spk" data-v="' + esc(saytext(item.text)) + '" title="' + tip + '">'
 				+ '<i class="fa-solid fa-volume-high"></i></button>';
 		}
-		return html + "</td>";
+		return html + "</div></td>";
 	}
 
 	function saytext(s){
@@ -1904,3 +1904,4 @@
 		return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 	}
 })();
+
