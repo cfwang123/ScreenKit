@@ -74,7 +74,7 @@ static class Cli {
 				or "--test-mem-load"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
-				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-rebuild" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
+				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-rebuild" or "--test-dict-install" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
 				or "--test-dict-scroll"
 				or "--test-dict-senseonly"
@@ -443,6 +443,8 @@ static class Cli {
 					return testdictcount(args, i);
 				case "--test-dict-rebuild":
 					return testdictrebuild(args, i);
+				case "--test-dict-install":
+					return testdictinstall();
 				case "--test-dict-sel":
 					return testselcopy();
 				case "--test-dict-word":
@@ -6501,6 +6503,56 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 	}
 
+	static int testdictinstall() {
+		// 安装里的 await 不能占着界面线程，否则进度回调排不进来，下载也会卡住。
+		return Task.Run(testdictinstallwork).GetAwaiter().GetResult();
+	}
+
+	static int testdictinstallwork() {
+		Out("=== 词典安装 --test-dict-install ===");
+		var log = new Progress<string>(s => Out(s));
+		var lastPct = -1;
+		var prog = new Progress<InstallProgress>(p => {
+			if (p == null) return;
+			var pct = (int)(p.Overall * 100);
+			if (pct == lastPct) return;
+			lastPct = pct;
+			Out("progress " + pct + "% " + (p.Note ?? "") + " " + (p.FileName ?? ""));
+		});
+		try {
+			FeatureInstaller.InstallAsync(FeatureKind.DictDb, log, prog, CancellationToken.None)
+				.GetAwaiter().GetResult();
+		}
+		catch (Exception ex) {
+			Out("install fail: " + ex.Message);
+			return 1;
+		}
+		var path = Path.Combine(FeatureInstaller.BaseDir, "dict3.bin");
+		if (!File.Exists(path)) {
+			Out("missing dict3.bin");
+			return 1;
+		}
+		var n = new FileInfo(path).Length;
+		Out("dict3.bin " + n);
+		if (n < 100L * 1024 * 1024) {
+			Out("dict3.bin too small");
+			return 1;
+		}
+		if (!DictDb.Init(path)) {
+			Out("dict open fail: " + DictDb.Error);
+			return 1;
+		}
+		var hits = DictDb.Search("hello", "", 5);
+		Out("q=hello n=" + hits.Count);
+		DictDb.Close();
+		if (hits.Count == 0) {
+			Out("hello 没有命中");
+			return 1;
+		}
+		Out("install ok");
+		return 0;
+	}
+
 	static List<long> dictids(string path, string q) {
 		DictDb.Close();
 		if (!DictDb.Init(path)) return null;
@@ -7528,6 +7580,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
   ScreenKit --test-dict-rebuild <核心.bin> <输出.bin>
+  ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
   ScreenKit --test-dict-tts
@@ -7644,6 +7697,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数]，默认 1000 条
       --test-dict-count <甲.bin> <乙.bin> [词...]  比较两个词库的全部命中数（不受 4000 条限制）。不给词时用 ing、tion 等命中很多的片段
       --test-dict-rebuild <核心.bin> <输出.bin>  从核心包重建 dict3.bin 并打印各段耗时
+      --test-dict-install  按安装功能下载 dict3-core.7z，解压后在 exe 旁重建 dict3.bin，再查 hello
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
@@ -7761,6 +7815,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
   ScreenKit --test-dict-rebuild <核心.bin> <输出.bin>
+  ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
   ScreenKit --test-dict-tts
