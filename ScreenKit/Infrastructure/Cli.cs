@@ -6458,7 +6458,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Out("dict romanize selftest fail");
 			return 7;
 		}
-		var forms = DictDb.JaForms("其奴", "そいつ, そやつ, すやつ'out-dated or obsolete kana usage'");
+		var forms = DictDb.JaForms("其奴", "そいつ, そやつ, すやつ'out-dated or obsolete kana usage'", false);
 		if (forms != "其奴, そいつ, そやつ") {
 			Out("ja forms " + forms);
 			return 6;
@@ -6499,7 +6499,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Out("q=" + q + " n=" + hits.Count);
 			var shown = 0;
 			foreach (var h in hits) {
-				var label = h.Dict == "ja" ? DictDb.JaForms(h.Headword, h.Kanji) : h.Headword;
+				var label = h.Dict == "ja" ? DictDb.JaForms(h.Headword, h.Kanji, h.Uk) : h.Headword;
 				Out("  " + h.Dict + " " + label + " | " + h.Preview);
 				if (++shown >= 5) break;
 			}
@@ -8413,4 +8413,5 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		try { log?.WriteLine("[ERR] " + s); } catch { }
 	}
 }
+
 

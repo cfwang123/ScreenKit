@@ -20,6 +20,8 @@ sealed class DictHit {
 	public string Preview = "";
 	public string Matched = "";
 	public string Via = "";
+	/// <summary>日语词条通常只写假名（uk），列表标题假名在前。</summary>
+	public bool Uk;
 	public int Rank;
 	public int ViaRank = -1;
 	public bool IsHead;
@@ -57,6 +59,8 @@ sealed class DictEntry {
 	public string Pron = "";
 	public string Pos = "";
 	public string Extra = "";
+	/// <summary>通常只写假名（JMdict 的 uk）：表记把假名排在汉字前面。</summary>
+	public bool Uk;
 	public string Etymology = "";
 	public List<string> Usage = new();
 	public List<string> See = new();
@@ -453,11 +457,12 @@ static class DictDb {
 	}
 
 	/// <summary>列表按行取标题和预览。只读一条，和完整词条分开。</summary>
-	public static bool HitMeta(long id, out string word, out string kanji, out string pron, out string preview) {
+	public static bool HitMeta(long id, out string word, out string kanji, out string pron, out string preview, out bool uk) {
 		word = "";
 		kanji = "";
 		pron = "";
 		preview = "";
+		uk = false;
 		lock (dblock) {
 			if (!readyunlocked()) return false;
 			if (!readentry(id, out var head, out var jsontext, out _)) return false;
@@ -466,6 +471,7 @@ static class DictDb {
 			word = row.Word.Length > 0 ? row.Word : head;
 			kanji = row.Kanji;
 			pron = row.Pron;
+			uk = row.Uk;
 		}
 		return true;
 	}
@@ -1399,6 +1405,7 @@ static class DictDb {
 			h.Reading = row.Pron;
 			h.Pos = row.Pos;
 			h.Preview = preview;
+			h.Uk = row.Uk;
 		}
 	}
 
@@ -1459,14 +1466,38 @@ static class DictDb {
 	}
 
 	/// <summary>日语列表标题：主表记加别表记，逗号分隔。丢掉 out-dated / obsolete 的写法，其它括注去掉只留表记。</summary>
-	internal static string JaForms(string word, string kanji) {
-		var parts = new List<string>();
-		pushform(parts, word);
+	internal static string JaForms(string word, string kanji, bool uk) {
+		return string.Join(", ", JaOrder(word, kanji, uk));
+	}
+
+	/// <summary>日语表记顺序：主表记在前，后面接其它写法；通常只写假名的词条把假名提到最前。</summary>
+	internal static List<string> JaOrder(string word, string kanji, bool uk) {
+		var forms = new List<string>();
 		if (!string.IsNullOrEmpty(kanji)) {
 			foreach (var raw in kanji.Split(',', '，'))
-				pushform(parts, raw);
+				pushform(forms, raw);
 		}
-		return string.Join(", ", parts);
+		var parts = new List<string>();
+		if (uk) {
+			foreach (var f in forms)
+				if (kanaonly(f)) pushform(parts, f);
+			pushform(parts, word);
+			foreach (var f in forms)
+				if (!kanaonly(f)) pushform(parts, f);
+		}
+		else {
+			pushform(parts, word);
+			foreach (var f in forms) pushform(parts, f);
+		}
+		return parts;
+	}
+
+	/// <summary>usage 里带 word usually written using kana alone 就是 JMdict 的 uk。</summary>
+	static bool isuk(JsonNode n) {
+		if (n is not JsonArray a) return false;
+		foreach (var v in a)
+			if (str(v).IndexOf("usually written using kana alone", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		return false;
 	}
 
 	static void pushform(List<string> parts, string raw) {
@@ -1507,6 +1538,7 @@ static class DictDb {
 			e.Pos = str(n["p"]);
 			e.Extra = str(n["x"]);
 			if (e.Extra.Length == 0) e.Extra = str(n["r"]);
+			e.Uk = isuk(n["u"]);
 			if (n["n"] is JsonArray na)
 				foreach (var sn in na) previewsense(sn, sb);
 			if (n["g"] is JsonArray ga)
@@ -1523,6 +1555,7 @@ static class DictDb {
 			e.Pron = str(n["pron"]);
 			e.Pos = str(n["pos"]);
 			e.Extra = str(n["extra"]);
+			e.Uk = isuk(n["usage"]);
 			if (n["senses"] is JsonArray sa)
 				foreach (var sn in sa) previewsense(sn, sb);
 			if (n["posGroups"] is JsonArray pg)
@@ -1703,6 +1736,7 @@ static class DictDb {
 		if (e.Pos.Length == 0) e.Pos = str(n["p"]);
 		if (e.Etymology.Length == 0) e.Etymology = str(n["y"]);
 		if (e.Usage.Count == 0) addstrings(n["u"], e.Usage, 8);
+		if (!e.Uk) e.Uk = isuk(n["u"]);
 		e.Extra = str(n["x"]);
 		if (e.Extra.Length == 0) e.Extra = str(n["r"]);
 		if (n["c"] is JsonArray ca) {
@@ -1737,6 +1771,7 @@ static class DictDb {
 		e.Extra = str(n["extra"]);
 		e.Etymology = str(n["etymology"]);
 		addstrings(n["usage"], e.Usage, 8);
+		if (!e.Uk) e.Uk = isuk(n["usage"]);
 		addstrings(n["see"], e.See, 8);
 		if (n["conjugations"] is JsonArray ca) {
 			foreach (var c in ca) {
@@ -2002,3 +2037,4 @@ static class DictDb {
 	}
 }
 #endregion
+

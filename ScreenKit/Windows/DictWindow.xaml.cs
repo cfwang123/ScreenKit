@@ -384,7 +384,7 @@ public partial class DictWindow : UserControl {
 		foreach (var h in hits) {
 			if (h.Id == 0) continue;
 			var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
-			var shown = listword(h.Dict, word, h.Kanji);
+			var shown = listword(h.Dict, word, h.Kanji, h.Uk);
 			var code = listcode(h.Dict);
 			var title = code.Length > 0 ? "[" + code + "] " + shown : shown;
 			var preview = h.Preview ?? "";
@@ -441,8 +441,8 @@ public partial class DictWindow : UserControl {
 	void fillrow(DictRow row) {
 		if (row == null || row.Meta) return;
 		row.Meta = true;
-		if (!DictDb.HitMeta(row.Id, out var word, out var kanji, out var pron, out var preview)) return;
-		var shown = listword(row.Dict, word, kanji);
+		if (!DictDb.HitMeta(row.Id, out var word, out var kanji, out var pron, out var preview, out var uk)) return;
+		var shown = listword(row.Dict, word, kanji, uk);
 		var code = listcode(row.Dict);
 		row.Word = word;
 		row.Title = code.Length > 0 ? "[" + code + "] " + shown : shown;
@@ -649,12 +649,19 @@ public partial class DictWindow : UserControl {
 
 	internal const string ExportCss = EXPORT_TABLE_CSS;
 
+	/// <summary>词条表头的各写法。日语按表记顺序，通常只写假名的词条假名在前；其它语言就一个词。</summary>
+	static List<string> headforms(DictEntry e) {
+		var word = e.Word.Length > 0 ? e.Word : e.Headword;
+		if (e.Dict != "ja" || e.Kanji.Length == 0) return new List<string> { word };
+		var forms = DictDb.JaOrder(word, e.Kanji, e.Uk);
+		return forms.Count > 0 ? forms : new List<string> { word };
+	}
+
 	static string detailplain(DictEntry e) {
 		if (e == null) return "";
 		var lines = new List<string>();
 		var word = e.Word.Length > 0 ? e.Word : e.Headword;
-		var head = word;
-		if (e.Kanji.Length > 0 && e.Kanji != word) head += "  " + e.Kanji;
+		var head = string.Join("  ", headforms(e));
 		lines.Add(head);
 		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
 		if (reading.Length > 0) lines.Add(bracket(reading));
@@ -774,8 +781,9 @@ public partial class DictWindow : UserControl {
 		var doc = newdoc();
 		var entrylang = speaklang(curlang);
 		var head = para(2);
-		addrun(head, curword, DRole.Title, entrylang);
-		if (e.Kanji.Length > 0 && e.Kanji != curword) addrun(head, "  " + e.Kanji, DRole.Body, entrylang);
+		var forms = headforms(e);
+		addrun(head, forms[0], DRole.Title, entrylang);
+		for (var i = 1; i < forms.Count; i++) addrun(head, "  " + forms[i], DRole.Body, entrylang);
 		doc.Blocks.Add(head);
 		var reading = e.Pron.Length > 0 ? e.Pron : e.Reading;
 		if (reading.Length > 0) doc.Blocks.Add(one(bracket(reading), DRole.Pron, 1, entrylang));
@@ -1586,7 +1594,7 @@ public partial class DictWindow : UserControl {
 		foreach (var h in hits) {
 			if (h.Id == 0) continue;
 			var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
-			var shown = listword(h.Dict, word, h.Kanji);
+			var shown = listword(h.Dict, word, h.Kanji, h.Uk);
 			var code = listcode(h.Dict);
 			rows.Add(new DictSelRow {
 				Id = h.Id,
@@ -1858,10 +1866,10 @@ public partial class DictWindow : UserControl {
 		finally { speaking = false; }
 	}
 
-	/// <summary>日语列表把别表记接在主表记后面。再搜索仍用主表记。发音见 JaSpeak。</summary>
-	static string listword(string dict, string word, string kanji) {
+	/// <summary>日语列表把别表记接在主表记后面，通常写假名的词条假名在前。再搜索仍用主表记。发音见 JaSpeak。</summary>
+	static string listword(string dict, string word, string kanji, bool uk) {
 		if (dict != "ja") return word ?? "";
-		var shown = DictDb.JaForms(word, kanji);
+		var shown = DictDb.JaForms(word, kanji, uk);
 		return shown.Length > 0 ? shown : (word ?? "");
 	}
 
@@ -2173,5 +2181,6 @@ public partial class DictWindow : UserControl {
 		return sb.ToString();
 	}
 }
+
 
 

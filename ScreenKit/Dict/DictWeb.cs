@@ -40,7 +40,7 @@ static class DictWeb {
 
 	public static JsonObject HitNode(DictHit h) {
 		var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
-		var shown = h.Dict == "ja" ? DictDb.JaForms(word, h.Kanji) : word;
+		var shown = h.Dict == "ja" ? DictDb.JaForms(word, h.Kanji, h.Uk) : word;
 		if (string.IsNullOrEmpty(shown)) shown = word ?? "";
 		var code = h.Dict == "zh" || h.Dict == "ja" || h.Dict == "ko" || h.Dict == "en" ? h.Dict : "";
 		var title = code.Length > 0 ? "[" + code + "] " + shown : shown;
@@ -73,11 +73,15 @@ static class DictWeb {
 		var senses = new JsonArray();
 		foreach (var s in e.Senses) senses.Add(sense(s));
 		var speak = e.Dict == "ja" ? DictDb.JaSpeak(word, e.Kanji, e.Pron) : DictWindow.SpeakHead(word, e.Dict);
+		// 日语表记按顺序给全，通常只写假名的词条假名在前；其它语言就一个词。
+		var forms = new JsonArray();
+		foreach (var f in e.Dict == "ja" ? DictDb.JaOrder(word, e.Kanji, e.Uk) : new List<string> { word }) forms.Add(f);
 		return new JsonObject {
 			["id"] = e.Id,
 			["dict"] = e.Dict ?? "",
 			["word"] = word ?? "",
 			["kanji"] = e.Kanji ?? "",
+			["forms"] = forms,
 			["pron"] = e.Pron ?? "",
 			["reading"] = e.Reading ?? "",
 			["pos"] = e.Pos ?? "",
@@ -205,3 +209,4 @@ static class DictWeb {
 		return (sb.Length == 0 ? "dict" : sb.ToString()) + "." + ext;
 	}
 }
+

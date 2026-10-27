@@ -603,8 +603,12 @@
 		var word = e.word || "";
 		var lang = e.dict || "en";
 		var head = p("title");
-		add(head, word, "", lang);
-		if (e.kanji && e.kanji !== word) add(head, "  " + e.kanji, "", lang);
+		// 日语的表记按服务端给的顺序（通常只写假名的词条假名在前），其它语言就一个词
+		var forms = e.forms && e.forms.length ? e.forms : [word];
+		for (var fi = 0; fi < forms.length; fi++) {
+			if (!forms[fi]) continue;
+			add(head, (fi ? "  " : "") + forms[fi], "", lang);
+		}
 		box.appendChild(head);
 		var reading = e.pron || e.reading || "";
 		if (reading) box.appendChild(one(bracket(reading), "pron", lang));
