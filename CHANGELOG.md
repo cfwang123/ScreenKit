@@ -51,6 +51,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary page adds a Definitions only checkbox that hides example sentences in the entry detail.
 - CLI --test-dict-senseonly checks that Definitions only hides example sentences.
 
+#### Changed
+
+- Definitions only shows one language per sense (UI language first, then English, Chinese, Japanese and Korean) and drops the blank lines between senses.
+
 #### Fixed
 
 - Restore the result count and elapsed time under the dictionary page search results.
@@ -64,6 +68,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 命令行 --test-dict-rebuild 从核心包重建 dict3.bin，并打印各段耗时。
 - 词典页新增「仅释义」勾选框，勾选后词条详情不显示例句。
 - 命令行 --test-dict-senseonly 校验「仅释义」勾选后详情不再显示例句。
+
+#### 变更
+
+- 「仅释义」每个义项只显示一种语言的释义（界面语言优先，没有则依次英文、中文、日文、韩文），并去掉义项之间的空行。
 
 #### 修复
 

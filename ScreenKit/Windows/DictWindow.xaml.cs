@@ -896,16 +896,17 @@ public partial class DictWindow : UserControl {
 			string lastpos = null;
 			var anySense = false;
 			var linkphrase = e.Dict != "ko";
+			var senseonly = cbsenseonly.IsChecked == true;
 			foreach (var s in e.Senses) {
 				if (s.Idiom.Length > 0) {
-					if (anySense) doc.Blocks.Add(para(4));
+					if (anySense && !senseonly) doc.Blocks.Add(para(4));
 					var ip = para(0);
 					addrun(ip, Loc.T("dict.lab.phrase") + " ", DRole.Label);
 					if (linkphrase) addlink(ip, s.Idiom, firsttoken(s.Idiom), entrylang);
 					else addrun(ip, s.Idiom, DRole.Body, entrylang);
 					doc.Blocks.Add(ip);
 				}
-				else if (anySense && !s.Sub) doc.Blocks.Add(para(4));
+				else if (anySense && !s.Sub && !senseonly) doc.Blocks.Add(para(4));
 				anySense = true;
 				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
 					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1, TextLang(s.Pos, entrylang)));
@@ -925,10 +926,32 @@ public partial class DictWindow : UserControl {
 					addrun(p, join2(lemma, def), DRole.Body, lang);
 					doc.Blocks.Add(p);
 				}
-				if (s.Ko.Length > 0) gloss("", s.Ko, "", "ko");
-				gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef, "zh");
-				gloss(Loc.T("dict.lab.en"), s.En, s.EnDef, "en");
-				gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
+				// 仅释义只出一种语言的释义：界面语言优先，没有就英文、中文、日文、韩文依次回退。
+				void glossone(DictSense sn) {
+					var ui = Loc.Lang ?? "zh";
+					if (ui != "zh" && ui != "en" && ui != "ja" && ui != "ko") ui = "en";
+					foreach (var code in new[] { ui, "en", "zh", "ja", "ko" }) {
+						if (code == "ko") {
+							if (sn.Ko.Length == 0) continue;
+							gloss("", sn.Ko, "", "ko");
+							return;
+						}
+						string lemma, def;
+						if (code == "zh") { lemma = sn.Zh; def = sn.ZhDef; }
+						else if (code == "en") { lemma = sn.En; def = sn.EnDef; }
+						else { lemma = sn.Ja; def = sn.JaDef; }
+						if (lemma.Length == 0 && def.Length == 0) continue;
+						gloss("", lemma, def, code);
+						return;
+					}
+				}
+				if (senseonly) glossone(s);
+				else {
+					if (s.Ko.Length > 0) gloss("", s.Ko, "", "ko");
+					gloss(Loc.T("dict.lab.zh"), s.Zh, s.ZhDef, "zh");
+					gloss(Loc.T("dict.lab.en"), s.En, s.EnDef, "en");
+					gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
+				}
 				foreach (var ph in s.Phrases) {
 					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
 					var p = para(0);
