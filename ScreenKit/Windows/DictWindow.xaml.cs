@@ -897,7 +897,10 @@ public partial class DictWindow : UserControl {
 			var anySense = false;
 			var linkphrase = e.Dict != "ko";
 			var senseonly = cbsenseonly.IsChecked == true;
+			// 仅释义时，同一编号下的子义项合成一段，中间用「; 」分隔。
+			Paragraph curp = null;
 			foreach (var s in e.Senses) {
+				if (s.Idiom.Length > 0 || !s.Sub) curp = null;
 				if (s.Idiom.Length > 0) {
 					if (anySense && !senseonly) doc.Blocks.Add(para(4));
 					var ip = para(0);
@@ -912,10 +915,20 @@ public partial class DictWindow : UserControl {
 					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1, TextLang(s.Pos, entrylang)));
 					lastpos = s.Pos;
 					n = 1;
+					curp = null;
 				}
 				var numbered = false;
 				void gloss(string tag, string lemma, string def, string lang) {
 					if (lemma.Length == 0 && def.Length == 0) return;
+					var text = join2(lemma, def);
+					if (senseonly) {
+						text = onelines(text);
+						if (text.Length == 0) return;
+						if (curp != null) {
+							addrun(curp, "; " + text, DRole.Body, lang);
+							return;
+						}
+					}
 					var p = para(0);
 					if (!numbered && !s.Sub) {
 						addrun(p, n + ". ", DRole.Number);
@@ -923,8 +936,9 @@ public partial class DictWindow : UserControl {
 						n++;
 					}
 					if (tag.Length > 0) addrun(p, tag + " ", DRole.Label, lang);
-					addrun(p, join2(lemma, def), DRole.Body, lang);
+					addrun(p, text, DRole.Body, lang);
 					doc.Blocks.Add(p);
+					if (senseonly) curp = p;
 				}
 				// 仅释义只出一种语言的释义：界面语言优先，没有就英文、中文、日文、韩文依次回退。
 				void glossone(DictSense sn) {
@@ -2441,6 +2455,18 @@ public partial class DictWindow : UserControl {
 		if (string.IsNullOrEmpty(a)) return b ?? "";
 		if (string.IsNullOrEmpty(b)) return a;
 		return a + "  " + b;
+	}
+
+	/// <summary>把释义里的多行合成一行，行间用「; 」分隔（仅释义时用）。</summary>
+	static string onelines(string text) {
+		if (string.IsNullOrEmpty(text)) return "";
+		var parts = text.Replace("\r\n", "\n").Split('\n');
+		var lines = new List<string>(parts.Length);
+		foreach (var part in parts) {
+			var t = part.Trim();
+			if (t.Length > 0) lines.Add(t);
+		}
+		return string.Join("; ", lines);
 	}
 
 	static string examplesrc(string text) {

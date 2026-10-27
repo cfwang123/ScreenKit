@@ -7081,6 +7081,10 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Err("FAIL: 勾选后还在显示多个语言的释义标签");
 				return 6;
 			}
+			if (after.IndexOf("; ", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 同一义项下的子义项没有合并成一行");
+				return 7;
+			}
 			Out("=== OK：勾选仅释义后只显示一种语言的释义，不再显示例句 ===");
 			return 0;
 		}
