@@ -164,7 +164,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **File signatures**: Identify the real format from a file's hex header
   - **Time zones**: IANA zones, abbreviations, and standard/DST offsets
   - **Country, language & currency codes**: ISO codes for countries, languages, and currencies
-  - **Japanese names**: Look up how a surname or given name is read, in both directions: kanji to kana, or kana back to kanji; 97k surnames and 122k given names, the top 5,000 surnames show a population count, browse by kana row, click a row to copy
+  - **Japanese names**: Look up how a surname or given name is read, in both directions: kanji to kana, or kana back to kanji; 97k surnames and 122k given names, the top 5,000 surnames show a population count, browse by kana row, click a row to copy; the data is downloaded on first use instead of shipping with the app
   - **English irregular verbs**: Base, past, and past participle; search by any form or meaning, and filter by AAA, ABB, and other patterns
   - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
   - **Linux commands**: Commands by file, package, process, network, and more, each shown right in the list with a commented multi-line example, plus Bash syntax help; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
