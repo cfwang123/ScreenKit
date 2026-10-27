@@ -899,12 +899,7 @@ public partial class DictWindow : UserControl {
 			var senseonly = cbsenseonly.IsChecked == true;
 			// 仅释义时，同一编号下的子义项合成一段，中间用「; 」分隔。
 			Paragraph curp = null;
-			var laststart = -1;
 			foreach (var s in e.Senses) {
-				var main = s.Idiom.Length == 0 && !s.Sub;
-				// 仅释义：上一个义项只有一行释义时紧挨着，有词组等更多内容才空一行。
-				if (senseonly && main && anySense && laststart >= 0 && doc.Blocks.Count - laststart > 1)
-					doc.Blocks.Add(para(4));
 				if (s.Idiom.Length > 0 || !s.Sub) curp = null;
 				if (s.Idiom.Length > 0) {
 					if (anySense && !senseonly) doc.Blocks.Add(para(4));
@@ -914,9 +909,10 @@ public partial class DictWindow : UserControl {
 					else addrun(ip, s.Idiom, DRole.Body, entrylang);
 					doc.Blocks.Add(ip);
 				}
-				else if (anySense && !s.Sub && !senseonly) doc.Blocks.Add(para(4));
+				// 义项之间都空一行；英语、日语词条在仅释义时义项紧挨着。
+				else if (anySense && !s.Sub && (!senseonly || (e.Dict != "en" && e.Dict != "ja")))
+					doc.Blocks.Add(para(4));
 				anySense = true;
-				if (main) laststart = doc.Blocks.Count;
 				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
 					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1, TextLang(s.Pos, entrylang)));
 					lastpos = s.Pos;

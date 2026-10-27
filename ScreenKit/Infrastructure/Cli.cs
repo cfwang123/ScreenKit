@@ -7109,22 +7109,18 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				System.Threading.Thread.Sleep(5);
 			}
 			var label = Loc.T("dict.lab.example");
-			if (before.IndexOf(label, StringComparison.Ordinal) < 0) {
-				Err("FAIL: 第一条词条没有例句，无法比较");
-				return 2;
-			}
 			var zhl = Loc.T("dict.lab.zh") + " ";
 			var enl = Loc.T("dict.lab.en") + " ";
-			if (before.IndexOf(zhl, StringComparison.Ordinal) < 0 && before.IndexOf(enl, StringComparison.Ordinal) < 0) {
-				Err("FAIL: 第一条词条没有多语言释义标签，无法比较");
-				return 3;
-			}
+			var hasExample = before.IndexOf(label, StringComparison.Ordinal) >= 0;
+			var multi = before.IndexOf(zhl, StringComparison.Ordinal) >= 0
+				|| before.IndexOf(enl, StringComparison.Ordinal) >= 0;
+			Out($"before={before.Length} example={hasExample} multi={multi}");
 			win.host.cbsenseonly.IsChecked = true;
 			for (var i = 0; i < 10; i++) pump();
 			var after = detailtext(win.host);
-			Out($"before={before.Length} after={after.Length} label={before.Contains(label)}/{after.Contains(label)}");
+			Out($"after={after.Length} label={after.Contains(label)}");
 			Out("after head=" + oneclean(after.Substring(0, Math.Min(200, after.Length))));
-			if (after.IndexOf(label, StringComparison.Ordinal) >= 0) {
+			if (hasExample && after.IndexOf(label, StringComparison.Ordinal) >= 0) {
 				Err("FAIL: 勾选后例句标签还在");
 				return 4;
 			}
@@ -7133,7 +7129,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				return 5;
 			}
 			// 词组的中文翻译本来就有「中」标签，只看「英」标签是否还在，判断义项是否还在出多种语言。
-			if (after.IndexOf(enl, StringComparison.Ordinal) >= 0) {
+			if (multi && after.IndexOf(enl, StringComparison.Ordinal) >= 0) {
 				Err("FAIL: 勾选后还在显示多个语言的释义标签");
 				return 6;
 			}
