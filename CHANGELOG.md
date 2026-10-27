@@ -54,10 +54,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Definitions only shows one language per sense (UI language first, then English, Chinese, Japanese and Korean) and drops the blank lines between senses.
+- Definitions only shows one language per sense (UI language first, then English, Chinese, Japanese and Korean); one-line senses sit directly together, while senses with more content are separated by a blank line.
 - Dictionary install downloads dict3-core.7z and builds the local index.
 - With Definitions only, the sub-senses of one sense are merged into a single line separated by semicolons.
-- Korean entries get a blank line between the definitions and the phrase list.
+- Japanese name lookup no longer shows surname population, and each row has a speak button.
 
 #### Fixed
 
@@ -76,10 +76,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 「仅释义」每个义项只显示一种语言的释义（界面语言优先，没有则依次英文、中文、日文、韩文），并去掉义项之间的空行。
+- 「仅释义」每个义项只显示一种语言的释义（界面语言优先，没有则依次英文、中文、日文、韩文）；只有一行释义的义项紧挨着排，内容更多的义项之间空一行。
 - 词典安装改为下载 dict3-core.7z，解压后在本机建立索引。
 - 「仅释义」时，同一义项下的多条子义项合并成一行，用「; 」分隔。
-- 韩语词条在释义与词组之间空一行。
+- 日本姓名查询不再显示姓的人数，每条旁边可以听读音。
 
 #### 修复
 

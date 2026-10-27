@@ -454,7 +454,7 @@ static class Cli {
 				case "--test-dict-scroll":
 					return testdictscroll(Opt());
 				case "--test-dict-senseonly":
-					return testdictsenseonly();
+					return testdictsenseonly(args, i);
 				case "--test-selbar":
 					return SelBar.Test(Out);
 				case "--test-dict-tr":
@@ -7077,16 +7077,19 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 	}
 
-	/// <summary>勾「仅释义」后详情不再显示例句，其它内容照旧。</summary>
-	static int testdictsenseonly() {
-		Out("=== 仅释义 --test-dict-senseonly ===");
+	/// <summary>勾「仅释义」后详情不再显示例句；子义项合并成一行；义项块多行时之间空一行。</summary>
+	static int testdictsenseonly(string[] args, int at) {
+		var word = at + 1 < args.Length && args[at + 1].Length > 0 && args[at + 1][0] != '-' ? args[at + 1] : "hello";
+		var dict = at + 2 < args.Length && args[at + 2].Length > 0 && args[at + 2][0] != '-' ? args[at + 2] : "en";
+		var wantgap = at + 3 < args.Length && int.TryParse(args[at + 3], out var g) ? g : -1;
+		Out($"=== 仅释义 --test-dict-senseonly {word} {dict} ===");
 		if (Application.Current != null)
 			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 		DictHostWindow win = null;
 		try {
-			win = new DictHostWindow("hello", () => new OcrOptions(), _ => { });
+			win = new DictHostWindow(word, () => new OcrOptions(), _ => { });
 			win.Show();
-			win.host.bfilten.IsChecked = true;
+			filt(win.host, dict).IsChecked = true;
 			var start = Environment.TickCount;
 			while (Environment.TickCount - start < 8000 && win.host.lhits.Items.Count == 0) {
 				pump();
@@ -7129,19 +7132,50 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Err("FAIL: 勾选后详情没有变短");
 				return 5;
 			}
-			if (after.IndexOf(zhl, StringComparison.Ordinal) >= 0 || after.IndexOf(enl, StringComparison.Ordinal) >= 0) {
+			// 词组的中文翻译本来就有「中」标签，只看「英」标签是否还在，判断义项是否还在出多种语言。
+			if (after.IndexOf(enl, StringComparison.Ordinal) >= 0) {
 				Err("FAIL: 勾选后还在显示多个语言的释义标签");
 				return 6;
 			}
-			if (after.IndexOf("; ", StringComparison.Ordinal) < 0) {
+			// 词条有子义项时才要求用「; 」合并，没有子义项的词条自然没有分号。
+			var subs = 0;
+			if (win.host.lhits.Items.Count > 0 && win.host.lhits.Items[0] is DictRow row0) {
+				if (DictDb.Get(row0.Id) is DictEntry entry0) {
+					var hasmain = false;
+					foreach (var sn in entry0.Senses) {
+						if (!sn.Sub) { hasmain = true; continue; }
+						if (hasmain) subs++;
+					}
+				}
+			}
+			var semi = after.IndexOf("; ", StringComparison.Ordinal) >= 0;
+			Out($"subs={subs} semi={semi}");
+			if (subs > 0 && !semi) {
 				Err("FAIL: 同一义项下的子义项没有合并成一行");
 				return 7;
 			}
-			Out("=== OK：勾选仅释义后只显示一种语言的释义，不再显示例句 ===");
+			var gap = after.IndexOf("\r\n\r\n2. ", StringComparison.Ordinal) >= 0;
+			Out($"gap={gap}");
+			if (wantgap == 1 && !gap) {
+				Err("FAIL: 多行义项之间没有空行");
+				return 8;
+			}
+			if (wantgap == 0 && gap) {
+				Err("FAIL: 单行义项之间不该有空行");
+				return 9;
+			}
+			Out("=== OK：仅释义只显示一种语言的释义，例句不显示，空行符合预期 ===");
 			return 0;
 		}
 		finally {
 			try { win?.Close(); } catch { }
+		}
+
+		static System.Windows.Controls.Primitives.ToggleButton filt(DictWindow w, string dict) {
+			if (dict == "zh") return w.bfiltzh;
+			if (dict == "ja") return w.bfiltja;
+			if (dict == "ko") return w.bfiltko;
+			return w.bfilten;
 		}
 
 		static string oneclean(string s) =>
@@ -7702,7 +7736,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
       --test-dict-scroll [词]  换词典语言后原词条仍选中并滚到它；词条不在新词典就回到顶部；划词浮窗切语言回顶部
-      --test-dict-senseonly  勾「仅释义」后详情不再显示例句，其它内容照旧
+      --test-dict-senseonly [词] [词典] [空行]  勾「仅释义」后每义项只显示一种语言、子义项合并成一行；词典默认 en，空行 1 要求义项之间有空行、0 要求没有
       --test-selbar  读本进程文本框的选中文字，并检查划词查词浮窗的位置和不抢焦点
       --test-dict-tr  词典划词翻译打开小窗后立即开始翻译
       --test-dict-tts  词典发音缓存保留 1 天，语速换算；自动优先 Windows 语音否则 Edge

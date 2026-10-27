@@ -1,6 +1,7 @@
 (function(){
 	// 日本姓名读音查询。数据来自 JMnedict（姓氏与名字的汉字、假名对应）和
 	// siikamiika/japanese-family-names 的前 5000 姓人数排名，源文件是 web/jname-s.txt、web/jname-g.txt，由 tmp/jname_gen.py 生成。
+	var clip = null;
 	var KINDS = [
 		{ id: "all", name: "全部" },
 		{ id: "s", name: "姓" },
@@ -34,7 +35,8 @@
 		},
 		hideGo: true,
 		hideOut: true,
-		live: false
+		live: false,
+		dispose: dropspeak
 	});
 
 	function body(){
@@ -53,8 +55,8 @@
 			+ '<input id="jn-page" class="jnpi" type="text" inputmode="numeric" maxlength="7" title="输入页码后回车跳转">'
 			+ '<span id="jn-pages" class="msg"></span>'
 			+ '<button type="button" id="jn-next">›</button></div>'
-			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict；前 5000 姓带人数（来自名字由来排名）。首次打开要下载约 1MB 数据，之后直接用本机文件。'
-			+ '输入汉字查读法，输入假名反查汉字；文字可以直接选中复制。</p>';
+			+ '<p class="hint">姓氏 9.7 万个、名字 12 万个，取自 JMnedict。首次打开要下载约 1MB 数据，之后直接用本机文件。'
+			+ '输入汉字查读法，输入假名反查汉字；文字可以直接选中复制，喇叭听这一条的读音。</p>';
 		return html;
 	}
 
@@ -98,6 +100,7 @@
 		}
 		if (prev) prev.onclick = function(){ goto(page - 1); };
 		if (next) next.onclick = function(){ goto(page + 1); };
+		list.onclick = onlist;
 		window.addEventListener("resize", function(){ render(); });
 		load();
 	}
@@ -225,16 +228,58 @@
 		if (box && box.scrollIntoView) box.scrollIntoView({ block: "nearest" });
 	}
 
-	// 一行只放表记和主读法，其余读法放在悬停提示里；文字可以直接选中复制
+	function onlist(ev){
+		var btn = ev.target;
+		var list = F.id("jn-list");
+		while (btn && btn !== list && btn.tagName !== "BUTTON") btn = btn.parentNode;
+		if (!btn || btn === list) return;
+		var text = F.attr(btn, "data-v") || "";
+		if (text) speak(text);
+	}
+
+	function dropspeak(){
+		if (SK.stopwav) SK.stopwav();
+		if (!clip) return;
+		try { clip.pause(); } catch (e) {}
+		clip = null;
+	}
+
+	function speak(text){
+		if (SK.stopwav) SK.stopwav();
+		if (clip) {
+			try { clip.pause(); } catch (e) {}
+			clip = null;
+		}
+		var audio = new Audio("/api/dict/speak?text=" + encodeURIComponent(text) + "&lang=ja");
+		clip = audio;
+		audio.onerror = function(){
+			if (clip === audio) SK.msg("jn-msg", tx("web.jverb.nospeak", "无法发音"), true);
+		};
+		var played = audio.play();
+		if (played && played.then) played.then(function(){}, function(){
+			if (clip === audio) SK.msg("jn-msg", tx("web.jverb.nospeak", "无法发音"), true);
+		});
+	}
+
+	function tx(key, fb){
+		var s = SK.t ? SK.t(key) : "";
+		return s || fb;
+	}
+
+	// 一行放表记、主读法和发音。其余读法在悬停提示里。不显示姓的人数。
 	function rowhtml(hit){
 		var r = hit.r;
-		var pop = r.p > 0 ? (r.p >= 10000 ? Math.round(r.p / 10000) + " 万" : r.p + " 人") : "";
+		var y = r.y.length ? r.y[0] : "";
 		var tip = r.k + " " + r.y.join("、");
+		var spk = y
+			? '<button type="button" class="jn-spk" data-v="' + esc(y) + '" title="' + esc(tx("dict.speak", "发音")) + '"><i class="fa-solid fa-volume-high"></i></button>'
+			: "";
 		return '<div class="jnrow" title="' + esc(tip) + '">'
 			+ '<span class="jnk">' + esc(r.k) + "</span>"
-			+ '<span class="jny">' + esc(r.y[0]) + "</span>"
+			+ '<span class="jny">' + esc(y) + "</span>"
+			+ spk
 			+ (kind === "all" ? '<span class="jnt">' + (hit.s ? "姓" : "名") + "</span>" : "")
-			+ '<span class="jnp">' + esc(pop) + "</span></div>";
+			+ "</div>";
 	}
 
 	function collect(list, issur, q, hits){

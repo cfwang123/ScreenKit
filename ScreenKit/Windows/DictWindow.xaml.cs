@@ -899,7 +899,12 @@ public partial class DictWindow : UserControl {
 			var senseonly = cbsenseonly.IsChecked == true;
 			// 仅释义时，同一编号下的子义项合成一段，中间用「; 」分隔。
 			Paragraph curp = null;
+			var laststart = -1;
 			foreach (var s in e.Senses) {
+				var main = s.Idiom.Length == 0 && !s.Sub;
+				// 仅释义：上一个义项只有一行释义时紧挨着，有词组等更多内容才空一行。
+				if (senseonly && main && anySense && laststart >= 0 && doc.Blocks.Count - laststart > 1)
+					doc.Blocks.Add(para(4));
 				if (s.Idiom.Length > 0 || !s.Sub) curp = null;
 				if (s.Idiom.Length > 0) {
 					if (anySense && !senseonly) doc.Blocks.Add(para(4));
@@ -911,6 +916,7 @@ public partial class DictWindow : UserControl {
 				}
 				else if (anySense && !s.Sub && !senseonly) doc.Blocks.Add(para(4));
 				anySense = true;
+				if (main) laststart = doc.Blocks.Count;
 				if (s.Pos.Length > 0 && s.Pos != e.Pos && s.Pos != lastpos) {
 					doc.Blocks.Add(one("▶ " + s.Pos, DRole.Pos, 1, TextLang(s.Pos, entrylang)));
 					lastpos = s.Pos;
@@ -918,7 +924,6 @@ public partial class DictWindow : UserControl {
 					curp = null;
 				}
 				var numbered = false;
-				var shown = false;
 				void gloss(string tag, string lemma, string def, string lang) {
 					if (lemma.Length == 0 && def.Length == 0) return;
 					var text = join2(lemma, def);
@@ -940,7 +945,6 @@ public partial class DictWindow : UserControl {
 					addrun(p, text, DRole.Body, lang);
 					doc.Blocks.Add(p);
 					if (senseonly) curp = p;
-					shown = true;
 				}
 				// 仅释义只出一种语言的释义：界面语言优先，没有就英文、中文、日文、韩文依次回退。
 				void glossone(DictSense sn) {
@@ -968,9 +972,6 @@ public partial class DictWindow : UserControl {
 					gloss(Loc.T("dict.lab.en"), s.En, s.EnDef, "en");
 					gloss(Loc.T("dict.lab.ja"), s.Ja, s.JaDef, "ja");
 				}
-				// 韩语词条释义下面常跟一长串词组，中间空一行和义项之间保持一致。
-				if (shown && s.Phrases.Count > 0 && s.Idiom.Length == 0 && e.Dict == "ko")
-					doc.Blocks.Add(para(4));
 				foreach (var ph in s.Phrases) {
 					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
 					var p = para(0);

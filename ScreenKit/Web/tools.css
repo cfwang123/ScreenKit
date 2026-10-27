@@ -1316,7 +1316,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .jnrow {
-	display: flex; align-items: baseline; gap: 8px; width: 100%; padding: 3px 7px;
+	display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 7px;
 	border: 1px solid transparent; border-radius: 8px;
 	background: transparent; color: var(--ink);
 	white-space: nowrap; overflow: hidden; break-inside: avoid;
@@ -1326,5 +1326,10 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .jnrow .jnk { font: 600 15px/1.3 "Yu Gothic UI", "Microsoft YaHei UI", sans-serif; flex: none; }
 .jnrow .jny { color: var(--muted); font-size: 14px; overflow: hidden; text-overflow: ellipsis; }
 .jnrow .jnt { margin-left: auto; color: var(--muted); font-size: 12px; }
-.jnrow .jnp { flex: none; text-align: right; color: var(--muted); font-size: 12px; }
+.jnrow .jn-spk {
+	flex: none; width: 22px; height: 22px; min-height: 0; margin: 0; padding: 0;
+	border: 0; border-radius: 6px; background: transparent; color: var(--accent);
+	cursor: pointer; line-height: 22px; user-select: none;
+}
+.jnrow .jn-spk:hover { background: #fff1e8; }
 .jnnone { color: var(--muted); }

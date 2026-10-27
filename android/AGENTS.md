@@ -6,4 +6,8 @@
 - `node build.js release` 只把 APK 写到 `android/release/`。不要打进电脑端发布包。
 
 - PowerShell 命令与脚本参考（动手写 pwsh 命令或脚本前先对照）
-	- 写较复杂的命令、拼接引号、处理中文编码、并行、或判断该用 pwsh 还是 powershell 时，先读 `D:/VS_Projects/AIPrototype/PROMPTS/pwsh-agent使用参考.md`（7 与 5.1 的差异、`ForEach-Object -Parallel`、失败即停、编码坑、性能口径）。
+	- 内联代码别套双引号：`python -c "…"`、`rg -o ".{0,90}…"` 里的引号会被 pwsh 吃掉，报 `SyntaxError: '(' was never closed` 或 `missing the terminator`。复杂命令一律写 `tmp/x.ps1` 再 `-File`；非要内联，外层用单引号、内部只用双引号。
+	- 原生命令别用 `2>&1` 合并输出：pwsh 会把 stderr 包成 `ErrorRecord`（`+ CategoryInfo … RemoteException`），真错误被淹没。要合并用 `cmd /c "prog args 2>&1"`（实测得到纯字符串），或 `2>&1 | ForEach-Object { "$_" }`。
+	- 读来源不明的文本：有 BOM 按 BOM；无 BOM 用严格 UTF-8 试解（`[Text.UTF8Encoding]::new($false,$true)`，非法字节会抛异常），抛了退回 `[Text.Encoding]::GetEncoding(936)`。别用 `-Encoding Default`（7 里是 UTF-8、5.1 里是 GBK）。写文件统一 `-Encoding utf8NoBOM`。
+	- 跨目录一律用绝对路径：每次调用都是新进程，上一条的 `cd` 不保留；`Set-Location` 失败不报错且退出码仍为 0；它只改 PowerShell 的 cwd，不改 .NET 的 `[Environment]::CurrentDirectory`。要换目录用工具的 `workdir` 参数。
+	- `chcp 65001` 不用写：pwsh 7 默认 UTF-8，那是 5.1 的历史遗留。
