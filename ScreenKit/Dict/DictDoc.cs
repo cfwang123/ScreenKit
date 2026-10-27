@@ -41,9 +41,20 @@ static class DictDoc {
 				blocks.Add(p(0, 1, r));
 			}
 			if (e.Etymology.Length > 0) {
-				blocks.Add(oneKey("dict.lab.etym", "l", 0));
-				foreach (var line in DictWindow.splitlines(e.Etymology))
-					blocks.Add(one(line, "b", 0, DictWindow.TextLang(line, entrylang)));
+				var lines = DictWindow.splitlines(e.Etymology);
+				if (lines.Count == 1) {
+					// 只有一条语源：标签和正文排同一行，下面空一行。
+					blocks.Add(p(0, 0, new JsonArray {
+						k("dict.lab.etym", "l", " "),
+						s(lines[0], "b", DictWindow.TextLang(lines[0], entrylang)),
+					}));
+				}
+				else {
+					blocks.Add(oneKey("dict.lab.etym", "l", 0));
+					foreach (var line in lines)
+						blocks.Add(one(line, "b", 0, DictWindow.TextLang(line, entrylang)));
+				}
+				blocks.Add(gap(4));
 			}
 			foreach (var c in e.Conjugations) {
 				var r = new JsonArray { k("dict.lab.conj", "l") };
