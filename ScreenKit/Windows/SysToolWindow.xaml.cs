@@ -156,6 +156,7 @@ public partial class SysToolWindow : Window {
 		else if (tabs.SelectedItem == tabsvc && loaded.Add("svc")) loadsvc();
 		else if (tabs.SelectedItem == tabpatch && loaded.Add("patch")) loadpatch();
 		else if (tabs.SelectedItem == tabstore && loaded.Add("store")) loadstore();
+		else if (tabs.SelectedItem == tabassoc && loaded.Add("assoc")) loadassoc();
 	}
 
 	void loadproc() {

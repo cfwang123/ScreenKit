@@ -6,10 +6,11 @@ public partial class SysToolWindow {
 	List<SysTool.SvcRow> svcs = new();
 	List<SysTool.PatchRow> patches = new();
 	List<SysTool.StoreRow> stores = new();
+	List<SysTool.ExtRow> exts = new();
 	int svcgen;
 	int patchgen;
 	int storegen;
-	SysTool.AssocRow assoc;
+	int assocgen;
 
 	sealed class SvcItem {
 		public string Name { get; set; }
@@ -17,6 +18,14 @@ public partial class SysToolWindow {
 		public string State { get; set; }
 		public string Start { get; set; }
 		public string Path { get; set; }
+	}
+
+	sealed class AssocItem {
+		public string Ext { get; set; }
+		public string Type { get; set; }
+		public string App { get; set; }
+		public string Exe { get; set; }
+		public string Cmd { get; set; }
 	}
 
 	sealed class PatchItem {
@@ -44,11 +53,10 @@ public partial class SysToolWindow {
 		bstorecopy.Click += (_, _) => copystore();
 		estore.TextChanged += (_, _) => paintstore();
 		lvstore.SelectionChanged += (_, _) => showstore();
-		bassocfind.Click += (_, _) => loadassoc();
+		bassocrefresh.Click += (_, _) => loadassoc();
 		bassoccopy.Click += (_, _) => copyassoc();
-		eassoc.KeyDown += (_, e) => {
-			if (e.Key == Key.Enter) loadassoc();
-		};
+		eassoc.TextChanged += (_, _) => paintassoc();
+		lvassoc.SelectionChanged += (_, _) => showassoc();
 	}
 
 	void applymore() {
@@ -63,6 +71,7 @@ public partial class SysToolWindow {
 		lbsvcfilter.Text = Loc.T("systool.filter");
 		lbpatchfilter.Text = Loc.T("systool.filter");
 		lbstorefilter.Text = Loc.T("systool.filter");
+		lbassocfilter.Text = Loc.T("systool.filter");
 		colsvcname.Header = Loc.T("systool.col.name");
 		colsvcstate.Header = Loc.T("systool.col.state");
 		colsvcstart.Header = Loc.T("systool.col.start");
@@ -73,13 +82,17 @@ public partial class SysToolWindow {
 		colstorename.Header = Loc.T("systool.col.name");
 		colstorever.Header = Loc.T("systool.col.ver");
 		colstorepub.Header = Loc.T("systool.col.pub");
+		colassocext.Header = Loc.T("systool.col.ext");
+		colassoctype.Header = Loc.T("systool.col.type");
+		colassocapp.Header = Loc.T("systool.col.app");
+		colassocexe.Header = Loc.T("systool.col.path");
 		ToolBtnUi.Set(bsvcrefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
 		ToolBtnUi.Set(bsvccopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
 		ToolBtnUi.Set(bpatchrefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
 		ToolBtnUi.Set(bpatchcopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
 		ToolBtnUi.Set(bstorerefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
 		ToolBtnUi.Set(bstorecopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
-		ToolBtnUi.Set(bassocfind, ToolBtnUi.Swap, Loc.T("systool.find"));
+		ToolBtnUi.Set(bassocrefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
 		ToolBtnUi.Set(bassoccopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
 	}
 
@@ -225,38 +238,54 @@ public partial class SysToolWindow {
 	}
 
 	void loadassoc() {
-		var ext = eassoc.Text ?? "";
+		var n = ++assocgen;
+		bassocrefresh.IsEnabled = false;
 		lbassocstat.Text = Loc.T("systool.working");
 		Task.Run(() => {
 			string err = null;
-			SysTool.AssocRow got = null;
-			try { got = SysTool.Assoc(ext, out err); }
+			List<SysTool.ExtRow> got = null;
+			try { got = SysTool.Exts(); }
 			catch (Exception ex) { err = ex.Message; }
 			Dispatcher.Invoke(() => {
-				assoc = got;
-				if (err == "empty") lbassocstat.Text = Loc.T("systool.assoc.empty");
-				else if (err == "none") lbassocstat.Text = Loc.T("systool.assoc.none");
-				else if (err != null) lbassocstat.Text = err;
-				else lbassocstat.Text = got?.Ext ?? "";
-				showassoc();
+				if (n != assocgen) return;
+				bassocrefresh.IsEnabled = true;
+				if (err != null) {
+					lbassocstat.Text = err;
+					return;
+				}
+				exts = got ?? new List<SysTool.ExtRow>();
+				paintassoc();
 			});
 		});
 	}
 
+	void paintassoc() {
+		var q = (eassoc.Text ?? "").Trim();
+		var view = new List<AssocItem>();
+		foreach (var r in exts) {
+			var it = new AssocItem { Ext = r.Ext, Type = r.Type, App = r.App, Exe = r.Exe, Cmd = r.Cmd };
+			if (q.Length == 0 || has(q, it.Ext, it.Type, it.App, it.Exe, it.Cmd)) view.Add(it);
+		}
+		lvassoc.ItemsSource = view;
+		lbassocstat.Text = Loc.T("systool.stat", view.Count, exts.Count);
+		showassoc();
+	}
+
 	void showassoc() {
-		if (assoc == null || (assoc.App.Length == 0 && assoc.Exe.Length == 0 && assoc.Cmd.Length == 0)) {
+		if (lvassoc.SelectedItem is not AssocItem it) {
 			eassocdetail.Text = "";
 			return;
 		}
 		eassocdetail.Text = join(
-			$"{Loc.T("systool.assoc.app")}  {assoc.App}",
-			$"{Loc.T("systool.assoc.exe")}  {assoc.Exe}",
-			$"{Loc.T("systool.assoc.cmd")}  {assoc.Cmd}");
+			$"{it.Ext}  {it.Type}",
+			$"{Loc.T("systool.assoc.app")}  {it.App}",
+			$"{Loc.T("systool.assoc.exe")}  {it.Exe}",
+			$"{Loc.T("systool.assoc.cmd")}  {it.Cmd}");
 	}
 
 	void copyassoc() {
-		if (assoc == null) return;
-		setclip(join(assoc.Ext, assoc.App, assoc.Exe, assoc.Cmd));
+		if (lvassoc.SelectedItem is not AssocItem it) return;
+		setclip(join($"{it.Ext}  {it.Type}", it.App, it.Exe, it.Cmd));
 	}
 
 	static string label(string key, string raw) {
