@@ -413,16 +413,12 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 #rv-row > #rv-kind { flex: 0 0 118px; }
 #rv-row > #rv-word { flex: 0 1 320px; width: 320px; max-width: 320px; min-width: 200px; }
 #rv-out .jv-tab { width: auto; }
-#rv-out .jv-tab .jv-k { width: 12.5em; white-space: normal; }
-#rv-out .jv-tab .jv-v { white-space: normal; }
 #ev-out { overflow-x: auto; }
 #ev-row { align-items: flex-end; }
 #ev-row > label { width: auto; }
 #ev-row > #ev-word { flex: 0 1 340px; width: 340px; max-width: 340px; min-width: 200px; }
 #ev-row > #ev-type { flex: 0 0 112px; }
 #ev-out .jv-tab { width: auto; }
-#ev-out .jv-tab .jv-k { width: 11em; white-space: normal; }
-#ev-out .jv-tab .jv-v { white-space: normal; padding-right: 0; }
 #ev-out .ev-line { display: flex; align-items: flex-start; gap: 2px; }
 #ev-out .ev-line > span { min-width: 0; }
 #ev-out .ev-line .jv-spk { flex: 0 0 auto; margin-top: 1px; }
@@ -463,7 +459,6 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 	font: 14px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
 .combo-item.on, .combo-item:hover { background: #fff1e8; }
-#kv-out .jv-tab .jv-k { width: 9.2em; }
 .jv-tab .kv-g { color: var(--ink); font-weight: 600; font-size: 12px; padding-top: 8px; }
 .jv-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 4px; }
 .jv-head b { font-size: 16px; }
@@ -471,8 +466,6 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .jv-head .jv-time { margin-left: auto; padding-left: 10px; white-space: nowrap; }
 .jv-tab { border-collapse: collapse; font-size: 14px; line-height: 1.35; }
 .jv-tab td { padding: 1px 0; vertical-align: middle; white-space: nowrap; }
-.jv-tab .jv-k { color: var(--muted); font-size: 12px; width: 7.2em; padding-right: 6px; }
-.jv-tab .jv-v { padding-right: 22px; }
 /* 一格：名称在上、词形在下竖排，每行按宽度排 1～4 格 */
 .jv-tab .c-k { white-space: normal; padding: 2px 14px 3px 0; vertical-align: top; }
 .jv-tab .c-k .clab { color: var(--muted); font-size: 12px; }
@@ -1284,3 +1277,4 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
 }
 .wclock-sub { color: var(--muted); font-size: 12px; }
+
