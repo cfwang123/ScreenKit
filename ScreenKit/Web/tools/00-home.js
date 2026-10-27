@@ -472,11 +472,11 @@
 						"type":"button",
 						"data-tool":"u-kverb",
 						"data-cat":"info",
-						"data-name":"韩语 韩文 动词 形容词 变化 活用 하다 먹다 살다 发音 conjugation korean verb",
+						"data-name":"韩语词形变化 韩语动词变化 韩语 韩文 动词 形容词 名词 变化 活用 하다 먹다 살다 发音 conjugation korean verb",
 						"title":"输入韩语词典形，列出动词或形容词的变化，每条可以听发音",
 						c:[
 						{x:"i.fa-solid.fa-language"},
-						{x:"span","data-k":"web.tool.kverb",c:"韩语动词变化"},
+						{x:"span","data-k":"web.tool.kverb",c:"韩语词形变化"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-kverb","title":"收藏"}
 					]
 					},

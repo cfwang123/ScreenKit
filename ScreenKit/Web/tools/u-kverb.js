@@ -144,7 +144,7 @@
 	if (typeof SK === "undefined" || !SK.regutil) return;
 
 	SK.regutil("u-kverb", {
-		title: "韩语动词变化",
+		title: "韩语词形变化",
 		go: "显示",
 		live: true,
 		own: true,
@@ -184,7 +184,7 @@
 			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。表末是朝鲜文化语（ㅂ네다 系）、朝鲜播音体（只列与标准语不同的 -시였습니다）和延边朝鲜语（-ㅁ다/슴다、-ㄴ다이）；与标准语同形的说法不列。");
 		}
 		var title = F.id("box-title");
-		if (title) title.textContent = tx("web.tool.kverb", "韩语动词变化");
+		if (title) title.textContent = tx("web.tool.kverb", "韩语词形变化");
 		setlab("kv-word", "web.kverb.word", "词典形");
 		setlab("kv-type", "web.kverb.type", "类型");
 		SK.combofill("kv-in", pickgroups());
