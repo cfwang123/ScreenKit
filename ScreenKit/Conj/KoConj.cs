@@ -172,6 +172,7 @@ static class KoConj {
 		["con"] = new[] { "连接", "연결", "Connective" },
 		["mod"] = new[] { "定语", "관형", "Modifier" },
 		["wrt"] = new[] { "书面", "문어", "Written" },
+		["arch"] = new[] { "古代语", "고어", "Classical" },
 		["ext"] = new[] { "其他", "기타", "Other" },
 		["gs"] = new[] { "庆尚道", "경상도", "Gyeongsang" },
 		["jl"] = new[] { "全罗道", "전라도", "Jeolla" },
@@ -508,6 +509,21 @@ static class KoConj {
 		["haeuuna"] = new[] { "书面转折 하였으나", "하였으나", "hayeoseuna" },
 		["haeumyeo"] = new[] { "书面同时 하였으며", "하였으며", "hayeoseumyeo" },
 		["haeumeuro"] = new[] { "书面原因 하였으므로", "하였으므로", "hayeoseumeuro" },
+		["rini"] = new[] { "古文 리니", "리니", "rini" },
+		["riroda"] = new[] { "古文 리로다", "리로다", "riroda" },
+		["eotdoda"] = new[] { "古文 었도다", "었도다", "eotdoda" },
+		["rio"] = new[] { "古文 리오", "리오", "rio" },
+		["geoneul"] = new[] { "古文 거늘", "거늘", "geoneul" },
+		["geoniwa"] = new[] { "古文 거니와", "거니와", "geoniwa" },
+		["geonmaneun"] = new[] { "古文 건마는", "건마는", "geonmaneun" },
+		["goja"] = new[] { "古文 고자", "고자", "goja" },
+		["jindae"] = new[] { "古文 ㄹ진대", "ㄹ진대", "jindae" },
+		["sera"] = new[] { "古文 ㄹ세라", "ㄹ세라", "sera" },
+		["sae"] = new[] { "古文 ㄹ새", "ㄹ새", "sae" },
+		["noni"] = new[] { "古文 노니", "노니", "noni" },
+		["jinjeo"] = new[] { "古文 ㄹ진저", "ㄹ진저", "jinjeo" },
+		["eura"] = new[] { "古文命令 으라", "으라", "eura" },
+		["saopso"] = new[] { "古文祈请 사옵소서", "사옵소서", "saopsoseo" },
 		["guryeo"] = new[] { "老人 구려", "구려", "guryeo" },
 		["gumeon"] = new[] { "老人 구먼", "구먼", "gumeon" },
 		["negeu"] = new[] { "老人 네그려", "네그려", "negeuryeo" },
@@ -1228,6 +1244,23 @@ static class KoConj {
 			add("haeumyeo", "하였으며", hw + "하였으며");
 			add("haeumeuro", "하였으므로", hw + "하였으므로");
 		}
+		// 古代语：ㄹ 词干的 건마는 作 련마는；노니 前 ㄹ 脱落。으라 只给动词，ㄹ 词干保留 ㄹ。
+		cur = g("arch");
+		add("rini", "리니", pluseu(st, "리니", true));
+		add("riroda", "리로다", pluseu(st, "리로다", true));
+		add("eotdoda", "었도다", irr == "hada" ? stem.Substring(0, stem.Length - 1) + "하였도다" : past + "도다");
+		add("rio", "리오", pluseu(st, "리오", true));
+		add("geoneul", "거늘", jn(syls) + "거늘");
+		add("geoniwa", "거니와", jn(syls) + "거니와");
+		add("geonmaneun", "건마는", geonman(syls));
+		add("goja", "고자", jn(syls) + "고자");
+		add("jindae", "ㄹ진대", rl + "진대");
+		add("sera", "ㄹ세라", rl + "세라");
+		add("sae", "ㄹ새", rl + "새");
+		add("noni", "노니", dropr(syls, "노니"));
+		add("jinjeo", "ㄹ진저", rl + "진저");
+		if (verb) add("eura", "으라", pluseu(st, "라", false));
+		add("saopso", "사옵소서", repend(saop(syls), "니다", "소서"));
 		// 补助动词：试、做完、放着、预先、为别人、最终，以及结果、渐变、缩略
 		cur = g("aux");
 		if (verb) {
@@ -1437,6 +1470,13 @@ static class KoConj {
 	private static string quotenya(List<KoSyl> syls, string irr, string kind) {
 		if (kind == "a" && !endseobs(syls)) return pluseu(eustem(syls, irr), "냐고", true);
 		return dropr(syls, "느냐고");
+	}
+
+	// 건마는 / 련마는：ㄹ 词干保留 ㄹ 再接 련마는，其余接 건마는
+	private static string geonman(List<KoSyl> syls) {
+		var s = cp(syls);
+		var last = s[s.Count - 1];
+		return jn(s) + (last.Jong == JG_R ? "련마는" : "건마는");
 	}
 
 	// 하소서体 -(사)옵니다：开音节和 ㄹ 用 옵니다，其余闭音节用 사옵니다。ㄷ 在辅音前不变。
@@ -1793,6 +1833,21 @@ static class KoConj {
 		add("jira", "지라", noun + "인지라");
 		add("doda", "도다", copart(noun, bat, "로다", "로다"));
 		add("jieoda", "지어다", noun + "일지어다");
+		cur = g("arch");
+		add("rini", "리니", noun + "이리니");
+		add("riroda", "리로다", noun + "이리로다");
+		add("eotdoda", "었도다", copart(noun, bat, "었도다", "였도다"));
+		add("rio", "리오", noun + "이리오");
+		add("geoneul", "거늘", copart(noun, bat, "거늘", "거늘"));
+		add("geoniwa", "거니와", copart(noun, bat, "거니와", "거니와"));
+		add("geonmaneun", "건마는", copart(noun, bat, "건마는", "건마는"));
+		add("goja", "고자", copart(noun, bat, "고자", "고자"));
+		add("jindae", "ㄹ진대", noun + "일진대");
+		add("sera", "ㄹ세라", noun + "일세라");
+		add("sae", "ㄹ새", noun + "일새");
+		add("noni", "노니", copart(noun, bat, "노니", "노니"));
+		add("jinjeo", "ㄹ진저", noun + "일진저");
+		add("saopso", "사옵소서", copart(noun, bat, "옵소서", "옵소서"));
 		cur = g("ellip");
 		add("geoda", "거다", noun + "일 거다");
 		add("geotcon", "건/걸/게", noun + "인 건 / " + noun + "인 걸 / " + noun + "인 게");
@@ -1921,6 +1976,21 @@ static class KoConj {
 		add("jira", "지라", "아닌지라");
 		add("doda", "도다", "아니로다");
 		add("jieoda", "지어다", "아닐지어다");
+		cur = g("arch");
+		add("rini", "리니", "아니리니");
+		add("riroda", "리로다", "아니리로다");
+		add("eotdoda", "었도다", "아니었도다");
+		add("rio", "리오", "아니리오");
+		add("geoneul", "거늘", "아니거늘");
+		add("geoniwa", "거니와", "아니거니와");
+		add("geonmaneun", "건마는", "아니건마는");
+		add("goja", "고자", "아니고자");
+		add("jindae", "ㄹ진대", "아닐진대");
+		add("sera", "ㄹ세라", "아닐세라");
+		add("sae", "ㄹ새", "아닐새");
+		add("noni", "노니", "아니노니");
+		add("jinjeo", "ㄹ진저", "아닐진저");
+		add("saopso", "사옵소서", "아니옵소서");
 		cur = g("ellip");
 		add("geoda", "거다", "아닐 거다");
 		add("geotcon", "건/걸/게", "아닌 건 / 아닌 걸 / 아닌 게");

@@ -75,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean word forms add character speech, in-group endings and rough endings for verbs, adjectives and nouns.
 - System tools: the file associations page lists every registered extension with its document type, default app and command line; type to filter.
 - Japanese word forms: a sentence-endings group (よ, ですよ, ね, ですね, よね, わよ, の, かな, かしら, こと) plus masculine (ぞ, ぜ, さ, わ) and samurai/archaic endings (のじゃ, でござる, で候, でおじゃる, なり) in the same group, each row showing both the affirmative and the negative form.
+- Korean word forms add a classical ending group for verbs, adjectives and nouns.
 
 #### Changed
 
@@ -192,6 +193,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词形变化为动词、形容词和名词补上角色语、小圈子用语和粗俗词尾。
 - 系统工具：文件关联页直接列出全部已注册的扩展名及类型、默认应用和命令行，输入即可筛选。
 - 日语形态变化：新增「语气（终助词）」组，收 よ、ですよ、ね、ですね、よね、わよ、の、かな、かしら、こと，以及男性（ぞ、ぜ、さ、わ）和武士・古风（のじゃ、でござる、で候、でおじゃる、なり）的说法，每行都带肯定和否定两式。
+- 韩语词形变化为动词、形容词和名词补上古代语词尾。
 
 #### 变更
 
