@@ -132,6 +132,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Early error responses (503, 405, bad request) now drain the request body before closing, so clients read the JSON error instead of getting a connection reset.
 - Chrome offline speech now opens its page when the app runs as administrator; Chrome restarts itself with lower rights and the launcher exits first, so the real browser is waited for and reused.
 - Chrome speech fails after 10 seconds when the voice never starts, and cancels the stuck utterance, instead of waiting for the long timeout.
+- Main window dictionary: the word-forms tab for Japanese nouns showed the group-1 verb error instead of noun forms.
 
 #### Security / privacy notes
 
@@ -229,6 +230,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 提前返回错误（503、405、请求非法）时先把请求体收掉再断开，客户端能读到 JSON 错误，不再表现为连接被重置。
 - 程序以管理员身份运行时，Chrome 朗读不再报「Chrome 没有打开朗读页」：Chrome 会降权重启、启动器先退出，现在按调试口等真正的浏览器并复用它。
 - Chrome 朗读 10 秒还没开始出声就判失败并取消卡住的那句，不再一直等到超时。
+- 主窗口词典：日语名词的形态变化页显示「1类词尾要是う段假名」，没有名词变化内容。
 
 #### 安全与隐私
 

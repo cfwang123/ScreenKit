@@ -1028,7 +1028,7 @@ public partial class DictWindow : UserControl {
 				else if (Has(t, "godan verb")) put("v", "1", "");
 				if (Has(t, "adjectival nouns")) put("a", "an", "");
 				else if (Has(t, "adjective")) put("a", "ai", "");
-				if (Has(t, "noun")) put("n", "", "");
+				if (Has(t, "noun")) put("n", "n", "");
 			}
 			else if (lang == "ko") {
 				if (Has(t, "verb") || Has(t, "동사")) put("v", "", "");
