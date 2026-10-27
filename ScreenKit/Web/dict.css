@@ -151,9 +151,10 @@ button, input, select { font: inherit; }
 .ctab tr + tr td { border-top: 1px solid #f0ebe4; }
 .ctab .cgrp { color: #8830a8; font-weight: 600; font-size: 12px; padding-top: 8px; }
 .ctab .clab { color: var(--muted); font-size: 12px; }
-.ctab .cex { color: var(--ink); overflow-wrap: anywhere; }
-/* 每条例句一个喇叭，按钮跟着文字走，不撑高行 */
-.spk.sm { width: 20px; height: 20px; margin-left: 2px; vertical-align: middle; }
+.ctab .cex { color: var(--ink); overflow-wrap: anywhere; display: flex; align-items: center; gap: 4px; }
+.ctab .cex > span { flex: 1 1 auto; min-width: 0; }
+/* 每条例句一个喇叭，按钮跟着文字走，和文字竖直居中对齐 */
+.spk.sm { width: 20px; height: 20px; margin: 0; vertical-align: middle; flex: none; }
 #detail button.link {
 	border: 0;
 	padding: 0;
@@ -188,3 +189,34 @@ button, input, select { font: inherit; }
 #pop-hits span { flex: 1; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pop-ops { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .pop-ops button { border-radius: 6px; }
+
+/* ===== 手机版：一屏一页，详情页可返回 ===== */
+#back {
+	display: none;
+	width: 30px; height: 30px; margin-right: 4px; padding: 0;
+	border: 1px solid var(--line); border-radius: 8px; background: #fff;
+	color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer;
+	align-items: center; justify-content: center;
+}
+#modesw {
+	margin-left: 12px; height: 30px; padding: 0 10px;
+	border: 1px solid var(--line); border-radius: 8px; background: #fff;
+	color: var(--muted); font-size: 13px; cursor: pointer;
+}
+.top .lang { margin-left: auto; }
+body.m { min-width: 0; }
+body.m .top { height: 44px; padding: 0 10px; }
+body.m .top strong { font-size: 15px; }
+body.m .bar { flex-wrap: wrap; padding: 6px 10px; gap: 6px; }
+body.m #fmt, body.m #export { display: none; }
+body.m .filts { flex: 1 1 100%; overflow-x: auto; }
+body.m #speak { height: 30px; }
+body.m .split { display: block; overflow: hidden; padding: 0 10px 6px; }
+body.m #hits { width: auto; min-width: 0; height: 100%; border: 0; }
+body.m #detail { height: 100%; border: 0; padding: 2px 0 24px; }
+body.m #detail { display: none; }
+body.m.route-e #hits { display: none; }
+body.m.route-e #detail { display: block; }
+body.m.route-e #back { display: inline-flex; }
+body.m .ctab { table-layout: fixed; }
+

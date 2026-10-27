@@ -16,6 +16,13 @@
 	var audioUrl = "";
 	var hits = [];
 
+	// 手机版 / 路由：#/q/<查询词>/e/<词条id>/c/<第几个变形标签>，刷新和后退都回到原处。
+	var MODEKEY = "sk.dict.mode";
+	var mode = "pc";
+	var curtab = 0;
+	var loadedq = null;
+	var navlock = 0;
+
 	function $(id){ return document.getElementById(id); }
 	function langs(){
 		if (window.L && L._lang && L._lang.length) return L._lang;
@@ -47,15 +54,155 @@
 		return code || "";
 	}
 
+	// 默认按屏幕宽度和 UA 选手机版；手动切过就记住。
+	function wantmobile(){
+		var saved = "";
+		try { saved = localStorage.getItem(MODEKEY) || ""; } catch (e) {}
+		if (saved === "m") return true;
+		if (saved === "pc") return false;
+		var narrow = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;
+		return narrow || /Android|iPhone|iPad|iPod|Mobile|HarmonyOS/i.test(navigator.userAgent || "");
+	}
+
+	function setmode(m, keep){
+		mode = m;
+		document.body.classList.toggle("m", m === "m");
+		var b = $("modesw");
+		if (b) b.textContent = m === "m" ? (t("dict.mode.pc") || "电脑版") : (t("dict.mode.m") || "手机版");
+		if (keep) {
+			try { localStorage.setItem(MODEKEY, m); } catch (e) {}
+		}
+	}
+
+	function route(){
+		var h = (location.hash || "").replace(/^#/, "");
+		var o = { q: "", id: 0, tab: 0 };
+		var m = /^\/e\/(\d+)(?:\/c\/(\d+))?$/.exec(h);
+		if (m) {
+			o.id = parseInt(m[1], 10) || 0;
+			o.tab = m[2] ? parseInt(m[2], 10) : 0;
+			return o;
+		}
+		m = /^\/q\/([^\/]*)(?:\/e\/(\d+)(?:\/c\/(\d+))?)?$/.exec(h);
+		if (m) {
+			o.q = m[1] ? decodeURIComponent(m[1]) : "";
+			o.id = m[2] ? parseInt(m[2], 10) : 0;
+			o.tab = m[3] ? parseInt(m[3], 10) : 0;
+		}
+		return o;
+	}
+
+	// 地址里的页：有 id 就是详情页，没有就是搜索页。
+	function syncview(){
+		var r = route();
+		document.body.classList.toggle("route-e", !!r.id);
+		document.body.classList.toggle("route-q", !r.id);
+	}
+
+	function pushroute(q, id, tab, replace){
+		if (navlock) return;
+		var h = q ? "/q/" + encodeURIComponent(q) : "/";
+		if (id) h += "/e/" + id + (tab ? "/c/" + tab : "");
+		var url = location.pathname + location.search + "#" + h;
+		if (url !== location.href) {
+			if (replace) history.replaceState(null, "", url);
+			else history.pushState(null, "", url);
+		}
+		syncview();
+	}
+
+	// 详情页切到第 n 个标签（点标签按钮，顺带触发变形页的加载）。
+	function showtab(n){
+		var btns = $("detail").querySelectorAll(".dtab");
+		if (!btns.length) return;
+		var b = btns[n] || btns[0];
+		navlock++;
+		if (!b.classList.contains("on")) b.click();
+		navlock--;
+		curtab = parseInt(n, 10) || 0;
+	}
+
+	function openentry(id, tab){
+		var g = ++dgen;
+		fetch("/api/dict/entry?id=" + encodeURIComponent(id)).then(function(r){ return r.json(); }).then(function(j){
+			if (g !== dgen) return;
+			if (!j || j.code !== 100) { fail(j); return; }
+			cur = j.data;
+			paint(cur);
+			showtab(tab || 0);
+		}).catch(function(ex){
+			if (g === dgen) status(ex.message || String(ex));
+		});
+	}
+
+	// 按地址还原界面：查询词变了先搜，结果到了再定位词条和标签。
+	function applyroute(){
+		var r = route();
+		var q = $("q").value || "";
+		syncview();
+		if ((r.q || "") !== q) {
+			$("q").value = r.q || "";
+			if (r.q) queue();
+			else clearsearch();
+			return;
+		}
+		if (!r.q) {
+			if (mode === "m") $("q").focus();
+			return;
+		}
+		if (loadedq !== r.q) { queue(); return; }
+		if (!r.id) {
+			curtab = 0;
+			if (mode === "m") $("q").focus();
+			return;
+		}
+		if (cur && cur.id === r.id) { showtab(r.tab); return; }
+		var i, idx = -1;
+		for (i = 0; i < hits.length; i++) if (hits[i].id === r.id) { idx = i; break; }
+		if (idx >= 0) select(idx, r.tab, true);
+		else openentry(r.id, r.tab);
+	}
+
+	function clearsearch(){
+		gen++;
+		hits = [];
+		cur = null;
+		loadedq = "";
+		$("hits").innerHTML = "";
+		$("detail").innerHTML = "";
+		hidepop();
+		status(t("dict.ready") || "词典已就绪");
+	}
+
 	function boot(){
 		filllang();
 		applylang();
+		setmode(wantmobile() ? "m" : "pc", false);
 		var params = new URLSearchParams(location.search);
 		if (params.get("id")) wantId = parseInt(params.get("id"), 10) || 0;
 		$("q").value = params.get("q") || "";
 		$("q").addEventListener("input", queue);
 		$("filts").addEventListener("click", onfilt);
 		$("hits").addEventListener("click", onhit);
+		$("modesw").addEventListener("click", function(){
+			setmode(mode === "m" ? "pc" : "m", true);
+			syncview();
+			applyroute();
+		});
+		$("back").addEventListener("click", function(){
+			$("q").value = $("q").value || "";
+			pushroute($("q").value, 0, 0, true);
+			applyroute();
+		});
+		window.addEventListener("popstate", applyroute);
+		// 没有手动切过就跟着窗口宽度走（手机横竖屏、桌面改窗口）
+		window.addEventListener("resize", function(){
+			var saved = "";
+			try { saved = localStorage.getItem(MODEKEY) || ""; } catch (e) {}
+			if (saved) return;
+			setmode(wantmobile() ? "m" : "pc", false);
+			syncview();
+		});
 		$("speak").addEventListener("click", function(){
 			if (!cur) return;
 			speak(cur.speak || cur.word, cur.dict);
@@ -105,9 +252,12 @@
 		document.addEventListener("keydown", function(ev){
 			if (ev.key === "Escape") hidepop();
 		});
-		if ($("q").value) queue();
-		else status(t("dict.ready") || "词典已就绪");
-		$("q").focus();
+		if (location.hash) applyroute();
+		else if ($("q").value) queue();
+		else {
+			status(t("dict.ready") || "词典已就绪");
+			if (mode === "m") $("q").focus();
+		}
 	}
 
 	function filllang(){
@@ -172,13 +322,7 @@
 		timer = 0;
 		var q = $("q").value || "";
 		if (!String(q).replace(/^\s+|\s+$/g, "")) {
-			gen++;
-			hits = [];
-			cur = null;
-			$("hits").innerHTML = "";
-			$("detail").innerHTML = "";
-			hidepop();
-			status(t("dict.ready") || "词典已就绪");
+			clearsearch();
 			return;
 		}
 		var g = ++gen;
@@ -191,21 +335,32 @@
 				return;
 			}
 			hits = (j.data && j.data.hits) || [];
+			loadedq = q;
 			var ms = j.data && j.data.ms || 0;
 			painthits();
 			status(fmt(t("dict.count") || "{0} 条 · {1} ms", hits.length, ms));
 			if (!hits.length) {
 				cur = null;
 				$("detail").innerHTML = "";
+				if (mode === "m") pushroute(q, 0, 0, true);
 				return;
 			}
-			var pick = 0;
-			var i;
-			if (wantId) {
-				for (i = 0; i < hits.length; i++) if (hits[i].id === wantId) { pick = i; break; }
-				wantId = 0;
+			var r = route();
+			var want = wantId || r.id;
+			var i, pick = 0, tabsel = 0;
+			if (want) {
+				for (i = 0; i < hits.length; i++) if (hits[i].id === want) { pick = i; break; }
+				if (r.id && hits[pick] && hits[pick].id === r.id) tabsel = r.tab;
 			}
-			select(pick);
+			// 手机版搜完只停在列表页，点词条才进详情
+			if (mode === "m" && !want) {
+				cur = null;
+				$("detail").innerHTML = "";
+				pushroute(q, 0, 0, true);
+				return;
+			}
+			wantId = 0;
+			select(pick, tabsel, true);
 		}).catch(function(ex){
 			if (g === gen) status(ex.message || String(ex));
 		});
@@ -280,10 +435,10 @@
 		}
 		var li = ev.target.closest("li");
 		if (!li) return;
-		select(parseInt(li.getAttribute("data-i"), 10));
+		select(parseInt(li.getAttribute("data-i"), 10), 0, false);
 	}
 
-	function select(i){
+	function select(i, tab, replace){
 		var nodes = $("hits").children;
 		var n;
 		for (n = 0; n < nodes.length; n++) nodes[n].classList.toggle("on", n === i);
@@ -297,6 +452,8 @@
 			cur = j.data;
 			hidepop();
 			paint(cur);
+			showtab(tab || 0);
+			pushroute($("q").value || "", cur.id, tab || 0, !!replace);
 		}).catch(function(ex){
 			if (g === dgen) status(ex.message || String(ex));
 		});
@@ -340,6 +497,8 @@
 			(function(n){
 				panes[n].b.onclick = function(){
 					show(n);
+					curtab = n;
+					pushroute($("q").value || "", e.id, n, false);
 					if (n > 0 && !panes[n].on) {
 						panes[n].on = true;
 						loadconj(panes[n].p, e, cats[n - 1]);
@@ -348,6 +507,7 @@
 			})(i);
 		}
 		show(0);
+		curtab = 0;
 	}
 
 	// 词条有哪些能变形的词性：动词、形容词、名词。日语的动词还分五段/一段/サ変/カ変。
@@ -554,7 +714,9 @@
 			if (!s) continue;
 			var line = document.createElement("div");
 			line.className = "cex";
-			line.appendChild(document.createTextNode(s));
+			var tx = document.createElement("span");
+			tx.textContent = s;
+			line.appendChild(tx);
 			sy = conjsay(s);
 			if (sy) {
 				b = document.createElement("button");
