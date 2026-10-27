@@ -371,7 +371,7 @@ static class JpConj {
 			L.teiru = "ている";
 			L.aux = "补助动词";
 			L.auxte = "て形＋";
-			L.auxpol = "敬体";
+			L.auxpol = "劝诱・邀请";
 			L.ngara = "ながら";
 			L.tsutsu = "つつ";
 			L.tsutsuaru = "つつある";
@@ -530,7 +530,7 @@ static class JpConj {
 		L.teiru = "teiru";
 		L.aux = "Auxiliaries";
 		L.auxte = "te-form +";
-		L.auxpol = "Polite";
+		L.auxpol = "Suggestions";
 		L.ngara = "nagara";
 		L.tsutsu = "tsutsu";
 		L.tsutsuaru = "tsutsu aru";
