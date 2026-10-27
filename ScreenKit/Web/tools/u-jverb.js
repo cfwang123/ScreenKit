@@ -34,6 +34,7 @@
 	var PICKS = [
 		["sp", "する", "する", "3", "", "suru", "做", "do"],
 		["sp", "来る", "くる", "3", "", "kuru", "来", "come"],
+		["sp", "信ずる", "しんずる", "3", "", "zuru", "相信 · ずる型", "believe · -zuru type"],
 		["sp", "行く", "いく", "1", "iku", "", "去 · て＝って", "go · te=tte"],
 		["sp", "ある", "ある", "1", "arunai", "", "有 · 否定＝ない", "exist · nai=nai"],
 		["sp", "くれる", "くれる", "2", "kure", "", "给 · 命令＝くれ", "give · cmd=kure"],
@@ -178,7 +179,7 @@
 		var hint = F.id("jv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.jverb.hint");
-			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见词和特殊变化。自动先查日语词典，判断是动词、い形容词、な形容词还是名词；查不到时按词尾猜：る＝2类，する・くる＝3类，い＝い形容词，其余按名词；也可在右侧指定类型。动词表的后部是补助动词（ながら、ておく、やがる 等）、敬体（ましょう、ませんか）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
+			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见词和特殊变化。自动先查日语词典，判断是动词、い形容词、な形容词还是名词；查不到时按词尾猜：る＝2类，する・くる・ずる＝3类，い＝い形容词，其余按名词；也可在右侧指定类型。动词表的后部是补助动词（ながら、ておく、やがる 等）、敬体（ましょう、ませんか）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
 		}
 		setlab("jv-word", "web.jverb.word", ens ? "Dictionary form" : "辞书形");
 		SK.combofill("jv-in", pickgroups());
@@ -186,7 +187,7 @@
 		setopt("auto", "web.jverb.auto", ens ? "Auto" : "自动");
 		setopt("1", "web.jverb.t1", ens ? "Group 1 (godan)" : "1类（五段）");
 		setopt("2", "web.jverb.t2", ens ? "Group 2 (ichidan)" : "2类（一段）");
-		setopt("3", "web.jverb.t3", ens ? "Group 3 (suru, kuru)" : "3类（する・くる）");
+		setopt("3", "web.jverb.t3", ens ? "Group 3 (suru, kuru, zuru)" : "3类（する・くる・ずる）");
 		setopt("ai", "web.jverb.tai", ens ? "i-adjective" : "い形容词");
 		setopt("an", "web.jverb.tan", ens ? "na-adjective" : "な形容词");
 		setopt("n", "web.jverb.tn", ens ? "Noun" : "名词");
@@ -656,6 +657,7 @@
 		if (pre) return { kind: pre[3], flag: pre[4] || "", sub: pre[5] || "" };
 		if (isKuru(word)) return { kind: "3", sub: "kuru", flag: "" };
 		if (isSuru(word)) return { kind: "3", sub: "suru", flag: "" };
+		if (isZuru(word)) return { kind: "3", sub: "zuru", flag: "" };
 		if (isAru(word)) return { kind: "1", flag: "arunai", sub: "" };
 		if (isSonkeAru(word)) return { kind: "1", flag: "aru", sub: "" };
 		if (isKureru(word)) return { kind: "2", flag: "kure", sub: "" };
@@ -694,6 +696,7 @@
 		else if (s.indexOf("keiyoushi") >= 0) kind = "ai";
 		else if (s.indexOf("ichidan") >= 0) kind = "2";
 		else if (s.indexOf("kuru verb") >= 0) { kind = "3"; sub = "kuru"; }
+		else if (s.indexOf("zuru verb") >= 0) { kind = "3"; sub = "zuru"; }
 		else if (s.indexOf("suru verb") >= 0 && s.indexOf("takes the aux") < 0) { kind = "3"; sub = "suru"; }
 		else if (s.indexOf("godan") >= 0) kind = "1";
 		else if (s.indexOf("noun") >= 0) kind = "n";
@@ -709,6 +712,12 @@
 	function isSuru(word){
 		word = norm(word);
 		return hira(word) === "する" || word === "為る" || hira(word).slice(-2) === "する";
+	}
+
+	// ずる动词：信ずる、命ずる、重んずる，辞书形以 ずる 结尾。
+	function isZuru(word){
+		word = norm(word);
+		return word.length >= 3 && word.slice(-2) === "ずる";
 	}
 
 	function isIku(word){

@@ -559,6 +559,7 @@
 			var s = texts[i];
 			if (lang === "ja") {
 				if (/kuru verb/i.test(s)) put({ cat: "v", kind: "3", sub: "kuru" });
+				else if (/zuru verb/i.test(s)) put({ cat: "v", kind: "3", sub: "zuru" });
 				else if (/suru verb|aux\. verb suru/i.test(s)) put({ cat: "v", kind: "3", sub: "suru" });
 				else if (/ichidan verb/i.test(s)) put({ cat: "v", kind: "2", sub: "" });
 				else if (/godan verb/i.test(s)) put({ cat: "v", kind: "1", sub: "" });

@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - With Definitions only, the sub-senses of one sense are merged into a single line separated by semicolons.
 - Japanese name lookup no longer shows surname population, and each row has a speak button.
 - Korean entries list phrases under a Phrases heading, with each phrase and its Chinese gloss on one line told apart by colour.
+- Korean example sentences put the Chinese translation on the same line, in the same style as phrases.
 
 #### Fixed
 
@@ -84,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 「仅释义」时，同一义项下的多条子义项合并成一行，用「; 」分隔。
 - 日本姓名查询不再显示姓的人数，每条旁边可以听读音。
 - 韩语词条词组改为「词组：」列表，每条词组与中文释义排在同一行，用颜色区分。
+- 韩语例句的中文翻译也并到同一行，与词组排版一致。
 
 #### 修复
 

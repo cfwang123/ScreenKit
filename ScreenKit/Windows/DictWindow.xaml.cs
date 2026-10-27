@@ -1010,11 +1010,21 @@ public partial class DictWindow : UserControl {
 					foreach (var ex in s.Sentences) {
 						if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
 						var ep = para(0);
-						addrun(ep, "· " + ex.Text, DRole.Example, exlang);
+						// 韩语例句和中文排一行，和词组一致；其它语言中文另起一行。
+						if (e.Dict == "ko") {
+							addrun(ep, "· ", DRole.Number);
+							if (ex.Text.Length > 0) addrun(ep, ex.Text, DRole.Example, exlang);
+						}
+						else addrun(ep, "· " + ex.Text, DRole.Example, exlang);
 						var say = examplesrc(ex.Text);
 						if (say.Length > 0) addspeak(ep, say, exlang);
+						var same = e.Dict == "ko" && ex.Zh.Length > 0;
+						if (same) {
+							addrun(ep, "  ", DRole.Body);
+							addrun(ep, ex.Zh, DRole.Label, "zh");
+						}
 						doc.Blocks.Add(ep);
-						if (ex.Zh.Length > 0) {
+						if (ex.Zh.Length > 0 && !same) {
 							var z = para(0);
 							addrun(z, Loc.T("dict.lab.zh") + " ", DRole.Label, "zh");
 							addrun(z, ex.Zh, DRole.Body, "zh");
@@ -1139,6 +1149,7 @@ public partial class DictWindow : UserControl {
 		foreach (var t in texts) {
 			if (lang == "ja") {
 				if (Has(t, "kuru verb")) put("v", "3", "kuru");
+				else if (Has(t, "zuru verb")) put("v", "3", "zuru");
 				else if (Has(t, "suru verb") || Has(t, "aux. verb suru")) put("v", "3", "suru");
 				else if (Has(t, "ichidan verb")) put("v", "2", "");
 				else if (Has(t, "godan verb")) put("v", "1", "");
@@ -1383,7 +1394,7 @@ public partial class DictWindow : UserControl {
 		var g = ++conjgen;
 		pane.Cnt.Text = "";
 		Task.Run(() => {
-			try { return ConjApi.Build(lang, word, ja ? cat.Kind : "", "", ja ? "" : "", ja ? "" : cat.Cat, Loc.Lang, o1, o2); }
+			try { return ConjApi.Build(lang, word, ja ? cat.Kind : "", "", ja ? cat.Sub : "", ja ? "" : cat.Cat, Loc.Lang, o1, o2); }
 			catch { return null; }
 		}).ContinueWith(t => Dispatcher.BeginInvoke(new Action(() => {
 			if (g != conjgen) return;

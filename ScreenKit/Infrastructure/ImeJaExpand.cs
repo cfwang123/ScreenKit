@@ -8,7 +8,7 @@ namespace ScreenKit;
 /// <summary>把词典里的日语汉字写法，以及动词、一类形容词的活用，写进 ime.db 的 ja_word。
 /// 词库原来一条读音只留十几条，有的读音一条都没有。</summary>
 static class ImeJaExpand {
-	const string Mark = "1";
+	const string Mark = "2";
 	static readonly object gate = new object();
 	static readonly Dictionary<char, string[]> col = new Dictionary<char, string[]> {
 		{ 'う', new[] { "わ", "い", "う", "え", "お", "って", "った" } },
@@ -70,6 +70,11 @@ static class ImeJaExpand {
 		err = need("べんきょうする", "勉強する", 3, "", "suru", false, false, "べんきょうしない", "勉強しない"); if (err != null) return err;
 		err = need("べんきょうする", "勉強する", 3, "", "suru", false, false, "べんきょうできる", "勉強できる"); if (err != null) return err;
 		err = need("する", "為る", 3, "", "suru", false, false, "する", "為る"); if (err != null) return err;
+		err = need("しんずる", "信ずる", 3, "", "zuru", false, false, "しんじて", "信じて"); if (err != null) return err;
+		err = need("しんずる", "信ずる", 3, "", "zuru", false, false, "しんじない", "信じない"); if (err != null) return err;
+		err = need("しんずる", "信ずる", 3, "", "zuru", false, false, "しんぜられる", "信ぜられる"); if (err != null) return err;
+		err = ban("しんずる", "信ずる", 3, "", "zuru", false, false, "しんずります", "信ずります"); if (err != null) return err;
+		err = need("おもんずる", "重んずる", 3, "", "zuru", false, false, "おもんじて", "重んじて"); if (err != null) return err;
 		err = need("とう", "問う", 1, "ute", "", false, false, "とうて", "問うて"); if (err != null) return err;
 		err = ban("とう", "問う", 1, "ute", "", false, false, "とって", "問って"); if (err != null) return err;
 		err = need("ある", "有る", 1, "arunai", "", false, false, "ある", "有る"); if (err != null) return err;
@@ -233,6 +238,7 @@ static class ImeJaExpand {
 		else if (s.Contains("irregular verb")) flag = "arunai";
 		if (s.Contains("ichidan verb") || s.Contains("ichidan")) kind = 2;
 		else if (s.Contains("kuru verb")) { kind = 3; sub = "kuru"; }
+		else if (s.Contains("zuru verb")) { kind = 3; sub = "zuru"; }
 		else if (s.Contains("suru verb") && !s.Contains("takes the aux")) { kind = 3; sub = "suru"; }
 		else if (s.Contains("godan")) kind = 1;
 	}
@@ -315,11 +321,18 @@ static class ImeJaExpand {
 		return hira(word).EndsWith("する");
 	}
 
+	// ずる动词：信ずる、命ずる、重んずる。辞书形以 ずる 结尾，活用介于 する 和 じる 之间。
+	static bool zuruword(string word) {
+		var h = hira(word);
+		return h.Length >= 3 && h.EndsWith("ずる");
+	}
+
 	static List<string> conj(string word, int kind, string flag, string sub) {
 		if (string.IsNullOrEmpty(word)) return null;
 		if (kind == 2) return ichidan(word);
 		if (kind == 3) {
 			if (sub == "kuru") return kuruword(word) ? kuru(word) : null;
+			if (sub == "zuru" || zuruword(word)) return zuruword(word) ? zuru(word) : null;
 			return suruword(word) ? suru(word) : null;
 		}
 		if (kind == 1) return godan(word, flag);
@@ -357,6 +370,21 @@ static class ImeJaExpand {
 		if (stem == null) return null;
 		return pack(stem + "する", stem + "します", stem + "しない", stem + "して", stem + "した", stem + "すれば",
 			new[] { stem + "しろ", stem + "せよ" }, stem + "しよう", stem + "できる", stem + "される", stem + "させる", stem + "させられる");
+	}
+
+	// ずる动词：未然 ぜ／じ、連用 じ。候选里 じ 系和 ぜ 系都写，信じて／信ぜられた 都能出。
+	static List<string> zuru(string word) {
+		if (!zuruword(word)) return null;
+		var stem = word.Substring(0, word.Length - 2);
+		var ji = stem + "じ";
+		var ze = stem + "ぜ";
+		var list = pack(word, ji + "ます", ji + "ない", ji + "て", ji + "た", stem + "ずれば",
+			new[] { ji + "ろ", ze + "よ" }, ji + "よう", ji + "られる", ze + "られる", ze + "させる", ji + "させられる");
+		list.Add(ze + "ない");
+		list.Add(ze + "なかった");
+		list.Add(ji + "られる");
+		list.Add(ji + "させる");
+		return list;
 	}
 
 	static List<string> kuru(string word) {

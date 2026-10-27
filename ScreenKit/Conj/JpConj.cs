@@ -11,7 +11,7 @@ sealed class JpConjLabels {
 	public string te, ta, tara, ba;
 	public string cmd, nasai, na, tamae, stop, vol, pot;
 	public string pas, cau, cap, tai, takunai;
-	public string c1, c2, c3s, c3k;
+	public string c1, c2, c3s, c3k, c3z;
 	public string iku;
 	public string gson, gken, gtei;
 	public string son, sonm, sonr, sonrm, kud;
@@ -105,6 +105,7 @@ static class JpConj {
 	static readonly string[][] PICKS = new[] {
 		new[] { "sp", "する", "する", "3", "", "suru", "做", "do" },
 		new[] { "sp", "来る", "くる", "3", "", "kuru", "来", "come" },
+		new[] { "sp", "信ずる", "しんずる", "3", "", "zuru", "相信 · ずる型", "believe · -zuru type" },
 		new[] { "sp", "行く", "いく", "1", "iku", "", "去 · て＝って", "go · te=tte" },
 		new[] { "sp", "ある", "ある", "1", "arunai", "", "有 · 否定＝ない", "exist · nai=nai" },
 		new[] { "sp", "くれる", "くれる", "2", "kure", "", "给 · 命令＝くれ", "give · cmd=kure" },
@@ -250,12 +251,12 @@ static class JpConj {
 		if (kind == "ai") pk = iadj(word, L);
 		else if (kind == "an") pk = naadj(word, L);
 		else if (kind == "n") pk = nounrows(word, L);
-		else if (kind == "2") pk = ichidan(word, L);
+		else if (kind == "2") pk = iszuru(word) ? zuru(word, L) : ichidan(word, L);
 		else if (kind == "3") pk = surukuru(word, sub, L);
-		else if (kind == "1") pk = godan(word, flag, L);
+		else if (kind == "1") pk = iszuru(word) ? zuru(word, L) : godan(word, flag, L);
 		else return new ConjResult { Ok = false, Err = L.bad1 };
 		if (!pk.ok) return new ConjResult { Ok = false, Err = pk.err };
-		var name = kind == "2" ? L.c2 : kind == "3" ? (pk.sub == "kuru" ? L.c3k : L.c3s)
+		var name = pk.sub == "zuru" ? L.c3z : kind == "2" ? L.c2 : kind == "3" ? (pk.sub == "kuru" ? L.c3k : L.c3s)
 			: kind == "1" ? L.c1 : kind == "ai" ? L.ai : kind == "an" ? L.an : L.nn;
 		if (flag == "iku" || (isiku(word) && kind == "1")) name += " · " + L.iku;
 		var rows = pk.rows;
@@ -276,6 +277,7 @@ static class JpConj {
 		if (issonkearu(word)) return new JpConjKind { Kind = "1", Flag = "aru" };
 		if (iskureru(word)) return new JpConjKind { Kind = "2", Flag = "kure" };
 		if (isute(word)) return new JpConjKind { Kind = "1", Flag = "ute" };
+		if (iszuru(word)) return new JpConjKind { Kind = "3", Sub = "zuru" };
 		var end = last(word);
 		if (end == "る") return new JpConjKind { Kind = "2" };
 		if (COL.ContainsKey(end)) return new JpConjKind { Kind = "1", Flag = isiku(word) ? "iku" : "" };
@@ -312,6 +314,7 @@ static class JpConj {
 		else if (s.Contains("keiyoushi")) kind = "ai";
 		else if (s.Contains("ichidan")) kind = "2";
 		else if (s.Contains("kuru verb")) { kind = "3"; sub = "kuru"; }
+		else if (s.Contains("zuru verb")) { kind = "3"; sub = "zuru"; }
 		else if (s.Contains("suru verb") && !s.Contains("takes the aux")) { kind = "3"; sub = "suru"; }
 		else if (s.Contains("godan")) kind = "1";
 		else if (s.Contains("noun")) kind = "n";
@@ -354,6 +357,7 @@ static class JpConj {
 			L.c2 = "2类（一段）";
 			L.c3s = "3类（する）";
 			L.c3k = "3类（くる）";
+			L.c3z = "3类（ずる）";
 			L.iku = "いく";
 			L.gson = "尊敬语";
 			L.gken = "谦让语";
@@ -370,7 +374,7 @@ static class JpConj {
 			L.tei = "辞書";
 			L.teim = "ます";
 			L.bad2 = "2类要以る结尾";
-			L.bad3 = "3类是する或くる";
+			L.bad3 = "3类是する、くる、ずる";
 			L.bad1 = "1类词尾要是う段假名";
 			L.teiru = "ている";
 			L.aux = "补助动词";
@@ -556,6 +560,7 @@ static class JpConj {
 		L.c2 = "group 2 (ichidan)";
 		L.c3s = "group 3 (suru)";
 		L.c3k = "group 3 (kuru)";
+		L.c3z = "group 3 (zuru)";
 		L.iku = "iku";
 		L.gson = "Honorific";
 		L.gken = "Humble";
@@ -572,7 +577,7 @@ static class JpConj {
 		L.tei = "plain";
 		L.teim = "masu";
 		L.bad2 = "Group 2 must end with る";
-		L.bad3 = "Group 3 is する or くる";
+		L.bad3 = "Group 3 is する, くる or ずる";
 		L.bad1 = "Group 1 must end with an u-row kana";
 		L.teiru = "teiru";
 		L.aux = "Auxiliaries";
@@ -1182,6 +1187,7 @@ static class JpConj {
 	// 同一方言内部的细节各地不同，这里取最常见的说法。
 	static List<ConjRow> dialectrows(string word, string kind, JpConjPacked std, JpConjLabels L) {
 		if (issonkearu(word)) return new List<ConjRow>();
+		if (iszuru(word)) return dialectzuru(std, L);
 		var rows = new List<ConjRow>();
 		var ren = cut(std.masu, 2);
 		var mz = mizen(word, kind, ren);
@@ -1215,6 +1221,25 @@ static class JpConj {
 			rows.Add(new ConjRow(L.gson, ren + "んさる", L.dhi));
 		}
 		return rows;
+	}
+
+	// ずる动词的方言按连用形 じ 走（信じへん、信じん、信じとる），和一段一样；只有东北的意向接辞书形。
+	static List<ConjRow> dialectzuru(JpConjPacked std, JpConjLabels L) {
+		var ji = cut(std.masu, 2);
+		var tes = cut(std.te, 1);
+		return new List<ConjRow> {
+			new(L.nai, ji + "へん", L.dks),
+			new(L.naide, ji + "んといて", L.dks),
+			new(L.gson, ji + "はる", L.dks),
+			new(L.cmd, ji + "なはれ", L.dks),
+			new(L.nai, ji + "ん", L.dky),
+			new(L.teiru, tes + "とる", L.dky),
+			new(L.vol, std.plain + "べ", L.dth),
+			new(L.nai, ji + "ん", L.dhi),
+			new(L.nakatta, ji + "んかった", L.dhi),
+			new(L.teiru, tes + "とる、" + tes + "ちょる", L.dhi),
+			new(L.gson, ji + "んさる", L.dhi),
+		};
 	}
 
 	// 方言用的未然形：五段是a段（行か），一段是词干（食べ），する是连用形（勉強し），くる是こ。
@@ -1261,6 +1286,7 @@ static class JpConj {
 
 	static JpConjPacked surukuru(string word, string sub, JpConjLabels L) {
 		if (sub == "kuru" || iskuru(word)) return kuru(word, L);
+		if (sub == "zuru" || iszuru(word)) return zuru(word, L);
 		if (!issuru(word)) return fail(L.bad3);
 		var stem = word == "為る" || hira(word) == "する" ? "" : cut(word, 2);
 		var plain = stem + "する";
@@ -1282,6 +1308,21 @@ static class JpConj {
 			k ? "来い" : "こい", k ? "来よう" : "こよう", k ? "来られる" : "こられる",
 			k ? "来られる" : "こられる", k ? "来させる" : "こさせる", k ? "来させられる" : "こさせられる");
 		got.sub = "kuru";
+		return got;
+	}
+
+	// ずる动词（サ変）：信ずる・命ずる・重んずる。する と じる が混ざった活用をする。
+	// 未然 ぜ／じ（信ぜない・信じない）、連用 じ（信じます・信じて）、終止・連体 ずる、
+	// 仮定 ずれ（信ずれば）、命令 じろ／ぜよ。受身・使役は ぜ と じ の両形を並べる。
+	static JpConjPacked zuru(string word, JpConjLabels L) {
+		if (!ends(word, "ずる") || word.Length < 3) return fail(L.bad3);
+		var stem = cut(word, 2);
+		var ji = stem + "じ";
+		var ze = stem + "ぜ";
+		var got = pack(L, word, ji + "ます", ji + "ない", ji + "て", ji + "た", stem + "ずれば",
+			ji + "ろ、" + ze + "よ", ji + "よう", ji + "られる",
+			ze + "られる、" + ji + "られる", ze + "させる、" + ji + "させる", ji + "させられる");
+		got.sub = "zuru";
 		return got;
 	}
 
@@ -1313,6 +1354,12 @@ static class JpConj {
 	static bool issuru(string word) {
 		word = norm(word);
 		return hira(word) == "する" || word == "為る" || ends(hira(word), "する");
+	}
+
+	// ずる动词：信ずる、命ずる、重んずる 这类，辞书形以 ずる 结尾（重んずる 的词干带ん）。
+	static bool iszuru(string word) {
+		var h = hira(norm(word));
+		return h.Length >= 3 && ends(h, "ずる");
 	}
 
 	static bool isiku(string word) {
@@ -1435,6 +1482,7 @@ static class JpConj {
 		if (h == "いう" || word == "言う" || word == "云う") return empty;
 		if (h == "いる" || word == "居る") return empty;
 		if (h == "みる" || word == "見る" || word == "観る") return empty;
+		if (iszuru(word)) return empty;
 		if (isiku(word)) return empty;
 		if (issuru(word)) {
 			var pre = cut(word, 2);
