@@ -116,6 +116,7 @@ button, input, select { font: inherit; }
 .rd-f { display: flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--muted); font-size: 12px; }
 #rd-voice { max-width: 380px; }
 .rd-models { color: var(--accent); font-size: 11px; line-height: 28px; text-decoration: none; }
+.rd-hint { color: var(--muted); font-size: 11px; line-height: 28px; white-space: nowrap; }
 .rd-modal {
 	position: fixed; inset: 0; z-index: 40;
 	display: flex; align-items: center; justify-content: center;

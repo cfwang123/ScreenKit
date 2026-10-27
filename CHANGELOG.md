@@ -46,7 +46,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Novel reader speaks with the current browser's own voices by default, without the app synthesizing audio. Google voices use the offline pack, installed when reading starts with a cancellable progress dialog, and a missing engine shows an Install models link.
+- Novel reader speaks with the current browser's own voices by default, without the app synthesizing audio. Google voices use the offline pack, installed when reading starts with a cancellable progress dialog, and a missing engine shows an Install models link. Online (Chrome/Google) voices are marked as online because they may need a proxy, and a sentence with no sound after 10 seconds stops with a timeout message.
 - Novel reader keeps txt and md files in the browser instead of uploading them, prepares the next sentence while the current one still plays, and a voice install no longer switches the browser in front into reading mode. The in-browser model list marks which Chrome voice packs are installed.
 - Settings can set a hotkey for the web tools home (default Ctrl+Alt+H). The Tools menu and the tray show it, and the hotkey opens that page in the browser.
 - The Chrome model page can play a short test line for an installed voice.
@@ -141,7 +141,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 小说阅读器默认用当前浏览器自己的语音朗读，不经过程序合成；Google 发音人改走离线包，没装时在朗读前安装并显示可取消的进度；缺少引擎时显示「安装模型」链接。
+- 小说阅读器默认用当前浏览器自己的语音朗读，不经过程序合成；Google 发音人改走离线包，没装时在朗读前安装并显示可取消的进度；缺少引擎时显示「安装模型」链接。在线（Chrome/Google）语音会标注「在线」，这类语音可能需要代理；10 秒还没出声会按超时停下并提示。
 - 小说阅读器的 txt、md 存在浏览器里，不再上传到程序；读当前句时提前准备下一句，缩短两句之间的停顿；语音安装不再把当前浏览器切进阅读模式；浏览器小模型选 Chrome 发音时会标出该语音包是否已安装。
 - 参数设置可配置 web 工具主页热键（默认 Ctrl+Alt+H）。工具菜单和托盘会显示该热键，按下后在浏览器打开工具页。
 - Chrome 模型页可以为已安装的语音试听一句。

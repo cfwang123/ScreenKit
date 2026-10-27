@@ -294,6 +294,7 @@
 			'<a id="rd-models" class="rd-models" href="/chrome" target="_blank" rel="noopener" hidden data-k="web.reader.models">' + L("web.reader.models", "安装模型") + "</a>",
 			'<label class="rd-f"><span data-k="web.reader.vlang">' + L("web.reader.vlang", "发音语言") + '</span><select id="rd-vlang"></select></label>',
 			'<label class="rd-f"><span data-k="web.reader.voice">' + L("web.reader.voice", "发音人") + '</span><select id="rd-voice"></select></label>',
+			'<span id="rd-vonline" class="rd-hint" hidden data-k="web.reader.onlinehint">' + L("web.reader.onlinehint", "在线语音可能需要代理") + "</span>",
 			'<label class="rd-f rd-frate"><span data-k="web.reader.rate">' + L("web.reader.rate", "语速") + '</span><input id="rd-rate" type="range" min="0.5" max="2" step="0.1"><span id="rd-ratev" class="rd-ratev"></span></label>',
 			"</div>",
 			"</div>",
@@ -1759,12 +1760,24 @@
 		u.rate = rate;
 		u.volume = 1;
 		var settled = false;
+		var started = false;
+		// 在线语音没代理时不会报错，只是迟迟不出声，10 秒判超时。
+		var timer = setTimeout(function(){
+			if (started) return;
+			try { syn.cancel(); } catch (e) {}
+			finish(L("web.reader.timeout", "10 秒还没出声，在线语音可能需要代理"));
+		}, 10000);
 		function finish(err){
 			if (settled) return;
 			settled = true;
+			clearTimeout(timer);
 			done(err || "");
 		}
-		u.onstart = function(){ if (onstart) onstart(); };
+		u.onstart = function(){
+			started = true;
+			clearTimeout(timer);
+			if (onstart) onstart();
+		};
 		u.onend = function(){ finish(""); };
 		u.onerror = function(ev){
 			var code = ev && ev.error;
@@ -2056,6 +2069,15 @@
 		st.voice = pick;
 		sel.value = pick;
 		fillrate();
+		paintonline();
+	}
+
+	// 选中 Google／Chrome 语音时提示：这类语音要联网，可能需要代理。
+	function paintonline(){
+		var hint = $("rd-vonline");
+		if (!hint) return;
+		var v = st.engine === "browser" ? bvoice() : curvoice();
+		hint.hidden = !(v && isgoogle(v));
 	}
 
 	function voiceid(v){
