@@ -447,7 +447,7 @@ static class JpConj {
 			L.jssho = "っしょ（辣妹）";
 			L.jjan = "じゃん（口语）";
 			L.jnari = "なり（武士）";
-			L.jdesourou = "で候（文语）";
+			L.jdesourou = "でそうろう（文语）";
 			L.jojaru = "でおじゃる（古风）";
 			L.ai = "い形容词";
 			L.an = "な形容词";
@@ -1038,7 +1038,7 @@ static class JpConj {
 	}
 
 	// 句尾的语气助词：中性（よ・ね・よね）、女性（わよ・の・こと）、男性（ぞ・ぜ・さ・わ）、
-	// 武士・古风（のじゃ・でござる・で候・なり・でおじゃる）合成一组，都带肯定和否定两式。
+	// 武士・古风（のじゃ・でござる・でそうろう・なり・でおじゃる）合成一组，都带肯定和否定两式。
 	static List<ConjRow> endrows(JpConjLabels L, string plain, string masu, string kind, string nai, string polneg) {
 		var dan = kind == "v" || kind == "i" ? "" : "だ";
 		var na = kind == "a" || kind == "n" ? "な" : "";
@@ -1060,7 +1060,7 @@ static class JpConj {
 			new(L.wa, plain + dan + "わ、" + nai + "わ", L.end),
 			new(L.jnoja, plain + na + "のじゃ、" + nai + "のじゃ", L.end),
 			new(L.jdegozaru, plain + "でござる、" + nai + "でござる", L.end),
-			new(L.jdesourou, plain + "で候、" + nai + "で候", L.end),
+			new(L.jdesourou, plain + "でそうろう、" + nai + "でそうろう", L.end),
 			new(L.jojaru, plain + "でおじゃる、" + nai + "でおじゃる", L.end),
 			// 角色语：军队、猫语、解说、大小姐、体育会、辣妹。
 			new(L.jdearimasu, plain + "であります、" + nai + "であります", L.end),
