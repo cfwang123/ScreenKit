@@ -32,6 +32,7 @@ sealed class JpConjLabels {
 	public string teita, teinai, teimasu, teshimatta, tewa;
 	public string nakereba, nakucha, noda, terasshai;
 	public string rough, zo, ze, wa, sa, me, kke, mon, tekure, kusaru, koku;
+	public string end, endyo, enddesuyo, endne, enddesune, endyone, endwayo, endno, endkana, endkashira, endkoto;
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg;
@@ -412,6 +413,17 @@ static class JpConj {
 			L.nakucha = "なくては";
 			L.noda = "のです";
 			L.terasshai = "ていらっしゃい";
+			L.end = "语气（终助词）";
+			L.endyo = "よ";
+			L.enddesuyo = "ですよ";
+			L.endne = "ね";
+			L.enddesune = "ですね";
+			L.endyone = "よね";
+			L.endwayo = "わよ";
+			L.endno = "の（疑问）";
+			L.endkana = "かな";
+			L.endkashira = "かしら";
+			L.endkoto = "こと（女性命令）";
 			L.rough = "粗俗・男性语";
 			L.zo = "ぞ";
 			L.ze = "ぜ";
@@ -602,6 +614,17 @@ static class JpConj {
 			L.nakucha = "nakucha";
 			L.noda = "noda";
 			L.terasshai = "teirasshai";
+		L.end = "Sentence endings";
+		L.endyo = "yo";
+		L.enddesuyo = "desu yo";
+		L.endne = "ne";
+		L.enddesune = "desu ne";
+		L.endyone = "yo ne";
+		L.endwayo = "wa yo";
+		L.endno = "no (question)";
+		L.endkana = "kana";
+		L.endkashira = "kashira";
+		L.endkoto = "koto (feminine command)";
 		L.rough = "Rough / masculine";
 		L.zo = "zo";
 		L.ze = "ze";
@@ -757,8 +780,8 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "ai"));
 		rows.AddRange(naihaseirows(L, s + "くない"));
 		rows.AddRange(dialectiadj(L, s));
-		rows.AddRange(jargonrows(L, word, "i", ""));
-		rows.AddRange(roughrows(L, word, "i"));
+		rows.AddRange(jargonrows(L, word, "i", "", s + "くない"));
+		rows.AddRange(endrows(L, word, "", "i", s + "くない", s + "くないです"));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
 	}
 
@@ -813,8 +836,8 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "an"));
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
-		rows.AddRange(jargonrows(L, word, "a", ""));
-		rows.AddRange(roughrows(L, word, "a"));
+		rows.AddRange(jargonrows(L, word, "a", "", word + "じゃない"));
+		rows.AddRange(endrows(L, word, "", "a", word + "じゃない", word + "じゃないです"));
 		rows.AddRange(dialectnounrows(L, word));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "a", word) };
 	}
@@ -853,8 +876,8 @@ static class JpConj {
 		rows.AddRange(patternrows(L, k, "n"));
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
-		rows.AddRange(jargonrows(L, word, "n", ""));
-		rows.AddRange(roughrows(L, word, "n"));
+		rows.AddRange(jargonrows(L, word, "n", "", word + "じゃない"));
+		rows.AddRange(endrows(L, word, "", "n", word + "じゃない", word + "じゃないです"));
 		rows.AddRange(dialectnounrows(L, word));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "n", word) };
 	}
@@ -901,8 +924,8 @@ static class JpConj {
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
 		rows.AddRange(naihaseirows(L, nai));
 		rows.AddRange(keigo(plain, masu, pas, L));
-		rows.AddRange(jargonrows(L, plain, "v", masu));
-		rows.AddRange(roughrows(L, plain, "v"));
+		rows.AddRange(jargonrows(L, plain, "v", masu, nai));
+		rows.AddRange(endrows(L, plain, masu, "v", nai, cut(masu, 2) + "ません"));
 		// 尊敬语命令：～ていらっしゃい／～てらっしゃい（行ってらっしゃい）
 		if (!issonkearu(plain) && !isaru(plain)) rows.Add(new ConjRow(L.terasshai, te + "いらっしゃい、" + te + "らっしゃい", L.gson));
 		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
@@ -1018,38 +1041,51 @@ static class JpConj {
 		return rows;
 	}
 
-	// 粗俗、男性语：ぞ・ぜ・わ・さ 这类终助词，名词还能加蔑称的「め」。
-	static List<ConjRow> roughrows(JpConjLabels L, string plain, string kind) {
-		var dan = kind == "a" || kind == "n" ? "だ" : "";
+	// 句尾的语气助词：中性（よ・ね・よね）、女性（わよ・の・こと）、男性（ぞ・ぜ・さ・わ）、
+	// 武士・古风（のじゃ・でござる・で候・なり・でおじゃる）合成一组，都带肯定和否定两式。
+	static List<ConjRow> endrows(JpConjLabels L, string plain, string masu, string kind, string nai, string polneg) {
+		var dan = kind == "v" || kind == "i" ? "" : "だ";
+		var na = kind == "a" || kind == "n" ? "な" : "";
+		var pol = kind == "v" ? masu : plain + "です";
 		var rows = new List<ConjRow> {
-			new(L.zo, plain + dan + "ぞ", L.rough),
-			new(L.ze, plain + dan + "ぜ", L.rough),
-			new(L.wa, plain + dan + "わ", L.rough),
-			new(L.sa, plain + dan + "さ", L.rough),
+			new(L.endyo, plain + dan + "よ、" + nai + "よ", L.end),
+			new(L.enddesuyo, pol + "よ、" + polneg + "よ", L.end),
+			new(L.endne, plain + dan + "ね、" + nai + "ね", L.end),
+			new(L.enddesune, pol + "ね、" + polneg + "ね", L.end),
+			new(L.endyone, plain + dan + "よね、" + nai + "よね", L.end),
+			new(L.endwayo, plain + dan + "わよ、" + nai + "わよ", L.end),
+			new(L.endno, plain + na + "の、" + nai + "の", L.end),
+			new(L.endkana, plain + dan + "かな、" + nai + "かな", L.end),
+			new(L.endkashira, plain + dan + "かしら、" + nai + "かしら", L.end),
+			new(L.zo, plain + dan + "ぞ、" + nai + "ぞ", L.end),
+			new(L.ze, plain + dan + "ぜ、" + nai + "ぜ", L.end),
+			new(L.sa, plain + dan + "さ、" + nai + "さ", L.end),
+			new(L.wa, plain + dan + "わ、" + nai + "わ", L.end),
+			new(L.jnoja, plain + na + "のじゃ、" + nai + "のじゃ", L.end),
+			new(L.jdegozaru, plain + "でござる、" + nai + "でござる", L.end),
+			new(L.jdesourou, plain + "で候、" + nai + "で候", L.end),
+			new(L.jojaru, plain + "でおじゃる、" + nai + "でおじゃる", L.end),
 		};
-		if (kind == "n") rows.Add(new ConjRow(L.me, plain + "め", L.rough));
+		if (kind == "v") rows.Add(new ConjRow(L.endkoto, plain + "こと、" + nai + "こと", L.end));
+		if (kind == "a" || kind == "n") rows.Add(new ConjRow(L.jnari, plain + "なり、" + nai + "なり", L.end));
+		if (kind == "n") rows.Add(new ConjRow(L.me, plain + "め", L.end));
 		return rows;
 	}
-	// 小圈子的角色语：武士、大小姐、猫语、网络语这类只在特定语境里用的说法。
-	static List<ConjRow> jargonrows(JpConjLabels L, string plain, string kind, string masu) {
+	// 小圈子的角色语：大小姐、猫语、体育会、辣妹这类只在特定语境里用的说法。
+	static List<ConjRow> jargonrows(JpConjLabels L, string plain, string kind, string masu, string nai) {
 		var noun = kind == "n";
 		var na = kind == "a";
 		var dan = noun || na ? "な" : "";
 		var rows = new List<ConjRow> {
-			new(L.jdegozaru, plain + "でござる", L.reg),
-			new(L.jdearimasu, plain + "であります", L.reg),
-			new(L.jnya, plain + "にゃ", L.reg),
-			new(L.jnanoda, plain + dan + "のだ", L.reg),
+			new(L.jdearimasu, plain + "であります、" + nai + "であります", L.reg),
+			new(L.jnya, plain + "にゃ、" + nai + "にゃ", L.reg),
+			new(L.jnanoda, plain + dan + "のだ、" + nai + "のだ", L.reg),
 			// ですわ 只接名词和形容词；动词要先变ます（食べますわ），不能接辞书形。
-			new(L.jdesuwa, kind == "v" ? masu + "わ" : plain + "ですわ", L.reg),
-			new(L.jnoja, plain + dan + "のじゃ", L.reg),
-			new(L.jssu, plain + "っす", L.reg),
-			new(L.jssho, plain + "っしょ", L.reg),
-			new(L.jjan, plain + "じゃん", L.reg),
-			new(L.jdesourou, plain + "で候", L.reg),
-			new(L.jojaru, plain + "でおじゃる", L.reg),
+			new(L.jdesuwa, kind == "v" ? masu + "わ、" + cut(masu, 2) + "ませんわ" : plain + "ですわ、" + nai + "ですわ", L.reg),
+			new(L.jssu, plain + "っす、" + nai + "っす", L.reg),
+			new(L.jssho, plain + "っしょ、" + nai + "っしょ", L.reg),
+			new(L.jjan, plain + "じゃん、" + nai + "じゃん", L.reg),
 		};
-		if (noun || na) rows.Insert(9, new ConjRow(L.jnari, plain + "なり", L.reg));
 		return rows;
 	}
 	// だ・です的敬语说法：丁重的 でござる、尊敬的 でいらっしゃる。な形容词和名词都能接。

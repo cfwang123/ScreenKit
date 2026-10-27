@@ -199,9 +199,14 @@
 		t_n: ["名词", "Noun"],
 		type: ["类型", "Type"],
 		obj: ["宾语", "Object"],
+		objauto: ["自动", "Auto"],
 		obj0: ["无", "None"],
 		obj1: ["1个", "One"],
 		obj2: ["2个", "Two"],
+		why2: ["双宾语", "Two objects"],
+		why1: ["及物", "Transitive"],
+		why0: ["不及物", "Intransitive"],
+		whyn: ["未标", "Unmarked"],
 		o1: ["宾语1", "Object 1"],
 		o2: ["宾语2", "Object 2"],
 		g_a_form: ["基本形式", "Basic forms"],
@@ -474,14 +479,15 @@
 			+ SK.combo("ev-in", "walk", LAB.ph[0]) + "</label>"
 			+ '<label id="ev-obj" hidden><span data-k="web.everb.obj">' + esc(tr(LAB.obj)) + "</span>"
 			+ '<select id="ev-on">'
+			+ '<option value="auto" selected></option>'
 			+ '<option value="0"></option>'
 			+ '<option value="1"></option>'
 			+ '<option value="2"></option>'
-			+ "</select></label>"
+			+ '</select><span id="ev-owhy" hidden></span></label>'
 			+ '<label id="ev-o1" hidden><span data-k="web.everb.o1">' + esc(tr(LAB.o1)) + "</span>"
-			+ '<select id="ev-oa"></select></label>'
+			+ SK.combo("ev-oa", "it", "可输入，如 him") + "</label>"
 			+ '<label id="ev-o2" hidden><span data-k="web.everb.o2">' + esc(tr(LAB.o2)) + "</span>"
-			+ '<select id="ev-ob"></select></label>'
+			+ SK.combo("ev-ob", "a book", "可输入，如 him") + "</label>"
 			+ "</div>"
 			+ '<div id="ev-out"></div>';
 	}
@@ -494,6 +500,7 @@
 		setopt("v", "web.everb.verb", LAB.t_v[0]);
 		setopt("a", "web.everb.adj", LAB.t_a[0]);
 		setopt("n", "web.everb.noun", LAB.t_n[0]);
+		setobjopt("auto", "web.everb.objauto", LAB.objauto);
 		setobjopt("0", "web.everb.obj0", LAB.obj0);
 		setobjopt("1", "web.everb.obj1", LAB.obj1);
 		setobjopt("2", "web.everb.obj2", LAB.obj2);
@@ -509,16 +516,8 @@
 			F.seta(on, "data-bind", "1");
 			on.onchange = onobj;
 		}
-		var oa = F.id("ev-oa");
-		var ob = F.id("ev-ob");
-		if (oa && !F.attr(oa, "data-bind")) {
-			F.seta(oa, "data-bind", "1");
-			oa.onchange = run;
-		}
-		if (ob && !F.attr(ob, "data-bind")) {
-			F.seta(ob, "data-bind", "1");
-			ob.onchange = run;
-		}
+		bindobj("ev-oa");
+		bindobj("ev-ob");
 		showobj();
 		var out = F.id("ev-out");
 		if (out && !F.attr(out, "data-bind")) {
@@ -556,20 +555,35 @@
 	}
 
 	function fillobj(id){
-		var sel = F.id(id);
-		if (!sel) return;
-		var cur = sel.value;
 		var zh = langcode() === "zh";
-		var html = "";
+		var items = [];
 		var i;
-		for (i = 0; i < OBJS.length; i++) {
-			html += '<option value="' + esc(OBJS[i][0]) + '">' + esc(zh ? OBJS[i][1] : OBJS[i][0]) + "</option>";
+		for (i = 0; i < OBJS.length; i++) items.push({ v: OBJS[i][0], t: zh ? OBJS[i][1] : OBJS[i][0] });
+		SK.combofill(id, [{ g: "", items: items }]);
+	}
+
+	function bindobj(id){
+		var el = F.id(id);
+		if (!el || F.attr(el, "data-bind")) return;
+		F.seta(el, "data-bind", "1");
+		el.oninput = onobjtext;
+	}
+
+	// 手改或从列表点选后，不再被「自动」写回默认宾语。
+	function onobjtext(){
+		var nsel = F.id("ev-on");
+		if (nsel && nsel.value === "auto") {
+			var n = resolvedn();
+			nsel.value = n === "0" ? "1" : n;
+			setwhy("");
+			showobj();
 		}
-		sel.innerHTML = html;
-		if (cur) sel.value = cur;
+		run();
 	}
 
 	var lastkind = "";
+	// 宾语下拉停在「自动」时，按词典词性算出的个数。0 表示没有。
+	var objn = 0;
 
 	// 类型选了动词，或自动识别成动词，都显示宾语。形容词和名词不显示。
 	function verbpick(){
@@ -580,10 +594,21 @@
 		return lastkind !== "a" && lastkind !== "n";
 	}
 
+	function objmode(){
+		var nsel = F.id("ev-on");
+		return nsel && nsel.value ? nsel.value : "auto";
+	}
+
+	// 自动时用词典判断的个数，手选时用下拉的值。
+	function resolvedn(){
+		var n = objmode();
+		if (n === "auto") return objn > 0 ? String(objn) : "0";
+		return n;
+	}
+
 	function showobj(){
 		var on = verbpick();
-		var nsel = F.id("ev-on");
-		var n = nsel && nsel.value ? nsel.value : "0";
+		var n = resolvedn();
 		var box = F.id("ev-obj");
 		var a = F.id("ev-o1");
 		var b = F.id("ev-o2");
@@ -592,19 +617,48 @@
 		if (b) b.hidden = !on || n !== "2";
 	}
 
-	// 从「无」换成 1 个或 2 个时给一个常用宾语，已经选过的保留。
-	function onobj(){
-		var nsel = F.id("ev-on");
-		var n = nsel && nsel.value ? nsel.value : "0";
-		var prev = nsel ? (F.attr(nsel, "data-prev") || "0") : "0";
+	function setwhy(key, pair){
+		var el = F.id("ev-owhy");
+		if (!el) return;
+		if (!key || objmode() !== "auto") {
+			el.hidden = true;
+			el.textContent = "";
+			return;
+		}
+		el.hidden = false;
+		el.textContent = tx(key, tr(pair));
+	}
+
+	// mark：2 双宾语，1 及物，0 不及物，-1 词典没写宾语。
+	function applyauto(mark){
+		objn = mark > 0 ? mark : 0;
 		var a = F.id("ev-oa");
 		var b = F.id("ev-ob");
-		if (prev === "0" && n === "1" && a) a.value = "it";
-		if (prev === "0" && n === "2") {
+		if (objn === 1 && a) a.value = "it";
+		if (objn === 2) {
 			if (a) a.value = "him";
 			if (b) b.value = "a book";
 		}
-		if (prev === "1" && n === "2" && b && !b.value) b.value = "a book";
+		if (mark === 2) setwhy("web.everb.objwhy2", LAB.why2);
+		else if (mark === 1) setwhy("web.everb.objwhy1", LAB.why1);
+		else if (mark === 0) setwhy("web.everb.objwhy0", LAB.why0);
+		else setwhy("web.everb.objwhyn", LAB.whyn);
+		showobj();
+	}
+
+	// 从「无」或「自动」换成 1 个或 2 个时给一个常用宾语。
+	function onobj(){
+		var nsel = F.id("ev-on");
+		var n = objmode();
+		var prev = nsel ? (F.attr(nsel, "data-prev") || "auto") : "auto";
+		var a = F.id("ev-oa");
+		var b = F.id("ev-ob");
+		if (n === "1" && a && (prev === "auto" || prev === "0")) a.value = "it";
+		if (n === "2") {
+			if (a && prev !== "1") a.value = "him";
+			if (b && (prev !== "2")) b.value = "a book";
+		}
+		if (n !== "auto") setwhy("");
 		if (nsel) F.seta(nsel, "data-prev", n);
 		showobj();
 		run();
@@ -680,16 +734,21 @@
 		var word = norm(box ? box.value : "");
 		if (!word) {
 			lastkind = "";
+			objn = 0;
+			setwhy("");
 			showobj();
 			paint("", "", []);
 			SK.msg("box-msg", "");
 			return;
 		}
+		lastkind = "";
 		var t0 = now();
 		lookup(word, function(hits){
 			if (n !== gen) return;
 			var tdict = hits ? now() - t0 : -1;
 			var miss = hits && !hits.length ? tx("web.everb.miss", "词典里没有这个词，已按词形判断。") : "";
+			resolveobj(word, hits, function(){
+			if (n !== gen) return;
 			var t1 = now();
 			conjreq(conjparams(word, sel), function(d){
 				if (n !== gen) return;
@@ -709,14 +768,14 @@
 				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc, miss));
 				SK.msg("box-msg", "");
 			});
+			});
 		});
 	}
 
 	function conjparams(word, sel){
 		var params = { lang: "en", q: word, type: sel ? sel.value : "auto", ui: langcode() };
 		if (!verbpick()) return params;
-		var nsel = F.id("ev-on");
-		var n = nsel && nsel.value ? nsel.value : "0";
+		var n = resolvedn();
 		var a = F.id("ev-oa");
 		var b = F.id("ev-ob");
 		if ((n === "1" || n === "2") && a && a.value) params.o1 = a.value;
@@ -726,9 +785,73 @@
 
 	// 查词只用来算耗时、提示词条在不在；类型仍按词形判断。
 	function lookup(word, done){
-		fetch("/api/dict?dict=en&limit=8&q=" + encodeURIComponent(word)).then(function(r){ return r.json(); }).then(function(jo){
+		fetch("/api/dict?dict=en&limit=24&q=" + encodeURIComponent(word)).then(function(r){ return r.json(); }).then(function(jo){
 			done(jo && jo.code === 100 && jo.data ? (jo.data.hits || []) : null);
 		}, function(){ done(null); });
+	}
+
+	// 词条词性里的 [with two objs] / [with obj.] / [no obj.]。没写就返回 -1。
+	function objmark(entry){
+		var texts = [];
+		var i, p, two = false, one = false, zero = false;
+		if (!entry) return -1;
+		if (entry.pos) texts.push(entry.pos);
+		var senses = entry.senses || [];
+		for (i = 0; i < senses.length; i++) if (senses[i].pos) texts.push(senses[i].pos);
+		for (i = 0; i < texts.length; i++) {
+			p = String(texts[i]).toLowerCase();
+			if (p.indexOf("two obj") >= 0) two = true;
+			if (p.indexOf("with obj") >= 0) one = true;
+			if (p.indexOf("no obj") >= 0) zero = true;
+		}
+		if (two) return 2;
+		if (one) return 1;
+		if (zero) return 0;
+		return -1;
+	}
+
+	function pickhit(hits, word){
+		var i, h, w, low, head;
+		if (!hits) return null;
+		low = word.toLowerCase();
+		for (i = 0; i < hits.length; i++) {
+			w = hits[i].word || "";
+			if (w === word || w.toLowerCase() === low && w === low) return hits[i];
+		}
+		for (i = 0; i < hits.length; i++) {
+			w = hits[i].word || "";
+			if (w.toLowerCase() === low) return hits[i];
+		}
+		head = low.split(" ")[0];
+		if (!head || head === low) return null;
+		for (i = 0; i < hits.length; i++) {
+			w = hits[i].word || "";
+			if (w === head || w.toLowerCase() === head) return hits[i];
+		}
+		return null;
+	}
+
+	function resolveobj(word, hits, done){
+		if (objmode() !== "auto") {
+			setwhy("");
+			showobj();
+			done();
+			return;
+		}
+		var h = pickhit(hits, word);
+		if (!h || !h.id) {
+			applyauto(-1);
+			done();
+			return;
+		}
+		fetch("/api/dict/entry?id=" + encodeURIComponent(h.id)).then(function(r){ return r.json(); }).then(function(jo){
+			var e = jo && jo.code === 100 && jo.data ? jo.data : null;
+			applyauto(objmark(e));
+			done();
+		}, function(){
+			applyauto(-1);
+			done();
+		});
 	}
 
 	// 变形算在 C# 端（/api/conj），这里只取结果和渲染。

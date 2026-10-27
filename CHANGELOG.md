@@ -74,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese word forms: rough/masculine speech (ぞ, ぜ, わ, さ, くさる, こく, ない becomes ねえ/んない, ちまう, っけ, もん) and literary forms (たる, ごとき, ごとく, にて for nouns and na-adjectives; 高し, 高からず, 高き, 高けれ, 高かるべし for i-adjectives). The ojou-sama form now uses ますわ for verbs (食べますわ), since です cannot follow a plain verb.
 - Korean word forms add character speech, in-group endings and rough endings for verbs, adjectives and nouns.
 - System tools: the file associations page lists every registered extension with its document type, default app and command line; type to filter.
+- Japanese word forms: a sentence-endings group (よ, ですよ, ね, ですね, よね, わよ, の, かな, かしら, こと) plus masculine (ぞ, ぜ, さ, わ) and samurai/archaic endings (のじゃ, でござる, で候, でおじゃる, なり) in the same group, each row showing both the affirmative and the negative form.
 
 #### Changed
 
@@ -104,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Word forms, in the four word-form tools and in the dictionary on both the web page and the main window: a form name sits above its forms, several examples stack with one speaker button each, group names take their own row, and the table uses a fixed column width with as many columns as fit the window (a single or double column fills the width).
 - Dictionary: Japanese headwords marked as usually written in kana (uk) now show the kana form first, e.g. くれる, 呉れる instead of 呉れる, くれる, and the word-forms tab conjugates the kana form too (くれない, not 呉れない).
 - English verb objects follow the dictionary: intransitive, transitive, or two objects.
+- English verb objects can be typed, not only picked from the list.
 
 #### Fixed
 
@@ -189,6 +191,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语形态变化：补上粗俗／男性语（ぞ、ぜ、わ、さ、くさる、こく，ない 的 ねえ／んない，ちまう，っけ，もん）和书面语（名词・な形容词的 たる、ごとき、ごとく、にて；い形容词的 高し、高からず、高き、高けれ、高かるべし）。大小姐语里的 ですわ 对动词改用 ますわ（食べますわ），因为 です 不能接动词辞书形。
 - 韩语词形变化为动词、形容词和名词补上角色语、小圈子用语和粗俗词尾。
 - 系统工具：文件关联页直接列出全部已注册的扩展名及类型、默认应用和命令行，输入即可筛选。
+- 日语形态变化：新增「语气（终助词）」组，收 よ、ですよ、ね、ですね、よね、わよ、の、かな、かしら、こと，以及男性（ぞ、ぜ、さ、わ）和武士・古风（のじゃ、でござる、で候、でおじゃる、なり）的说法，每行都带肯定和否定两式。
 
 #### 变更
 
@@ -219,6 +222,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词形变化（四个词形工具，以及网页和主窗口的词典）：形变名在上、例句在下竖排，每句一个发音按钮，分组名单独占一行；栏宽固定，窗口多宽就排几栏（只有 1、2 栏时铺满整行）。
 - 词典：日语词条里标记「通常只写假名」（uk）的，把假名写法排在前面，如 くれる, 呉れる 而不是 呉れる, くれる；形态变化也按假名变（くれない，而不是 呉れない）。
 - 英语动词的宾语个数默认按词典词性判断：不及物、及物或双宾语。
+- 英语词形变化的宾语可以自己输入，不必只从列表里选。
 
 #### 修复
 

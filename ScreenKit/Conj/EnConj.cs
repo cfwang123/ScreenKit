@@ -1113,12 +1113,12 @@ static class EnConj {
 		return string.Join(" / ", list);
 	}
 
-	// 宾语只收简短英语短语。代词或冠词加名词，最多四个词。
+	// 宾语只收简短英语短语。可手打，字母、数字、撇号和连字符，最多六个词。
 	static string cleanobj(string s) {
 		s = Regex.Replace(s ?? "", "^\\s+|\\s+$", "");
 		s = Regex.Replace(s, "\\s+", " ").ToLowerInvariant();
-		if (s.Length == 0 || s.Length > 48) return "";
-		if (!Regex.IsMatch(s, "^[a-z][a-z']*( [a-z][a-z']*){0,3}$")) return "";
+		if (s.Length == 0 || s.Length > 64) return "";
+		if (!Regex.IsMatch(s, "^[a-z0-9][a-z0-9'-]*( [a-z0-9][a-z0-9'-]*){0,5}$")) return "";
 		return s;
 	}
 
