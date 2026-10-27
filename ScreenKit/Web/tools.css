@@ -471,6 +471,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .jv-tab .c-k .cex { white-space: normal; overflow-wrap: anywhere; }
 #jv-out .jv-tab .jv-u { display: inline-block; white-space: nowrap; }
 .jv-tab .jv-spk {
+	position: relative; top: -2px; vertical-align: middle;
 	width: 22px; height: 22px; min-height: 0; margin: 0 4px 0 1px; padding: 0;
 	border: 0; border-radius: 6px; background: transparent; color: var(--accent);
 	cursor: pointer; line-height: 22px;
@@ -1276,4 +1277,5 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
 }
 .wclock-sub { color: var(--muted); font-size: 12px; }
+
 
