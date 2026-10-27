@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Restore the result count and elapsed time under the dictionary page search results.
+- Dictionary search timing uses a high-resolution clock, so fast lookups show their real milliseconds instead of 0 ms.
 
 ### 中文
 
@@ -61,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 词典页恢复搜索结果下方的结果条数和用时显示。
+- 词典搜索用时改用高精度计时，快查询不再显示 0 ms。
 
 ## v1.0.30 (2026-10-27)
 

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -386,17 +388,17 @@ public partial class DictWindow : UserControl {
 		if (!DictDb.Ready) return;
 		var g = ++gen;
 		setstatus(Loc.T("dict.searching"));
-		var took = new int[1];
+		var took = new double[1];
 		var limit = searchlimit();
 		Task.Run(() => {
-			var t0 = Environment.TickCount;
+			var t0 = Stopwatch.GetTimestamp();
 			try {
 				var found = DictDb.SearchBrief(q, dict, limit);
-				took[0] = unchecked(Environment.TickCount - t0);
+				took[0] = elapsedms(t0);
 				return found;
 			}
 			catch (Exception ex) {
-				took[0] = unchecked(Environment.TickCount - t0);
+				took[0] = elapsedms(t0);
 				return new List<DictHit> { new DictHit { Preview = ex.Message, Headword = "" } };
 			}
 		}).ContinueWith(t => {
@@ -412,7 +414,7 @@ public partial class DictWindow : UserControl {
 		});
 	}
 
-	void showhits(List<DictHit> hits, int ms, bool keep) {
+	void showhits(List<DictHit> hits, double ms, bool keep) {
 		var keepid = keep && lhits.SelectedItem is DictRow old ? old.Id : 0L;
 		var rows = new List<DictRow>(hits.Count);
 		foreach (var h in hits) {
@@ -464,7 +466,18 @@ public partial class DictWindow : UserControl {
 		if (rows.Count > 0) loaddetail(rows[pick]);
 		else cleardetail();
 		keepview(rows, pick, keepid, keep);
-		setstatus(Loc.T("dict.count", rows.Count, ms));
+		setstatus(Loc.T("dict.count", rows.Count, mslabel(ms)));
+	}
+
+	/// <summary>高精度毫秒。Environment.TickCount 只有约 15.6 ms，快查询会记成 0。</summary>
+	static double elapsedms(long t0) => (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
+
+	/// <summary>用时文字：10 ms 以内保留一位小数，再长取整。</summary>
+	static string mslabel(double ms) {
+		if (ms < 0) ms = 0;
+		var r = Math.Round(ms, 1);
+		return r >= 10 ? ((long)Math.Round(r)).ToString(CultureInfo.InvariantCulture)
+			: r.ToString("0.0", CultureInfo.InvariantCulture);
 	}
 
 	void onrowload(object sender, RoutedEventArgs e) {

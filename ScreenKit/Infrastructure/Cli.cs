@@ -6495,10 +6495,10 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Out("dict open fail: " + DictDb.Error);
 			return 2;
 		}
-		var t0 = Environment.TickCount;
+		var t0 = Stopwatch.GetTimestamp();
 		var hits = DictDb.Search(q, "en", limit);
-		var ms = unchecked(Environment.TickCount - t0);
-		Out($"bench q={q} limit={limit} hits={hits.Count} ms={ms}");
+		var ms = (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
+		Out($"bench q={q} limit={limit} hits={hits.Count} ms={ms:0.0}");
 		return 0;
 	}
 

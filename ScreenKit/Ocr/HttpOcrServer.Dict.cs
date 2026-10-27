@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -47,10 +48,12 @@ sealed partial class HttpOcrServer {
 				writejson(ctx, 200, dicterr());
 				return;
 			}
-			var t0 = Environment.TickCount;
+			var t0 = Stopwatch.GetTimestamp();
 			var hits = DictDb.Search(q, dict, limit);
-			var ms = Environment.TickCount - t0;
+			var ms = (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
 			if (ms < 0) ms = 0;
+			// 10 ms 以内保留一位小数，避免快查询显示成 0；再长取整。
+			ms = ms >= 10 ? Math.Round(ms) : Math.Round(ms, 1);
 			var arr = new JsonArray();
 			foreach (var h in hits) {
 				if (h.Id == 0) continue;
