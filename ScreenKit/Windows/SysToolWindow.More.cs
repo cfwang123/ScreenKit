@@ -7,10 +7,12 @@ public partial class SysToolWindow {
 	List<SysTool.PatchRow> patches = new();
 	List<SysTool.StoreRow> stores = new();
 	List<SysTool.ExtRow> exts = new();
+	List<SysTool.MenuRow> menus = new();
 	int svcgen;
 	int patchgen;
 	int storegen;
 	int assocgen;
+	int menugen;
 
 	sealed class SvcItem {
 		public string Name { get; set; }
@@ -26,6 +28,15 @@ public partial class SysToolWindow {
 		public string App { get; set; }
 		public string Exe { get; set; }
 		public string Cmd { get; set; }
+	}
+
+	sealed class MenuItem {
+		public string Place { get; set; }
+		public string Scope { get; set; }
+		public string Name { get; set; }
+		public string Cmd { get; set; }
+		public string Company { get; set; }
+		public string Key { get; set; }
 	}
 
 	sealed class PatchItem {
@@ -57,6 +68,10 @@ public partial class SysToolWindow {
 		bassoccopy.Click += (_, _) => copyassoc();
 		eassoc.TextChanged += (_, _) => paintassoc();
 		lvassoc.SelectionChanged += (_, _) => showassoc();
+		bmenurefresh.Click += (_, _) => loadmenu();
+		bmenucopy.Click += (_, _) => copymenu();
+		emenu.TextChanged += (_, _) => paintmenu();
+		lvmenu.SelectionChanged += (_, _) => showmenu();
 	}
 
 	void applymore() {
@@ -64,14 +79,17 @@ public partial class SysToolWindow {
 		tabpatch.Header = Loc.T("systool.tab.patch");
 		tabstore.Header = Loc.T("systool.tab.store");
 		tabassoc.Header = Loc.T("systool.tab.assoc");
+		tabmenu.Header = Loc.T("systool.tab.menu");
 		lbsvchint.Text = Loc.T("systool.hint.svc");
 		lbpatchhint.Text = Loc.T("systool.hint.patch");
 		lbstorehint.Text = Loc.T("systool.hint.store");
 		lbassochint.Text = Loc.T("systool.hint.assoc");
+		lbmenuhint.Text = Loc.T("systool.hint.menu");
 		lbsvcfilter.Text = Loc.T("systool.filter");
 		lbpatchfilter.Text = Loc.T("systool.filter");
 		lbstorefilter.Text = Loc.T("systool.filter");
 		lbassocfilter.Text = Loc.T("systool.filter");
+		lbmenufilter.Text = Loc.T("systool.filter");
 		colsvcname.Header = Loc.T("systool.col.name");
 		colsvcstate.Header = Loc.T("systool.col.state");
 		colsvcstart.Header = Loc.T("systool.col.start");
@@ -86,6 +104,11 @@ public partial class SysToolWindow {
 		colassoctype.Header = Loc.T("systool.col.type");
 		colassocapp.Header = Loc.T("systool.col.app");
 		colassocexe.Header = Loc.T("systool.col.path");
+		colmenuplace.Header = Loc.T("systool.col.place");
+		colmenuscope.Header = Loc.T("systool.col.scope");
+		colmenuname.Header = Loc.T("systool.col.name");
+		colmenucmd.Header = Loc.T("systool.col.cmd");
+		colmenucompany.Header = Loc.T("systool.col.company");
 		ToolBtnUi.Set(bsvcrefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
 		ToolBtnUi.Set(bsvccopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
 		ToolBtnUi.Set(bpatchrefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
@@ -94,6 +117,8 @@ public partial class SysToolWindow {
 		ToolBtnUi.Set(bstorecopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
 		ToolBtnUi.Set(bassocrefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
 		ToolBtnUi.Set(bassoccopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
+		ToolBtnUi.Set(bmenurefresh, ToolBtnUi.Swap, Loc.T("systool.refresh"));
+		ToolBtnUi.Set(bmenucopy, ToolBtnUi.Copy, Loc.T("systool.copy"));
 	}
 
 	void loadsvc() {
@@ -287,6 +312,63 @@ public partial class SysToolWindow {
 		if (lvassoc.SelectedItem is not AssocItem it) return;
 		setclip(join($"{it.Ext}  {it.Type}", it.App, it.Exe, it.Cmd));
 	}
+
+	void loadmenu() {
+		var n = ++menugen;
+		bmenurefresh.IsEnabled = false;
+		lbmenustat.Text = Loc.T("systool.working");
+		Task.Run(() => {
+			string err = null;
+			List<SysTool.MenuRow> got = null;
+			try { got = SysTool.Menus(); }
+			catch (Exception ex) { err = ex.Message; }
+			Dispatcher.Invoke(() => {
+				if (n != menugen) return;
+				bmenurefresh.IsEnabled = true;
+				if (err != null) {
+					lbmenustat.Text = err;
+					return;
+				}
+				menus = got ?? new List<SysTool.MenuRow>();
+				paintmenu();
+			});
+		});
+	}
+
+	void paintmenu() {
+		var q = (emenu.Text ?? "").Trim();
+		var view = new List<MenuItem>();
+		foreach (var r in menus) {
+			var it = new MenuItem {
+				Place = menulabel(r.Place), Scope = scope(r.Scope),
+				Name = r.Name, Cmd = r.Cmd, Company = r.Company, Key = r.Key,
+			};
+			if (q.Length == 0 || has(q, it.Place, it.Scope, it.Name, it.Cmd, it.Company, it.Key)) view.Add(it);
+		}
+		fill(lvmenu, view);
+		lbmenustat.Text = Loc.T("systool.stat", view.Count, menus.Count);
+		showmenu();
+	}
+
+	void showmenu() {
+		if (lvmenu.SelectedItem is not MenuItem it) {
+			emenudetail.Text = "";
+			return;
+		}
+		emenudetail.Text = join(
+			it.Name,
+			$"{Loc.T("systool.col.place")}  {it.Place}    {Loc.T("systool.col.scope")}  {it.Scope}",
+			$"{Loc.T("systool.col.cmd")}  {it.Cmd}",
+			$"{Loc.T("systool.col.company")}  {it.Company}",
+			$"{Loc.T("systool.menu.key")}  {it.Key}");
+	}
+
+	void copymenu() {
+		if (lvmenu.SelectedItem is not MenuItem it) return;
+		setclip(join(it.Name, $"{it.Place}  {it.Scope}", it.Cmd, it.Company, it.Key));
+	}
+
+	static string menulabel(string key) => label($"systool.menu.{key}", key);
 
 	static string label(string key, string raw) {
 		var t = Loc.T(key);

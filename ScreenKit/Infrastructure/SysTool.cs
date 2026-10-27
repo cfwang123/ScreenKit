@@ -387,6 +387,210 @@ static class SysTool {
 		catch { return ""; }
 	}
 
+	public sealed class MenuRow {
+		public string Scope = "";
+		public string Place = "";
+		public string Name = "";
+		public string Cmd = "";
+		public string Company = "";
+		public string Clsid = "";
+		public string Key = "";
+	}
+
+	// 右键菜单：外壳扩展入口（全部用户 + 当前用户，HKCR 会掩盖 HKCU 的同名项，所以两边分开读）。
+	static readonly string[] MENUROOTS = {
+		@"*\shellex\ContextMenuHandlers",
+		@"AllFilesystemObjects\shellex\ContextMenuHandlers",
+		@"Directory\shellex\ContextMenuHandlers",
+		@"Directory\Background\shellex\ContextMenuHandlers",
+		@"Drive\shellex\ContextMenuHandlers",
+		@"Folder\shellex\ContextMenuHandlers",
+		@"DesktopBackground\shellex\ContextMenuHandlers",
+	};
+
+	// 静态命令（shell\verb）：按动作读，只列通用项。
+	static readonly string[][] MENUVERBS = {
+		new[] { "files", @"*\shell" },
+		new[] { "any", @"AllFilesystemObjects\shell" },
+		new[] { "files", @"SystemFileAssociations\*\shell" },
+		new[] { "folder", @"Directory\shell" },
+		new[] { "folder", @"AllFilesystemObjects\shell" },
+		new[] { "folderbg", @"Directory\Background\shell" },
+		new[] { "drive", @"Drive\shell" },
+		new[] { "desktop", @"DesktopBackground\shell" },
+	};
+
+	public static List<MenuRow> Menus() {
+		var list = new List<MenuRow>();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		scanmenus(list, seen, Registry.LocalMachine, @"Software\Classes\", "machine");
+		scanmenus(list, seen, Registry.CurrentUser, @"Software\Classes\", "user");
+		foreach (var v in MENUVERBS) {
+			scanverbs(list, seen, Registry.LocalMachine, @"Software\Classes\",
+				v[1], "machine", v[0]);
+			scanverbs(list, seen, Registry.CurrentUser, @"Software\Classes\",
+				v[1], "user", v[0]);
+		}
+		list.Sort((a, b) => {
+			var c = string.Compare(a.Place, b.Place, StringComparison.OrdinalIgnoreCase);
+			if (c != 0) return c;
+			c = string.Compare(a.Scope, b.Scope, StringComparison.OrdinalIgnoreCase);
+			if (c != 0) return c;
+			return string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase);
+		});
+		return list;
+	}
+
+	static void scanmenus(List<MenuRow> list, HashSet<string> seen, RegistryKey root, string prefix, string scope) {
+		foreach (var rel in MENUROOTS) {
+			try {
+				using var key = root.OpenSubKey(prefix + rel);
+				if (key == null) continue;
+				foreach (var name in key.GetSubKeyNames()) {
+					var path = rel + @"\" + name;
+					if (!seen.Add(scope + "|" + path)) continue;
+					var row = new MenuRow {
+						Scope = scope, Place = placeof(rel), Name = name,
+						Key = (scope == "user" ? @"HKCU\" : @"HKLM\") + path,
+					};
+					using (var hk = key.OpenSubKey(name))
+						row.Clsid = (hk?.GetValue(null) as string ?? "").Trim();
+					row.Cmd = clsidpath(row.Clsid);
+					row.Company = descr(row.Cmd);
+					if (row.Name.Length == 0) row.Name = clsidname(row.Clsid);
+					list.Add(row);
+				}
+			}
+			catch { }
+		}
+	}
+
+	static void scanverbs(List<MenuRow> list, HashSet<string> seen, RegistryKey root, string prefix,
+			string rel, string scope, string place) {
+		try {
+			using var key = root.OpenSubKey(prefix + rel);
+			if (key == null) return;
+			foreach (var name in key.GetSubKeyNames()) {
+				var path = rel + @"\" + name;
+				if (!seen.Add(scope + "|" + path)) continue;
+				var row = new MenuRow {
+					Scope = scope, Place = place, Name = verbname(key, name),
+					Key = (scope == "user" ? @"HKCU\" : @"HKLM\") + path,
+				};
+				using (var vk = key.OpenSubKey(name + @"\command"))
+					row.Cmd = expand(vk?.GetValue(null) as string ?? "");
+				var exe = exefrom(row.Cmd);
+				if (exe.Length > 0) row.Company = descr(exe);
+				if (row.Name.Length == 0) row.Name = name;
+				list.Add(row);
+			}
+		}
+		catch { }
+	}
+
+	static string placeof(string rel) {
+		if (rel.StartsWith(@"Directory\Background", StringComparison.OrdinalIgnoreCase)) return "folderbg";
+		if (rel.StartsWith("Directory", StringComparison.OrdinalIgnoreCase)) return "folder";
+		if (rel.StartsWith("Folder", StringComparison.OrdinalIgnoreCase)) return "folder";
+		if (rel.StartsWith("Drive", StringComparison.OrdinalIgnoreCase)) return "drive";
+		if (rel.StartsWith("DesktopBackground", StringComparison.OrdinalIgnoreCase)) return "desktop";
+		if (rel.StartsWith("AllFilesystemObjects", StringComparison.OrdinalIgnoreCase)) return "any";
+		return "files";
+	}
+
+	// 菜单显示名：优先 MUIVerb，其次默认值，都没有就用键名。
+	static string verbname(RegistryKey key, string name) {
+		try {
+			using var k = key.OpenSubKey(name);
+			var s = k?.GetValue("MUIVerb") as string ?? "";
+			if (s.Length == 0) s = k?.GetValue(null) as string ?? "";
+			s = s.Trim();
+			if (s.StartsWith("@", StringComparison.Ordinal)) s = resstr(s);
+			return s;
+		}
+		catch { return ""; }
+	}
+
+	// @dll,-123 / @dll,#123 取本地化文本，读不到就留空。
+	static string resstr(string s) {
+		var h = IntPtr.Zero;
+		try {
+			var comma = s.LastIndexOf(',');
+			if (comma < 0) return "";
+			var file = expand(s.Substring(1, comma - 1));
+			var id = s.Substring(comma + 1).TrimStart('#');
+			if (!int.TryParse(id, out var idx) || !File.Exists(file)) return "";
+			h = LoadLibraryEx(file, IntPtr.Zero, 0x00000002);
+			if (h == IntPtr.Zero) return "";
+			var buf = new StringBuilder(2048);
+			var got = LoadString(h, idx, buf, buf.Capacity);
+			return got > 0 ? buf.ToString() : "";
+		}
+		catch { return ""; }
+		finally {
+			if (h != IntPtr.Zero) CloseHandle(h);
+		}
+	}
+
+	static string clsidpath(string clsid) {
+		if (clsid.Length == 0) return "";
+		if (clsid[0] != '{') return expand(clsid);
+		return expand(dllof(clsid));
+	}
+
+	static string dllof(string clsid) {
+		try {
+			using var k = Registry.ClassesRoot.OpenSubKey(@"CLSID\" + clsid + @"\InprocServer32");
+			return k?.GetValue(null) as string ?? "";
+		}
+		catch { return ""; }
+	}
+
+	static string clsidname(string clsid) {
+		if (clsid.Length == 0) return "";
+		try {
+			using var k = Registry.ClassesRoot.OpenSubKey(@"CLSID\" + clsid);
+			return (k?.GetValue(null) as string ?? "").Trim();
+		}
+		catch { return ""; }
+	}
+
+	// 命令行里的 exe：取第一个 .exe 令牌，运行库形式（rundll32 等）取不到就留空。
+	static string exefrom(string cmd) {
+		if (cmd.Length == 0) return "";
+		var s = cmd.Trim();
+		if (s.StartsWith("\"", StringComparison.Ordinal)) {
+			var end = s.IndexOf('"', 1);
+			return end > 1 ? s.Substring(1, end - 1) : "";
+		}
+		var i = s.IndexOf(".exe", StringComparison.OrdinalIgnoreCase);
+		if (i < 0) return "";
+		return s.Substring(0, i + 4).Trim();
+	}
+
+	static string expand(string s) {
+		if (string.IsNullOrEmpty(s)) return "";
+		try { return Environment.ExpandEnvironmentVariables(s.Trim().Trim('"')); }
+		catch { return s; }
+	}
+
+	// 文件版本信息里的产品名／公司，用来大致看出是哪个程序挂的菜单。
+	static string descr(string path) {
+		if (string.IsNullOrEmpty(path)) return "";
+		try {
+			var v = FileVersionInfo.GetVersionInfo(path);
+			if (!string.IsNullOrEmpty(v.ProductName)) return v.ProductName;
+			return v.CompanyName ?? "";
+		}
+		catch { return ""; }
+	}
+
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+	static extern int LoadString(IntPtr h, int id, StringBuilder buf, int n);
+
+	[DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+	static extern IntPtr LoadLibraryEx(string file, IntPtr h, int flags);
+
 	public static int Test(Action<string> log, Action<string> err) {
 		log("=== 系统工具 --test-systool ===");
 		var procs = Procs();
@@ -485,6 +689,12 @@ static class SysTool {
 		log($"ext={exts.Count}");
 		if (exts.Count < 50) {
 			err("文件关联太少");
+			return 1;
+		}
+		var menus = Menus();
+		log($"menu={menus.Count}");
+		if (menus.Count < 10) {
+			err("右键菜单项太少");
 			return 1;
 		}
 		log("=== OK：系统工具 ===");

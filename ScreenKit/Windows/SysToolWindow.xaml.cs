@@ -170,6 +170,7 @@ public partial class SysToolWindow : Window {
 		else if (tabs.SelectedItem == tabpatch && loaded.Add("patch")) loadpatch();
 		else if (tabs.SelectedItem == tabstore && loaded.Add("store")) loadstore();
 		else if (tabs.SelectedItem == tabassoc && loaded.Add("assoc")) loadassoc();
+		else if (tabs.SelectedItem == tabmenu && loaded.Add("menu")) loadmenu();
 	}
 
 	void loadproc() {
@@ -494,7 +495,7 @@ public partial class SysToolWindow : Window {
 	readonly Dictionary<ListView, SortState> sorts = new();
 
 	void initsort() {
-		foreach (var lv in new[] { lvproc, lvlock, lvenv, lvstart, lvapp, lvsvc, lvpatch, lvstore, lvassoc })
+		foreach (var lv in new[] { lvproc, lvlock, lvenv, lvstart, lvapp, lvsvc, lvpatch, lvstore, lvassoc, lvmenu })
 			lv.AddHandler(GridViewColumnHeader.ClickEvent, new RoutedEventHandler(onheadclick));
 	}
 

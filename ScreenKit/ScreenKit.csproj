@@ -61,6 +61,8 @@
     <None Include="Web\fa.css" CopyToOutputDirectory="PreserveNewest" Link="web\fa.css" />
     <None Include="Web\viewer.min.css" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.css" />
     <None Include="Web\viewer.min.js" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.js" />
+    <None Include="Web\jname-s.txt" CopyToOutputDirectory="PreserveNewest" Link="web\jname-s.txt" />
+    <None Include="Web\jname-g.txt" CopyToOutputDirectory="PreserveNewest" Link="web\jname-g.txt" />
     <None Include="Web\fa-solid-900.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\fa-solid-900.woff2" />
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />

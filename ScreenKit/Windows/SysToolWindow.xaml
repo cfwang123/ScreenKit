@@ -400,6 +400,47 @@
 					<TextBlock x:Name="lbassocstat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>
+			<TabItem x:Name="tabmenu" Header="右键菜单" AutomationProperties.AutomationId="systool.tab.menu">
+				<Grid Margin="12">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+					<TextBlock x:Name="lbmenuhint" TextWrapping="Wrap" Margin="0,0,0,8"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+					<DockPanel Grid.Row="1" Margin="0,0,0,8" LastChildFill="True">
+						<TextBlock x:Name="lbmenufilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
+						<Button x:Name="bmenucopy" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<Button x:Name="bmenurefresh" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right"/>
+						<TextBox x:Name="emenu" Height="32" Padding="8,4" Margin="0,0,8,0"
+						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+					</DockPanel>
+					<Grid Grid.Row="2">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="320" MinWidth="160"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvmenu" BorderBrush="{StaticResource BorderSoft}">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colmenuplace" Width="90" DisplayMemberBinding="{Binding Place}"/>
+									<GridViewColumn x:Name="colmenuscope" Width="60" DisplayMemberBinding="{Binding Scope}"/>
+									<GridViewColumn x:Name="colmenuname" Width="200" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colmenucmd" Width="260" DisplayMemberBinding="{Binding Cmd}"/>
+									<GridViewColumn x:Name="colmenucompany" Width="140" DisplayMemberBinding="{Binding Company}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+						              VerticalAlignment="Stretch" Background="Transparent"/>
+						<TextBox x:Name="emenudetail" Grid.Column="2" Style="{StaticResource DetailBox}" FontSize="13"/>
+					</Grid>
+					<TextBlock x:Name="lbmenustat" Grid.Row="3" Margin="0,8,0,0" Foreground="{StaticResource TextMuted}"/>
+				</Grid>
+			</TabItem>
 		</TabControl>
 	</Grid>
 </Window>

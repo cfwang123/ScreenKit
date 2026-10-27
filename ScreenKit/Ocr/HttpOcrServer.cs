@@ -218,7 +218,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				return;
 			}
 			if (path is "/" or "/sk/tools.css" or "/sk/tools.js" or "/sk/fa.css" or "/sk/fa-solid-900.woff2"
-				or "/sk/viewer.min.css" or "/sk/viewer.min.js") {
+				or "/sk/viewer.min.css" or "/sk/viewer.min.js" or "/sk/jname-s.txt" or "/sk/jname-g.txt") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "工具页仅支持 GET"));
 					return;
@@ -1052,6 +1052,10 @@ sealed partial class HttpOcrServer : IDisposable {
 		else if (path == "/sk/viewer.min.js") {
 			name = "viewer.min.js";
 			mime = "application/javascript; charset=utf-8";
+		}
+		else if (path == "/sk/jname-s.txt" || path == "/sk/jname-g.txt") {
+			name = path.Substring(4);
+			mime = "text/plain; charset=utf-8";
 		}
 		else {
 			name = "tools.html";
