@@ -89,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Restore the result count and elapsed time under the dictionary page search results.
 - Dictionary search timing uses a high-resolution clock, so fast lookups show their real milliseconds instead of 0 ms.
 - Corrected the colloquial rows: かよ takes no negative (行かないかよ → 行かないのかよ, new のかよ row) and is not listed for na-adjectives; じゃね？ now attaches only to nouns and na-adjectives, while verbs and i-adjectives use じゃないか／じゃねえか.
+- The Japanese conjugation tool now reports a network error when the dictionary or conjugation API cannot be reached, instead of saying the word is not in the dictionary.
 
 #### Removed
 
@@ -141,6 +142,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典页恢复搜索结果下方的结果条数和用时显示。
 - 词典搜索用时改用高精度计时，快查询不再显示 0 ms。
 - 修正口语语气行：かよ 不接否定（行かないかよ 改为行かないのかよ，新增「のかよ」行），な形容词不列；じゃね？ 只接名词和な形容词，动词和い形容词改用 じゃないか／じゃねえか。
+- 日文变形工具在词典或变形接口连不上时提示网络错误，不再显示词典里没有这个词。
 
 #### 移除
 

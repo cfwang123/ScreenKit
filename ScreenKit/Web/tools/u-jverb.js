@@ -428,7 +428,9 @@
 				bad = true;
 			}
 			else if (res.state === "err") {
-				note = (res.msg || tx("web.jverb.down", "网络错误。")) + more;
+				var em = res.msg || tx("web.jverb.down", "网络错误。");
+				if (more && !/[。．.!?！？]$/.test(em)) em += "。";
+				note = em + more;
 				bad = true;
 			}
 			else if (res.state === "missing") {
