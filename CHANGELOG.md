@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tray menu: added dictionary, diagnostics and memory usage; main menu: added screencast
 - Japanese conjugation: -tekudasai also shows -tekudasaimase
 - English conjugation: added auxiliaries and patterns, sentence patterns, noun/adjective usage notes, and a pronoun table
+- CLI --test-dict-conj dumps every group and row of a conjugation table, for coverage checks.
 
 #### Changed
 
@@ -86,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The dictionary conjugation table is now a read-only RichTextBox: text can be selected and copied; copy strips the speaker icon and trailing spaces.
 - Dictionary install downloads dict3.7z and extracts dict3.bin again instead of building it from the core pack.
 - Dialect rows for i-adjectives and nouns now cover presumption, conditionals and polite forms (Kansai 高いやろ / 高うおます, Kyushu 高かかった / 高かです / 高かたら, Tohoku 高いべ / 高いす / 学生だら, Hiroshima 静かな / 静かなけりゃ / 学生じゃろー).
+- Japanese conjugation now appends the N1-N5 grammar entries from the blue-book catalogue that fit the word: 98 verb patterns and 101 noun patterns such as ～て憚らない and ～に限らず.
 
 #### Fixed
 
@@ -93,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary search timing uses a high-resolution clock, so fast lookups show their real milliseconds instead of 0 ms.
 - Corrected the colloquial rows: かよ takes no negative (行かないかよ → 行かないのかよ, new のかよ row) and is not listed for na-adjectives; じゃね？ now attaches only to nouns and na-adjectives, while verbs and i-adjectives use じゃないか／じゃねえか.
 - The Japanese conjugation tool now reports a network error when the dictionary or conjugation API cannot be reached, instead of saying the word is not in the dictionary.
+- Causative ～させてください and ～させていただく now insert て (書かせるてください → 書かせてください).
 
 #### Removed
 
@@ -122,6 +125,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 托盘菜单补上词典、诊断、内存占用；主菜单补上投屏
 - 日语变形表：てください格并列显示「〜てくださいませ」
 - 英语变形表：新增助动词与搭配、句型、名词/形容词用法补充和代词表
+- 命令行 --test-dict-conj 打印一张变形表的全部分组与结果，核对覆盖面用。
 
 #### 变更
 
@@ -142,6 +146,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典的形态变化表改成只读 RichTextBox，文字可以拖选、Ctrl+C 复制；复制时去掉朗读图标和行尾空白。
 - 词典安装改回下载 dict3.7z 解出 dict3.bin，不再从核心包在本机重建。
 - 日语方言的い形容词、な形容词和名词补齐推量、假定和敬体（关西 高いやろ／高うおます，九州 高かかった／高かです／高かたら，东北 高いべ／高いす／学生だら，广岛 静かな／静かなけりゃ／学生じゃろー）。
+- 日语变形表按蓝宝书 N1-N5 目录补齐：动词句型新增 98 条、名词句型新增 101 条，如 ～て憚らない、～に限らず。
 
 #### 修复
 
@@ -149,6 +154,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典搜索用时改用高精度计时，快查询不再显示 0 ms。
 - 修正口语语气行：かよ 不接否定（行かないかよ 改为行かないのかよ，新增「のかよ」行），な形容词不列；じゃね？ 只接名词和な形容词，动词和い形容词改用 じゃないか／じゃねえか。
 - 日文变形工具在词典或变形接口连不上时提示网络错误，不再显示词典里没有这个词。
+- 使役的 ～させてください、～させていただく 补上 て（書かせるてください → 書かせてください）。
 
 #### 移除
 
