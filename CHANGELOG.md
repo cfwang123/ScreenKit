@@ -88,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary install downloads dict3.7z and extracts dict3.bin again instead of building it from the core pack.
 - Dialect rows for i-adjectives and nouns now cover presumption, conditionals and polite forms (Kansai 高いやろ / 高うおます, Kyushu 高かかった / 高かです / 高かたら, Tohoku 高いべ / 高いす / 学生だら, Hiroshima 静かな / 静かなけりゃ / 学生じゃろー).
 - Japanese conjugation now appends the N1-N5 grammar entries from the blue-book catalogue that fit the word: 98 verb patterns and 101 noun patterns such as ～て憚らない and ～に限らず.
+- Japanese conjugation also appends the catalogue patterns that fit い/な adjectives (37 entries such as 高い限りだ and 静かな一方で).
 
 #### Fixed
 
@@ -148,6 +149,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典安装改回下载 dict3.7z 解出 dict3.bin，不再从核心包在本机重建。
 - 日语方言的い形容词、な形容词和名词补齐推量、假定和敬体（关西 高いやろ／高うおます，九州 高かかった／高かです／高かたら，东北 高いべ／高いす／学生だら，广岛 静かな／静かなけりゃ／学生じゃろー）。
 - 日语变形表按蓝宝书 N1-N5 目录补齐：动词句型新增 98 条、名词句型新增 101 条，如 ～て憚らない、～に限らず。
+- 日语变形表的形容词表同样接入目录：い形容词/な形容词各 37 条，如 高い限りだ、静かな一方で。
 
 #### 修复
 

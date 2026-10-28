@@ -257,6 +257,7 @@ static class JpGrammar {
 	public static List<ConjRow> PosRows(bool zh, string pos, string word) {
 		var i = pos == "i";
 		var n = pos == "n";
+		var na = !i && !n;
 		// いい・かっこいい 的词干是「よ」（よく・よかった），其余去掉词尾的い。
 		var s = i ? (word.EndsWith("いい") && word != "かわいい" && word != "可愛い" ? word.Substring(0, word.Length - 2) + "よ" : (word.EndsWith("い") ? word.Substring(0, word.Length - 1) : word)) : word;
 		var plain = i ? word : word + "だ";
@@ -272,10 +273,28 @@ static class JpGrammar {
 		}
 		// 名词再接蓝宝书目录里同级的条目（学生に限らず、学生の至り…）。
 		void cat(string grp) {
-			if (!n) return;
-			foreach (var c in JpGrammarCatalog.Noun) {
+			if (n) {
+				foreach (var c in JpGrammarCatalog.Noun) {
+					if (!string.Equals(c[0], grp, StringComparison.OrdinalIgnoreCase)) continue;
+					add(grp, c[3], c[3], catvals(word, c[1]));
+				}
+			}
+			catadj(grp);
+		}
+		// 形容词再接目录里能接形容词的条目（高い限りだ、静かな限りだ…）。
+		void catadj(string grp) {
+			if (!i && !na) return;
+			foreach (var c in JpGrammarCatalog.Adj) {
 				if (!string.Equals(c[0], grp, StringComparison.OrdinalIgnoreCase)) continue;
-				add(grp, c[3], c[3], catvals(word, c[1]));
+				string pre, suf;
+				if (i) {
+					pre = c[1] == "ta" ? ta : (c[1] == "ku" ? s + "く" : word);
+					suf = c[2];
+				} else {
+					pre = c[3] == "da" ? word + "だ" : (c[3] == "na" ? word + "な" : (c[3] == "ta" ? word + "だった" : word));
+					suf = c[4];
+				}
+				add(grp, c[5], c[5], catvals(pre, suf));
 			}
 		}
 		// N5
