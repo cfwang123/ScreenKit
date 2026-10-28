@@ -8,6 +8,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## Versions / 版本索引
 
+- [v1.0.31 (2026-10-29)](#v1031-2026-10-29)
 - [v1.0.30 (2026-10-27)](#v1030-2026-10-27)
 - [v1.0.29 (2026-10-23)](#v1029-2026-10-23)
 - [v1.0.28 (2026-10-23)](#v1028-2026-10-23)
@@ -40,13 +41,12 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
-## unreleased
+## v1.0.31 (2026-10-29)
 
 ### English
 
 #### Added
 
-- Dictionary CLI self-checks: --test-dict-count compares the full hit counts of two dict3.bin files without the 4000-row cap, --test-dict-conj dumps every group and row of a conjugation table, and --test-dict-senseonly checks that Definitions only keeps example sentences hidden.
 - Dictionary page adds a Definitions only checkbox.
 - Japanese name lookup splits a full name into a matching surname and given name.
 - Japanese conjugation: added more sentence patterns, including dialect and colloquial forms.
@@ -56,7 +56,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Dictionary entries are built once as a compact JSON of rendered lines and inline runs; the WPF dictionary, web dictionary and reader render the same document, and Definitions only is a builder parameter. With Definitions only each sense shows one language (UI language first) and its sub-senses join into one line separated by semicolons.
 - Korean and English entry details indent the translated definitions, list phrases under a Phrases heading with indented definitions and examples, and put example translations on the same line.
 - Japanese name results show a full name split into surname and given name, every reading stacked with a speak button, 60 rows per page with scrolling; surname population is gone, the 姓名 tab is removed, a random name can be generated, and fake-data names are family name then given name with no space.
 - The dictionary conjugation table is now a read-only RichTextBox: text can be selected and copied; copy strips the speaker icon and trailing spaces.
@@ -71,7 +70,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- 命令行词典自检：--test-dict-count 比较两份 dict3.bin 的全部命中数（不受 4000 条上限），--test-dict-conj 打印一张变形表的分组与全部结果，--test-dict-senseonly 校验「仅释义」后例句不再显示。
 - 词典页新增「仅释义」勾选框。
 - 日本姓名查询可以输入完整姓名，拆成能对上的姓和名。
 - 日语变形表：增加了一些句型，含方言和口语说法。
@@ -81,7 +79,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 词条改为先生成「行 + 行内块」的紧凑 JSON，WPF 词典、网页词典和阅读器渲染同一份文档，「仅释义」作为生成参数；勾选后每个义项只显示一种语言（界面语言优先），子义项用「; 」合并成一行。
 - 韩语和英语词条详情里译文释义缩进，词组改为「词组：」列表（释义和例句缩进），例句中文并到同一行。
 - 日本姓名查询改名为「日本姓名读法」：完整姓名拆成姓和名显示，每条竖排全部读法并带发音按钮，每页 60 条、超出滚动；不再显示姓的人数，去掉「姓名」分类，可以随机生成姓名，测试数据里的日韩姓名改为姓在前、中间不空格。
 - 词典的形态变化表改成只读 RichTextBox，文字可以拖选、Ctrl+C 复制；复制时去掉朗读图标和行尾空白。
