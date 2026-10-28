@@ -422,13 +422,17 @@
 			var note = "";
 			var bad = false;
 			var pre = findpre(word);
-			if (!res || res.state === "down") {
-				note = tx("web.jverb.down", pre && pick === "auto" ? "查不到词典，已按示例。" : "查不到词典，已按词尾判断。");
+			var more = pick === "auto" ? tx("web.jverb.fallback", pre ? "已按示例。" : "已按词尾判断。") : "";
+			if (!res || res.state === "net") {
+				note = tx("web.jverb.down", "网络错误。") + more;
+				bad = true;
+			}
+			else if (res.state === "err") {
+				note = (res.msg || tx("web.jverb.down", "网络错误。")) + more;
 				bad = true;
 			}
 			else if (res.state === "missing") {
-				note = (res.msg || tx("web.jverb.nodict", "未找到词典库 dict3.bin。请在帮助 → 安装功能里安装词典。"))
-					+ (pick === "auto" ? tx("web.jverb.fallback", pre ? "已按示例。" : "已按词尾判断。") : "");
+				note = (res.msg || tx("web.jverb.nodict", "未找到词典库 dict3.bin。请在帮助 → 安装功能里安装词典。")) + more;
 				bad = true;
 			}
 			if (pick === "auto") {
@@ -478,7 +482,7 @@
 				var tcalc = now() - t1;
 				if (!d) {
 					paint("", "", []);
-					SK.msg("box-msg", tx("web.jverb.down", "变形接口不可用"), true);
+					SK.msg("box-msg", tx("web.jverb.down", "网络错误。"), true);
 					return;
 				}
 				if (!d.ok) {
@@ -499,10 +503,10 @@
 
 	function lookup(word, done){
 		getjson("/api/dict?dict=ja&limit=8&q=" + encodeURIComponent(word), function(jo){
-			if (!jo) { done({ state: "down" }); return; }
+			if (!jo) { done({ state: "net" }); return; }
 			if (jo.code !== 100) {
 				done({
-					state: jo.error === "missing" ? "missing" : "down",
+					state: jo.error === "missing" ? "missing" : "err",
 					msg: typeof jo.data === "string" ? jo.data : ""
 				});
 				return;
@@ -510,9 +514,10 @@
 			var hits = jo.data && jo.data.hits ? jo.data.hits : [];
 			var i = 0;
 			var entries = [];
+			var failed = false;
 			function next(){
 				if (i >= hits.length) {
-					done({ state: "ok", entry: choose(entries, word) });
+					done(failed && !entries.length ? { state: "net" } : { state: "ok", entry: choose(entries, word) });
 					return;
 				}
 				var id = hits[i] && hits[i].id;
@@ -520,6 +525,7 @@
 				if (!id) { next(); return; }
 				getjson("/api/dict/entry?id=" + encodeURIComponent(id), function(ej){
 					if (ej && ej.code === 100 && ej.data) entries.push(ej.data);
+					else failed = true;
 					next();
 				});
 			}
@@ -544,7 +550,12 @@
 		for (k in params) if (params[k] !== undefined && params[k] !== null && params[k] !== "")
 			qs.push(k + "=" + encodeURIComponent(params[k]));
 		getjson("/api/conj?" + qs.join("&"), function(jo){
-			done(jo && jo.code === 100 && jo.data ? jo.data : null);
+			if (!jo) { done(null); return; }
+			if (jo.code !== 100) {
+				done({ ok: false, err: typeof jo.data === "string" && jo.data ? jo.data : tx("web.jverb.down", "网络错误。") });
+				return;
+			}
+			done(jo.data || null);
 		});
 	}
 

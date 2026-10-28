@@ -82,6 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese name results line up in rows, 60 per page, and scroll inside the list.
 - The dictionary conjugation table is now a read-only RichTextBox: text can be selected and copied; copy strips the speaker icon and trailing spaces.
 - Dictionary install downloads dict3.7z and extracts dict3.bin again instead of building it from the core pack.
+- Dialect rows for i-adjectives and nouns now cover presumption, conditionals and polite forms (Kansai 高いやろ / 高うおます, Kyushu 高かかった / 高かです / 高かたら, Tohoku 高いべ / 高いす / 学生だら, Hiroshima 静かな / 静かなけりゃ / 学生じゃろー).
 
 #### Fixed
 
@@ -133,6 +134,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日本姓名结果按行对齐，每页固定 60 条，超出部分在列表里滚动。
 - 词典的形态变化表改成只读 RichTextBox，文字可以拖选、Ctrl+C 复制；复制时去掉朗读图标和行尾空白。
 - 词典安装改回下载 dict3.7z 解出 dict3.bin，不再从核心包在本机重建。
+- 日语方言的い形容词、な形容词和名词补齐推量、假定和敬体（关西 高いやろ／高うおます，九州 高かかった／高かです／高かたら，东北 高いべ／高いす／学生だら，广岛 静かな／静かなけりゃ／学生じゃろー）。
 
 #### 修复
 

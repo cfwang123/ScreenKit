@@ -834,7 +834,7 @@ static class JpConj {
 		rows.AddRange(evidrows(L, k));
 		rows.AddRange(patternrows(L, k, "ai"));
 		rows.AddRange(naihaseirows(L, s + "くない"));
-		rows.AddRange(dialectiadj(L, s));
+		rows.AddRange(dialectiadj(L, word, s));
 		rows.AddRange(endrows(L, word, "", "i", s + "くない", s + "くないです"));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
 	}
@@ -906,7 +906,7 @@ static class JpConj {
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
 		rows.AddRange(endrows(L, word, "", "a", word + "じゃない", word + "じゃないです"));
-		rows.AddRange(dialectnounrows(L, word));
+		rows.AddRange(dialectnounrows(L, word, true));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "a", word) };
 	}
 
@@ -945,7 +945,7 @@ static class JpConj {
 		rows.AddRange(naihaseirows(L, word + "じゃない"));
 		rows.AddRange(copularows(L, word));
 		rows.AddRange(endrows(L, word, "", "n", word + "じゃない", word + "じゃないです"));
-		rows.AddRange(dialectnounrows(L, word));
+		rows.AddRange(dialectnounrows(L, word, false));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "n", word) };
 	}
 
@@ -1018,17 +1018,24 @@ static class JpConj {
 
 	// い形容词的方言：关西 高うない／高うて／高うなる／高かろ，九州（博多）高か／高うなか／高うて，
 	// 东北 高くねぇ，广岛 高うて／高うなる／あかけりゃ／あかかろー。
-	static List<ConjRow> dialectiadj(JpConjLabels L, string s) {
+	static List<ConjRow> dialectiadj(JpConjLabels L, string word, string s) {
 		return new List<ConjRow> {
 			new(L.nai, utai(s) + "ない", L.dks),
 			new(L.te, utai(s) + "て", L.dks),
 			new(L.naru, utai(s) + "なる", L.dks),
-			new(L.darou, s + "かろ", L.dks),
+			new(L.pol, utai(s) + "おます", L.dks),
+			new(L.darou, word + "やろ", L.dks),
 			new(L.term, s + "か", L.dky),
 			new(L.nai, utai(s) + "なか", L.dky),
 			new(L.te, utai(s) + "て", L.dky),
+			new(L.ta, s + "かかった", L.dky),
+			new(L.tara, s + "かたら", L.dky),
+			new(L.pol, s + "かです", L.dky),
 			new(L.darou, s + "かろー", L.dky),
 			new(L.nai, s + "くねぇ", L.dth),
+			new(L.pol, word + "す", L.dth),
+			new(L.darou, word + "べ", L.dth),
+			new(L.nai, utai(s) + "ない", L.dhi),
 			new(L.te, utai(s) + "て", L.dhi),
 			new(L.naru, utai(s) + "なる", L.dhi),
 			new(L.ba, s + "けりゃ", L.dhi),
@@ -1036,23 +1043,42 @@ static class JpConj {
 		};
 	}
 
-	// な形容词、名词的方言：关西 や／やない／ちゃう／やった／だす，九州 や／ばい，
-	// 东北 だ／だっちゃ，广岛 じゃ／じゃない／じゃった。
-	static List<ConjRow> dialectnounrows(JpConjLabels L, string word) {
-		return new List<ConjRow> {
+	// な形容词、名词的方言：关西 や／やない／ちゃう／やった／だす／やろ，九州 や／ばい／やろー，
+	// 东北 だ／だっちゃ／だべ／だら，广岛 じゃ／じゃない／じゃった／じゃろー。
+	// na 为真时再补广岛的连体 な 和假定 なけりゃ（静かな／静かなけりゃ）。
+	static List<ConjRow> dialectnounrows(JpConjLabels L, string word, bool na) {
+		var rows = new List<ConjRow> {
 			new(L.dict, word + "や", L.dks),
 			new(L.pol, word + "だす、" + word + "でおます", L.dks),
 			new(L.nai, word + "やない、" + word + "ちゃう", L.dks),
+			new(L.polneg, word + "やないです、" + word + "ちゃいます", L.dks),
 			new(L.ta, word + "やった", L.dks),
+			new(L.darou, word + "やろ", L.dks),
+			new(L.tara, word + "やったら", L.dks),
 			new(L.dict, word + "や、" + word + "ばい", L.dky),
 			new(L.nai, word + "やない", L.dky),
+			new(L.polneg, word + "やないです", L.dky),
 			new(L.ta, word + "やった", L.dky),
+			new(L.darou, word + "やろー", L.dky),
+			new(L.tara, word + "やったら、" + word + "なら", L.dky),
 			new(L.dict, word + "だ、" + word + "だっちゃ", L.dth),
+			new(L.nai, word + "でねぇ", L.dth),
+			new(L.polneg, word + "でねぇす", L.dth),
 			new(L.ta, word + "だった", L.dth),
+			new(L.darou, word + "だべ", L.dth),
+			new(L.tara, word + "だら", L.dth),
 			new(L.dict, word + "じゃ", L.dhi),
 			new(L.nai, word + "じゃない", L.dhi),
+			new(L.polneg, word + "じゃないです", L.dhi),
 			new(L.ta, word + "じゃった", L.dhi),
+			new(L.darou, word + "じゃろー", L.dhi),
+			new(L.tara, word + "じゃったら", L.dhi),
 		};
+		if (na) {
+			rows.Add(new ConjRow(L.term, word + "な", L.dhi));
+			rows.Add(new ConjRow(L.ba, word + "なけりゃ", L.dhi));
+		}
+		return rows;
 	}
 
 	// 一条语气句型：肯定和否定并列放在同一格里，各带一个发音按钮。
