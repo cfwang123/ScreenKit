@@ -510,7 +510,48 @@ static class EnConj {
 		["d_hear"] = new[] { "据说", "Hearsay" },
 		["q_stmt"] = new[] { "陈述", "Statement" },
 		["q_deduct"] = new[] { "推测", "Deduction" },
-		["q_hear"] = new[] { "据说", "Hearsay" }
+		["q_hear"] = new[] { "据说", "Hearsay" },
+		["g_aux"] = new[] { "助动词与搭配", "Auxiliaries & patterns" },
+		["g_sent"] = new[] { "句型", "Sentence patterns" },
+		["g_pron"] = new[] { "代词", "Pronoun" },
+		["g_a_extra"] = new[] { "用法补充", "Usage notes" },
+		["g_n_extra"] = new[] { "所有格与量词", "Possession & partitives" },
+		["x_have"] = new[] { "have / get + 宾语 + 过去分词", "have / get + object + past participle" },
+		["x_sense"] = new[] { "感官动词 + 原形 / -ing", "sense verb + base / -ing" },
+		["x_used"] = new[] { "used to / be used to", "used to / be used to" },
+		["x_going"] = new[] { "be going to / about to / be to", "be going to / about to / be to" },
+		["x_ought"] = new[] { "ought to / had better / would rather", "ought to / had better / would rather" },
+		["x_modpc"] = new[] { "情态 + 完成进行", "modal + perfect continuous" },
+		["x_vpat"] = new[] { "接 -ing / to do 的动词", "verb + -ing / to do" },
+		["x_tagx"] = new[] { "祈使与 Let's 的附加疑问", "Tags after imperatives and let's" },
+		["x_contract"] = new[] { "缩写形式", "Contractions" },
+		["x_phrasal"] = new[] { "短语动词分离", "Phrasal verb separation" },
+		["x_rep"] = new[] { "间接引语", "Reported speech" },
+		["x_rel"] = new[] { "关系从句", "Relative clause" },
+		["x_inv"] = new[] { "倒装", "Inversion" },
+		["x_cleft"] = new[] { "强调句", "Cleft / emphasis" },
+		["x_there"] = new[] { "there be", "there be" },
+		["x_embed"] = new[] { "嵌入疑问", "Embedded question" },
+		["x_cond"] = new[] { "条件与让步", "Condition & concession" },
+		["x_adv"] = new[] { "时间 / 让步状语从句", "Time / concession clauses" },
+		["a_order"] = new[] { "形容词顺序", "Adjective order" },
+		["a_order_t"] = new[] { "观点 → 大小 → 新旧 → 颜色 → 产地 → 材料（a nice big new red French wooden table）", "opinion → size → age → color → origin → material (a nice big new red French wooden table)" },
+		["a_eding"] = new[] { "-ed / -ing 形容词", "-ed / -ing adjectives" },
+		["a_eding_t"] = new[] { "-ed 多指人，-ing 多指物：interested / interesting", "-ed for people, -ing for things: interested / interesting" },
+		["a_the"] = new[] { "the + 形容词", "the + adjective" },
+		["a_mult"] = new[] { "倍数与比较句", "Multiples & comparison" },
+		["n_dposs"] = new[] { "双重所有格", "Double possessive" },
+		["n_part"] = new[] { "量词", "Partitives" },
+		["n_compound"] = new[] { "复合名词复数", "Compound plurals" },
+		["n_compound_t"] = new[] { "主体名词变复数：mothers-in-law · passers-by", "plural on the main noun: mothers-in-law · passers-by" },
+		["n_coll"] = new[] { "集体名词一致", "Collective agreement" },
+		["n_coll_t"] = new[] { "英式可作复数：the team is / are · the family is / are", "British can take a plural verb: the team is / are · the family is / are" },
+		["p_subj"] = new[] { "主格", "Subject" },
+		["p_obj"] = new[] { "宾格", "Object" },
+		["p_det"] = new[] { "形容词性物主", "Possessive determiner" },
+		["p_poss"] = new[] { "名词性物主", "Possessive pronoun" },
+		["p_refl"] = new[] { "反身", "Reflexive" },
+		["p_use"] = new[] { "用法", "Usage" }
 	};
 
 	// 词性表只取词本身，中文释义只在网页下拉里用。
@@ -765,12 +806,16 @@ static class EnConj {
 		var kind = string.IsNullOrEmpty(type) ? "auto" : type;
 		if (kind == "auto") kind = detect(head, tail);
 		ConjResult r;
-		if (kind == "a" || kind == "n") {
+		if (kind == "pron") {
+			if (tail.Length > 0) return fail(L("bad"));
+			r = buildpron(head, zh);
+		}
+		else if (kind == "a" || kind == "n") {
 			if (tail.Length > 0) return fail(L("bad"));
 			r = kind == "a" ? buildadj(head, zh) : buildnoun(head, zh);
 		}
 		else r = buildverb(head, tail, zh, obj1, obj2);
-		if (r.Ok) r.Kind = kind == "a" || kind == "n" ? kind : "v";
+		if (r.Ok) r.Kind = kind == "a" || kind == "n" || kind == "pron" ? kind : "v";
 		return r;
 	}
 
@@ -1072,6 +1117,33 @@ static class EnConj {
 		if (!isBe) R(g, L("o_pi"), has ? "for " + o1 + " to be " + ppBare + (o2.Length > 0 ? " " + o2 : "") : "to be " + ppBare);
 		// 顶部说明
 		string note;
+		// 助动词与常见搭配
+		g = L("g_aux");
+		if (!isBe) {
+			R(g, L("x_have"), "I had it " + ppBare + " · I got it " + ppBare);
+			R(g, L("x_sense"), "I saw him " + b + " · I saw him " + ingF);
+			R(g, L("x_modpc"), "must have been " + ingF + " · should have been " + ingF + " · might have been " + ingF);
+			R(g, L("x_vpat"), "I enjoy " + ingF + " · I want to " + b + " · I stopped " + ingF + " / to " + b);
+			if (particle.Length > 0) R(g, L("x_phrasal"), baseword + " it " + particle + " · " + baseword + " " + particle + " it ✗");
+		}
+		R(g, L("x_used"), "I used to " + b + " · I am used to " + ingF + " · I would " + b);
+		R(g, L("x_going"), "I am going to " + b + " · I am about to " + b + " · I am to " + b + " · I am supposed to " + b);
+		R(g, L("x_ought"), "I ought to " + b + " · I had better " + b + " · I would rather " + b);
+		R(g, L("x_tagx"), "Let's " + b + ", shall we? · " + b + ", will you? · " + (isBe ? "I am ..., aren't I?" : "I do ..., don't I?"));
+		R(g, L("x_contract"), "I'm " + ingF + " · he's " + ppF + " · I won't " + b + " · I hadn't " + ppF);
+		// 句型
+		g = L("g_sent");
+		R(g, L("x_rep"), "He said (that) he " + pastF + " · He told me (that) he had " + ppF);
+		R(g, L("x_rel"), "the man who " + s3F + " · the thing that he " + pastF);
+		R(g, L("x_embed"), "I don't know whether he " + s3F + " · Do you know if he " + s3F + "?");
+		R(g, L("x_cond"), "Unless he " + s3F + ", ... · Provided he " + s3F + ", ... · Should he " + b + ", ...");
+		R(g, L("x_adv"), "When he " + s3F + ", ... · While " + ingF + ", ... · Although he " + s3F + ", ...");
+		if (!isBe) {
+			R(g, L("x_inv"), "Never did I " + b + " · Only then did I " + b + " · So did I · Neither did I");
+			R(g, L("x_there"), "There is nothing to " + b + " · There was nothing to " + b);
+			R(g, L("x_cleft"), "I do " + b + " · It was he who " + pastF);
+		}
+		else R(g, L("x_cleft"), "It is he who " + s3F + " · It was he who " + pastF);
 		if (row != null) {
 			note = L("irr");
 			if (pasts.Count > 0) note += " · " + L("f_past") + " " + variants(row[1], particle, "", "");
@@ -1086,8 +1158,49 @@ static class EnConj {
 		return ok(baseword + tail, note, rows);
 	}
 
+	// 人称代词：主格、宾格、形容词性物主、名词性物主、反身、中文说明、英文说明。
+	static readonly string[][] PRON = {
+		new[] { "I", "me", "my", "mine", "myself", "第一人称单数", "first person singular" },
+		new[] { "you", "you", "your", "yours", "yourself / yourselves", "第二人称", "second person" },
+		new[] { "he", "him", "his", "his", "himself", "第三人称阳性单数", "third person masculine singular" },
+		new[] { "she", "her", "her", "hers", "herself", "第三人称阴性单数", "third person feminine singular" },
+		new[] { "it", "it", "its", "its", "itself", "第三人称中性单数", "third person neuter singular" },
+		new[] { "we", "us", "our", "ours", "ourselves", "第一人称复数", "first person plural" },
+		new[] { "they", "them", "their", "theirs", "themselves", "第三人称复数", "third person plural" },
+		new[] { "one", "one", "one's", "—", "oneself", "泛指人", "impersonal one" },
+	};
+
+	static readonly Dictionary<string, int> PRONIDX = mkpron();
+
+	static Dictionary<string, int> mkpron() {
+		var d = new Dictionary<string, int>();
+		for (var i = 0; i < PRON.Length; i++)
+			for (var k = 0; k < 5; k++)
+				foreach (var f in PRON[i][k].Split(new[] { " / " }, StringSplitOptions.None))
+					if (f.Length > 0 && !d.ContainsKey(f)) d[f] = i;
+		return d;
+	}
+
+	static ConjResult buildpron(string head, bool zh) {
+		string L(string key) => zh ? LAB[key][0] : LAB[key][1];
+
+		var p = PRON[PRONIDX.TryGetValue(head.ToLowerInvariant(), out var i) ? i : 0];
+		var rows = new List<ConjRow>();
+		void R(string g, string name, string text) => rows.Add(new ConjRow(name, text, g));
+		var g = L("g_pron");
+		R(g, L("p_subj"), p[0]);
+		R(g, L("p_obj"), p[1]);
+		R(g, L("p_det"), p[2] + " book");
+		R(g, L("p_poss"), p[3]);
+		R(g, L("p_refl"), p[4]);
+		g = L("g_sent");
+		R(g, L("p_use"), "between you and me · It's me. · by " + p[4]);
+		return ok(p[0], zh ? p[5] : p[6], rows);
+	}
+
 	static string detect(string head, string tail) {
 		if (tail.Length > 0) return "v";
+		if (PRONIDX.ContainsKey(head)) return "pron";
 		if (findirr(head, out _) >= 0 || VERBSET.Contains(head)) return "v";
 		if (ADJIRR.ContainsKey(head) || ADJSET.Contains(head) || ADJFORM.ContainsKey(head)) return "a";
 		if (singularadj(head).Length > 0) return "a";
@@ -1180,6 +1293,11 @@ static class EnConj {
 		R(g, L("a_adv"), advform(baseword));
 		R(g, L("a_noun"), adjnoun(baseword));
 		R(g, L("a_grad"), NONGRAD.Contains(baseword) ? L("grad_no") : L("grad_yes"));
+		g = L("g_a_extra");
+		R(g, L("a_order"), L("a_order_t"));
+		R(g, L("a_eding"), L("a_eding_t"));
+		R(g, L("a_the"), zh ? "the rich / the poor / the young（一类人）" : "the rich / the poor / the young (a group of people)");
+		R(g, L("a_mult"), "three times as " + baseword + " as · the more ..., the " + c1);
 		var note = irr != null ? L("irr_a") : L("reg_a");
 		if (irr != null) note += " · " + c + " · " + s + (zh ? " · " + irr[2] : "");
 		if (from.Length > 0) note = fmt(L("from"), from) + " · " + note;
@@ -1264,6 +1382,11 @@ static class EnConj {
 			R(g, L("a_tag"), "it's " + artbase + ", ain't it? · they're " + first + ", ain't they?");
 			R(g, L("a_wh"), "Why ain't it " + artbase + "? · Why ain't there any " + first + "?");
 		}
+		g = L("g_n_extra");
+		R(g, L("n_dposs"), uncount ? ("some " + baseword + " of mine · a friend of mine") : ("a " + baseword + " of mine · a friend of mine"));
+		R(g, L("n_part"), uncount ? ("a piece of " + baseword + " · a bit of " + baseword) : ("a " + baseword + " · two " + first + " · a couple of " + first));
+		R(g, L("n_compound"), L("n_compound_t"));
+		R(g, L("n_coll"), L("n_coll_t"));
 		var note = NOUNIRR.ContainsKey(baseword) ? L("irr_n") : L("reg_n");
 		if (!uncount) note += " · " + string.Join(" / ", plist);
 		else note += " · " + L("count_no");

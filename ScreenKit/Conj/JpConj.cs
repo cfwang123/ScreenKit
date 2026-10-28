@@ -781,7 +781,7 @@ static class JpConj {
 	}
 
 	// 语法句型用的接续形。文语的未然形 する→せ、来る→こ，其余同 ない 的词干。
-	static JpPatForms jpforms(string plain, string masu, string nai, string te, string ta, string cau) {
+	static JpPatForms jpforms(string plain, string masu, string nai, string te, string ta, string ba, string cau, string vol = null) {
 		var p = plain ?? "";
 		var naistem = cut(nai, 2);
 		var bunzen = naistem;
@@ -789,7 +789,7 @@ static class JpConj {
 		else if (p.EndsWith("する", StringComparison.Ordinal)) bunzen = cut(p, 2) + "せ";
 		return new JpPatForms {
 			Plain = plain, Ren = cut(masu, 2), Nai = nai, Naistem = naistem,
-			Bunzen = bunzen, Te = te, Ta = ta, Cau = cau,
+			Bunzen = bunzen, Te = te, Ta = ta, Ba = ba, Cau = cau, Vol = vol ?? "",
 		};
 	}
 
@@ -992,7 +992,7 @@ static class JpConj {
 		rows.AddRange(keigo(plain, masu, pas, L, te));
 		rows.AddRange(endrows(L, plain, masu, "v", nai, cut(masu, 2) + "ません"));
 		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
-		var tail = JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, cau));
+		var tail = JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, ba, cau, vol));
 		return new JpConjPacked { plain = plain, masu = masu, te = te, ta = ta, nai = nai, vol = vol, rows = rows, tail = tail };
 	}
 

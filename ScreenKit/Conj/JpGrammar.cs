@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace ScreenKit;
@@ -11,7 +12,10 @@ sealed class JpPatForms {
 	public string Bunzen;
 	public string Te;
 	public string Ta;
+	public string Ba;
 	public string Cau;
+	/// <summary>意向形（書こう・食べよう・しよう・こよう）。</summary>
+	public string Vol;
 }
 
 /// <summary>一条句型：接续 + 后缀、否定形、标签、分组。</summary>
@@ -65,8 +69,8 @@ static class JpGrammar {
 		new JpPat("plain", "ようになる", "nai", "ようになる", "ようになる", "you ni naru", "n4"),
 		new JpPat("ta", "ばかり", "", "", "たばかり", "ta bakari", "n4"),
 		new JpPat("ta", "ところだ", "", "", "たところだ", "ta tokoro da", "n4"),
-		new JpPat("cau", "ください", "", "", "させてください", "sasete kudasai", "n4"),
-		new JpPat("cau", "いただく", "", "", "させていただく", "sasete itadaku", "n4"),
+		new JpPat("cau", "てください", "", "", "させてください", "sasete kudasai", "n4"),
+		new JpPat("cau", "ていただく", "", "", "させていただく", "sasete itadaku", "n4"),
 		new JpPat("plain", "ので", "nai", "ので", "ので", "node", "n4"),
 		new JpPat("plain", "のに", "nai", "のに", "のに", "noni", "n4"),
 		new JpPat("te", "も", "", "", "ても", "te mo", "n4"),
@@ -203,11 +207,21 @@ static class JpGrammar {
 		"bunzen" => f.Bunzen,
 		"plain" => f.Plain,
 		"ta" => f.Ta,
+		"ba" => f.Ba,
 		"cau" => f.Cau,
 		"vol" => f.Vol,
 		"teiru" => f.Te + "いる",
 		_ => f.Plain,
 	};
+
+	/// <summary>目录条目里的多个写法用「、」分隔，每一段都要接上同一个接续形。</summary>
+	static string catvals(string stemtext, string suffix) {
+		var parts = suffix.Split('、');
+		if (parts.Length == 1) return stemtext + suffix;
+		var all = new string[parts.Length];
+		for (var i = 0; i < parts.Length; i++) all[i] = stemtext + parts[i];
+		return string.Join("、", all);
+	}
 
 	/// <summary>按分组生成句型行。分组名随界面语言。每级先出现内置句型，再接蓝宝书目录里同级的条目。</summary>
 	public static List<ConjRow> Rows(bool zh, JpPatForms f) {
@@ -218,8 +232,8 @@ static class JpGrammar {
 			var g = grpname(cur, zh);
 			foreach (var c in JpGrammarCatalog.Verb) {
 				if (!string.Equals(c[0], cur, StringComparison.OrdinalIgnoreCase)) continue;
-				var pos = stem(f, c[1]) + c[2];
-				if (c[3].Length > 0) pos += "、" + stem(f, c[1]) + c[3];
+				var pos = catvals(stem(f, c[1]), c[2]);
+				if (c[3].Length > 0) pos += "、" + catvals(stem(f, c[1]), c[3]);
 				rows.Add(new ConjRow(c[4], pos, g));
 			}
 		}
@@ -254,6 +268,14 @@ static class JpGrammar {
 		void add(string grp, string zh2, string en2, string v) {
 			if (v.Length > 0) rows.Add(new ConjRow(zh ? zh2 : en2, v, grpname(grp, zh)));
 		}
+		// 名词再接蓝宝书目录里同级的条目（学生に限らず、学生の至り…）。
+		void cat(string grp) {
+			if (!n) return;
+			foreach (var c in JpGrammarCatalog.Noun) {
+				if (!string.Equals(c[0], grp, StringComparison.OrdinalIgnoreCase)) continue;
+				add(grp, c[3], c[3], catvals(word, c[1]));
+			}
+		}
 		// N5
 		add("n5", "てもいい", "te mo ii", i ? ku + "てもいい" : word + "でもいい");
 		add("n5", "てはいけない", "te wa ikenai", te + "はいけない");
@@ -266,6 +288,7 @@ static class JpGrammar {
 		add("n5", "と（自然条件）", "to", i ? plain + "と" : word + "だと");
 		add("n5", "なら", "nara", i ? plain + "なら" : word + "なら");
 		add("n5", "ことがある", "koto ga aru", i ? ta + "ことがある、" + plain + "ことがある" : ta + "ことがある");
+		cat("n5");
 		// N4
 		add("n4", "そうだ", "souda", i ? plain + "そうだ" : plain + "そうだ");
 		add("n4", "らしい", "rashii", i ? plain + "らしい" : word + "らしい");
@@ -276,6 +299,7 @@ static class JpGrammar {
 		add("n4", "わけだ", "wake da", i ? plain + "わけだ" : word + aNa + "わけだ");
 		add("n4", "ようになる", "you ni naru", i ? ku + "なる" : word + "になる");
 		add("n4", "ようにする", "you ni suru", i ? ku + "なるようにする" : word + "になるようにする");
+		cat("n4");
 		// N3
 		add("n3", "ために", "tame ni", i ? plain + "ために" : word + aNo + "ために");
 		add("n3", "ように（目的）", "you ni", i ? ku + "なるように" : word + "になるように");
@@ -284,6 +308,7 @@ static class JpGrammar {
 		add("n3", "ばかりか", "bakari ka", i ? plain + "ばかりか" : word + "ばかりか");
 		add("n3", "どころか", "dokoro ka", i ? plain + "どころか" : word + "どころか");
 		add("n3", "かわりに", "kawari ni", i ? plain + "かわりに" : word + aNo + "かわりに");
+		cat("n3");
 		// N2
 		add("n2", "くせに", "kuse ni", i ? plain + "くせに" : word + aNo + "くせに");
 		add("n2", "わりに", "wari ni", i ? plain + "わりに" : word + aNo + "わりに");
@@ -297,8 +322,10 @@ static class JpGrammar {
 		add("n2", "一方だ", "ippou da", i ? ku + "なる一方だ" : word + "になる一方だ");
 		add("n2", "ばかりだ", "bakari da", i ? ku + "なるばかりだ" : word + "になるばかりだ");
 		add("n2", "に違いない", "ni chigai nai", i ? plain + "に違いない" : word + "に違いない");
+		cat("n2");
 		// N1
 		add("n1", "ものを", "mono o", ta + "ものを");
+		cat("n1");
 		// 文语
 		if (i) {
 			add("bun", "〜し（文语终止）", "shi (classical)", s + "し");
