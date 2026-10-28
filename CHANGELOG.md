@@ -96,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Corrected the colloquial rows: かよ takes no negative (行かないかよ → 行かないのかよ, new のかよ row) and is not listed for na-adjectives; じゃね？ now attaches only to nouns and na-adjectives, while verbs and i-adjectives use じゃないか／じゃねえか.
 - The Japanese conjugation tool now reports a network error when the dictionary or conjugation API cannot be reached, instead of saying the word is not in the dictionary.
 - Causative ～させてください and ～させていただく now insert て (書かせるてください → 書かせてください).
+- The IME candidate bar now follows the caret in Chrome and other windows that draw their own caret, using UI Automation when Windows reports no caret.
 
 #### Removed
 
@@ -155,6 +156,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修正口语语气行：かよ 不接否定（行かないかよ 改为行かないのかよ，新增「のかよ」行），な形容词不列；じゃね？ 只接名词和な形容词，动词和い形容词改用 じゃないか／じゃねえか。
 - 日文变形工具在词典或变形接口连不上时提示网络错误，不再显示词典里没有这个词。
 - 使役的 ～させてください、～させていただく 补上 て（書かせるてください → 書かせてください）。
+- 输入法候选条在 Chrome 等自绘光标的窗口里改用 UI Automation 取光标，不再停在鼠标位置。
 
 #### 移除
 

@@ -91,12 +91,15 @@ sealed class ImeCaret : IDisposable {
 		py = 0;
 		if (vimroot() != IntPtr.Zero) return vimcached(out px, out py);
 		if (winclass(GetForegroundWindow()) == "org.wezfurlong.wezterm") return wezfresh(out px, out py);
-		syscaret(out px, out py);
-		if (px == 0 && py == 0) {
-			GetCursorPos(out var pt);
-			px = pt.X;
-			py = pt.Y;
-		}
+		var fg = GetForegroundWindow();
+		if (syscaret(out px, out py)) return true;
+		// Chromium 之类自绘光标，系统插入符一直是 0；用 UIA 查一次焦点文本的光标，
+		// 查到之前先退回鼠标，别让候选条停在屏幕角落。
+		if (ImeUiaCaret.TryGet(fg, out px, out py)) return true;
+		ImeUiaCaret.Request();
+		GetCursorPos(out var pt);
+		px = pt.X;
+		py = pt.Y;
 		return px != 0 || py != 0;
 	}
 
@@ -589,16 +592,17 @@ sealed class ImeCaret : IDisposable {
 		} catch { return null; }
 	}
 
-	static void syscaret(out int left, out int bottom) {
+	static bool syscaret(out int left, out int bottom) {
 		left = 0;
 		bottom = 0;
 		var info = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
-		if (!GetGUIThreadInfo(0, ref info) || info.hwndCaret == IntPtr.Zero) return;
+		if (!GetGUIThreadInfo(0, ref info) || info.hwndCaret == IntPtr.Zero) return false;
 		var rc = info.rcCaret;
 		var pt = new POINT { X = rc.left, Y = rc.bottom };
 		ClientToScreen(info.hwndCaret, ref pt);
 		left = pt.X;
 		bottom = pt.Y;
+		return left != 0 || bottom != 0;
 	}
 
 	static string copyutf(IntPtr p, int cb) {

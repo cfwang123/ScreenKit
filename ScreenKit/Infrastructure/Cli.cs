@@ -60,7 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
@@ -335,6 +335,8 @@ static class Cli {
 					return testimedictui();
 				case "--test-ime-key":
 					return testimekey();
+				case "--test-ime-caret":
+					return testimecaret();
 				case "--ime-dict-import":
 					return imedictimport(Next(), Next());
 				case "--ime-db-clean":
@@ -4715,6 +4717,26 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 	}
 
+	/// <summary>Chromium 这类自绘光标的程序没有系统插入符，验证 UIA 后台查询能拿到光标。</summary>
+	static int testimecaret() {
+		Out("=== 输入法光标 --test-ime-caret ===");
+		var fg = GetForegroundWindow();
+		Out("foreground=" + fg.ToInt64());
+		ImeUiaCaret.Request();
+		int x = 0, y = 0;
+		bool got = false;
+		for (int i = 0; i < 40; i++) {
+			if (ImeUiaCaret.TryGet(fg, out x, out y)) { got = true; break; }
+			System.Threading.Thread.Sleep(50);
+		}
+		if (got) Out($"uia={x},{y}");
+		else Err("FAIL: UIA 没有取到光标（前台程序没有 TextPattern，或焦点不在文本上）");
+		var pt = System.Windows.Forms.Cursor.Position;
+		Out($"mouse={pt.X},{pt.Y}");
+		Out(ScreenDpi.BuildReport());
+		return got ? 0 : 1;
+	}
+
 	static int testimeja() {
 		Out("=== 日语活用 --test-ime-ja ===");
 		var err = ImeJaExpand.Check();
@@ -7817,6 +7839,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-hangul  两套式组字：한글、가나、退格拆音节
       --test-ime     输入法词库：词前缀和汉字注释
       --test-vim-caret  前台 gVim 时探测光标格子（诊断候选条/划词位置）
+      --test-ime-caret  前台窗口的系统插入符或 UIA 光标（诊断 Chromium 候选条位置）
       --test-7za  用 7za.dll 解压内置小 7z（含中文文件名）
       --test-htmlui  检查工具页 HTML工具的模板和卡片
       --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、MAC 厂家、USB ID、系统定位权限

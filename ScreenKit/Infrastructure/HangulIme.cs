@@ -80,6 +80,7 @@ sealed class HangulIme : IDisposable {
 		ImeCaret.BindShared(caret);
 		caret.AttachDispatcher(System.Windows.Application.Current?.Dispatcher ?? bar.Dispatcher);
 		caret.Start();
+		ImeUiaCaret.Found += onuia;
 		ImeLex.Prewarm();
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
 		timer.Tick += (_, _) => pollfg();
@@ -220,6 +221,7 @@ sealed class HangulIme : IDisposable {
 	public void Dispose() {
 		if (dead) return;
 		dead = true;
+		ImeUiaCaret.Found -= onuia;
 		try { caret.Dispose(); } catch { }
 		try { Set(false); } catch { }
 		try {
@@ -598,6 +600,12 @@ sealed class HangulIme : IDisposable {
 		if (act == null) return;
 		if (bar.Dispatcher.CheckAccess()) act();
 		else bar.Dispatcher.BeginInvoke(act);
+	}
+
+	/// <summary>UIA 光标迟到：候选条先落在鼠标上，查到后挪到真实光标。</summary>
+	void onuia() {
+		if (!enabled || !eng.ShowBar) return;
+		try { ui(refreshui); } catch { }
 	}
 
 	void hidecand() {
