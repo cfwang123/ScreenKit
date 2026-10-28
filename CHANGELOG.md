@@ -49,10 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary CLI self-checks: --test-dict-count compares the full hit counts of two dict3.bin files without the 4000-row cap, --test-dict-conj dumps every group and row of a conjugation table, and --test-dict-senseonly checks that Definitions only keeps example sentences hidden.
 - Dictionary page adds a Definitions only checkbox.
 - Japanese name lookup splits a full name into a matching surname and given name.
-- Japanese conjugation handles -zuru verbs (信ずる, 命ずる, 重んずる) with their mixed じ/ぜ stems; the Japanese IME word list now includes their conjugated forms.
-- Japanese conjugation adds colloquial and net endings (じゃん／じゃね／かよ／〜ｗ with their negatives, plus 〜なくね), んだって hearsay and だと rows, のでは beside んじゃないか, and a concessive group (けど・けれど・が・のに); てください also shows てくださいませ.
-- Japanese dialect rows cover all four dialects: verb forms (polite, volitional, potential, causative, imperative, ておく／てしまう／ている, ば, なければ, たい, ください and the negative derivations), plus i-adjectives, na-adjectives and nouns (presumption, conditionals, polite).
-- i-adjectives show the polite negative -kunai desu / -kunakatta desu, the deferential 〜うございます and the 〜め degree form.
+- Japanese conjugation: added more sentence patterns, including dialect and colloquial forms.
 - Tray menu: added dictionary, diagnostics and memory usage; main menu: added screencast.
 - English conjugation: added auxiliaries and patterns, sentence patterns, noun/adjective usage notes, and a pronoun table.
 - Korean conjugation adds advanced standard endings (retrospective, quotative, connective, honorific and auxiliary forms).
@@ -63,14 +60,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean and English entry details indent the translated definitions, list phrases under a Phrases heading with indented definitions and examples, and put example translations on the same line.
 - Japanese name results show a full name split into surname and given name, every reading stacked with a speak button, 60 rows per page with scrolling; surname population is gone, the 姓名 tab is removed, a random name can be generated, and fake-data names are family name then given name with no space.
 - The dictionary conjugation table is now a read-only RichTextBox: text can be selected and copied; copy strips the speaker icon and trailing spaces.
-- Japanese conjugation appends the N1-N5 blue-book catalogue patterns that fit the word: 98 verb, 101 noun and 37 adjective entries such as ～て憚らない, ～に限らず and 高い限りだ.
 
 #### Fixed
 
 - Restore the result count and elapsed time under dictionary search results, using a high-resolution clock so fast lookups show their real milliseconds instead of 0 ms.
-- Corrected the colloquial rows: かよ takes no negative (行かないかよ → 行かないのかよ, new のかよ row) and is not listed for na-adjectives; じゃね？ now attaches only to nouns and na-adjectives, while verbs and i-adjectives use じゃないか／じゃねえか.
 - The Japanese conjugation tool now reports a network error when the dictionary or conjugation API cannot be reached, instead of saying the word is not in the dictionary.
-- Causative ～させてください and ～させていただく now insert て (書かせるてください → 書かせてください).
 - The IME candidate bar now follows the caret in Chrome and other windows that draw their own caret, using UI Automation when Windows reports no caret.
 
 ### 中文
@@ -80,10 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 命令行词典自检：--test-dict-count 比较两份 dict3.bin 的全部命中数（不受 4000 条上限），--test-dict-conj 打印一张变形表的分组与全部结果，--test-dict-senseonly 校验「仅释义」后例句不再显示。
 - 词典页新增「仅释义」勾选框。
 - 日本姓名查询可以输入完整姓名，拆成能对上的姓和名。
-- 日语动词变形支持 ずる 动词（信ずる、命ずる、重んずる）的 じ／ぜ 混合活用；日语输入法词库也写入这些活用形。
-- 日语变化表补充口语与网络说法（じゃん／じゃね／かよ／〜ｗ 及其否定，外加 〜なくね）、んだって 传闻和 だと 行、与「んじゃないか」并列的「のでは」，以及逆接组（けど・けれど・が・のに）；てください 同时显示「〜てくださいませ」。
-- 日语方言行扩到四种方言：动词的敬体、意向、可能、使役、命令、ておく／てしまう／ている、ば、なければ、たい、ください 及否定派生，另含い形容词、な形容词、名词的推量、假定与敬体。
-- い形容词补充丁宁否定 〜くないです／〜くなかったです、丁重形 〜うございます 和 〜め 的程度说法（高め）。
+- 日语变形表：增加了一些句型，含方言和口语说法。
 - 托盘菜单补上词典、诊断、内存占用；主菜单补上投屏。
 - 英语变形表：新增助动词与搭配、句型、名词/形容词用法补充和代词表。
 - 韩语变形新增标准语高级词尾（回想、引用、连接、敬语与辅助谓词）。
@@ -94,15 +85,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语和英语词条详情里译文释义缩进，词组改为「词组：」列表（释义和例句缩进），例句中文并到同一行。
 - 日本姓名查询改名为「日本姓名读法」：完整姓名拆成姓和名显示，每条竖排全部读法并带发音按钮，每页 60 条、超出滚动；不再显示姓的人数，去掉「姓名」分类，可以随机生成姓名，测试数据里的日韩姓名改为姓在前、中间不空格。
 - 词典的形态变化表改成只读 RichTextBox，文字可以拖选、Ctrl+C 复制；复制时去掉朗读图标和行尾空白。
-- 日语变形表按蓝宝书 N1-N5 目录补齐：动词 98 条、名词 101 条、形容词 37 条，如 ～て憚らない、～に限らず、高い限りだ。
 
 #### 修复
 
 - 词典页恢复搜索结果下方的条数和用时显示，并改用高精度计时，快查询不再显示 0 ms。
-- 修正口语语气行：かよ 不接否定（行かないかよ 改为行かないのかよ，新增「のかよ」行），な形容词不列；じゃね？ 只接名词和な形容词，动词和い形容词改用 じゃないか／じゃねえか。
 - 日文变形工具在词典或变形接口连不上时提示网络错误，不再显示词典里没有这个词。
-- 使役的 ～させてください、～させていただく 补上 て（書かせるてください → 書かせてください）。
 - 输入法候选条在 Chrome 等自绘光标的窗口里改用 UI Automation 取光标，不再停在鼠标位置。
+
 ## v1.0.30 (2026-10-27)
 
 ### English
