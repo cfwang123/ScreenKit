@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese conjugation: -tekudasai also shows -tekudasaimase
 - English conjugation: added auxiliaries and patterns, sentence patterns, noun/adjective usage notes, and a pronoun table
 - CLI --test-dict-conj dumps every group and row of a conjugation table, for coverage checks.
+- Korean conjugation adds advanced standard endings (retrospective, quotative, connective, honorific and auxiliary forms).
 
 #### Changed
 
@@ -128,6 +129,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语变形表：てください格并列显示「〜てくださいませ」
 - 英语变形表：新增助动词与搭配、句型、名词/形容词用法补充和代词表
 - 命令行 --test-dict-conj 打印一张变形表的全部分组与结果，核对覆盖面用。
+- 韩语变形新增标准语高级词尾（回想、引用、连接、敬语与辅助谓词）。
 
 #### 变更
 

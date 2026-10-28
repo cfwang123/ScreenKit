@@ -157,6 +157,11 @@ static class KoConj {
 		["자다"] = "주무시다 · 주무세요",
 		["묻다"] = "여쭙다 · 여쭤요",
 		["보다"] = "뵙다 · 봬요",
+		["주다"] = "드리다 · 드려요",
+		["데리다"] = "모시다 · 모셔요",
+		["아프다"] = "편찮으시다 · 편찮으세요",
+		["말하다"] = "말씀하시다 · 말씀하세요",
+		["죽다"] = "돌아가시다 · 돌아가세요",
 	};
 
 	private static readonly Dictionary<string, string[]> GRP = new() {
@@ -192,6 +197,7 @@ static class KoConj {
 		["role"] = new[] { "角色语", "역할어", "Character" },
 		["circle"] = new[] { "小圈子", "은어", "In-group" },
 		["rough"] = new[] { "粗俗", "속어", "Vulgar" },
+		["adv"] = new[] { "高级", "고급", "Advanced" },
 	};
 
 	private static readonly Dictionary<string, string[]> NOTE = new() {
@@ -543,6 +549,51 @@ static class KoConj {
 		["masem"] = new[] { "粗禁 마셈", "마셈", "masem" },
 		["llla"] = new[] { "吓唬 ㄹ라", "ㄹ라", "lla" },
 		["cheo"] = new[] { "脏强调 쳐", "쳐", "cheo" },
+		["deora"] = new[] { "亲历回想", "회상", "retrospective" },
+		["deorago"] = new[] { "亲历回想·敬", "회상 존대", "retrospective polite" },
+		["deondeyo"] = new[] { "回想背景", "회상 배경", "retrospective background" },
+		["deoni"] = new[] { "观察后变化", "관찰 변화", "after observing" },
+		["getdeora"] = new[] { "当时推测", "당시 추측", "past conjecture" },
+		["eulteni"] = new[] { "推测理由", "추측 이유", "presumptive reason" },
+		["eulbeophada"] = new[] { "理应可能", "법하다", "likely" },
+		["dani"] = new[] { "惊讶引用", "인용 놀람", "quoted surprise" },
+		["dagie"] = new[] { "听说因为", "인용 까닭", "because quoted" },
+		["dadeoni"] = new[] { "听说结果", "인용 결과", "quoted then" },
+		["damyeon"] = new[] { "假定引用", "인용 가정", "quoted if" },
+		["dason"] = new[] { "就算假定", "인용 양보", "even if quoted" },
+		["janeun"] = new[] { "劝诱引用定语", "청유 인용 관형", "quoted suggestion modifier" },
+		["nyaneun"] = new[] { "疑问引用定语", "의문 인용 관형", "quoted question modifier" },
+		["giwihaeseo"] = new[] { "为了", "위해서", "in order to" },
+		["gimangjeong"] = new[] { "幸好", "망정이지", "luckily" },
+		["eotseoya"] = new[] { "本来应该", "었어야", "should have" },
+		["jianheumyeon"] = new[] { "不得不", "지 않으면 안", "must" },
+		["namana"] = new[] { "去不去都一样", "나 마나", "no difference" },
+		["geonamalgeona"] = new[] { "不管与否", "거나 말거나", "whether or not" },
+		["eulppundeoreo"] = new[] { "不仅而且", "뿐더러", "not only" },
+		["eundedaga"] = new[] { "再加上", "데다가", "on top of" },
+		["gohaseo"] = new[] { "因为", "고 해서", "because" },
+		["dabomyeon"] = new[] { "一直的话", "다 보면", "if continue" },
+		["goboni"] = new[] { "做了发现", "고 보니", "after doing" },
+		["gineunkeonyeong"] = new[] { "别说", "기는커녕", "let alone" },
+		["neunseom"] = new[] { "等于", "셈이다", "as good as" },
+		["neunhan"] = new[] { "只要", "한", "as long as" },
+		["neunihang"] = new[] { "既然", "이상", "since" },
+		["neunmadang"] = new[] { "情况下", "마당에", "given" },
+		["eulmangjeong"] = new[] { "宁可", "망정", "rather" },
+		["euljieonjeong"] = new[] { "即使", "지언정", "even if" },
+		["euryeonman"] = new[] { "本来会但", "련만", "would but" },
+		["giro"] = new[] { "决定", "기로", "decided to" },
+		["gieneun"] = new[] { "对…来说", "기에는", "for" },
+		["ginareum"] = new[] { "取决于", "나름이다", "depends on" },
+		["gising"] = new[] { "容易", "십상이다", "liable to" },
+		["gijjak"] = new[] { "极其", "짝이 없다", "extremely" },
+		["honset"] = new[] { "敬语推测", "시겠", "honorific conjecture" },
+		["honsideol"] = new[] { "敬语回想", "시더", "honorific retrospective" },
+		["neundaero"] = new[] { "按照/一…就", "대로", "as soon as" },
+		["neuntong"] = new[] { "因为…过程中", "통에", "because of" },
+		["deonji"] = new[] { "过去疑问", "던지", "retrospective question" },
+		["gemandeulda"] = new[] { "使变成", "게 만들다", "make" },
+		["dorokhada"] = new[] { "让/确保", "도록 하다", "ensure" },
 		["daeda"] = new[] { "一个劲儿", "대다", "daeda" },
 	};
 
@@ -1057,6 +1108,7 @@ static class KoConj {
 		var verb = kind == "v";
 		var adj = kind == "a";
 		var rl = rieulword(syls, irr);
+		var plainnow = neunda(syls, plainDa, word);
 		var eobs = endseobs(syls);
 		var hs = irr == "si" ? null : hon(syls, irr);
 		string g(string key) => lp(li, GRP[key]);
@@ -1072,7 +1124,7 @@ static class KoConj {
 		add("hap", "합니다", hapsho(syls));
 		add("hey", "해요", hey);
 		add("ban", "해", ba);
-		add("plain", plainDa ? "다" : "는다", neunda(syls, plainDa, word));
+		add("plain", plainDa ? "다" : "는다", plainnow);
 		add("qhap", "합니까", repend(hapsho(syls), "니다", "니까"));
 		add("qplain", adj && !eobs ? "냐" : "느냐", qplain(syls, irr, kind));
 		add("nayo", "나요", (adj && !eobs ? nieunword(syls, irr) + "가요" : dropr(syls, "나요")) + "?");
@@ -1301,7 +1353,6 @@ static class KoConj {
 			add("hagesug", "하게체 청유", jn(syls) + "세");
 		}
 		// 语气：传闻、推量、判断、义务、许可、请求、意愿、感叹；肯定与否定同格并列
-		var plainnow = neunda(syls, plainDa, word);
 		var itda = kind == "itda";
 		var negnow = itda ? "없다" : jn(syls) + (verb ? "지 않는다" : "지 않다");
 		var negpast = itda ? "없었" : jn(syls) + "지 않았";
@@ -1409,6 +1460,60 @@ static class KoConj {
 		add("llla", "ㄹ라", rl + "라");
 		if (verb || adj || itda) add("cheo", "쳐", "쳐" + ba);
 		if (verb) add("daeda", "대다", ba + " 대");
+		cur = g("adv");
+		add("deora", "더라", jn(syls) + "더라");
+		add("deorago", "더라고요", jn(syls) + "더라고요");
+		add("deondeyo", "던데요", jn(syls) + "던데요");
+		add("deoni", "더니", jn(syls) + "더니");
+		add("getdeora", "겠더라", jn(syls) + "겠더라");
+		add("eulteni", "을 테니", rl + " 테니");
+		add("eulbeophada", "을 법하다", rl + " 법해요");
+		add("dani", "다니", repend(plainnow, "다", "다니"));
+		add("dagie", "다기에", repend(plainnow, "다", "다기에"));
+		add("dadeoni", "다더니", repend(plainnow, "다", "다더니"));
+		add("damyeon", "다면", repend(plainnow, "다", "다면"));
+		add("dason", "다손 치더라도", repend(plainnow, "다", "다손 치더라도"));
+		add("janeun", "자는", jn(syls) + "자는");
+		add("nyaneun", "냐는", jn(syls) + "냐는");
+		if (verb) {
+			add("giwihaeseo", "기 위해서", jn(syls) + "기 위해서");
+			add("gimangjeong", "기에 망정이지", jn(syls) + "기에 망정이지");
+		}
+		add("eotseoya", "었어야", past + "어야");
+		add("jianheumyeon", "지 않으면 안 되다", jn(syls) + "지 않으면 안 돼요");
+		add("namana", "나 마나", dropr(syls, "나 마나"));
+		add("geonamalgeona", "거나 말거나", jn(syls) + "거나 말거나");
+		add("eulppundeoreo", "을 뿐더러", rl + " 뿐더러");
+		add("eundedaga", "은 데다가", nieunword(syls, irr) + " 데다가");
+		add("gohaseo", "고 해서", jn(syls) + "고 해서");
+		if (verb) {
+			add("dabomyeon", "다 보면", jn(syls) + "다 보면");
+			add("goboni", "고 보니", jn(syls) + "고 보니");
+		}
+		add("gineunkeonyeong", "기는커녕", jn(syls) + "기는커녕");
+		add("neunseom", "는 셈이다", nowmod + " 셈이에요");
+		add("neunhan", "는 한", nowmod + " 한");
+		add("neunihang", "는 이상", nowmod + " 이상");
+		if (verb) add("neunmadang", "는 마당에", nowmod + " 마당에");
+		add("eulmangjeong", "을망정", rl + "망정");
+		add("euljieonjeong", "을지언정", rl + "지언정");
+		add("euryeonman", "으련만", pluseu(st, "련만", false));
+		if (verb) {
+			add("giro", "기로", jn(syls) + "기로");
+			add("gising", "기 십상이다", jn(syls) + "기 십상이에요");
+			add("dorokhada", "도록 하다", jn(syls) + "도록 해요");
+		}
+		add("gieneun", "기에는", jn(syls) + "기에는");
+		add("ginareum", "기 나름이다", jn(syls) + "기 나름이에요");
+		if (adj) add("gijjak", "기 짝이 없다", jn(syls) + "기 짝이 없어요");
+		if (hs != null) {
+			add("honset", "시겠", jn(hs) + "겠어요");
+			add("honsideol", "시더", jn(hs) + "더라");
+		}
+		add("neundaero", "는 대로", nowmod + " 대로");
+		if (verb) add("neuntong", "는 통에", nowmod + " 통에");
+		add("deonji", "던지", jn(syls) + "던지");
+		add("gemandeulda", "게 만들다", jn(syls) + "게 만들어요");
 		rows.AddRange(dialectrows(syls, irr, kind, li));
 		rows.AddRange(koreanrows(word, syls, irr, kind, li));
 		return rows;
@@ -1809,6 +1914,18 @@ static class KoConj {
 		add("cheok", "인 척하다", noun + "인 척해요");
 		add("qquote", "냐고", copart(noun, bat, "냐고", "냐고") + " / " + copart(noun, bat, "었느냐고", "였느냐고"));
 		add("dquote", "다는", (bat ? noun + "이라는" : noun + "라는") + " / " + (bat ? noun + "이었다는" : noun + "였다는"));
+		cur = g("adv");
+		add("dani", "라니", noun + (bat ? "이라니" : "라니"));
+		add("dagie", "라기에", noun + (bat ? "이라기에" : "라기에"));
+		add("dadeoni", "라더니", noun + (bat ? "이라더니" : "라더니"));
+		add("damyeon", "라면", noun + (bat ? "이라면" : "라면"));
+		add("dason", "라손 치더라도", noun + (bat ? "이라손 치더라도" : "라손 치더라도"));
+		add("giro", "기로", noun + "이기로");
+		add("gieneun", "기에는", noun + "이기에는");
+		add("neunseom", "인 셈이다", noun + "인 셈이에요");
+		add("neunhan", "인 한", noun + "인 한");
+		add("neunihang", "인 이상", noun + "인 이상");
+		add("neunmadang", "인 마당에", noun + "인 마당에");
 		cur = g("ext");
 		add("jana", "잖아", copart(noun, bat, "잖아", "잖아"));
 		add("geodeun", "거든", copart(noun, bat, "거든", "거든"));
