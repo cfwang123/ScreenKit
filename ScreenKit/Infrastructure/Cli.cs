@@ -74,7 +74,7 @@ static class Cli {
 				or "--test-mem-load"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
-				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-install" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
+				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-conj" or "--test-dict-install" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
 				or "--test-dict-scroll" or "--test-dict-select"
 				or "--test-dict-senseonly"
@@ -441,11 +441,15 @@ static class Cli {
 				}
 				case "--test-dict-count":
 					return testdictcount(args, i);
+				case "--test-dict-conj": {
+					var cw = Next();
+					var ck = i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-' ? Next() : null;
+					return testdictconj(cw, ck);
+				}
 				case "--test-dict-install":
 					return testdictinstall();
 				case "--test-dict-sel":
-					return testselcopy();
-				case "--test-dict-word":
+					return testselcopy();				case "--test-dict-word":
 					return testdictword();
 				case "--test-dict-host":
 					return testdicthost();
@@ -6538,8 +6542,34 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return 0;
 	}
 
-	static List<long> dictids(string path, string q) {
-		DictDb.Close();
+	/// <summary>打印一张变形表的全部分组、标签和结果，核对覆盖面用。</summary>
+	static int testdictconj(string word, string kind) {
+		if (string.IsNullOrWhiteSpace(word)) word = "食べる";
+		var k = string.IsNullOrWhiteSpace(kind)
+			? JpConj.Guess(word)
+			: new JpConjKind { Kind = kind };
+		if (k == null || string.IsNullOrEmpty(k.Kind)) {
+			Out("cannot guess kind: " + word);
+			return 2;
+		}
+		var r = JpConj.Build(word, k.Kind, k.Flag, k.Sub, "zh");
+		if (r == null || !r.Ok) {
+			Out("build fail: " + (r?.Err ?? ""));
+			return 1;
+		}
+		Out($"=== {word} ({r.Name}) rows={r.Rows.Count} ===");
+		string last = null;
+		foreach (var row in r.Rows) {
+			if (row.G != last) {
+				last = row.G;
+				Out("[" + (string.IsNullOrEmpty(row.G) ? "基础" : row.G) + "]");
+			}
+			Out("  " + row.L + " = " + row.V);
+		}
+		return 0;
+	}
+
+	static List<long> dictids(string path, string q) {		DictDb.Close();
 		if (!DictDb.Init(path)) return null;
 		return DictDb.SearchIds(q, "");
 	}
@@ -7706,6 +7736,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
+  ScreenKit --test-dict-conj [词] [词性]
   ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
@@ -7823,6 +7854,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数]，默认 1000 条
       --test-dict-count <甲.bin> <乙.bin> [词...]  比较两个词库的全部命中数（不受 4000 条限制）。不给词时用 ing、tion 等命中很多的片段
       --test-dict-install  按安装功能下载 dict3.7z，解压出 exe 旁的 dict3.bin，再查 hello
+      --test-dict-conj [词] [词性]  打印变形表全部分组与结果，词性 1/2/3/ai/an/n 可指定
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
@@ -7940,6 +7972,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
+  ScreenKit --test-dict-conj [词] [词性]
   ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word

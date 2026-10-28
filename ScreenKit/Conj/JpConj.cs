@@ -352,7 +352,7 @@ static class JpConj {
 			L.ba = "ば形";
 			L.cmd = "命令形";
 			L.nasai = "なさい";
-			L.na = "な（=なさい）";
+			L.na = "な";
 			L.tamae = "給え";
 			L.stop = "禁止形";
 			L.vol = "意向形";
@@ -573,7 +573,7 @@ static class JpConj {
 		L.ba = "ba";
 		L.cmd = "imperative";
 		L.nasai = "nasai";
-		L.na = "na (= nasai)";
+		L.na = "na";
 		L.tamae = "tamae";
 		L.stop = "prohibitive";
 		L.vol = "volitional";
@@ -979,8 +979,7 @@ static class JpConj {
 		rows.Add(row(L.pas, pas));
 		rows.Add(row(L.cau, cau));
 		rows.Add(row(L.cap, cap));
-		rows.Add(row(L.tai, tai));
-		rows.Add(row(L.takunai, cut(tai, 2) + "たくない"));
+		rows.Add(row(L.tai + " / " + L.takunai, tai + "、" + cut(tai, 2) + "たくない"));
 		rows.Add(row(L.nda, plain + "んだ、" + nai + "んだ"));
 		rows.Add(row(L.tte, plain + "って、" + plain + "んだって、" + nai + "って、" + nai + "んだって"));
 		rows.Add(row(L.noda, plain + "のです、" + plain + "んです"));
@@ -1321,8 +1320,7 @@ static class JpConj {
 	static List<ConjRow> nasairows(JpConjLabels L, string plain, string ren) {
 		if (issonkearu(plain)) return new List<ConjRow>();
 		return new List<ConjRow> {
-			row(L.nasai, ren + "なさい"),
-			row(L.na, ren + "な"),
+			row(L.nasai + " / " + L.na, ren + "なさい、" + ren + "な"),
 			row(L.tamae, ren + "たまえ"),
 		};
 	}
