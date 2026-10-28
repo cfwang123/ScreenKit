@@ -74,7 +74,7 @@ static class Cli {
 				or "--test-mem-load"
 				or "--test-ort-lazy"
 				or "--test-ort-release"
-				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-rebuild" or "--test-dict-install" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
+				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-install" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
 				or "--test-dict-scroll" or "--test-dict-select"
 				or "--test-dict-senseonly"
@@ -441,8 +441,6 @@ static class Cli {
 				}
 				case "--test-dict-count":
 					return testdictcount(args, i);
-				case "--test-dict-rebuild":
-					return testdictrebuild(args, i);
 				case "--test-dict-install":
 					return testdictinstall();
 				case "--test-dict-sel":
@@ -6490,21 +6488,6 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return diff == 0 ? 0 : 1;
 	}
 
-	static int testdictrebuild(string[] args, int at) {
-		if (at + 2 >= args.Length) {
-			Out("用法: --test-dict-rebuild <核心.bin> <输出.bin>");
-			return 2;
-		}
-		try {
-			DictRebuild.Run(args[at + 1], args[at + 2], Out);
-			return 0;
-		}
-		catch (Exception ex) {
-			Out("rebuild fail: " + ex.Message);
-			return 1;
-		}
-	}
-
 	static int testdictinstall() {
 		// 安装里的 await 不能占着界面线程，否则进度回调排不进来，下载也会卡住。
 		return Task.Run(testdictinstallwork).GetAwaiter().GetResult();
@@ -7723,7 +7706,6 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
-  ScreenKit --test-dict-rebuild <核心.bin> <输出.bin>
   ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
@@ -7840,8 +7822,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-search  只读查询 exe 旁 dict3.bin（默认 学生 与 hello）；韩语词组行有发音按钮
       --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数]，默认 1000 条
       --test-dict-count <甲.bin> <乙.bin> [词...]  比较两个词库的全部命中数（不受 4000 条限制）。不给词时用 ing、tion 等命中很多的片段
-      --test-dict-rebuild <核心.bin> <输出.bin>  从核心包重建 dict3.bin 并打印各段耗时
-      --test-dict-install  按安装功能下载 dict3-core.7z，解压后在 exe 旁重建 dict3.bin，再查 hello
+      --test-dict-install  按安装功能下载 dict3.7z，解压出 exe 旁的 dict3.bin，再查 hello
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
@@ -7959,7 +7940,6 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-mem-load [base|ocr|winocr|tr|asr|asrstream|tts|dict|face] [cpu|cuda|dml]
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
-  ScreenKit --test-dict-rebuild <核心.bin> <输出.bin>
   ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word

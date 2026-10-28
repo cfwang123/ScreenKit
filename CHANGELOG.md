@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The って row now covers んだって hearsay (行くんだって, 学生なんだって), and a new だと row adds 行くんだと／学生だと with んだとさ and the negative 行かないんだと／行かないだと.
 - The confirmation group gains のでは (= のではないか): 行くのでは／行くのではないか／行かないのでは, 学生なのでは／学生なのではないか, alongside the existing んじゃないか.
 - New concessive group: けど／けども／けれど／けれども, んだけど（も）, が and のに with their negatives; na-adjectives and nouns insert だ (学生だけど), and the colloquial rows use じゃない.
+- Japanese dialect forms now also show -nakute / -naide / -nakatta / -nakattara for Kansai, Kyushu, Tohoku and Hiroshima.
 
 #### Changed
 
@@ -99,6 +100,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 「って」行补上 んだって 传闻形（行くんだって、学生なんだって），新增「だと」行：行くんだと、学生だと、んだとさ，以及否定的 行かないんだと、行かないだと。
 - 确认・推测组新增「のでは（＝のではないか）」：行くのでは、行くのではないか、行かないのでは；学生なのでは、学生なのではないか，与原有的「んじゃないか」并列。
 - 新增「逆接（けれど・けど）」组：けど／けども／けれど／けれども、んだけど（も）、が、のに，都带否定；な形容词和名词中间加 だ（学生だけど），口语行否定用 じゃない。
+- 日语方言说法补充否定派生形：关西、九州、东北、广岛都列出 なくて／ないで／なかった／なかったら
 
 #### 变更
 

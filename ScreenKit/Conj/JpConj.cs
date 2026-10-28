@@ -1271,25 +1271,42 @@ static class JpConj {
 		var kure = iskureru(word);
 		var nai = suru ? pre + "せえへん" : kuru ? "けえへん" : kansainai(mz, kind);
 		var n = suru ? pre + "せん" : kuru ? "こん" : mz + "ん";
-		// 关西：ない＝へん，ないで＝んといて，尊敬＝はる，命令＝なはれ
+		// 关西：ない＝へん，ないで＝んといて，なくて＝へんくて，なかった＝へんかった，尊敬＝はる，命令＝なはれ
 		rows.Add(new ConjRow(L.nai, nai, L.dks));
+		if (!aru) rows.Add(new ConjRow(L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks));
+		rows.Add(new ConjRow(L.nakute, nai + "くて", L.dks));
+		rows.Add(new ConjRow(L.nakatta, nai + "かった", L.dks));
+		rows.Add(new ConjRow(L.tara, nai + "かったら", L.dks));
 		if (!aru) {
-			rows.Add(new ConjRow(L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks));
 			rows.Add(new ConjRow(L.gson, ren + "はる", L.dks));
 			// 关西的「〜やん」就是标准语的「〜じゃん」，否定用关西的 へん。
 			rows.Add(new ConjRow(L.jyan, std.plain + "やん、" + nai + "やん", L.dks));
 			if (!kure) rows.Add(new ConjRow(L.cmd, ren + "なはれ", L.dks));
 		}
-		// 九州（博多）：ない＝ん，ている＝とる，一段とサ変的命令＝れ
+		// 九州（博多）：ない＝ん，ないで＝んで，なくて＝んくて，なかった＝んかった，ている＝とる，一段とサ変的命令＝れ
 		rows.Add(new ConjRow(L.nai, n, L.dky));
+		if (!aru) rows.Add(new ConjRow(L.naide, n + "で", L.dky));
+		rows.Add(new ConjRow(L.nakute, n + "くて", L.dky));
+		rows.Add(new ConjRow(L.nakatta, n + "かった", L.dky));
+		rows.Add(new ConjRow(L.tara, n + "かったら", L.dky));
 		if (!aru) rows.Add(new ConjRow(L.teiru, tes + "とる", L.dky));
 		if (!kure && (kind == "2" || suru)) rows.Add(new ConjRow(L.cmd, suru ? pre + "せれ" : mz + "れ", L.dky));
-		// 东北：意向＝べ，一段的命令＝れ
+		// 东北：ない＝ね，ないで＝ねで，なくて＝ねくて，なかった＝ねかった，意向＝べ，一段的命令＝れ
+		if (!aru) {
+			rows.Add(new ConjRow(L.nai, mz + "ね", L.dth));
+			rows.Add(new ConjRow(L.naide, mz + "ねで", L.dth));
+			rows.Add(new ConjRow(L.nakute, mz + "ねくて", L.dth));
+			rows.Add(new ConjRow(L.nakatta, mz + "ねかった", L.dth));
+			rows.Add(new ConjRow(L.tara, mz + "ねかったら", L.dth));
+		}
 		rows.Add(new ConjRow(L.vol, std.plain + "べ", L.dth));
 		if (!kure && kind == "2") rows.Add(new ConjRow(L.cmd, mz + "れ", L.dth));
-		// 广岛：ない＝ん，なかった＝んかった，ている＝とる・ちょる，尊敬＝んさる
+		// 广岛：ない＝ん，ないで＝んで，なくて＝んくて，なかった＝んかった，ている＝とる・ちょる，尊敬＝んさる
 		rows.Add(new ConjRow(L.nai, n, L.dhi));
+		if (!aru) rows.Add(new ConjRow(L.naide, n + "で", L.dhi));
+		rows.Add(new ConjRow(L.nakute, n + "くて", L.dhi));
 		rows.Add(new ConjRow(L.nakatta, n + "かった", L.dhi));
+		rows.Add(new ConjRow(L.tara, n + "かったら", L.dhi));
 		if (!aru) {
 			rows.Add(new ConjRow(L.teiru, tes + "とる、" + tes + "ちょる", L.dhi));
 			rows.Add(new ConjRow(L.gson, ren + "んさる", L.dhi));
@@ -1304,14 +1321,29 @@ static class JpConj {
 		return new List<ConjRow> {
 			new(L.nai, ji + "へん", L.dks),
 			new(L.naide, ji + "んといて", L.dks),
+			new(L.nakute, ji + "へんくて", L.dks),
+			new(L.nakatta, ji + "へんかった", L.dks),
+			new(L.tara, ji + "へんかったら", L.dks),
 			new(L.gson, ji + "はる", L.dks),
 			new(L.jyan, std.plain + "やん、" + ji + "へんやん", L.dks),
 			new(L.cmd, ji + "なはれ", L.dks),
 			new(L.nai, ji + "ん", L.dky),
+			new(L.naide, ji + "んで", L.dky),
+			new(L.nakute, ji + "んくて", L.dky),
+			new(L.nakatta, ji + "んかった", L.dky),
+			new(L.tara, ji + "んかったら", L.dky),
 			new(L.teiru, tes + "とる", L.dky),
+			new(L.nai, ji + "ね", L.dth),
+			new(L.naide, ji + "ねで", L.dth),
+			new(L.nakute, ji + "ねくて", L.dth),
+			new(L.nakatta, ji + "ねかった", L.dth),
+			new(L.tara, ji + "ねかったら", L.dth),
 			new(L.vol, std.plain + "べ", L.dth),
 			new(L.nai, ji + "ん", L.dhi),
+			new(L.naide, ji + "んで", L.dhi),
+			new(L.nakute, ji + "んくて", L.dhi),
 			new(L.nakatta, ji + "んかった", L.dhi),
+			new(L.tara, ji + "んかったら", L.dhi),
 			new(L.teiru, tes + "とる、" + tes + "ちょる", L.dhi),
 			new(L.gson, ji + "んさる", L.dhi),
 		};
