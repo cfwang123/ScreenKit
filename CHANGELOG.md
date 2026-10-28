@@ -77,12 +77,17 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary entries are built once as a compact JSON of rendered lines and inline runs; the WPF dictionary, web dictionary and reader render the same document, and Definitions only is a builder parameter.
 - Japanese name results line up in rows, 60 per page, and scroll inside the list.
 - The dictionary conjugation table is now a read-only RichTextBox: text can be selected and copied; copy strips the speaker icon and trailing spaces.
+- Dictionary install downloads dict3.7z and extracts dict3.bin again instead of building it from the core pack.
 
 #### Fixed
 
 - Restore the result count and elapsed time under the dictionary page search results.
 - Dictionary search timing uses a high-resolution clock, so fast lookups show their real milliseconds instead of 0 ms.
 - Corrected the colloquial rows: かよ takes no negative (行かないかよ → 行かないのかよ, new のかよ row) and is not listed for na-adjectives; じゃね？ now attaches only to nouns and na-adjectives, while verbs and i-adjectives use じゃないか／じゃねえか.
+
+#### Removed
+
+- Removed the --test-dict-rebuild command and the core-pack rebuild code.
 
 ### 中文
 
@@ -119,12 +124,17 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典词条改为先生成「行 + 行内块」的紧凑 JSON，WPF 词典、网页词典和阅读器渲染同一份文档；「仅释义」作为生成参数传入。
 - 日本姓名结果按行对齐，每页固定 60 条，超出部分在列表里滚动。
 - 词典的形态变化表改成只读 RichTextBox，文字可以拖选、Ctrl+C 复制；复制时去掉朗读图标和行尾空白。
+- 词典安装改回下载 dict3.7z 解出 dict3.bin，不再从核心包在本机重建。
 
 #### 修复
 
 - 词典页恢复搜索结果下方的结果条数和用时显示。
 - 词典搜索用时改用高精度计时，快查询不再显示 0 ms。
 - 修正口语语气行：かよ 不接否定（行かないかよ 改为行かないのかよ，新增「のかよ」行），な形容词不列；じゃね？ 只接名词和な形容词，动词和い形容词改用 じゃないか／じゃねえか。
+
+#### 移除
+
+- 去掉 --test-dict-rebuild 命令和核心包重建代码。
 
 ## v1.0.30 (2026-10-27)
 
