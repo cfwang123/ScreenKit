@@ -46,126 +46,63 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- CLI --test-dict-count compares full hit counts of two dict3.bin files, without the 4000-row cap.
-- CLI --test-dict-rebuild rebuilds dict3.bin from the core package and prints how long each stage takes.
-- Dictionary page adds a Definitions only checkbox that hides example sentences in the entry detail.
-- CLI --test-dict-senseonly checks that Definitions only hides example sentences.
-- CLI --test-dict-install downloads dict3-core.7z and rebuilds dict3.bin beside that exe.
+- Dictionary CLI self-checks: --test-dict-count compares the full hit counts of two dict3.bin files without the 4000-row cap, --test-dict-conj dumps every group and row of a conjugation table, and --test-dict-senseonly checks that Definitions only keeps example sentences hidden.
+- Dictionary page adds a Definitions only checkbox.
 - Japanese name lookup splits a full name into a matching surname and given name.
 - Japanese conjugation handles -zuru verbs (信ずる, 命ずる, 重んずる) with their mixed じ/ぜ stems; the Japanese IME word list now includes their conjugated forms.
-- Japanese conjugation table adds colloquial and net endings: じゃん／じゃんね, じゃね？／じゃねえか, んじゃね／なんじゃね, かよ, 〜ｗ／〜草, verb だろ, Kansai やん, plus くねえ／じゃねえ negative variants.
-- Every colloquial ending row also shows its negative (行かないじゃん, 行かないんじゃね？, 学生じゃなくね？, 行かへんやん), and a new 〜なくね row covers 高くなくね／行かなくね.
-- The って row now covers んだって hearsay (行くんだって, 学生なんだって), and a new だと row adds 行くんだと／学生だと with んだとさ and the negative 行かないんだと／行かないだと.
-- The confirmation group gains のでは (= のではないか): 行くのでは／行くのではないか／行かないのでは, 学生なのでは／学生なのではないか, alongside the existing んじゃないか.
-- New concessive group: けど／けども／けれど／けれども, んだけど（も）, が and のに with their negatives; na-adjectives and nouns insert だ (学生だけど), and the colloquial rows use じゃない.
-- Japanese dialect forms now also show -nakute / -naide / -nakatta / -nakattara for Kansai, Kyushu, Tohoku and Hiroshima.
-- Japanese dialect rows now also cover polite forms, volitional, potential, causative, imperative, -teoku, -teshimau, -teiru, -ba, -nakereba, -tai and -kudasai, plus Tohoku past -tatta and Kansai -mass- forms.
-- Japanese dialect rows for i-adjectives, na-adjectives and nouns now cover all four dialects (Kansai 高うない / やない / ちゃう, Kyushu 高か / ばい, Tohoku 高くねぇ / だっちゃ, Hiroshima じゃ / けりゃ / かろー).
-- i-adjectives now show the polite negative -kunai desu / -kunakatta desu and the deferential -u gozaimasu (takou gozaimasu); -i adjectives do not take de gozaimasu.
-- i-adjectives now also show the -me degree form (takame / takame da / takame na).
-- Tray menu: added dictionary, diagnostics and memory usage; main menu: added screencast
-- Japanese conjugation: -tekudasai also shows -tekudasaimase
-- English conjugation: added auxiliaries and patterns, sentence patterns, noun/adjective usage notes, and a pronoun table
-- CLI --test-dict-conj dumps every group and row of a conjugation table, for coverage checks.
+- Japanese conjugation adds colloquial and net endings (じゃん／じゃね／かよ／〜ｗ with their negatives, plus 〜なくね), んだって hearsay and だと rows, のでは beside んじゃないか, and a concessive group (けど・けれど・が・のに); てください also shows てくださいませ.
+- Japanese dialect rows cover all four dialects: verb forms (polite, volitional, potential, causative, imperative, ておく／てしまう／ている, ば, なければ, たい, ください and the negative derivations), plus i-adjectives, na-adjectives and nouns (presumption, conditionals, polite).
+- i-adjectives show the polite negative -kunai desu / -kunakatta desu, the deferential 〜うございます and the 〜め degree form.
+- Tray menu: added dictionary, diagnostics and memory usage; main menu: added screencast.
+- English conjugation: added auxiliaries and patterns, sentence patterns, noun/adjective usage notes, and a pronoun table.
 - Korean conjugation adds advanced standard endings (retrospective, quotative, connective, honorific and auxiliary forms).
 
 #### Changed
 
-- Definitions only shows one language per sense (UI language first, then English, Chinese, Japanese and Korean); senses are separated by a blank line, except in English and Japanese entries where they sit directly together.
-- Dictionary install downloads dict3-core.7z and builds the local index.
-- With Definitions only, the sub-senses of one sense are merged into a single line separated by semicolons.
-- Japanese name lookup no longer shows surname population, and each row has a speak button.
-- Korean entries list phrases under a Phrases heading, with each phrase and its Chinese gloss on one line told apart by colour.
-- Korean example sentences put the Chinese translation on the same line, in the same style as phrases.
-- Japanese name readings can generate a random name. Japanese and Korean full names from fake data are family name then given name, with no space.
-- Korean entry details indent the translated definitions and put a blank line before the phrase and example blocks.
-- English entry details indent the translated definitions, list phrases under a Phrases heading with indented definitions and examples, and put example translations on the same line.
-- Name search lists each matched surname and given name on its own row, including cuts where only one side matches, and readings are shown in full.
-- Japanese name readings no longer has a full-name tab. Searching a full name under All shows one surname and one given name.
-- Each Japanese name lists every reading in a vertical stack, with a speak button on each one.
-- Dictionary entries are built once as a compact JSON of rendered lines and inline runs; the WPF dictionary, web dictionary and reader render the same document, and Definitions only is a builder parameter.
-- Japanese name results line up in rows, 60 per page, and scroll inside the list.
+- Dictionary entries are built once as a compact JSON of rendered lines and inline runs; the WPF dictionary, web dictionary and reader render the same document, and Definitions only is a builder parameter. With Definitions only each sense shows one language (UI language first) and its sub-senses join into one line separated by semicolons.
+- Korean and English entry details indent the translated definitions, list phrases under a Phrases heading with indented definitions and examples, and put example translations on the same line.
+- Japanese name results show a full name split into surname and given name, every reading stacked with a speak button, 60 rows per page with scrolling; surname population is gone, the 姓名 tab is removed, a random name can be generated, and fake-data names are family name then given name with no space.
 - The dictionary conjugation table is now a read-only RichTextBox: text can be selected and copied; copy strips the speaker icon and trailing spaces.
-- Dictionary install downloads dict3.7z and extracts dict3.bin again instead of building it from the core pack.
-- Dialect rows for i-adjectives and nouns now cover presumption, conditionals and polite forms (Kansai 高いやろ / 高うおます, Kyushu 高かかった / 高かです / 高かたら, Tohoku 高いべ / 高いす / 学生だら, Hiroshima 静かな / 静かなけりゃ / 学生じゃろー).
-- Japanese conjugation now appends the N1-N5 grammar entries from the blue-book catalogue that fit the word: 98 verb patterns and 101 noun patterns such as ～て憚らない and ～に限らず.
-- Japanese conjugation also appends the catalogue patterns that fit い/な adjectives (37 entries such as 高い限りだ and 静かな一方で).
+- Japanese conjugation appends the N1-N5 blue-book catalogue patterns that fit the word: 98 verb, 101 noun and 37 adjective entries such as ～て憚らない, ～に限らず and 高い限りだ.
 
 #### Fixed
 
-- Restore the result count and elapsed time under the dictionary page search results.
-- Dictionary search timing uses a high-resolution clock, so fast lookups show their real milliseconds instead of 0 ms.
+- Restore the result count and elapsed time under dictionary search results, using a high-resolution clock so fast lookups show their real milliseconds instead of 0 ms.
 - Corrected the colloquial rows: かよ takes no negative (行かないかよ → 行かないのかよ, new のかよ row) and is not listed for na-adjectives; じゃね？ now attaches only to nouns and na-adjectives, while verbs and i-adjectives use じゃないか／じゃねえか.
 - The Japanese conjugation tool now reports a network error when the dictionary or conjugation API cannot be reached, instead of saying the word is not in the dictionary.
 - Causative ～させてください and ～させていただく now insert て (書かせるてください → 書かせてください).
 - The IME candidate bar now follows the caret in Chrome and other windows that draw their own caret, using UI Automation when Windows reports no caret.
 
-#### Removed
-
-- Removed the --test-dict-rebuild command and the core-pack rebuild code.
-
 ### 中文
 
 #### 新增
 
-- 命令行 --test-dict-count 比较两份 dict3.bin 的全部命中数，不受 4000 条上限。
-- 命令行 --test-dict-rebuild 从核心包重建 dict3.bin，并打印各段耗时。
-- 词典页新增「仅释义」勾选框，勾选后词条详情不显示例句。
-- 命令行 --test-dict-senseonly 校验「仅释义」勾选后详情不再显示例句。
-- 命令行 --test-dict-install 按安装功能下载 dict3-core.7z，并在该程序旁重建 dict3.bin。
+- 命令行词典自检：--test-dict-count 比较两份 dict3.bin 的全部命中数（不受 4000 条上限），--test-dict-conj 打印一张变形表的分组与全部结果，--test-dict-senseonly 校验「仅释义」后例句不再显示。
+- 词典页新增「仅释义」勾选框。
 - 日本姓名查询可以输入完整姓名，拆成能对上的姓和名。
 - 日语动词变形支持 ずる 动词（信ずる、命ずる、重んずる）的 じ／ぜ 混合活用；日语输入法词库也写入这些活用形。
-- 日语变化表补充口语与网络说法：じゃん／じゃんね、じゃね？／じゃねえか、んじゃね／なんじゃね、かよ、〜ｗ／〜草、动词的だろ，以及关西的やん；い形容词和な形容词、名词的否定也补上 くねえ／じゃねえ。
-- 口语语气行都补上否定说法（行かないじゃん、行かないんじゃね？、学生じゃなくね？、行かへんやん），并新增「〜なくね」行（高くなくね、行かなくね）。
-- 「って」行补上 んだって 传闻形（行くんだって、学生なんだって），新增「だと」行：行くんだと、学生だと、んだとさ，以及否定的 行かないんだと、行かないだと。
-- 确认・推测组新增「のでは（＝のではないか）」：行くのでは、行くのではないか、行かないのでは；学生なのでは、学生なのではないか，与原有的「んじゃないか」并列。
-- 新增「逆接（けれど・けど）」组：けど／けども／けれど／けれども、んだけど（も）、が、のに，都带否定；な形容词和名词中间加 だ（学生だけど），口语行否定用 じゃない。
-- 日语方言说法补充否定派生形：关西、九州、东北、广岛都列出 なくて／ないで／なかった／なかったら
-- 日语方言说法补充丁宁体、意向、可能、使役、命令、ておく、てしまう、ている、ば、なければ、たい、ください，以及东北的过去 たった 和关西的 まっ／まへん。
-- 日语方言中い形容词、な形容词、名词的方言行扩到四种方言（关西 高うない／やない／ちゃう，九州 高か／ばい，东北 高くねぇ／だっちゃ，广岛 じゃ／けりゃ／かろー）。
-- い形容词补充丁宁否定 〜くないです／〜くなかったです 和丁重形 〜うございます（高うございます）；い形容词不能接 でございます。
-- い形容词补充 〜め 的程度说法（高め／高めだ／高めな）。
-- 托盘菜单补上词典、诊断、内存占用；主菜单补上投屏
-- 日语变形表：てください格并列显示「〜てくださいませ」
-- 英语变形表：新增助动词与搭配、句型、名词/形容词用法补充和代词表
-- 命令行 --test-dict-conj 打印一张变形表的全部分组与结果，核对覆盖面用。
+- 日语变化表补充口语与网络说法（じゃん／じゃね／かよ／〜ｗ 及其否定，外加 〜なくね）、んだって 传闻和 だと 行、与「んじゃないか」并列的「のでは」，以及逆接组（けど・けれど・が・のに）；てください 同时显示「〜てくださいませ」。
+- 日语方言行扩到四种方言：动词的敬体、意向、可能、使役、命令、ておく／てしまう／ている、ば、なければ、たい、ください 及否定派生，另含い形容词、な形容词、名词的推量、假定与敬体。
+- い形容词补充丁宁否定 〜くないです／〜くなかったです、丁重形 〜うございます 和 〜め 的程度说法（高め）。
+- 托盘菜单补上词典、诊断、内存占用；主菜单补上投屏。
+- 英语变形表：新增助动词与搭配、句型、名词/形容词用法补充和代词表。
 - 韩语变形新增标准语高级词尾（回想、引用、连接、敬语与辅助谓词）。
 
 #### 变更
 
-- 「仅释义」每个义项只显示一种语言的释义（界面语言优先，没有则依次英文、中文、日文、韩文）；义项之间空一行，英语和日语词条例外（义项紧挨着）。
-- 词典安装改为下载 dict3-core.7z，解压后在本机建立索引。
-- 「仅释义」时，同一义项下的多条子义项合并成一行，用「; 」分隔。
-- 日本姓名查询不再显示姓的人数，每条旁边可以听读音。
-- 韩语词条词组改为「词组：」列表，每条词组与中文释义排在同一行，用颜色区分。
-- 韩语例句的中文翻译也并到同一行，与词组排版一致。
-- 「日本姓名查询」改名为「日本姓名读法」，可以随机生成一个日本姓名。测试数据里的日语、韩语姓名改为姓在前、中间不空格。
-- 韩语词条详情里译文释义缩进，词组和例句前各空一行。
-- 英语词条详情里译文释义缩进，词组改为「词组：」列表（词组下的释义和例句缩进），例句中文并到同一行。
-- 搜索姓名时，对上的姓和名各占一行，只对上其中一边也会列出，不同切分长度都会显示；读音不再省略。
-- 日本姓名读法去掉「姓名」分类。在「全部」里搜索完整姓名时，只显示最匹配的一姓和一名。
-- 日本姓名的每条结果竖排显示全部读法，每个读法都有发音按钮。
-- 词典词条改为先生成「行 + 行内块」的紧凑 JSON，WPF 词典、网页词典和阅读器渲染同一份文档；「仅释义」作为生成参数传入。
-- 日本姓名结果按行对齐，每页固定 60 条，超出部分在列表里滚动。
+- 词条改为先生成「行 + 行内块」的紧凑 JSON，WPF 词典、网页词典和阅读器渲染同一份文档，「仅释义」作为生成参数；勾选后每个义项只显示一种语言（界面语言优先），子义项用「; 」合并成一行。
+- 韩语和英语词条详情里译文释义缩进，词组改为「词组：」列表（释义和例句缩进），例句中文并到同一行。
+- 日本姓名查询改名为「日本姓名读法」：完整姓名拆成姓和名显示，每条竖排全部读法并带发音按钮，每页 60 条、超出滚动；不再显示姓的人数，去掉「姓名」分类，可以随机生成姓名，测试数据里的日韩姓名改为姓在前、中间不空格。
 - 词典的形态变化表改成只读 RichTextBox，文字可以拖选、Ctrl+C 复制；复制时去掉朗读图标和行尾空白。
-- 词典安装改回下载 dict3.7z 解出 dict3.bin，不再从核心包在本机重建。
-- 日语方言的い形容词、な形容词和名词补齐推量、假定和敬体（关西 高いやろ／高うおます，九州 高かかった／高かです／高かたら，东北 高いべ／高いす／学生だら，广岛 静かな／静かなけりゃ／学生じゃろー）。
-- 日语变形表按蓝宝书 N1-N5 目录补齐：动词句型新增 98 条、名词句型新增 101 条，如 ～て憚らない、～に限らず。
-- 日语变形表的形容词表同样接入目录：い形容词/な形容词各 37 条，如 高い限りだ、静かな一方で。
+- 日语变形表按蓝宝书 N1-N5 目录补齐：动词 98 条、名词 101 条、形容词 37 条，如 ～て憚らない、～に限らず、高い限りだ。
 
 #### 修复
 
-- 词典页恢复搜索结果下方的结果条数和用时显示。
-- 词典搜索用时改用高精度计时，快查询不再显示 0 ms。
+- 词典页恢复搜索结果下方的条数和用时显示，并改用高精度计时，快查询不再显示 0 ms。
 - 修正口语语气行：かよ 不接否定（行かないかよ 改为行かないのかよ，新增「のかよ」行），な形容词不列；じゃね？ 只接名词和な形容词，动词和い形容词改用 じゃないか／じゃねえか。
 - 日文变形工具在词典或变形接口连不上时提示网络错误，不再显示词典里没有这个词。
 - 使役的 ～させてください、～させていただく 补上 て（書かせるてください → 書かせてください）。
 - 输入法候选条在 Chrome 等自绘光标的窗口里改用 UI Automation 取光标，不再停在鼠标位置。
-
-#### 移除
-
-- 去掉 --test-dict-rebuild 命令和核心包重建代码。
-
 ## v1.0.30 (2026-10-27)
 
 ### English
