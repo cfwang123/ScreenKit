@@ -213,6 +213,9 @@
 					<MenuItem x:Name="mnglyphmod" Header="字符点阵提取(_E)…"
 					          AutomationProperties.AutomationId="menu.glyphmod"
 					          ToolTip="把字符画成点阵，导出 C 代码"/>
+					<MenuItem x:Name="mncast" Header="投屏(_S)"
+					          AutomationProperties.AutomationId="menu.cast"
+					          ToolTip="手机投屏（WiFi / USB / ADB）"/>
 				</MenuItem>
 				<MenuItem x:Name="mninfo" Header="信息查询(_I)"
 				          AutomationProperties.AutomationId="menu.info"

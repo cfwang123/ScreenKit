@@ -33,6 +33,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miOcr;
 	Forms.ToolStripMenuItem miSnap;
 	Forms.ToolStripMenuItem miScreenSnap;
+	Forms.ToolStripMenuItem miLongShot;
 	Forms.ToolStripMenuItem miBoard;
 	Forms.ToolStripMenuItem miVoice;
 	Forms.ToolStripMenuItem miTranslate;
@@ -66,6 +67,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miHash;
 	Forms.ToolStripMenuItem miTextTool;
 	Forms.ToolStripMenuItem miMdRead;
+	Forms.ToolStripMenuItem miDoc2Md;
 	Forms.ToolStripMenuItem miPwGen;
 	Forms.ToolStripMenuItem miSciCalc;
 	Forms.ToolStripMenuItem miNote;
@@ -77,7 +79,10 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miMidi;
 	Forms.ToolStripMenuItem miVoiceRec;
 	Forms.ToolStripMenuItem miCam;
+	Forms.ToolStripMenuItem miDict;
 	Forms.ToolStripMenuItem miSys;
+	Forms.ToolStripMenuItem miDiag;
+	Forms.ToolStripMenuItem miMem;
 	Forms.ToolStripMenuItem miSysTool;
 	Forms.ToolStripMenuItem miFileProbe;
 	Forms.ToolStripMenuItem miPerfMon;
@@ -180,6 +185,8 @@ sealed class TrayIcon : IDisposable {
 		miOcr = item("tray.ocr", () => OcrRequested?.Invoke());
 		miSnap = item("tray.snap", () => SnapRequested?.Invoke());
 		miScreenSnap = item("tray.screensnap", () => ScreenSnapRequested?.Invoke());
+		miLongShot = item("tray.longshot", () => LongShotRequested?.Invoke());
+		miLongShot.ToolTipText = Loc.T("menu.longshot.tip");
 		miBoard = item("tray.board", () => BoardRequested?.Invoke());
 		miVoice = item("tray.voice", () => VoiceRequested?.Invoke());
 		miTranslate = item("tray.translate", () => TranslateRequested?.Invoke());
@@ -211,6 +218,7 @@ sealed class TrayIcon : IDisposable {
 		miHash = item("tray.hash", () => HashRequested?.Invoke());
 		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
 		miMdRead = item("tray.mdread", () => MdReadRequested?.Invoke());
+		miDoc2Md = item("tray.doc2md", () => DocToMdRequested?.Invoke());
 		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
 		miSciCalc = item("tray.scicalc", () => SciCalcRequested?.Invoke());
 		miNote = item("tray.note", () => NoteRequested?.Invoke());
@@ -220,7 +228,13 @@ sealed class TrayIcon : IDisposable {
 		miMidi = item("tray.midisynth", () => MidiSynthRequested?.Invoke());
 		miVoiceRec = item("tray.voicerec", () => VoiceRecRequested?.Invoke());
 		miCam = item("tray.cam", () => CamRequested?.Invoke());
+		miDict = item("tray.dict", () => DictRequested?.Invoke());
+		miDict.ToolTipText = Loc.T("menu.dict.tip");
 		miSys = item("tray.sysinfo", () => SysRequested?.Invoke());
+		miDiag = item("tray.diag", () => DiagRequested?.Invoke());
+		miDiag.ToolTipText = Loc.T("menu.diag.tip");
+		miMem = item("tray.mem", () => MemRequested?.Invoke());
+		miMem.ToolTipText = Loc.T("menu.mem.tip");
 		miSysTool = item("tray.systool", () => SysToolRequested?.Invoke());
 		miFileProbe = item("tray.fileprobe", () => FileProbeRequested?.Invoke());
 		miPerfMon = item("tray.perfmon", () => PerfMonRequested?.Invoke());
@@ -247,6 +261,7 @@ sealed class TrayIcon : IDisposable {
 		miCatText = new Forms.ToolStripMenuItem(Loc.T("web.cat.text"));
 		miCatText.DropDownItems.Add(miTextTool);
 		miCatText.DropDownItems.Add(miMdRead);
+		miCatText.DropDownItems.Add(miDoc2Md);
 		miCatText.DropDownItems.Add(miPwGen);
 		miCatText.DropDownItems.Add(miNote);
 		miCatText.DropDownItems.Add(miZhConv);
@@ -273,6 +288,7 @@ sealed class TrayIcon : IDisposable {
 		miCatImage.DropDownItems.Add(miGlyphMod);
 		miCatImage.DropDownItems.Add(miCast);
 		miInfo = new Forms.ToolStripMenuItem(Loc.T("tray.info"));
+		miInfo.DropDownItems.Add(miDict);
 		miInfo.DropDownItems.Add(miSys);
 		miCatTalk = new Forms.ToolStripMenuItem(Loc.T("web.cat.talk"));
 		miNetGroup = new Forms.ToolStripMenuItem(Loc.T("tray.netgroup"));
@@ -288,6 +304,8 @@ sealed class TrayIcon : IDisposable {
 		miCatSys.DropDownItems.Add(miPerfMon);
 		miCatSys.DropDownItems.Add(miWinTop);
 		miCatSys.DropDownItems.Add(miAutoKey);
+		miCatSys.DropDownItems.Add(miDiag);
+		miCatSys.DropDownItems.Add(miMem);
 		miTools.DropDownItems.Add(miCatText);
 		miTools.DropDownItems.Add(miCatCalc);
 		miTools.DropDownItems.Add(miCatSpeech);
@@ -316,6 +334,7 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miOcr);
 		menu.Items.Add(miSnap);
 		menu.Items.Add(miScreenSnap);
+		menu.Items.Add(miLongShot);
 		menu.Items.Add(miBoard);
 		menu.Items.Add(miVoice);
 		menu.Items.Add(miTranslate);
@@ -437,6 +456,7 @@ sealed class TrayIcon : IDisposable {
 			if (miVoice != null) miVoice.Enabled = asr;
 			if (miTranslate != null) miTranslate.Enabled = translate;
 			if (miDictSel != null) miDictSel.Enabled = dict;
+			if (miDict != null) miDict.Enabled = dict;
 		}
 		catch { }
 	}
@@ -470,6 +490,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miOcr, ocr);
 		setshortcut(miSnap, snap);
 		setshortcut(miScreenSnap, screensnap);
+		setshortcut(miLongShot, null);
 		setshortcut(miBoard, board);
 		setshortcut(miVoice, voice);
 		setshortcut(miTranslate, tr);
@@ -538,6 +559,8 @@ sealed class TrayIcon : IDisposable {
 			settext(miOcr, "tray.ocr");
 			settext(miSnap, "tray.snap");
 			settext(miScreenSnap, "tray.screensnap");
+			settext(miLongShot, "tray.longshot");
+			if (miLongShot != null) miLongShot.ToolTipText = Loc.T("menu.longshot.tip");
 			settext(miBoard, "tray.board");
 			settext(miVoice, "tray.voice");
 			settext(miTranslate, "tray.translate");
@@ -575,6 +598,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miHash, "tray.hash");
 			settext(miTextTool, "tray.texttool");
 			settext(miMdRead, "tray.mdread");
+			settext(miDoc2Md, "tray.doc2md");
 			settext(miPwGen, "tray.pwgen");
 			settext(miSciCalc, "tray.scicalc");
 			settext(miNote, "tray.note");
@@ -586,7 +610,13 @@ sealed class TrayIcon : IDisposable {
 			settext(miMidi, "tray.midisynth");
 			settext(miVoiceRec, "tray.voicerec");
 			settext(miCam, "tray.cam");
+			settext(miDict, "tray.dict");
+			if (miDict != null) miDict.ToolTipText = Loc.T("menu.dict.tip");
 			settext(miSys, "tray.sysinfo");
+			settext(miDiag, "tray.diag");
+			if (miDiag != null) miDiag.ToolTipText = Loc.T("menu.diag.tip");
+			settext(miMem, "tray.mem");
+			if (miMem != null) miMem.ToolTipText = Loc.T("menu.mem.tip");
 			settext(miSysTool, "tray.systool");
 			settext(miPerfMon, "tray.perfmon");
 			settext(miHttpDbg, "tray.httpdbg");
@@ -617,6 +647,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action OcrRequested;
 	public event Action SnapRequested;
 	public event Action ScreenSnapRequested;
+	public event Action LongShotRequested;
 	public event Action BoardRequested;
 	public event Action VoiceRequested;
 	public event Action TranslateRequested;
@@ -735,6 +766,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action HashRequested;
 	public event Action TextToolRequested;
 	public event Action MdReadRequested;
+	public event Action DocToMdRequested;
 	public event Action PwGenRequested;
 	public event Action SciCalcRequested;
 	public event Action NoteRequested;
@@ -744,7 +776,10 @@ sealed class TrayIcon : IDisposable {
 	public event Action MidiSynthRequested;
 	public event Action VoiceRecRequested;
 	public event Action CamRequested;
+	public event Action DictRequested;
 	public event Action SysRequested;
+	public event Action DiagRequested;
+	public event Action MemRequested;
 	public event Action SysToolRequested;
 	public event Action FileProbeRequested;
 	public event Action PerfMonRequested;

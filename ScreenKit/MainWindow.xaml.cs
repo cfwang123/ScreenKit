@@ -672,6 +672,12 @@ public partial class MainWindow : Window {
 			tray.ScreenSnapRequested += () => Dispatcher.BeginInvoke(new Action(() => {
 				_ = screensnapasync(mainWasVisibleOverride: trayMenuMainVisible);
 			}));
+			// 长截图：点选窗口后滚动拼接，不唤起主窗
+			tray.LongShotRequested += () => Dispatcher.BeginInvoke(new Action(async () => {
+				if (!trayMenuMainVisible)
+					keepmainhidden();
+				await longshotasync();
+			}));
 			// 屏幕画板：不唤起主窗
 			tray.BoardRequested += () => Dispatcher.BeginInvoke(new Action(() => {
 				if (!trayMenuMainVisible)
@@ -719,12 +725,19 @@ public partial class MainWindow : Window {
 			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash()));
 			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool()));
 			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread()));
+			tray.DocToMdRequested += () => Dispatcher.BeginInvoke(new Action(() => opendoc2md()));
 			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen()));
 			tray.SciCalcRequested += () => Dispatcher.BeginInvoke(new Action(() => openscicalc()));
 			tray.NoteRequested += () => Dispatcher.BeginInvoke(new Action(() => opennote()));
 			tray.RtspSrvRequested += () => Dispatcher.BeginInvoke(new Action(() => openrtspsrv()));
 			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool()));
+			tray.DictRequested += () => Dispatcher.BeginInvoke(new Action(() => showdicttab()));
 			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys()));
+			tray.DiagRequested += () => Dispatcher.BeginInvoke(new Action(() => {
+				if (tray != null) tray.showwindow();
+				opendiag();
+			}));
+			tray.MemRequested += () => Dispatcher.BeginInvoke(new Action(() => openmem()));
 			tray.SysToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opensystool()));
 			tray.FileProbeRequested += () => Dispatcher.BeginInvoke(new Action(() => openfileprobe()));
 			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon()));
@@ -1834,6 +1847,7 @@ public partial class MainWindow : Window {
 		mntexttool.Click += (_, _) => opentexttool();
 		mnmdread.Click += (_, _) => openmdread();
 		mndoc2md.Click += (_, _) => opendoc2md();
+		mncast.Click += (_, _) => opencast();
 		mnpwgen.Click += (_, _) => openpwgen();
 		mnscicalc.Click += (_, _) => openscicalc();
 		mnnote.Click += (_, _) => opennote();
@@ -2022,6 +2036,8 @@ public partial class MainWindow : Window {
 			mnnote.ToolTip = Loc.T("menu.note.tip");
 			mnrtspsrv.Header = Loc.T("menu.rtspsrv");
 			mnrtspsrv.ToolTip = Loc.T("menu.rtspsrv.tip");
+			mncast.Header = Loc.T("menu.cast");
+			mncast.ToolTip = Loc.T("menu.cast.tip");
 			mnnetgroup.Header = Loc.T("menu.netgroup");
 			mnnetgroup.ToolTip = Loc.T("menu.netgroup.tip");
 			mnnet.Header = Loc.T("menu.net");
