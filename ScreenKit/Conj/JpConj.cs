@@ -69,7 +69,7 @@ sealed class JpConjForms {
 sealed class JpConjPacked {
 	public bool ok = true;
 	public string err = "";
-	public string plain = "", masu = "", te = "", ta = "", nai = "", sub = "";
+	public string plain = "", masu = "", te = "", ta = "", nai = "", sub = "", vol = "";
 	public List<ConjRow> rows = new();
 	/// <summary>要拼在整张表最后的行（N5~N0 句型）。</summary>
 	public List<ConjRow> tail;
@@ -101,6 +101,12 @@ static class JpConj {
 		["ぶ"] = new[] { "ば", "び", "ぶ", "べ", "ぼ", "んで", "んだ" },
 		["む"] = new[] { "ま", "み", "む", "め", "も", "んで", "んだ" },
 		["る"] = new[] { "ら", "り", "る", "れ", "ろ", "って", "った" },
+	};
+
+	/// <summary>ウ音便用的ア段→オ段（か→こ、わら→わろ）；い→ゆ 只给「言う」。</summary>
+	static readonly Dictionary<string, string> A2O = new() {
+		["か"] = "こ", ["さ"] = "そ", ["た"] = "と", ["な"] = "の",
+		["は"] = "ほ", ["ま"] = "も", ["や"] = "よ", ["ら"] = "ろ", ["い"] = "ゆ",
 	};
 
 	/// <summary>网页下拉里的常见词表：g,辞书形,读音,类,flag,sub,中文,English。</summary>
@@ -966,7 +972,7 @@ static class JpConj {
 		rows.AddRange(endrows(L, plain, masu, "v", nai, cut(masu, 2) + "ません"));
 		// N5~N0 的句型放到整张表的最后，由 Build 在方言之后拼接。
 		var tail = JpGrammar.Rows(L.zh, jpforms(plain, masu, nai, te, ta, cau));
-		return new JpConjPacked { plain = plain, masu = masu, te = te, ta = ta, nai = nai, rows = rows, tail = tail };
+		return new JpConjPacked { plain = plain, masu = masu, te = te, ta = ta, nai = nai, vol = vol, rows = rows, tail = tail };
 	}
 
 	// 语气句型用的接续形（动词）。
@@ -988,24 +994,42 @@ static class JpConj {
 		};
 	}
 
-	// い形容词的方言：关西 高うない／高うて／高うなる，九州（博多）高か／高うなか／高うて。
+	// い形容词的方言：关西 高うない／高うて／高うなる／高かろ，九州（博多）高か／高うなか／高うて，
+	// 东北 高くねぇ，广岛 高うて／高うなる／あかけりゃ／あかかろー。
 	static List<ConjRow> dialectiadj(JpConjLabels L, string s) {
 		return new List<ConjRow> {
 			new(L.nai, s + "うない", L.dks),
 			new(L.te, s + "うて", L.dks),
 			new(L.naru, s + "うなる", L.dks),
+			new(L.darou, s + "かろ", L.dks),
 			new(L.term, s + "か", L.dky),
 			new(L.nai, s + "うなか", L.dky),
 			new(L.te, s + "うて", L.dky),
+			new(L.darou, s + "かろー", L.dky),
+			new(L.nai, s + "くねぇ", L.dth),
+			new(L.te, s + "うて", L.dhi),
+			new(L.naru, s + "うなる", L.dhi),
+			new(L.ba, s + "けりゃ", L.dhi),
+			new(L.darou, s + "かろー", L.dhi),
 		};
 	}
 
-	// な形容词、名词的方言：关西的断定是 や，否定 やない，过去 やった。
+	// な形容词、名词的方言：关西 や／やない／ちゃう／やった／だす，九州 や／ばい，
+	// 东北 だ／だっちゃ，广岛 じゃ／じゃない／じゃった。
 	static List<ConjRow> dialectnounrows(JpConjLabels L, string word) {
 		return new List<ConjRow> {
 			new(L.dict, word + "や", L.dks),
-			new(L.nai, word + "やない", L.dks),
+			new(L.pol, word + "だす、" + word + "でおます", L.dks),
+			new(L.nai, word + "やない、" + word + "ちゃう", L.dks),
 			new(L.ta, word + "やった", L.dks),
+			new(L.dict, word + "や、" + word + "ばい", L.dky),
+			new(L.nai, word + "やない", L.dky),
+			new(L.ta, word + "やった", L.dky),
+			new(L.dict, word + "だ、" + word + "だっちゃ", L.dth),
+			new(L.ta, word + "だった", L.dth),
+			new(L.dict, word + "じゃ", L.dhi),
+			new(L.nai, word + "じゃない", L.dhi),
+			new(L.ta, word + "じゃった", L.dhi),
 		};
 	}
 
@@ -1257,94 +1281,280 @@ static class JpConj {
 
 	// 方言只列和标准语不同的形，按使用人口和知名度的顺序：关西、九州、东北、广岛。
 	// 同一方言内部的细节各地不同，这里取最常见的说法。
+	// 除 ない 系外，还列て／た的ウ音便、丁宁体、意向、可能、使役、命令、ている、ておく、てしまう、
+	// ば、なければ、たい、ください。ずる动词另走 dialectzuru。
 	static List<ConjRow> dialectrows(string word, string kind, JpConjPacked std, JpConjLabels L) {
 		if (issonkearu(word)) return new List<ConjRow>();
 		if (iszuru(word)) return dialectzuru(std, L);
 		var rows = new List<ConjRow>();
+		rows.AddRange(dialectkansai(word, kind, std, L));
+		rows.AddRange(dialectkyushu(word, kind, std, L));
+		rows.AddRange(dialecttohoku(word, kind, std, L));
+		rows.AddRange(dialecthiroshima(word, kind, std, L));
+		return rows;
+	}
+
+	// 关西（大阪）：丁宁 まっ／まへん、ない へん、意向 行こ、可能 行かれへん、使役 行かす、
+	// 命令 なはれ、敬语 はる、ている てる、ておく とく、てしまう もた、たい てぇ。
+	static List<ConjRow> dialectkansai(string word, string kind, JpConjPacked std, JpConjLabels L) {
 		var ren = cut(std.masu, 2);
 		var mz = mizen(word, kind, ren);
-		var tes = cut(std.te, 1);
+		var suru = kind == "3" && !iskuru(word);
 		var kuru = kind == "3" && iskuru(word);
-		var suru = kind == "3" && !kuru;
 		var pre = suru ? cut(ren, 1) : "";
-		var aru = isaru(word);
-		var kure = iskureru(word);
 		var nai = suru ? pre + "せえへん" : kuru ? "けえへん" : kansainai(mz, kind);
-		var n = suru ? pre + "せん" : kuru ? "こん" : mz + "ん";
-		// 关西：ない＝へん，ないで＝んといて，なくて＝へんくて，なかった＝へんかった，尊敬＝はる，命令＝なはれ
-		rows.Add(new ConjRow(L.nai, nai, L.dks));
-		if (!aru) rows.Add(new ConjRow(L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks));
+		var rows = new List<ConjRow> {
+			new(L.masu, ren + "まっか、" + ren + "まっせ、" + ren + "まんねん", L.dks),
+			new(L.masen, ren + "まへん", L.dks),
+			new(L.nai, nai, L.dks),
+		};
+		if (!isaru(word)) rows.Add(new ConjRow(L.naide, (suru ? pre + "せ" : kuru ? "こ" : mz) + "んといて", L.dks));
 		rows.Add(new ConjRow(L.nakute, nai + "くて", L.dks));
 		rows.Add(new ConjRow(L.nakatta, nai + "かった", L.dks));
 		rows.Add(new ConjRow(L.tara, nai + "かったら", L.dks));
-		if (!aru) {
-			rows.Add(new ConjRow(L.gson, ren + "はる", L.dks));
-			// 关西的「〜やん」就是标准语的「〜じゃん」，否定用关西的 へん。
-			rows.Add(new ConjRow(L.jyan, std.plain + "やん、" + nai + "やん", L.dks));
-			if (!kure) rows.Add(new ConjRow(L.cmd, ren + "なはれ", L.dks));
+		rows.Add(new ConjRow(L.nakereba, nai + "とあかん", L.dks));
+		rows.Add(new ConjRow(L.ba, bareba(word, kind, ren, false), L.dks));
+		rows.Add(new ConjRow(L.vol, cut(std.vol, 1), L.dks));
+		var u = uonte(word, kind);
+		if (u.Length > 0) {
+			rows.Add(new ConjRow(L.te, u, L.dks));
+			rows.Add(new ConjRow(L.ta, uonta(word, kind), L.dks));
 		}
-		// 九州（博多）：ない＝ん，ないで＝んで，なくて＝んくて，なかった＝んかった，ている＝とる，一段とサ変的命令＝れ
-		rows.Add(new ConjRow(L.nai, n, L.dky));
-		if (!aru) rows.Add(new ConjRow(L.naide, n + "で", L.dky));
+		rows.Add(new ConjRow(L.teiru, std.te + "る", L.dks));
+		rows.Add(new ConjRow(L.tai, ren + "てぇ", L.dks));
+		rows.Add(new ConjRow(L.tekudasai, std.te + "ぇな", L.dks));
+		rows.Add(new ConjRow(L.teoku, cut(std.te, 1) + "とく", L.dks));
+		rows.Add(new ConjRow(L.teshimau, std.te + "もた、" + std.te + "まう", L.dks));
+		if (isaru(word)) return rows;
+		if (kind == "2") {
+			var s = cut(word, 1);
+			rows.Add(new ConjRow(L.pot, s + "られへん", L.dks));
+			rows.Add(new ConjRow(L.cau, s + "さす", L.dks));
+		} else if (kind == "1") {
+			rows.Add(new ConjRow(L.pot, mz + "れへん", L.dks));
+			rows.Add(new ConjRow(L.cau, mz + "す", L.dks));
+		} else if (suru) {
+			rows.Add(new ConjRow(L.pot, "できへん", L.dks));
+		} else if (kuru) {
+			rows.Add(new ConjRow(L.pot, "こられへん", L.dks));
+		}
+		if (!isaru(word)) {
+			rows.Add(new ConjRow(L.gson, ren + "はる", L.dks));
+			rows.Add(new ConjRow(L.jyan, std.plain + "やん、" + nai + "やん", L.dks));
+			if (!iskureru(word)) rows.Add(new ConjRow(L.cmd, ren + "なはれ", L.dks));
+		}
+		return rows;
+	}
+
+	// 九州（博多）：ない ん、ている とー／よー、意向 食べろう（一段未然の五段化）、
+	// 受身・可能 らるう／れん、命令 れ・んしゃい、ておく とく、てしまう しもうた。
+	static List<ConjRow> dialectkyushu(string word, string kind, JpConjPacked std, JpConjLabels L) {
+		var ren = cut(std.masu, 2);
+		var mz = mizen(word, kind, ren);
+		var suru = kind == "3" && !iskuru(word);
+		var kuru = kind == "3" && iskuru(word);
+		var pre = suru ? cut(ren, 1) : "";
+		var n = suru ? pre + "せん" : kuru ? "こん" : mz + "ん";
+		var rows = new List<ConjRow> { new(L.nai, n, L.dky) };
+		if (!isaru(word)) rows.Add(new ConjRow(L.naide, n + "で", L.dky));
 		rows.Add(new ConjRow(L.nakute, n + "くて", L.dky));
 		rows.Add(new ConjRow(L.nakatta, n + "かった", L.dky));
 		rows.Add(new ConjRow(L.tara, n + "かったら", L.dky));
-		if (!aru) rows.Add(new ConjRow(L.teiru, tes + "とる", L.dky));
-		if (!kure && (kind == "2" || suru)) rows.Add(new ConjRow(L.cmd, suru ? pre + "せれ" : mz + "れ", L.dky));
-		// 东北：ない＝ね，ないで＝ねで，なくて＝ねくて，なかった＝ねかった，意向＝べ，一段的命令＝れ
-		if (!aru) {
-			rows.Add(new ConjRow(L.nai, mz + "ね", L.dth));
-			rows.Add(new ConjRow(L.naide, mz + "ねで", L.dth));
-			rows.Add(new ConjRow(L.nakute, mz + "ねくて", L.dth));
-			rows.Add(new ConjRow(L.nakatta, mz + "ねかった", L.dth));
-			rows.Add(new ConjRow(L.tara, mz + "ねかったら", L.dth));
+		rows.Add(new ConjRow(L.nakereba, n + "ば（いかん）", L.dky));
+		rows.Add(new ConjRow(L.ba, bareba(word, kind, ren, false), L.dky));
+		var u = uonte(word, kind);
+		if (u.Length > 0) {
+			rows.Add(new ConjRow(L.te, u, L.dky));
+			rows.Add(new ConjRow(L.ta, uonta(word, kind), L.dky));
 		}
-		rows.Add(new ConjRow(L.vol, std.plain + "べ", L.dth));
-		if (!kure && kind == "2") rows.Add(new ConjRow(L.cmd, mz + "れ", L.dth));
-		// 广岛：ない＝ん，ないで＝んで，なくて＝んくて，なかった＝んかった，ている＝とる・ちょる，尊敬＝んさる
-		rows.Add(new ConjRow(L.nai, n, L.dhi));
-		if (!aru) rows.Add(new ConjRow(L.naide, n + "で", L.dhi));
+		rows.Add(new ConjRow(L.teiru, cut(std.te, 1) + "とー、" + ren + "よー", L.dky));
+		rows.Add(new ConjRow(L.tai, ren + "たか", L.dky));
+		rows.Add(new ConjRow(L.tekudasai, ren + "んしゃい", L.dky));
+		rows.Add(new ConjRow(L.teoku, cut(std.te, 1) + "とく", L.dky));
+		rows.Add(new ConjRow(L.teshimau, std.te + "しもうた", L.dky));
+		if (isaru(word)) return rows;
+		if (kind == "2") {
+			var s = cut(word, 1);
+			rows.Add(new ConjRow(L.vol, s + "ろう", L.dky));
+			rows.Add(new ConjRow(L.pot, s + "らるう、" + s + "きらん", L.dky));
+			rows.Add(new ConjRow(L.cau, s + "さす", L.dky));
+			if (!iskureru(word)) rows.Add(new ConjRow(L.cmd, mz + "れ、" + ren + "んしゃい", L.dky));
+		} else if (kind == "1") {
+			rows.Add(new ConjRow(L.pot, mz + "れん", L.dky));
+			rows.Add(new ConjRow(L.cau, mz + "す", L.dky));
+			rows.Add(new ConjRow(L.cmd, ren + "んしゃい", L.dky));
+		} else if (suru) {
+			rows.Add(new ConjRow(L.cmd, pre + "せれ、" + ren + "んしゃい", L.dky));
+		} else {
+			rows.Add(new ConjRow(L.cmd, "こい、" + ren + "んしゃい", L.dky));
+		}
+		return rows;
+	}
+
+	// 东北（仙台）：ない ね、过去 たった、意向 べ／っぺ、命令 い・さい、なければ ねげね、
+	// 丁宁 す、たい てぇ、ください けろ。
+	static List<ConjRow> dialecttohoku(string word, string kind, JpConjPacked std, JpConjLabels L) {
+		var ren = cut(std.masu, 2);
+		var mz = mizen(word, kind, ren);
+		var nai = mz + "ね";
+		var rows = new List<ConjRow>();
+		if (isaru(word)) return rows;
+		rows.Add(new ConjRow(L.nai, nai, L.dth));
+		rows.Add(new ConjRow(L.naide, nai + "で", L.dth));
+		rows.Add(new ConjRow(L.nakute, nai + "くて", L.dth));
+		rows.Add(new ConjRow(L.nakatta, nai + "かった", L.dth));
+		rows.Add(new ConjRow(L.tara, nai + "かったら", L.dth));
+		rows.Add(new ConjRow(L.nakereba, mz + "ねげね", L.dth));
+		rows.Add(new ConjRow(L.masu, std.plain + "す", L.dth));
+		rows.Add(new ConjRow(L.ta, std.ta + "った", L.dth));
+		rows.Add(new ConjRow(L.vol, kind == "2" ? cut(std.plain, 1) + "っぺ" : std.plain + "べ", L.dth));
+		rows.Add(new ConjRow(L.tai, ren + "てぇ", L.dth));
+		rows.Add(new ConjRow(L.tekudasai, std.te + "けろ、" + ren + "さい", L.dth));
+		if (!iskureru(word) && kind == "2") rows.Add(new ConjRow(L.cmd, cut(word, 1) + "らい、" + ren + "さい", L.dth));
+		else if (!iskureru(word) && kind == "1") rows.Add(new ConjRow(L.cmd, mz + "い、" + ren + "さい", L.dth));
+		return rows;
+	}
+
+	// 广岛：ない ん、ている とる／ちょる／よる、意向 こー・みゅー、可能 かれん、使役 かす、
+	// 命令 んちゃい、ておく とく／ちょく、てしまう しもーた、なければ にゃあ、丁宁 まへん。
+	static List<ConjRow> dialecthiroshima(string word, string kind, JpConjPacked std, JpConjLabels L) {
+		var ren = cut(std.masu, 2);
+		var mz = mizen(word, kind, ren);
+		var suru = kind == "3" && !iskuru(word);
+		var kuru = kind == "3" && iskuru(word);
+		var pre = suru ? cut(ren, 1) : "";
+		var n = suru ? pre + "せん" : kuru ? "こん" : mz + "ん";
+		var rows = new List<ConjRow> {
+			new(L.masen, ren + "まへん", L.dhi),
+			new(L.nai, n, L.dhi),
+		};
+		if (!isaru(word)) rows.Add(new ConjRow(L.naide, n + "で", L.dhi));
 		rows.Add(new ConjRow(L.nakute, n + "くて", L.dhi));
 		rows.Add(new ConjRow(L.nakatta, n + "かった", L.dhi));
 		rows.Add(new ConjRow(L.tara, n + "かったら", L.dhi));
-		if (!aru) {
-			rows.Add(new ConjRow(L.teiru, tes + "とる、" + tes + "ちょる", L.dhi));
-			rows.Add(new ConjRow(L.gson, ren + "んさる", L.dhi));
+		rows.Add(new ConjRow(L.nakereba, mz + "にゃあ", L.dhi));
+		rows.Add(new ConjRow(L.ba, bareba(word, kind, ren, true), L.dhi));
+		var u = uonte(word, kind);
+		if (u.Length > 0) {
+			rows.Add(new ConjRow(L.te, u, L.dhi));
+			rows.Add(new ConjRow(L.ta, uonta(word, kind), L.dhi));
 		}
+		rows.Add(new ConjRow(L.vol, kind == "1" ? cut(std.vol, 1) + "ー"
+			: kind == "2" ? cut(word, 1) + "ゅー"
+			: suru ? pre + "しょー" : "こー", L.dhi));
+		rows.Add(new ConjRow(L.teiru, cut(std.te, 1) + "とる、" + cut(std.te, 1) + "ちょる、" + ren + "よる", L.dhi));
+		rows.Add(new ConjRow(L.tai, ren + "とう", L.dhi));
+		rows.Add(new ConjRow(L.tekudasai, ren + "んちゃい", L.dhi));
+		rows.Add(new ConjRow(L.teoku, cut(std.te, 1) + "とく、" + cut(std.te, 1) + "ちょく", L.dhi));
+		rows.Add(new ConjRow(L.teshimau, std.te + "しもーた", L.dhi));
+		if (isaru(word)) return rows;
+		if (kind == "1") {
+			rows.Add(new ConjRow(L.pot, mz + "れん", L.dhi));
+			rows.Add(new ConjRow(L.cau, mz + "す", L.dhi));
+		} else if (kind == "2") {
+			var s = cut(word, 1);
+			rows.Add(new ConjRow(L.pot, s + "られん", L.dhi));
+			rows.Add(new ConjRow(L.cau, s + "さす", L.dhi));
+		} else if (suru) {
+			rows.Add(new ConjRow(L.pot, pre + "できん", L.dhi));
+		} else {
+			rows.Add(new ConjRow(L.pot, "こられん", L.dhi));
+		}
+		if (!isaru(word) && !iskureru(word)) rows.Add(new ConjRow(L.gson, ren + "んさる", L.dhi));
 		return rows;
+	}
+
+	// ワ行五段（買う・言う・笑う）的て／た是ウ音便：かな書きなら こうて／わろうて，汉字词干照写 買うて。
+	// 其他动词没有这一形，返回空串。
+	static string uonte(string word, string kind) {
+		if (kind != "1" || !ends(word, "う") || isute(word)) return "";
+		var stem = cut(word, 1);
+		if (stem.Length == 0) return "";
+		return A2O.TryGetValue(last(stem), out var o) ? cut(stem, 1) + o + "うて" : word + "て";
+	}
+
+	static string uonta(string word, string kind) {
+		var t = uonte(word, kind);
+		return t.Length == 0 ? "" : cut(t, 1) + "た";
+	}
+
+	// ば形的方言：五段 行きゃ／買いゃ，一段 食べりゃ，する すりゃ，くる くりゃ；广岛在后面加 あ。
+	static string bareba(string word, string kind, string ren, bool longv) {
+		var s = kind == "2" ? cut(word, 1) + "りゃ"
+			: kind == "3" ? (iskuru(word) ? "くりゃ" : "すりゃ")
+			: ren + "ゃ";
+		return longv ? s + "あ" : s;
 	}
 
 	// ずる动词的方言按连用形 じ 走（信じへん、信じん、信じとる），和一段一样；只有东北的意向接辞书形。
 	static List<ConjRow> dialectzuru(JpConjPacked std, JpConjLabels L) {
 		var ji = cut(std.masu, 2);
-		var tes = cut(std.te, 1);
+		var te = std.te;
 		return new List<ConjRow> {
+			// 关西
+			new(L.masu, ji + "まっか、" + ji + "まんねん", L.dks),
 			new(L.nai, ji + "へん", L.dks),
 			new(L.naide, ji + "んといて", L.dks),
 			new(L.nakute, ji + "へんくて", L.dks),
 			new(L.nakatta, ji + "へんかった", L.dks),
 			new(L.tara, ji + "へんかったら", L.dks),
+			new(L.nakereba, ji + "へんとあかん", L.dks),
+			new(L.ba, ji + "ゃ", L.dks),
+			new(L.vol, ji + "よ", L.dks),
+			new(L.pot, ji + "られへん", L.dks),
+			new(L.cau, ji + "さす", L.dks),
+			new(L.tai, ji + "てぇ", L.dks),
+			new(L.teoku, cut(te, 1) + "とく", L.dks),
+			new(L.teshimau, te + "もた", L.dks),
+			new(L.tekudasai, te + "ぇな", L.dks),
 			new(L.gson, ji + "はる", L.dks),
 			new(L.jyan, std.plain + "やん、" + ji + "へんやん", L.dks),
 			new(L.cmd, ji + "なはれ", L.dks),
+			// 九州
 			new(L.nai, ji + "ん", L.dky),
 			new(L.naide, ji + "んで", L.dky),
 			new(L.nakute, ji + "んくて", L.dky),
 			new(L.nakatta, ji + "んかった", L.dky),
 			new(L.tara, ji + "んかったら", L.dky),
-			new(L.teiru, tes + "とる", L.dky),
+			new(L.nakereba, ji + "んば（いかん）", L.dky),
+			new(L.ba, ji + "ゃ", L.dky),
+			new(L.vol, ji + "ろう", L.dky),
+			new(L.pot, ji + "らるう、" + ji + "きらん", L.dky),
+			new(L.cau, ji + "さす", L.dky),
+			new(L.tai, ji + "たか", L.dky),
+			new(L.teoku, cut(te, 1) + "とく", L.dky),
+			new(L.teshimau, te + "しもうた", L.dky),
+			new(L.tekudasai, ji + "んしゃい", L.dky),
+			new(L.cmd, ji + "れ、" + ji + "んしゃい", L.dky),
+			// 东北
 			new(L.nai, ji + "ね", L.dth),
 			new(L.naide, ji + "ねで", L.dth),
 			new(L.nakute, ji + "ねくて", L.dth),
 			new(L.nakatta, ji + "ねかった", L.dth),
 			new(L.tara, ji + "ねかったら", L.dth),
+			new(L.nakereba, ji + "ねげね", L.dth),
+			new(L.ta, std.ta + "った", L.dth),
 			new(L.vol, std.plain + "べ", L.dth),
+			new(L.tai, ji + "てぇ", L.dth),
+			new(L.tekudasai, te + "けろ、" + ji + "さい", L.dth),
+			new(L.cmd, ji + "らい、" + ji + "さい", L.dth),
+			// 广岛
+			new(L.masen, ji + "まへん", L.dhi),
 			new(L.nai, ji + "ん", L.dhi),
 			new(L.naide, ji + "んで", L.dhi),
 			new(L.nakute, ji + "んくて", L.dhi),
 			new(L.nakatta, ji + "んかった", L.dhi),
 			new(L.tara, ji + "んかったら", L.dhi),
-			new(L.teiru, tes + "とる、" + tes + "ちょる", L.dhi),
+			new(L.nakereba, ji + "にゃあ", L.dhi),
+			new(L.ba, ji + "ゃあ", L.dhi),
+			new(L.vol, ji + "ょー", L.dhi),
+			new(L.pot, ji + "られん", L.dhi),
+			new(L.cau, ji + "さす", L.dhi),
+			new(L.tai, ji + "とう", L.dhi),
+			new(L.teoku, cut(te, 1) + "とく、" + cut(te, 1) + "ちょく", L.dhi),
+			new(L.teshimau, te + "しもーた", L.dhi),
+			new(L.tekudasai, ji + "んちゃい", L.dhi),
+			new(L.teiru, cut(te, 1) + "とる、" + cut(te, 1) + "ちょる、" + ji + "よる", L.dhi),
 			new(L.gson, ji + "んさる", L.dhi),
 		};
 	}

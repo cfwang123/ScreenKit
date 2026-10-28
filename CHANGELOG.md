@@ -59,6 +59,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The confirmation group gains のでは (= のではないか): 行くのでは／行くのではないか／行かないのでは, 学生なのでは／学生なのではないか, alongside the existing んじゃないか.
 - New concessive group: けど／けども／けれど／けれども, んだけど（も）, が and のに with their negatives; na-adjectives and nouns insert だ (学生だけど), and the colloquial rows use じゃない.
 - Japanese dialect forms now also show -nakute / -naide / -nakatta / -nakattara for Kansai, Kyushu, Tohoku and Hiroshima.
+- Japanese dialect rows now also cover polite forms, volitional, potential, causative, imperative, -teoku, -teshimau, -teiru, -ba, -nakereba, -tai and -kudasai, plus Tohoku past -tatta and Kansai -mass- forms.
+- Japanese dialect rows for i-adjectives, na-adjectives and nouns now cover all four dialects (Kansai 高うない / やない / ちゃう, Kyushu 高か / ばい, Tohoku 高くねぇ / だっちゃ, Hiroshima じゃ / けりゃ / かろー).
 
 #### Changed
 
@@ -106,6 +108,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 确认・推测组新增「のでは（＝のではないか）」：行くのでは、行くのではないか、行かないのでは；学生なのでは、学生なのではないか，与原有的「んじゃないか」并列。
 - 新增「逆接（けれど・けど）」组：けど／けども／けれど／けれども、んだけど（も）、が、のに，都带否定；な形容词和名词中间加 だ（学生だけど），口语行否定用 じゃない。
 - 日语方言说法补充否定派生形：关西、九州、东北、广岛都列出 なくて／ないで／なかった／なかったら
+- 日语方言说法补充丁宁体、意向、可能、使役、命令、ておく、てしまう、ている、ば、なければ、たい、ください，以及东北的过去 たった 和关西的 まっ／まへん。
+- 日语方言中い形容词、な形容词、名词的方言行扩到四种方言（关西 高うない／やない／ちゃう，九州 高か／ばい，东北 高くねぇ／だっちゃ，广岛 じゃ／けりゃ／かろー）。
 
 #### 变更
 
