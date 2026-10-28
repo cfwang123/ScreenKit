@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - i-adjectives now show the polite negative -kunai desu / -kunakatta desu and the deferential -u gozaimasu (takou gozaimasu); -i adjectives do not take de gozaimasu.
 - i-adjectives now also show the -me degree form (takame / takame da / takame na).
 - Tray menu: added dictionary, diagnostics and memory usage; main menu: added screencast
+- Japanese conjugation: -tekudasai also shows -tekudasaimase
 
 #### Changed
 
@@ -118,6 +119,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - い形容词补充丁宁否定 〜くないです／〜くなかったです 和丁重形 〜うございます（高うございます）；い形容词不能接 でございます。
 - い形容词补充 〜め 的程度说法（高め／高めだ／高めな）。
 - 托盘菜单补上词典、诊断、内存占用；主菜单补上投屏
+- 日语变形表：てください格并列显示「〜てくださいませ」
 
 #### 变更
 

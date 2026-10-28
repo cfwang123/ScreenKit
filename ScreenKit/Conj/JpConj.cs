@@ -1280,7 +1280,7 @@ static class JpConj {
 			row(L.tekuru, te + "くる、" + te + "く、" + te + "来い"),
 			row(L.teiku, te + "いく、" + te + "く"),
 			row(L.tekure, te + "くれ、" + te + "くれないか"),
-			row(L.tekudasai, te + "ください"),
+			row(L.tekudasai, te + "ください、" + te + "くださいませ"),
 		};
 		var polrows = new List<ConjRow> {
 			row(L.mashou, ren + "ましょう"),

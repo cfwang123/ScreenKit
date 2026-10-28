@@ -204,19 +204,36 @@ static class JpGrammar {
 		"plain" => f.Plain,
 		"ta" => f.Ta,
 		"cau" => f.Cau,
+		"vol" => f.Vol,
 		"teiru" => f.Te + "いる",
 		_ => f.Plain,
 	};
 
-	/// <summary>按分组生成句型行。分组名随界面语言。</summary>
+	/// <summary>按分组生成句型行。分组名随界面语言。每级先出现内置句型，再接蓝宝书目录里同级的条目。</summary>
 	public static List<ConjRow> Rows(bool zh, JpPatForms f) {
-		var rows = new List<ConjRow>(PATS.Length);
+		var rows = new List<ConjRow>(PATS.Length + JpGrammarCatalog.Verb.Length);
+		string cur = null;
+		void flush() {
+			if (cur == null) return;
+			var g = grpname(cur, zh);
+			foreach (var c in JpGrammarCatalog.Verb) {
+				if (!string.Equals(c[0], cur, StringComparison.OrdinalIgnoreCase)) continue;
+				var pos = stem(f, c[1]) + c[2];
+				if (c[3].Length > 0) pos += "、" + stem(f, c[1]) + c[3];
+				rows.Add(new ConjRow(c[4], pos, g));
+			}
+		}
 		foreach (var p in PATS) {
+			if (!string.Equals(p.Grp, cur, StringComparison.Ordinal)) {
+				flush();
+				cur = p.Grp;
+			}
 			var g = grpname(p.Grp, zh);
 			var pos = stem(f, p.Conn) + p.Pos;
 			var neg = p.NegConn.Length == 0 ? "" : stem(f, p.NegConn) + p.Neg;
 			rows.Add(new ConjRow(zh ? p.Zh : p.En, neg.Length > 0 ? pos + "、" + neg : pos, g));
 		}
+		flush();
 		return rows;
 	}
 
