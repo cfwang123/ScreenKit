@@ -672,12 +672,6 @@ public partial class MainWindow : Window {
 			tray.ScreenSnapRequested += () => Dispatcher.BeginInvoke(new Action(() => {
 				_ = screensnapasync(mainWasVisibleOverride: trayMenuMainVisible);
 			}));
-			// 长截图：点选窗口后滚动拼接，不唤起主窗
-			tray.LongShotRequested += () => Dispatcher.BeginInvoke(new Action(async () => {
-				if (!trayMenuMainVisible)
-					keepmainhidden();
-				await longshotasync();
-			}));
 			// 屏幕画板：不唤起主窗
 			tray.BoardRequested += () => Dispatcher.BeginInvoke(new Action(() => {
 				if (!trayMenuMainVisible)

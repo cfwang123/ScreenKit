@@ -33,7 +33,6 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miOcr;
 	Forms.ToolStripMenuItem miSnap;
 	Forms.ToolStripMenuItem miScreenSnap;
-	Forms.ToolStripMenuItem miLongShot;
 	Forms.ToolStripMenuItem miBoard;
 	Forms.ToolStripMenuItem miVoice;
 	Forms.ToolStripMenuItem miTranslate;
@@ -185,8 +184,6 @@ sealed class TrayIcon : IDisposable {
 		miOcr = item("tray.ocr", () => OcrRequested?.Invoke());
 		miSnap = item("tray.snap", () => SnapRequested?.Invoke());
 		miScreenSnap = item("tray.screensnap", () => ScreenSnapRequested?.Invoke());
-		miLongShot = item("tray.longshot", () => LongShotRequested?.Invoke());
-		miLongShot.ToolTipText = Loc.T("menu.longshot.tip");
 		miBoard = item("tray.board", () => BoardRequested?.Invoke());
 		miVoice = item("tray.voice", () => VoiceRequested?.Invoke());
 		miTranslate = item("tray.translate", () => TranslateRequested?.Invoke());
@@ -334,7 +331,6 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miOcr);
 		menu.Items.Add(miSnap);
 		menu.Items.Add(miScreenSnap);
-		menu.Items.Add(miLongShot);
 		menu.Items.Add(miBoard);
 		menu.Items.Add(miVoice);
 		menu.Items.Add(miTranslate);
@@ -490,7 +486,6 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miOcr, ocr);
 		setshortcut(miSnap, snap);
 		setshortcut(miScreenSnap, screensnap);
-		setshortcut(miLongShot, null);
 		setshortcut(miBoard, board);
 		setshortcut(miVoice, voice);
 		setshortcut(miTranslate, tr);
@@ -559,8 +554,6 @@ sealed class TrayIcon : IDisposable {
 			settext(miOcr, "tray.ocr");
 			settext(miSnap, "tray.snap");
 			settext(miScreenSnap, "tray.screensnap");
-			settext(miLongShot, "tray.longshot");
-			if (miLongShot != null) miLongShot.ToolTipText = Loc.T("menu.longshot.tip");
 			settext(miBoard, "tray.board");
 			settext(miVoice, "tray.voice");
 			settext(miTranslate, "tray.translate");
@@ -647,7 +640,6 @@ sealed class TrayIcon : IDisposable {
 	public event Action OcrRequested;
 	public event Action SnapRequested;
 	public event Action ScreenSnapRequested;
-	public event Action LongShotRequested;
 	public event Action BoardRequested;
 	public event Action VoiceRequested;
 	public event Action TranslateRequested;
