@@ -36,8 +36,8 @@ sealed class JpConjLabels {
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
 	public string jane, njane, kayo, nokayo, jyan, jnet, nakune, dato;
 	public string ai, an, nn, badai;
-	public string pol, polneg, polpast, polpastneg;
-	public string adv, naru, rentai;
+	public string pol, polneg, polpast, polpastneg, ugoza;
+	public string adv, naru, rentai, ume;
 	public string darou, deshou, tarou, dearu;
 	public string nda, nanda, tte;
 	public string evid, tasouda, rashii, youda;
@@ -476,6 +476,8 @@ static class JpConj {
 			L.badai = "い形容词要以い结尾";
 			L.pol = "丁宁形";
 			L.polneg = "丁宁否定";
+			L.ugoza = "丁重（うございます）";
+			L.ume = "め（程度）";
 			L.polpast = "丁宁过去";
 			L.polpastneg = "丁宁过去否定";
 			L.adv = "副词形";
@@ -693,8 +695,10 @@ static class JpConj {
 		L.an = "na-adjective";
 		L.nn = "noun";
 		L.badai = "An i-adjective must end with い";
-		L.pol = "polite";
-		L.polneg = "polite negative";
+			L.pol = "polite";
+			L.polneg = "polite negative";
+			L.ugoza = "deferential (-u gozaimasu)";
+			L.ume = "-me (rather, on the ... side)";
 		L.polpast = "polite past";
 		L.polpastneg = "polite past negative";
 		L.adv = "adverbial";
@@ -798,12 +802,13 @@ static class JpConj {
 		var rows = new List<ConjRow> {
 			row(L.dict, word),
 			row(L.pol, word + "です"),
+			row(L.ugoza, ugov(word, s)),
 			row(L.nai, s + "くない、" + s + "くねえ"),
-			row(L.polneg, s + "くありません"),
+			row(L.polneg, s + "くありません、" + s + "くないです"),
 			row(L.ta, s + "かった"),
 			row(L.polpast, s + "かったです"),
 			row(L.nakatta, s + "くなかった"),
-			row(L.polpastneg, s + "くありませんでした"),
+			row(L.polpastneg, s + "くありませんでした、" + s + "くなかったです"),
 			row(L.te, s + "くて、" + s + "くなくて"),
 			row(L.adv, s + "く"),
 			row(L.ba, s + "ければ、" + s + "けりゃ"),
@@ -824,12 +829,29 @@ static class JpConj {
 			ren = s + "く", ta = s + "かった", stem = s,
 			neg = s + "くない", negta = s + "くなかった",
 		};
+		// 高い→高め（偏高）、少ない→少なめ，是 な形容词化的程度说法；いい 类没有这一形。
+		if (!irri(word)) rows.Add(new ConjRow(L.ume, s + "め、" + s + "めだ、" + s + "めな"));
 		rows.AddRange(evidrows(L, k));
 		rows.AddRange(patternrows(L, k, "ai"));
 		rows.AddRange(naihaseirows(L, s + "くない"));
 		rows.AddRange(dialectiadj(L, s));
 		rows.AddRange(endrows(L, word, "", "i", s + "くない", s + "くないです"));
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
+	}
+
+	// い形容词的丁重形：高い→高うございます，おいしい→おいしゅうございます，いい→よろしゅうございます。
+	// 「高いでございます」不成立，でございます 只接名词和な形容词。
+	static string ugov(string word, string s) {
+		var u = irri(word) ? cut(word, 2) + "よろしゅう" : utai(s);
+		return u + "ございます、" + u + "ございました";
+	}
+
+	// い形容词的ウ音便词干：高い→高う，おいしい→おいしゅう，かわいい→かわいゅう。
+	static string utai(string s) {
+		var k = s.Length == 0 ? "" : last(s);
+		if (k == "し" || k == "い") return s + "ゅう";
+		if (A2O.TryGetValue(k, out var o)) return cut(s, 1) + o + "う";
+		return s + "う";
 	}
 
 	static string iadjstem(string word) {
@@ -998,17 +1020,17 @@ static class JpConj {
 	// 东北 高くねぇ，广岛 高うて／高うなる／あかけりゃ／あかかろー。
 	static List<ConjRow> dialectiadj(JpConjLabels L, string s) {
 		return new List<ConjRow> {
-			new(L.nai, s + "うない", L.dks),
-			new(L.te, s + "うて", L.dks),
-			new(L.naru, s + "うなる", L.dks),
+			new(L.nai, utai(s) + "ない", L.dks),
+			new(L.te, utai(s) + "て", L.dks),
+			new(L.naru, utai(s) + "なる", L.dks),
 			new(L.darou, s + "かろ", L.dks),
 			new(L.term, s + "か", L.dky),
-			new(L.nai, s + "うなか", L.dky),
-			new(L.te, s + "うて", L.dky),
+			new(L.nai, utai(s) + "なか", L.dky),
+			new(L.te, utai(s) + "て", L.dky),
 			new(L.darou, s + "かろー", L.dky),
 			new(L.nai, s + "くねぇ", L.dth),
-			new(L.te, s + "うて", L.dhi),
-			new(L.naru, s + "うなる", L.dhi),
+			new(L.te, utai(s) + "て", L.dhi),
+			new(L.naru, utai(s) + "なる", L.dhi),
 			new(L.ba, s + "けりゃ", L.dhi),
 			new(L.darou, s + "かろー", L.dhi),
 		};

@@ -61,6 +61,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese dialect forms now also show -nakute / -naide / -nakatta / -nakattara for Kansai, Kyushu, Tohoku and Hiroshima.
 - Japanese dialect rows now also cover polite forms, volitional, potential, causative, imperative, -teoku, -teshimau, -teiru, -ba, -nakereba, -tai and -kudasai, plus Tohoku past -tatta and Kansai -mass- forms.
 - Japanese dialect rows for i-adjectives, na-adjectives and nouns now cover all four dialects (Kansai 高うない / やない / ちゃう, Kyushu 高か / ばい, Tohoku 高くねぇ / だっちゃ, Hiroshima じゃ / けりゃ / かろー).
+- i-adjectives now show the polite negative -kunai desu / -kunakatta desu and the deferential -u gozaimasu (takou gozaimasu); -i adjectives do not take de gozaimasu.
+- i-adjectives now also show the -me degree form (takame / takame da / takame na).
 
 #### Changed
 
@@ -110,6 +112,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语方言说法补充否定派生形：关西、九州、东北、广岛都列出 なくて／ないで／なかった／なかったら
 - 日语方言说法补充丁宁体、意向、可能、使役、命令、ておく、てしまう、ている、ば、なければ、たい、ください，以及东北的过去 たった 和关西的 まっ／まへん。
 - 日语方言中い形容词、な形容词、名词的方言行扩到四种方言（关西 高うない／やない／ちゃう，九州 高か／ばい，东北 高くねぇ／だっちゃ，广岛 じゃ／けりゃ／かろー）。
+- い形容词补充丁宁否定 〜くないです／〜くなかったです 和丁重形 〜うございます（高うございます）；い形容词不能接 でございます。
+- い形容词补充 〜め 的程度说法（高め／高めだ／高めな）。
 
 #### 变更
 
