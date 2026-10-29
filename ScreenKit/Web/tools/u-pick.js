@@ -5,20 +5,20 @@
 		noGo: true,
 		body: function(t){
 			return F.CreateDOM(t, { x: "div.cpick", c: [
-				F.CreateDOM(t, { x: "div.cpick-top", c: [
-					F.CreateDOM(t, { x: "span", c: "颜色" }),
-					F.CreateDOM(t, { x: "i#cpick-swatch" }),
-					F.CreateDOM(t, { x: "button#cpick-eye", type: "button" })
-				] }),
-				F.CreateDOM(t, { x: "p#cpick-msg.msg" }),
-				F.CreateDOM(t, { x: "div.cpick-sv#cpick-sv", c: [F.CreateDOM(t, { x: "i#cpick-svdot" })] }),
-				F.CreateDOM(t, { x: "div.cpick-hue#cpick-hue", c: [F.CreateDOM(t, { x: "i#cpick-huedot" })] }),
-				F.CreateDOM(t, { x: "div.cpick-rgb", c: [
-					F.CreateDOM(t, { x: "label", c: ["R", F.CreateDOM(t, { x: "input#cpick-r", inputmode: "numeric" })] }),
-					F.CreateDOM(t, { x: "label", c: ["G", F.CreateDOM(t, { x: "input#cpick-g", inputmode: "numeric" })] }),
-					F.CreateDOM(t, { x: "label", c: ["B", F.CreateDOM(t, { x: "input#cpick-b", inputmode: "numeric" })] })
-				] }),
-				F.CreateDOM(t, { x: "input#box-color", type: "hidden", value: "#3366cc" })
+				{ x: "div.cpick-top", c: [
+					{ x: "span", c: "颜色" },
+					{ x: "i#cpick-swatch" },
+					{ x: "button#cpick-eye", type: "button" }
+				] },
+				{ x: "p#cpick-msg.msg" },
+				{ x: "div.cpick-sv#cpick-sv", c: [{ x: "i#cpick-svdot" }] },
+				{ x: "div.cpick-hue#cpick-hue", c: [{ x: "i#cpick-huedot" }] },
+				{ x: "div.cpick-rgb", c: [
+					{ x: "label", c: ["R", { x: "input#cpick-r", inputmode: "numeric" }] },
+					{ x: "label", c: ["G", { x: "input#cpick-g", inputmode: "numeric" }] },
+					{ x: "label", c: ["B", { x: "input#cpick-b", inputmode: "numeric" }] }
+				] },
+				{ x: "input#box-color", type: "hidden", value: "#3366cc" }
 			] });
 		},
 		run: function(){
