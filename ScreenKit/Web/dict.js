@@ -60,7 +60,17 @@
 			s = s.split("{" + (i - 1) + "}").join(arguments[i] == null ? "" : String(arguments[i]));
 		return s;
 	}
-	function status(s){ $("status").textContent = s || ""; }
+	function status(s){
+		var el = $("status");
+		if (!el) return;
+		el.removeAttribute("data-k");
+		el.textContent = s || "";
+	}
+	// 空闲时的提示记成键，切界面语言时 applylang 会重新换一遍。
+	function statusready(){
+		status(t("dict.ready") || "词典已就绪");
+		$("status").setAttribute("data-k", "dict.ready");
+	}
 	function langname(code){
 		if (code === "zh") return t("dict.filter.zh") || "汉语";
 		if (code === "ja") return t("dict.filter.ja") || "日语";
@@ -83,7 +93,12 @@
 		mode = m;
 		document.body.classList.toggle("m", m === "m");
 		var b = $("modesw");
-		if (b) b.textContent = m === "m" ? (t("dict.mode.pc") || "电脑版") : (t("dict.mode.m") || "手机版");
+		if (b) {
+			// 记成键，切界面语言时 applylang 会跟着换。
+			var key = m === "m" ? "dict.mode.pc" : "dict.mode.m";
+			b.setAttribute("data-k", key);
+			b.textContent = t(key) || (m === "m" ? "电脑版" : "手机版");
+		}
 		if (keep) {
 			try { localStorage.setItem(MODEKEY, m); } catch (e) {}
 		}
@@ -199,7 +214,7 @@
 		$("hits").innerHTML = "";
 		$("detail").innerHTML = "";
 		hidepop();
-		status(t("dict.ready") || "词典已就绪");
+		statusready();
 	}
 
 	function boot(){
@@ -283,7 +298,7 @@
 		if (location.hash) applyroute();
 		else if ($("q").value) queue();
 		else {
-			status(t("dict.ready") || "词典已就绪");
+			statusready();
 			if (mode === "m") $("q").focus();
 		}
 	}
