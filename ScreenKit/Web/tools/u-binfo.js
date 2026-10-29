@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var info = {};
 	var po = null;
 	var idleAbort = null;
@@ -17,21 +18,23 @@
 	var tx = SK.tx;
 
 	function body(t){
+		page = t;
 		return [
-			F.CreateDOM(t, { x: "p#binfo-hint.hint" }),
+			F.CreateDOM(t, { x: "p.binfo-hint.hint", name: "binfoHint" }),
 			F.CreateDOM(t, { x: "div.ops", c: [
-				{ x: "button#binfo-refresh", type: "button" },
-				{ x: "button#binfo-screens", type: "button" },
-				{ x: "button#binfo-idle", type: "button" }
+				{ x: "button.binfo-refresh", name: "binfoRefresh", type: "button" },
+				{ x: "button.binfo-screens", name: "binfoScreens", type: "button" },
+				{ x: "button.binfo-idle", name: "binfoIdle", type: "button" }
 			] })
 		];
 	}
 
-	function open(){
+	function open(t){
+		page = t;
 		info = {};
-		var refresh = SK.dom("binfo-refresh");
-		var scr = SK.dom("binfo-screens");
-		var idle = SK.dom("binfo-idle");
+		var refresh = page.doms.binfoRefresh;
+		var scr = page.doms.binfoScreens;
+		var idle = page.doms.binfoIdle;
 		if (refresh) refresh.onclick = function(){ collect(); };
 		if (scr) scr.onclick = readscreens;
 		if (idle) idle.onclick = startidle;
@@ -41,13 +44,13 @@
 	}
 
 	function labels(){
-		var hint = SK.dom("binfo-hint");
+		var hint = page.doms.binfoHint;
 		if (hint) hint.textContent = tx("web.binfo.hint", "这个浏览器能读到的本机信息。屏幕和离开检测要点一下才会询问权限。");
-		var refresh = SK.dom("binfo-refresh");
+		var refresh = page.doms.binfoRefresh;
 		if (refresh) refresh.textContent = tx("web.binfo.refresh", "刷新");
-		var scr = SK.dom("binfo-screens");
+		var scr = page.doms.binfoScreens;
 		if (scr) scr.textContent = tx("web.binfo.screens", "读取屏幕");
-		var idle = SK.dom("binfo-idle");
+		var idle = page.doms.binfoIdle;
 		if (idle) idle.textContent = tx("web.binfo.idle", "离开检测");
 	}
 
@@ -66,7 +69,7 @@
 	}
 
 	function render(){
-		var el = SK.dom("box-out");
+		var el = SK.doms.boxOut;
 		if (!el || SK.curtool !== "u-binfo") return;
 		var lines = [], i, key;
 		for (i = 0; i < ORDER.length; i++) {

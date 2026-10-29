@@ -778,8 +778,10 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		return out;
 	}
 
+	// 先看当前工具的 page.doms（新写法），再看页面树的 doms（壳），最后才退回 HTML id。
 	function msg(id, text, bad){
-		var el = SK.doms && SK.doms[domkey(id)];
+		var el = (SK.curpage && SK.curpage.doms && SK.curpage.doms[domkey(id)])
+			|| (SK.doms && SK.doms[domkey(id)]);
 		if (!el) el = F.id(id);
 		if (!el) return;
 		var key = webkey(text);
@@ -1775,12 +1777,12 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var spec = SK.utils[util];
 		if (!spec || !spec.run) return;
 		if (spec.own) {
-			spec.run();
+			spec.run(SK.curpage);
 			return;
 		}
 		SK.reNote = "";
 		try {
-			var out = spec.run();
+			var out = spec.run(SK.curpage);
 			out = out == null ? "" : String(out);
 			var outKey = webkey(out);
 			SK.doms.boxOut.value = outKey ? (t(outKey) || out) : out;

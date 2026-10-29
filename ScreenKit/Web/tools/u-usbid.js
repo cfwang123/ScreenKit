@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var ROWS = [
 		["046D", "C52B", "Logitech", "Unifying Receiver"],
 		["046D", "C534", "Logitech", "Unifying Receiver"],
@@ -56,25 +57,27 @@
 	SK.regutil("u-usbid", {
 		title: "常见 USB ID",
 		body: function(t){
+			page = t;
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
-					{ x: "input#usb-q", type: "text", placeholder: SK.td("厂家、产品、046d 或 046d:c52b") },
-					{ x: "span#usb-msg.msg" }
+					{ x: "input.usb-q", name: "usbQ", type: "text", placeholder: SK.td("厂家、产品、046d 或 046d:c52b") },
+					{ x: "span.usb-msg.msg", name: "usbMsg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: SK.td("常见设备的厂家、产品和型号。点一行复制 VID:PID，并按 usb.ids 补上接口。") }),
 				F.CreateDOM(t, { x: "div.usbwrap", c: [
-					{ x: "div.usbscroll", c: [{ x: "table.usblist#usb-tab" }] },
-					{ x: "pre#usb-detail.usbdetail" }
+					{ x: "div.usbscroll", c: [{ x: "table.usblist.usb-tab", name: "usbTab" }] },
+					{ x: "pre.usb-detail.usbdetail", name: "usbDetail" }
 				] })
 			];
 		},
 		run: function(){
 			throw new Error("没有这个工具");
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			picked = "";
-			SK.dom("usb-q").oninput = function(){ paint(SK.dom("usb-q").value); };
-			SK.dom("usb-tab").onclick = onrow;
+			page.doms.usbQ.oninput = function(){ paint(page.doms.usbQ.value); };
+			page.doms.usbTab.onclick = onrow;
 			paint("");
 		},
 		hideGo: true,
@@ -95,11 +98,11 @@
 				+ "<td>" + r[0] + "</td><td>" + r[1] + "</td><td>" + esc(r[2]) + "</td><td>" + esc(r[3]) + "</td></tr>");
 		}
 		html.push("</tbody>");
-		SK.dom("usb-tab").innerHTML = html.join("");
+		page.doms.usbTab.innerHTML = html.join("");
 		var msg = SK.td("%n 条").replace("%n", rows.length);
 		var idq = looks(q);
 		if (idq && rows.length === 0) msg = SK.td("不在常见列表里，正在查询…");
-		SK.dom("usb-msg").textContent = msg;
+		page.doms.usbMsg.textContent = msg;
 		if (idq && rows.length === 0) ask(idq.vid, idq.pid, null);
 	}
 
@@ -124,7 +127,7 @@
 		picked = id;
 		var r = rowby(id);
 		if (!r) return;
-		paint(SK.dom("usb-q").value);
+		paint(page.doms.usbQ.value);
 		showlocal(r);
 		try {
 			var p = F.clip(r[0] + ":" + r[1]);
@@ -141,7 +144,7 @@
 	}
 
 	function showlocal(r){
-		SK.dom("usb-detail").textContent = "USB: " + r[0] + ":" + r[1]
+		page.doms.usbDetail.textContent = "USB: " + r[0] + ":" + r[1]
 			+ "\n" + SK.td("厂家") + ": " + r[2]
 			+ "\n" + SK.td("产品") + ": " + r[3]
 			+ "\n" + SK.td("型号") + ": " + r[3];
@@ -153,8 +156,8 @@
 		if (pid) url += "&pid=" + encodeURIComponent(pid);
 		SK.get(url, function(data){
 			if (n !== gen) return;
-			SK.dom("usb-detail").textContent = data && data.text ? data.text : "";
-			SK.dom("usb-msg").textContent = local ? SK.td("已复制 %s").replace("%s", local[0] + ":" + local[1]) : SK.td("已查到");
+			page.doms.usbDetail.textContent = data && data.text ? data.text : "";
+			page.doms.usbMsg.textContent = local ? SK.td("已复制 %s").replace("%s", local[0] + ":" + local[1]) : SK.td("已查到");
 		}, "usb-msg", function(){
 			if (n !== gen) return;
 			if (local) showlocal(local);

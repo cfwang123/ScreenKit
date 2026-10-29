@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var stream = null;
 	var scanOn = false;
 	var scanning = false;
@@ -22,40 +23,42 @@
 		hideCopy: true,
 		hideOut: true,
 		body: function(t){
+			page = t;
 			return [
-				F.CreateDOM(t, { x: "p#cam-hint.hint" }),
-				F.CreateDOM(t, { x: "video#cam-view", autoplay: true, playsinline: true, muted: true }),
-				F.CreateDOM(t, { x: "span#cam-devlab" }),
-				F.CreateDOM(t, { x: "select#cam-dev" }),
+				F.CreateDOM(t, { x: "p.cam-hint.hint", name: "camHint" }),
+				F.CreateDOM(t, { x: "video.cam-view", name: "camView", autoplay: true, playsinline: true, muted: true }),
+				F.CreateDOM(t, { x: "span.cam-devlab", name: "camDevlab" }),
+				F.CreateDOM(t, { x: "select.cam-dev", name: "camDev" }),
 				F.CreateDOM(t, { x: "div.ops", c: [
-					{ x: "button#cam-shot", type: "button" },
-					{ x: "button#cam-mode", type: "button" },
-					{ x: "button#cam-scan", type: "button" },
-					{ x: "button#cam-save", type: "button" }
+					{ x: "button.cam-shot", name: "camShot", type: "button" },
+					{ x: "button.cam-mode", name: "camMode", type: "button" },
+					{ x: "button.cam-scan", name: "camScan", type: "button" },
+					{ x: "button.cam-save", name: "camSave", type: "button" }
 				] }),
-				F.CreateDOM(t, { x: "div#cam-tune", hidden: true, c: [
-					{ x: "label#cam-zoomlab", c: [
-						{ x: "span#cam-zoomtxt" },
-						{ x: "input#cam-zoom", type: "range" }
+				F.CreateDOM(t, { x: "div.cam-tune", name: "camTune", hidden: true, c: [
+					{ x: "label.cam-zoomlab", name: "camZoomlab", c: [
+						{ x: "span.cam-zoomtxt", name: "camZoomtxt" },
+						{ x: "input.cam-zoom", name: "camZoom", type: "range" }
 					] },
-					{ x: "button#cam-torch", type: "button", hidden: true },
-					{ x: "button#cam-focus", type: "button", hidden: true }
+					{ x: "button.cam-torch", name: "camTorch", type: "button", hidden: true },
+					{ x: "button.cam-focus", name: "camFocus", type: "button", hidden: true }
 				] }),
-				F.CreateDOM(t, { x: "img#cam-shotimg", alt: "", hidden: true }),
-				F.CreateDOM(t, { x: "pre#cam-code" }),
-				F.CreateDOM(t, { x: "p#cam-msg.msg" })
+				F.CreateDOM(t, { x: "img.cam-shotimg", name: "camShotimg", alt: "", hidden: true }),
+				F.CreateDOM(t, { x: "pre.cam-code", name: "camCode" }),
+				F.CreateDOM(t, { x: "p.cam-msg.msg", name: "camMsg" })
 			];
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			labels();
-			var shot = SK.dom("cam-shot");
-			var mode = SK.dom("cam-mode");
-			var scan = SK.dom("cam-scan");
-			var save = SK.dom("cam-save");
-			var dev = SK.dom("cam-dev");
-			var zoom = SK.dom("cam-zoom");
-			var torch = SK.dom("cam-torch");
-			var focus = SK.dom("cam-focus");
+			var shot = page.doms.camShot;
+			var mode = page.doms.camMode;
+			var scan = page.doms.camScan;
+			var save = page.doms.camSave;
+			var dev = page.doms.camDev;
+			var zoom = page.doms.camZoom;
+			var torch = page.doms.camTorch;
+			var focus = page.doms.camFocus;
 			if (shot) shot.onclick = snapshot;
 			if (mode) mode.onclick = toggleicap;
 			if (scan) scan.onclick = togglescan;
@@ -64,8 +67,8 @@
 			if (zoom) zoom.oninput = applyzoom;
 			if (torch) torch.onclick = toggletorch;
 			if (focus) focus.onclick = applyfocus;
-			bindfull(SK.dom("cam-view"));
-			bindfull(SK.dom("cam-shotimg"));
+			bindfull(page.doms.camView);
+			bindfull(page.doms.camShotimg);
 			openid("");
 			arm();
 		},
@@ -97,23 +100,23 @@
 	var tx = SK.tx;
 
 	function labels(){
-		var hint = SK.dom("cam-hint");
+		var hint = page.doms.camHint;
 		if (hint) hint.textContent = tx("web.cam.hint", "用浏览器的摄像头拍照，或扫描画面里的二维码和条码。");
-		var lab = SK.dom("cam-devlab");
+		var lab = page.doms.camDevlab;
 		if (lab) lab.textContent = tx("web.cam.dev", "摄像头");
-		var shot = SK.dom("cam-shot");
+		var shot = page.doms.camShot;
 		if (shot) shot.textContent = tx("web.cam.shot", "拍照");
-		var scan = SK.dom("cam-scan");
+		var scan = page.doms.camScan;
 		if (scan) scan.textContent = tx(scanOn ? "web.cam.scanstop" : "web.cam.scan", scanOn ? "停止扫码" : "扫码");
-		var save = SK.dom("cam-save");
+		var save = page.doms.camSave;
 		if (save) save.textContent = tx("web.cam.save", "保存图片");
-		var mode = SK.dom("cam-mode");
+		var mode = page.doms.camMode;
 		if (mode) mode.textContent = tx(icap ? "web.cam.mode" : "web.cam.modeprev", icap ? "静帧拍照" : "预览拍照");
-		var zoomtxt = SK.dom("cam-zoomtxt");
+		var zoomtxt = page.doms.camZoomtxt;
 		if (zoomtxt) zoomtxt.textContent = tx("web.cam.zoom", "变焦");
-		var torch = SK.dom("cam-torch");
+		var torch = page.doms.camTorch;
 		if (torch) torch.textContent = tx(torchOn ? "web.cam.torchoff" : "web.cam.torch", torchOn ? "关闭手电" : "手电");
-		var focus = SK.dom("cam-focus");
+		var focus = page.doms.camFocus;
 		if (focus) focus.textContent = tx("web.cam.focus", "对焦");
 	}
 
@@ -142,7 +145,7 @@
 			for (var i = 0; i < tracks.length; i++) tracks[i].stop();
 			stream = null;
 		}
-		var v = SK.dom("cam-view");
+		var v = page.doms.camView;
 		if (v) v.srcObject = null;
 	}
 
@@ -161,7 +164,7 @@
 			torchOn = false;
 			if (stream) stream.getTracks().forEach(function(t){ t.stop(); });
 			stream = st;
-			var v = SK.dom("cam-view");
+			var v = page.doms.camView;
 			if (v) v.srcObject = st;
 			listdev();
 			tunecols();
@@ -175,7 +178,7 @@
 	function listdev(){
 		if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
 		navigator.mediaDevices.enumerateDevices().then(function(list){
-			var sel = SK.dom("cam-dev");
+			var sel = page.doms.camDev;
 			if (!sel) return;
 			var cur = "";
 			if (stream && stream.getVideoTracks().length) {
@@ -199,7 +202,7 @@
 	}
 
 	function frame(maxw){
-		var v = SK.dom("cam-view");
+		var v = page.doms.camView;
 		if (!v || !v.videoWidth) return null;
 		var w = v.videoWidth;
 		var h = v.videoHeight;
@@ -230,10 +233,10 @@
 	}
 
 	function tunecols(){
-		var row = SK.dom("cam-tune");
-		var zoom = SK.dom("cam-zoom");
-		var torch = SK.dom("cam-torch");
-		var focus = SK.dom("cam-focus");
+		var row = page.doms.camTune;
+		var zoom = page.doms.camZoom;
+		var torch = page.doms.camTorch;
+		var focus = page.doms.camFocus;
 		var track = trackof();
 		var caps = {};
 		if (track && track.getCapabilities) {
@@ -268,7 +271,7 @@
 
 	function applyzoom(){
 		var track = trackof();
-		var zoom = SK.dom("cam-zoom");
+		var zoom = page.doms.camZoom;
 		if (!track || !zoom || !track.applyConstraints) return;
 		track.applyConstraints({ advanced: [{ zoom: Number(zoom.value) }] }).then(function(){}, function(){});
 	}
@@ -302,7 +305,7 @@
 	}
 
 	function showshot(url){
-		var img = SK.dom("cam-shotimg");
+		var img = page.doms.camShotimg;
 		if (!img) return;
 		if (shotUrl && shotUrl !== url) F.unurl(shotUrl);
 		shotUrl = url || "";
@@ -353,7 +356,7 @@
 	}
 
 	function download(){
-		var img = SK.dom("cam-shotimg");
+		var img = page.doms.camShotimg;
 		if (!img || !img.src) return;
 		var a = F.el("a");
 		a.href = img.src;
@@ -459,7 +462,7 @@
 
 	function grabscan(){
 		if (scanning || frameScan) return;
-		var v = SK.dom("cam-view");
+		var v = page.doms.camView;
 		if (!v || !v.videoWidth) return;
 		if (!detBroken && window.BarcodeDetector) {
 			scanning = true;
@@ -522,7 +525,7 @@
 		var again = text === last;
 		last = text;
 		lastAt = now;
-		var box = SK.dom("cam-code");
+		var box = page.doms.camCode;
 		if (box) {
 			box.textContent = text;
 			if (again) flash(box);

@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var wait = 0;
 	var samples = [
 		{ id: "buttons", key: "htmlui.tpl.buttons", html: buttons() },
@@ -30,6 +31,7 @@
 	});
 
 	function body(t){
+		page = t;
 		var hint = SK.t("web.htmlui.hint") || "";
 		var btns = [];
 		var i;
@@ -40,14 +42,15 @@
 			{ x: "p.hint", "data-k": "web.htmlui.hint", c: hint },
 			{ x: "div.htmlui-tpl", c: btns },
 			{ x: "div.htmlui-split", c: [
-				{ x: "textarea#htmlui-src", spellcheck: "false" },
-				{ x: "iframe#htmlui-view", sandbox: "allow-forms allow-scripts", title: "preview" }
+				{ x: "textarea.htmlui-src", name: "htmluiSrc", spellcheck: "false" },
+				{ x: "iframe.htmlui-view", name: "htmluiView", sandbox: "allow-forms allow-scripts", title: "preview" }
 			] }
 		] });
 	}
 
-	function open(){
-		var src = SK.dom("htmlui-src");
+	function open(t){
+		page = t;
+		var src = page.doms.htmluiSrc;
 		var bar = F.q(".htmlui-tpl");
 		if (!src || !bar) return;
 		src.oninput = schedule;
@@ -82,8 +85,8 @@
 	}
 
 	function paint(){
-		var src = SK.dom("htmlui-src");
-		var view = SK.dom("htmlui-view");
+		var src = page.doms.htmluiSrc;
+		var view = page.doms.htmluiView;
 		if (!src || !view) return;
 		view.srcdoc = wrap(src.value);
 	}

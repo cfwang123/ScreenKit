@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	SK.regutil("u-seg", {
 		title: "中文分词",
 		go: "分词",
@@ -11,28 +12,30 @@
 	var tx = SK.tx;
 
 	function body(t){
+		page = t;
 		return [
-			F.CreateDOM(t, { x: "p#seg-hint.hint" }),
-			F.CreateDOM(t, { x: "label#seg-glab", c: [
-				{ x: "select#seg-g", c: [
+			F.CreateDOM(t, { x: "p.seg-hint.hint", name: "segHint" }),
+			F.CreateDOM(t, { x: "label.seg-glab", name: "segGlab", c: [
+				{ x: "select.seg-g", name: "segG", c: [
 					{ x: "option", value: "word" },
 					{ x: "option", value: "sentence" },
 					{ x: "option", value: "grapheme" }
 				] }
 			] }),
-			F.CreateDOM(t, { x: "label#seg-inlab", c: [
-				{ x: "textarea#seg-in", rows: "8" }
+			F.CreateDOM(t, { x: "label.seg-inlab", name: "segInlab", c: [
+				{ x: "textarea.seg-in", name: "segIn", rows: "8" }
 			] })
 		];
 	}
 
-	function open(){
-		var go = SK.dom("box-go");
+	function open(t){
+		page = t;
+		var go = SK.doms.boxGo;
 		if (go) {
 			F.seta(go, "data-k", "web.seg.go");
 			go.textContent = tx("web.seg.go", "分词");
 		}
-		var hint = SK.dom("seg-hint");
+		var hint = page.doms.segHint;
 		if (hint) hint.textContent = tx("web.seg.hint", "用浏览器自带的分词，把中文按词、句或字素切开。");
 		setlab("seg-glab", "web.seg.grain", "粒度");
 		setlab("seg-inlab", "web.seg.in", "原文");
@@ -47,8 +50,8 @@
 
 	function run(){
 		if (typeof Intl === "undefined" || !Intl.Segmenter) throw new Error(tx("web.seg.none", "这个浏览器没有分词"));
-		var sel = SK.dom("seg-g");
-		var box = SK.dom("seg-in");
+		var sel = page.doms.segG;
+		var box = page.doms.segIn;
 		var grain = sel ? sel.value : "word";
 		var text = box ? String(box.value || "") : "";
 		if (!text) return "";

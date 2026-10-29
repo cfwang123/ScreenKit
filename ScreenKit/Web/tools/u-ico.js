@@ -1,8 +1,10 @@
 (function(){
+	var page = null;
 	SK.regutil("u-ico", {
 		title: "图片转 ICO",
 		go: "生成",
 		body: function(t){
+			page = t;
 			var sizes = ["16", "32", "48", "64", "128", "256"];
 			var radios = [];
 			var i;
@@ -10,15 +12,15 @@
 				radios.push(SK.radio("ico-size", "ico-" + sizes[i], sizes[i], sizes[i] === "32"));
 			var modes = F.CreateDOM(t, { x: "div.ops", c: [
 					{ x: "label.check", c: [
-						{ x: "input#ico-mode-fit", type: "radio", value: "fit", checked: true },
+						{ x: "input.ico-mode-fit", name: "icoModeFit", type: "radio", value: "fit", checked: true },
 						" 适应"
 					] },
 					{ x: "label.check", c: [
-						{ x: "input#ico-mode-stretch", type: "radio", value: "stretch" },
+						{ x: "input.ico-mode-stretch", name: "icoModeStretch", type: "radio", value: "stretch" },
 						" 拉伸"
 					] },
 					{ x: "label.check", c: [
-						{ x: "input#ico-mode-crop", type: "radio", value: "crop" },
+						{ x: "input.ico-mode-crop", name: "icoModeCrop", type: "radio", value: "crop" },
 						" 裁剪"
 					] }
 				] });
@@ -26,14 +28,14 @@
 			var mi = modes.querySelectorAll("input");
 			for (i = 0; i < mi.length; i++) mi[i].name = "ico-mode";
 			return [
-				SK.lab("图片", F.CreateDOM(t, { x: "input#box-file", type: "file", accept: "image/*" })),
+				SK.lab("图片", F.CreateDOM(t, { x: "input.box-file", name: "boxFile", type: "file", accept: "image/*" })),
 				F.CreateDOM(t, { x: "p.hint", c: "在此页按 Ctrl+V 可粘贴剪贴板里的图片。" }),
-				F.CreateDOM(t, { x: "img#ico-img", alt: "预览", hidden: true }),
+				F.CreateDOM(t, { x: "img.ico-img", name: "icoImg", alt: "预览", hidden: true }),
 				F.CreateDOM(t, { x: "div.ops", c: radios }),
 				modes,
 				F.CreateDOM(t, { x: "div.ico-out", c: [
-					{ x: "canvas#ico-prev", width: "32", height: "32" },
-					{ x: "span#ico-prev-size", c: "32×32" }
+					{ x: "canvas.ico-prev", name: "icoPrev", width: "32", height: "32" },
+					{ x: "span.ico-prev-size", name: "icoPrevSize", c: "32×32" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: "只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。适应等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满，多出的部分切掉。" })
 			];
@@ -41,9 +43,9 @@
 		run: function(){
 			icogo();
 		},
-		open: function(){
-			SK.dom("box-file").onchange = function(){
-				var file = SK.dom("box-file").files && SK.dom("box-file").files[0];
+		open: function(t){
+			page.doms.boxFile.onchange = function(){
+				var file = page.doms.boxFile.files && page.doms.boxFile.files[0];
 				if (file) SK.seticopic(file);
 			};
 			var sizes = F.qa('input[name="ico-size"]');
@@ -52,7 +54,7 @@
 			var modes = F.qa('input[name="ico-mode"]');
 			for (s = 0; s < modes.length; s++) modes[s].onchange = drawicoprev;
 			if (SK.icoUrl) {
-				var prev = SK.dom("ico-img");
+				var prev = page.doms.icoImg;
 				prev.onload = drawicoprev;
 				prev.src = SK.icoUrl;
 				prev.hidden = false;
@@ -72,17 +74,17 @@
 	}
 
 	function drawicoprev(){
-		var canvas = SK.dom("ico-prev");
+		var canvas = page.doms.icoPrev;
 		if (!canvas) return;
 		var size = icosize();
-		var label = SK.dom("ico-prev-size");
+		var label = page.doms.icoPrevSize;
 		if (label) label.textContent = size + "×" + size;
 		canvas.width = size;
 		canvas.height = size;
 		var g = F.ctx(canvas);
 		if (!g) return;
 		g.clearRect(0, 0, size, size);
-		var src = SK.dom("ico-img");
+		var src = page.doms.icoImg;
 		if (!src || src.hidden || !src.naturalWidth) return;
 		fiticon(g, src, size, icomode());
 	}

@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var BASE = [
 		["name", "中文姓名", "web.fake.name"],
 		["cnnick", "中文网名", "web.fake.cnnick"],
@@ -22,31 +23,33 @@
 		go: "生成",
 		own: false,
 		body: function(t){
+			page = t;
 			var kind = SK.fakepick || "name";
 			SK.fakepick = "";
 			return [
 				F.CreateDOM(t, { x: "div.row", c: [
-					{ x: "label#box-lang-lab", s: { display: "none" }, c: [
+					{ x: "label.box-lang-lab", name: "boxLangLab", s: { display: "none" }, c: [
 						{ x: "span", "data-k": "web.f.lang", c: SK.t("web.f.lang") || "语言" },
-						{ x: "select#box-lang" }
+						{ x: "select.box-lang", name: "boxLang" }
 					] },
 					{ x: "label", c: [
-						{ x: "span#box-kind-cap", "data-k": "web.f.kind", c: SK.t("web.f.kind") || "类型" },
-						{ x: "select#box-kind", c: kindhtml(BASE, kind) }
+						{ x: "span.box-kind-cap", name: "boxKindCap", "data-k": "web.f.kind", c: SK.t("web.f.kind") || "类型" },
+						{ x: "select.box-kind", name: "boxKind", c: kindhtml(BASE, kind) }
 					] },
 					SK.lab("行数", SK.numin("box-n", "10"))
 				] }),
-				F.CreateDOM(t, { x: "p#box-bogus.hint", "data-k": "web.fake.off", c: hint("web.fake.off") })
+				F.CreateDOM(t, { x: "p.box-bogus.hint", name: "boxBogus", "data-k": "web.fake.off", c: hint("web.fake.off") })
 			];
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			refreshbogus(function(){
 				if (SK.fakerun) {
 					SK.fakerun = 0;
 					SK.utilrun();
 					return;
 				}
-				if (bogus && SK.dom("box-out") && SK.dom("box-out").value) SK.utilrun();
+				if (bogus && SK.doms.boxOut && SK.doms.boxOut.value) SK.utilrun();
 			});
 		},
 		run: run
@@ -66,13 +69,13 @@
 			SK.fakelang = locale;
 			SK.fakekind = kind;
 			SK.post("/api/fake", { locale: locale, kind: kind, n: count }, function(data){
-				SK.dom("box-out").value = data.text || "";
+				SK.doms.boxOut.value = data.text || "";
 				SK.msg("box-msg", "完成");
 			}, "box-msg");
 		}
 		catch (ex) {
 			if (!spec.own) throw ex;
-			SK.dom("box-out").value = "";
+			SK.doms.boxOut.value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}
@@ -86,9 +89,9 @@
 			var ks = data && data.kinds ? data.kinds : [];
 			var i;
 			for (i = 0; i < ks.length; i++) kindkeys[ks[i].id] = ks[i].key;
-			var langlab = SK.dom("box-lang-lab");
+			var langlab = page.doms.boxLangLab;
 			if (langlab) langlab.style.display = bogus ? "" : "none";
-			var cap = SK.dom("box-kind-cap");
+			var cap = page.doms.boxKindCap;
 			if (cap) {
 				var capkey = bogus ? "web.fake.cat" : "web.f.kind";
 				F.seta(cap, "data-k", capkey);
@@ -96,7 +99,7 @@
 			}
 			if (bogus) filllangs();
 			else {
-				var sel = SK.dom("box-kind");
+				var sel = page.doms.boxKind;
 				var cur = sel ? sel.value : "name";
 				if (sel) {
 					while (sel.firstChild) sel.removeChild(sel.firstChild);
@@ -105,7 +108,7 @@
 					for (j = 0; j < arr.length; j++) sel.appendChild(arr[j]);
 				}
 			}
-			var el = SK.dom("box-bogus");
+			var el = page.doms.boxBogus;
 			if (el) {
 				var key = bogus ? "web.fake.on" : "web.fake.off";
 				F.seta(el, "data-k", key);
@@ -120,7 +123,7 @@
 	}
 
 	function filllangs(){
-		var sel = SK.dom("box-lang");
+		var sel = page.doms.boxLang;
 		if (!sel) return;
 		var cur = SK.fakelang || sel.value || "zh_CN";
 		var html = "";
@@ -141,8 +144,8 @@
 	}
 
 	function fillkinds(){
-		var sel = SK.dom("box-kind");
-		var langsel = SK.dom("box-lang");
+		var sel = page.doms.boxKind;
+		var langsel = page.doms.boxLang;
 		if (!sel || !langsel) return;
 		var id = langsel.value;
 		var kinds = [];

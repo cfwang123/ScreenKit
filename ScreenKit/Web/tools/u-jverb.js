@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var exp = null;
 	if (typeof module !== "undefined" && module.exports) exp = module.exports;
 
@@ -152,7 +153,8 @@
 	var tx = SK.tx;
 
 	function body(t){
-		var sel = F.CreateDOM(t, { x: "select#jv-sel", c: [
+		page = t;
+		var sel = F.CreateDOM(t, { x: "select.jv-sel", name: "jvSel", c: [
 			{ x: "option", value: "auto" },
 			{ x: "option", value: "1" },
 			{ x: "option", value: "2" },
@@ -162,23 +164,24 @@
 			{ x: "option", value: "n" }
 		] });
 		return [
-			F.CreateDOM(t, { x: "p#jv-hint.hint" }),
-			F.CreateDOM(t, { x: "div.row#jv-row", c: [
-				{ x: "label#jv-type", c: sel },
-				{ x: "label#jv-word", c: SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") }
+			F.CreateDOM(t, { x: "p.jv-hint.hint", name: "jvHint" }),
+			F.CreateDOM(t, { x: "div.row.jv-row", name: "jvRow", c: [
+				{ x: "label.jv-type", name: "jvType", c: sel },
+				{ x: "label.jv-word", name: "jvWord", c: SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") }
 			] }),
-			F.CreateDOM(t, { x: "div#jv-out" })
+			F.CreateDOM(t, { x: "div.jv-out", name: "jvOut" })
 		];
 	}
 
-	function open(){
+	function open(t){
+		page = t;
 		var ens = langcode() !== "zh";
-		var go = SK.dom("box-go");
+		var go = SK.doms.boxGo;
 		if (go) {
 			F.seta(go, "data-k", "web.jverb.go");
 			go.textContent = tx("web.jverb.go", ens ? "Conjugate" : "变形");
 		}
-		var hint = SK.dom("jv-hint");
+		var hint = page.doms.jvHint;
 		if (hint) {
 			F.seta(hint, "data-k", "web.jverb.hint");
 			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见词和特殊变化。自动先查日语词典，判断是动词、い形容词、な形容词还是名词；查不到时按词尾猜：る＝2类，する・くる・ずる＝3类，い＝い形容词，其余按名词；也可在右侧指定类型。动词表的后部是补助动词（ながら、ておく、やがる 等）、敬体（ましょう、ませんか）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
@@ -193,17 +196,17 @@
 		setopt("ai", "web.jverb.tai", ens ? "i-adjective" : "い形容词");
 		setopt("an", "web.jverb.tan", ens ? "na-adjective" : "な形容词");
 		setopt("n", "web.jverb.tn", ens ? "Noun" : "名词");
-		var sel = SK.dom("jv-sel");
+		var sel = page.doms.jvSel;
 		if (sel && !F.attr(sel, "data-bind")) {
 			F.seta(sel, "data-bind", "1");
 			sel.onchange = ontype;
 		}
-		var box = SK.dom("jv-in");
+		var box = page.doms.jvIn;
 		if (box) {
 			F.seta(box, "data-kph", "web.jverb.ph");
 			box.placeholder = tx("web.jverb.ph", ens ? "Dictionary form, e.g. 食べる、高い、学生" : "辞书形，如 食べる、高い、学生");
 		}
-		var out = SK.dom("jv-out");
+		var out = page.doms.jvOut;
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = ui.onout;
@@ -232,7 +235,7 @@
 	// 选了类型就只列这一类的示例（不规则的词也按它实际的类归进去）。
 	function pickgroups(){
 		var lang = langcode();
-		var sel = SK.dom("jv-sel");
+		var sel = page.doms.jvSel;
 		var pick = sel ? sel.value : "auto";
 		var groups = [];
 		var i, j, p, key, items, gloss, show;
@@ -286,8 +289,8 @@
 	function go(){
 		timer = 0;
 		var n = ++gen;
-		var box = SK.dom("jv-in");
-		var sel = SK.dom("jv-sel");
+		var box = page.doms.jvIn;
+		var sel = page.doms.jvSel;
 		var word = norm(box ? box.value : "");
 		var pick = sel ? sel.value : "auto";
 		if (!word) {

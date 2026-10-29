@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var mode = "2";
 	var style = "grid";
 	var crossOn = true;
@@ -66,6 +67,7 @@
 	}
 
 	function body(t){
+		page = t;
 		return F.CreateDOM(t, { x: "div.plot", c: [
 			{ x: "div.plot-bar", c: [
 				{ x: "button", type: "button", class: "on", "data-act": "cross", "data-ktip": "web.plot.crossTip",
@@ -79,7 +81,7 @@
 					styleBtn("dots", "fa-braille", "web.plot.dots", "点阵"),
 					styleBtn("level", "fa-layer-group", "web.plot.level", "等高线")
 				] },
-				{ x: "input#plot-fn", type: "text", value: "sin(x)", spellcheck: "false", autocomplete: "off",
+				{ x: "input.plot-fn", name: "plotFn", type: "text", value: "sin(x)", spellcheck: "false", autocomplete: "off",
 					"data-kph": "web.plot.ph", placeholder: tt("web.plot.ph", "sin(x)"),
 					"data-ktip": "web.plot.tip", title: tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。自动识别函数和方程：y=f(x)、z=f(x,y)、x^2+y^2=1 这类等式，以及 x^2+y^2+z^2=9 这类含 z 的方程。") },
 				{ x: "div.plot-ex", c: [
@@ -87,25 +89,26 @@
 						{ x: "i.fa-solid.fa-caret-down" },
 						{ x: "span", "data-k": "web.plot.ex", c: tt("web.plot.ex", "示例") }
 					] },
-					{ x: "div#plot-menu.plot-menu", hidden: true, c: samples() }
+					{ x: "div.plot-menu.plot-menu", name: "plotMenu", hidden: true, c: samples() }
 				] },
 				{ x: "button", type: "button", "data-act": "reset", "data-k": "web.plot.reset", c: tt("web.plot.reset", "复位") }
 			] },
 			{ x: "p.hint", "data-k": "web.plot.hint", c: tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。输入会自动识别二维或三维：函数、方程、含 z 的曲面都能画。点「示例」可选择。") },
 			{ x: "div.plot-stage", c: [
-				{ x: "canvas#plot-cv" },
-				{ x: "div#plot-read.plot-read", hidden: true }
+				{ x: "canvas.plot-cv", name: "plotCv" },
+				{ x: "div.plot-read.plot-read", name: "plotRead", hidden: true }
 			] },
-			{ x: "p#plot-msg.hint" }
+			{ x: "p.plot-msg.hint", name: "plotMsg" }
 		] });
 	}
 
-	function open(){
-		canvas = SK.dom("plot-cv");
+	function open(t){
+		page = t;
+		canvas = page.doms.plotCv;
 		if (!canvas) return;
 		var bar = F.q(".plot-bar");
 		if (bar) bar.onclick = onbar;
-		var input = SK.dom("plot-fn");
+		var input = page.doms.plotFn;
 		if (input) input.oninput = function(){ reparse(); paint(); };
 		canvas.onpointerdown = down;
 		canvas.onpointermove = move;
@@ -192,25 +195,25 @@
 	}
 
 	function togglemenu(){
-		var menu = SK.dom("plot-menu");
+		var menu = page.doms.plotMenu;
 		if (!menu) return;
 		menu.hidden = !menu.hidden;
 	}
 
 	function hidemenu(){
-		var menu = SK.dom("plot-menu");
+		var menu = page.doms.plotMenu;
 		if (menu) menu.hidden = true;
 	}
 
 	function ondoc(ev){
-		var menu = SK.dom("plot-menu");
+		var menu = page.doms.plotMenu;
 		if (!menu || menu.hidden) return;
 		if (ev.target && ev.target.closest && ev.target.closest(".plot-ex")) return;
 		menu.hidden = true;
 	}
 
 	function pick(src){
-		var input = SK.dom("plot-fn");
+		var input = page.doms.plotFn;
 		if (input) input.value = src;
 		hidemenu();
 		resetview();
@@ -234,7 +237,7 @@
 	}
 
 	function say(text, bad){
-		var el = SK.dom("plot-msg");
+		var el = page.doms.plotMsg;
 		if (!el) return;
 		el.textContent = text || "";
 		el.className = bad ? "hint bad" : "hint";
@@ -261,7 +264,7 @@
 	}
 
 	function reparse(){
-		var input = SK.dom("plot-fn");
+		var input = page.doms.plotFn;
 		var src = input ? input.value : "";
 		implicit = false;
 		try {
@@ -340,7 +343,7 @@
 	}
 
 	function sceneKey(w, h){
-		var input = SK.dom("plot-fn");
+		var input = page.doms.plotFn;
 		var src = input ? input.value : "";
 		if (mode === "3")
 			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
@@ -462,7 +465,7 @@
 	}
 
 	function hideRead(){
-		var el = SK.dom("plot-read");
+		var el = page.doms.plotRead;
 		if (el) el.hidden = true;
 	}
 
@@ -503,7 +506,7 @@
 			ctx.fill();
 		}
 		ctx.restore();
-		var box = SK.dom("plot-read");
+		var box = page.doms.plotRead;
 		if (!box) return;
 		if (!lines.length) {
 			box.hidden = true;

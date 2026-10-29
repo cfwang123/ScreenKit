@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var exp = null;
 	if (typeof module !== "undefined" && module.exports) exp = module.exports;
 
@@ -163,29 +164,31 @@
 	var tx = SK.tx;
 
 	function body(t){
-		var sel = F.CreateDOM(t, { x: "select#kv-sel", c: [
+		page = t;
+		var sel = F.CreateDOM(t, { x: "select.kv-sel", name: "kvSel", c: [
 			{ x: "option", value: "auto" },
 			{ x: "option", value: "v" },
 			{ x: "option", value: "a" },
 			{ x: "option", value: "n" }
 		] });
 		return [
-			F.CreateDOM(t, { x: "p#kv-hint.hint" }),
-			F.CreateDOM(t, { x: "div.row#kv-row", c: [
-				{ x: "label#kv-type", c: sel },
-				{ x: "label#kv-word", c: SK.combo("kv-in", "먹다", "词典形，如 먹다、예쁘다、학생") }
+			F.CreateDOM(t, { x: "p.kv-hint.hint", name: "kvHint" }),
+			F.CreateDOM(t, { x: "div.row.kv-row", name: "kvRow", c: [
+				{ x: "label.kv-type", name: "kvType", c: sel },
+				{ x: "label.kv-word", name: "kvWord", c: SK.combo("kv-in", "먹다", "词典形，如 먹다、예쁘다、학생") }
 			] }),
-			F.CreateDOM(t, { x: "div#kv-out" })
+			F.CreateDOM(t, { x: "div.kv-out", name: "kvOut" })
 		];
 	}
 
-	function open(){
-		var hint = SK.dom("kv-hint");
+	function open(t){
+		page = t;
+		var hint = page.doms.kvHint;
 		if (hint) {
 			F.seta(hint, "data-k", "web.kverb.hint");
 			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。表末是朝鲜文化语（ㅂ네다 系）、朝鲜播音体（只列与标准语不同的 -시였습니다）和延边朝鲜语（-ㅁ다/슴다、-ㄴ다이）；与标准语同形的说法不列。");
 		}
-		var title = SK.dom("box-title");
+		var title = SK.doms.boxTitle;
 		if (title) title.textContent = tx("web.tool.kverb", "韩语词形变化");
 		setlab("kv-word", "web.kverb.word", "词典形");
 		setlab("kv-type", "web.kverb.type", "类型");
@@ -194,17 +197,17 @@
 		setopt("v", "web.kverb.verb", "动词");
 		setopt("a", "web.kverb.adj", "形容词");
 		setopt("n", "web.kverb.noun", "名词");
-		var sel = SK.dom("kv-sel");
+		var sel = page.doms.kvSel;
 		if (sel && !F.attr(sel, "data-bind")) {
 			F.seta(sel, "data-bind", "1");
 			sel.onchange = ontype;
 		}
-		var box = SK.dom("kv-in");
+		var box = page.doms.kvIn;
 		if (box) {
 			F.seta(box, "data-kph", "web.kverb.ph");
 			box.placeholder = tx("web.kverb.ph", "词典形，如 먹다、예쁘다、학생");
 		}
-		var out = SK.dom("kv-out");
+		var out = page.doms.kvOut;
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = ui.onout;
@@ -221,7 +224,7 @@
 
 	function pickgroups(){
 		var lang = langcode();
-		var sel = SK.dom("kv-sel");
+		var sel = page.doms.kvSel;
 		var pick = sel ? sel.value : "auto";
 		var groups = [];
 		var cur = null;
@@ -277,8 +280,8 @@
 	function go(){
 		timer = 0;
 		var n = ++gen;
-		var box = SK.dom("kv-in");
-		var sel = SK.dom("kv-sel");
+		var box = page.doms.kvIn;
+		var sel = page.doms.kvSel;
 		var word = norm(box ? box.value : "");
 		var force = sel ? sel.value : "auto";
 		if (!word) {

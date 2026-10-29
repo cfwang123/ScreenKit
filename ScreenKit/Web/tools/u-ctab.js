@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	// 每条：[中文名, 十六进制, 名字]，第 4 项可选，是备注（如 Transparent 的 A=0）。
 	// web 支：CSS 命名色 + 中文专名色，按色相分组。
 	var WEB = [
@@ -285,22 +286,24 @@
 		hideOut: true,
 		hideCopy: true,
 		body: function(t){
+			page = t;
 			return F.CreateDOM(t, { x: "div.ctab", c: [
 				{ x: "div.uquery", c: [
-					{ x: "input#c-q", type: "text", placeholder: "名称（中/英）或十六进制" },
-					{ x: "span#box-msg.msg" }
+					{ x: "input.c-q", name: "cQ", type: "text", placeholder: "名称（中/英）或十六进制" },
+					{ x: "span.box-msg.msg", name: "boxMsg" }
 				] },
-				{ x: "div.cgroups#c-groups" },
-				{ x: "div.cgrid#c-grid" }
+				{ x: "div.cgroups.c-groups", name: "cGroups" },
+				{ x: "div.cgrid.c-grid", name: "cGrid" }
 			] });
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			cur = { set: "web", g: "" };
 			paintgroups();
 			paint();
-			SK.dom("c-q").oninput = paint;
-			SK.dom("c-groups").onclick = ongroup;
-			SK.dom("c-grid").onclick = onswatch;
+			page.doms.cQ.oninput = paint;
+			page.doms.cGroups.onclick = ongroup;
+			page.doms.cGrid.onclick = onswatch;
 		}
 	});
 
@@ -404,7 +407,7 @@
 			for (j = 0; j < t.groups.length; j++)
 				html += node(1, t.id, t.groups[j].id, t.groups[j].name, t.groups[j].colors.length, false);
 		}
-		SK.dom("c-groups").innerHTML = html;
+		page.doms.cGroups.innerHTML = html;
 	}
 
 	function node(lv, set, g, name, n, opened){
@@ -430,7 +433,7 @@
 			for (j = 0; j < rows.length; j++) html += card(rows[j]);
 		}
 		if (!html) html = '<p class="cnone">没有这种颜色</p>';
-		SK.dom("c-grid").innerHTML = html;
+		page.doms.cGrid.innerHTML = html;
 	}
 
 	function card(c){

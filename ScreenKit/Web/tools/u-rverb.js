@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	// 俄语动词变形：输入不定式（可带 -ся），列出体、变位、现在/将来时、过去时、命令式、
 	// 假定式、分词和副动词。规则按词尾推导，常见不规则动词和重音引起的特殊形单独列表。
 	var CONF = {
@@ -1467,7 +1468,9 @@
 		if (!m || !/ый$/.test(m)) return null;
 		var s = m.slice(0, -2);
 		if (/нн$/.test(s)) s = s.slice(0, -1);
-		return [s, s + "а", s + "о", s + "ы"];
+		// -ённый 的短尾只有阳性保留 ё：говорён，但 говорена / говорено / говорены。
+		var a = /ён$/.test(s) ? s.slice(0, -2) + "ен" : s;
+		return [s, a + "а", a + "о", a + "ы"];
 	}
 
 	function prefForm(s, pref, base){
@@ -1567,7 +1570,7 @@
 	}
 
 	function pickkind(){
-		var sel = SK.dom("rv-sel-kind");
+		var sel = page.doms.rvSelKind;
 		return sel && sel.value ? sel.value : "auto";
 	}
 
@@ -1625,30 +1628,32 @@
 	var langcode = SK.langcode;
 
 	function body(t){
-		var sel = F.CreateDOM(t, { x: "select#rv-sel-kind", c: [
+		page = t;
+		var sel = F.CreateDOM(t, { x: "select.rv-sel-kind", name: "rvSelKind", c: [
 			{ x: "option", value: "auto" },
 			{ x: "option", value: "verb" },
 			{ x: "option", value: "adj" },
 			{ x: "option", value: "noun" }
 		] });
 		return [
-			F.CreateDOM(t, { x: "p#rv-hint.hint" }),
-			F.CreateDOM(t, { x: "div.row#rv-row", c: [
-				{ x: "label#rv-kind", c: sel },
-				{ x: "label#rv-word", c: SK.combo("rv-in", "читать", "不定式、形容词或名词") }
+			F.CreateDOM(t, { x: "p.rv-hint.hint", name: "rvHint" }),
+			F.CreateDOM(t, { x: "div.row.rv-row", name: "rvRow", c: [
+				{ x: "label.rv-kind", name: "rvKind", c: sel },
+				{ x: "label.rv-word", name: "rvWord", c: SK.combo("rv-in", "читать", "不定式、形容词或名词") }
 			] }),
-			F.CreateDOM(t, { x: "div#rv-out" })
+			F.CreateDOM(t, { x: "div.rv-out", name: "rvOut" })
 		];
 	}
 
-	function open(){
+	function open(t){
+		page = t;
 		var lang = langcode();
-		var hint = SK.dom("rv-hint");
+		var hint = page.doms.rvHint;
 		if (hint) {
 			F.seta(hint, "data-k", "web.rverb.hint");
 			hint.textContent = tx("web.rverb.hint", L(lang, LAB.hint));
 		}
-		var title = SK.dom("box-title");
+		var title = SK.doms.boxTitle;
 		if (title) title.textContent = tx("web.tool.rverb", L(lang, LAB.title));
 		setlab("rv-kind", "web.rverb.kind", L(lang, LAB.kind));
 		setlab("rv-word", "web.rverb.word", L(lang, LAB.word));
@@ -1657,13 +1662,13 @@
 		setopt("rv-sel-kind", "verb", "web.rverb.verb", L(lang, LAB.verb));
 		setopt("rv-sel-kind", "adj", "web.rverb.adj", L(lang, LAB.adj));
 		setopt("rv-sel-kind", "noun", "web.rverb.noun", L(lang, LAB.noun));
-		var box = SK.dom("rv-in");
+		var box = page.doms.rvIn;
 		if (box) {
 			F.seta(box, "data-kph", "web.rverb.ph");
 			box.placeholder = tx("web.rverb.ph", L(lang, LAB.ph));
 		}
 		bind("rv-sel-kind", ontype);
-		var out = SK.dom("rv-out");
+		var out = page.doms.rvOut;
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = ui.onout;
@@ -1673,7 +1678,7 @@
 	}
 
 	function bind(id, fn){
-		var el = SK.dom(id);
+		var el = page.doms[SK.domkey(id)];
 		if (!el || F.attr(el, "data-bind")) return;
 		F.seta(el, "data-bind", "1");
 		el.onchange = fn;
@@ -1693,9 +1698,9 @@
 
 	function go(){
 		timer = 0;
-		var box = SK.dom("rv-in");
+		var box = page.doms.rvIn;
 		var word = box ? box.value : "";
-		var kind = SK.dom("rv-sel-kind");
+		var kind = page.doms.rvSelKind;
 		if (!norm(word)) {
 			ui.paint("", "", []);
 			SK.msg("box-msg", "");

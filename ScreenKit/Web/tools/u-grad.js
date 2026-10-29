@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var nexts = ["#2563eb", "#16a34a", "#eab308", "#db2777", "#7c3aed", "#0f766e"];
 	SK.regutil("u-grad", {
 		title: "CSS 渐变",
@@ -6,29 +7,31 @@
 		noGo: true,
 		hideOut: true,
 		body: function(t){
+			page = t;
 			return [
-				SK.lab("类型", F.CreateDOM(t, { x: "select#box-type", c: [
+				SK.lab("类型", F.CreateDOM(t, { x: "select.box-type", name: "boxType", c: [
 					{ x: "option", value: "linear", c: "线性" },
 					{ x: "option", value: "radial", c: "径向" },
 					{ x: "option", value: "conic", c: "锥形" }
 				] })),
 				F.CreateDOM(t, { x: "div.grad-lab", c: "颜色" }),
-				F.CreateDOM(t, { x: "div#grad-stops.grad-stops" }),
-				F.CreateDOM(t, { x: "button#grad-add.ghost", type: "button", c: "加一个颜色", onclick: function(){
+				F.CreateDOM(t, { x: "div.grad-stops.grad-stops", name: "gradStops" }),
+				F.CreateDOM(t, { x: "button.grad-add.ghost", name: "gradAdd", type: "button", c: "加一个颜色", onclick: function(){
 					addstop(nexts[(stopcount() - 2) % nexts.length]);
 					gradlive();
 				} }),
 				SK.lab("角度", SK.numin("box-n", "90")),
 				F.CreateDOM(t, { x: "div.grad-row", c: [
-					{ x: "div#grad-view.grad-view" },
-					{ x: "textarea#grad-out", readonly: true }
+					{ x: "div.grad-view.grad-view", name: "gradView" },
+					{ x: "textarea.grad-out", name: "gradOut", readonly: true }
 				] })
 			];
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			addstop("#f97316");
 			addstop("#111827");
-			var body = SK.dom("box-body");
+			var body = SK.doms.boxBody;
 			body.oninput = gradlive;
 			body.onchange = gradlive;
 			gradlive();
@@ -38,7 +41,7 @@
 		}
 	});
 	function addstop(hex){
-		var box = SK.dom("grad-stops");
+		var box = page.doms.gradStops;
 		if (!box || stopcount() >= 8) return;
 		var row = F.el("div");
 		row.className = "grad-stop";
@@ -54,14 +57,14 @@
 	}
 
 	function stopcount(){
-		var box = SK.dom("grad-stops");
+		var box = page.doms.gradStops;
 		return box ? F.qa("input[type=color]", box).length : 0;
 	}
 
 	function syncstops(){
 		var n = stopcount();
-		var box = SK.dom("grad-stops");
-		var add = SK.dom("grad-add");
+		var box = page.doms.gradStops;
+		var add = page.doms.gradAdd;
 		if (add) add.hidden = n >= 8;
 		if (!box) return;
 		var btns = F.qa("button", box);
@@ -70,7 +73,7 @@
 	}
 
 	function stopcolors(){
-		var box = SK.dom("grad-stops");
+		var box = page.doms.gradStops;
 		var out = [];
 		if (!box) return out;
 		var inputs = F.qa("input[type=color]", box);
@@ -83,12 +86,12 @@
 	}
 
 	function gradlive(){
-		var n = SK.dom("box-n");
+		var n = page.doms.boxN;
 		if (n) n.disabled = SK.val("box-type") === "radial";
 		syncstops();
 		SK.utilrun();
-		var shown = SK.dom("grad-out");
-		var box = SK.dom("box-out");
+		var shown = page.doms.gradOut;
+		var box = SK.doms.boxOut;
 		if (shown && box) shown.value = box.value;
 	}
 	function gradcss(type, colors, angle){
@@ -103,7 +106,7 @@
 		if (type === "radial") fn = "radial-gradient(circle, " + list + ")";
 		else if (type === "conic") fn = "conic-gradient(from " + deg + "deg, " + list + ")";
 		else fn = "linear-gradient(" + deg + "deg, " + list + ")";
-		var view = SK.dom("grad-view");
+		var view = page.doms.gradView;
 		if (view) view.style.background = fn;
 		return "background: " + fn + ";";
 	}

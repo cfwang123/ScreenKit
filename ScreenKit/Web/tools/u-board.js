@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 	var items = [];
 	var undo = [];
@@ -42,6 +43,7 @@
 	});
 
 	function body(t){
+		page = t;
 		tool = "pen";
 		color = "#000000";
 		width = 2;
@@ -67,9 +69,9 @@
 				colors()
 			] },
 			{ x: "div.board-stage", c: [
-				{ x: "canvas#board-cv" },
-				{ x: "input#board-txt.board-text", type: "text", hidden: true, spellcheck: "false" },
-				{ x: "p#board-msg.board-msg" }
+				{ x: "canvas.board-cv", name: "boardCv" },
+				{ x: "input.board-txt.board-text", name: "boardTxt", type: "text", hidden: true, spellcheck: "false" },
+				{ x: "p.board-msg.board-msg", name: "boardMsg" }
 			] }
 		] });
 	}
@@ -106,8 +108,8 @@
 			if (i < 14) top.push(btn);
 			else bot.push(btn);
 		}
-		return F.CreateDOM(null, { x: "div.board-colors", c: [
-			{ x: "input#board-color", type: "color", value: color,
+		return F.CreateDOM(page, { x: "div.board-colors", c: [
+			{ x: "input.board-color", name: "boardColor", type: "color", value: color,
 				"data-ktip": "web.board.color", title: tip("web.board.color", "颜色") },
 			{ x: "span.board-swatches", c: [
 				{ x: "span", c: top },
@@ -132,9 +134,10 @@
 		svg.innerHTML = d[name] || "";
 		return svg;
 	}
-	function open(){
+	function open(t){
+		page = t;
 		hook();
-		canvas = SK.dom("board-cv");
+		canvas = page.doms.boardCv;
 		if (!canvas) return;
 		canvas.onpointerdown = down;
 		canvas.onpointermove = move;
@@ -147,12 +150,12 @@
 		canvas.ondblclick = dbl;
 		var bar = F.q(".board-bar");
 		if (bar) bar.onclick = onbar;
-		var col = SK.dom("board-color");
+		var col = page.doms.boardColor;
 		if (col) {
 			col.value = color;
 			col.oninput = function(){ setcolor(col.value); };
 		}
-		var txt = SK.dom("board-txt");
+		var txt = page.doms.boardTxt;
 		if (txt) {
 			txt.onkeydown = function(ev){
 				if (ev.key === "Enter") { F.pd(ev); committext(true); }
@@ -226,7 +229,7 @@
 
 	function setcolor(hex){
 		color = hex;
-		var col = SK.dom("board-color");
+		var col = page.doms.boardColor;
 		if (col && col.value !== hex) col.value = hex;
 		var nodes = F.qa(".board-colors [data-color]");
 		var i, want = String(hex).toLowerCase();
@@ -340,7 +343,7 @@
 	}
 
 	function say(key){
-		var el = SK.dom("board-msg");
+		var el = page.doms.boardMsg;
 		if (el) el.textContent = SK.t(key) || FB[key] || "";
 	}
 
@@ -489,7 +492,7 @@
 
 	function up(){
 		if (tool === "text" && edit && !textarmed) {
-			var txt = SK.dom("board-txt");
+			var txt = page.doms.boardTxt;
 			if (txt) setTimeout(function(){
 				if (!edit || textarmed) return;
 				txt.focus();
@@ -652,7 +655,7 @@
 		texttok++;
 		textarmed = false;
 		if (edit) committext(true);
-		var txt = SK.dom("board-txt");
+		var txt = page.doms.boardTxt;
 		if (!txt || !canvas) return;
 		var it = i >= 0 ? items[i] : null;
 		edit = { i: i, x: it ? it.x : x, y: it ? it.y : y };
@@ -683,7 +686,7 @@
 	function committext(keep){
 		if (!edit) return;
 		var ed = edit;
-		var txt = SK.dom("board-txt");
+		var txt = page.doms.boardTxt;
 		var val = txt ? String(txt.value || "").replace(/^\s+|\s+$/g, "") : "";
 		edit = null;
 		if (txt) txt.hidden = true;

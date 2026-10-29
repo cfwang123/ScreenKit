@@ -1,11 +1,13 @@
 (function(){
+	var page = null;
 	SK.regutil("u-rand", {
 		title: "随机数",
 		go: "生成",
 		body: function(t){
+			page = t;
 			return [
 				SK.row2(SK.lab("最小", SK.textin("box-min", "1")), SK.lab("最大", SK.textin("box-max", "100"))),
-				SK.row2(SK.lab("个数", SK.numin("box-n", "5")), SK.lab("类型", F.CreateDOM(t, { x: "select#box-kind", c: [
+				SK.row2(SK.lab("个数", SK.numin("box-n", "5")), SK.lab("类型", F.CreateDOM(t, { x: "select.box-kind", name: "boxKind", c: [
 					{ x: "option", value: "int", c: "整数" },
 					{ x: "option", value: "float", c: "小数" }
 				] })))

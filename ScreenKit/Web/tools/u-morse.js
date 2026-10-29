@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var GROUPS = [
 		{ name: "字母", rows: [
 			["A", ".-"], ["B", "-..."], ["C", "-.-."], ["D", "-.."], ["E", "."],
@@ -59,29 +60,31 @@
 	}
 
 	function body(t){
+		page = t;
 		return [
 			F.CreateDOM(t, { x: "div.uquery", c: [
-				{ x: "input#morse-q", type: "text", placeholder: "搜索：字母、标点，或 .- / ·−" },
-				{ x: "span#morse-msg.msg" }
+				{ x: "input.morse-q", name: "morseQ", type: "text", placeholder: "搜索：字母、标点，或 .- / ·−" },
+				{ x: "span.morse-msg.msg", name: "morseMsg" }
 			] }),
 			F.CreateDOM(t, { x: "p.hint", c: "国际摩斯码。点下面的码复制并用 8bit 合成器试听（约 784Hz），也可以输入一段文字整段播放。短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。" }),
 			F.CreateDOM(t, { x: "div.mtry", c: [
-				{ x: "input#morse-t", type: "text", maxlength: "64", value: "HELLO", placeholder: "输入一段文字，如 SOS HELLO 2026" },
-				{ x: "button#morse-play.primary", type: "button", c: "播放" },
-				{ x: "button#morse-stop", type: "button", c: "停止" },
-				{ x: "span#morse-tmsg.msg" }
+				{ x: "input.morse-t", name: "morseT", type: "text", maxlength: "64", value: "HELLO", placeholder: "输入一段文字，如 SOS HELLO 2026" },
+				{ x: "button.morse-play.primary", name: "morsePlay", type: "button", c: "播放" },
+				{ x: "button.morse-stop", name: "morseStop", type: "button", c: "停止" },
+				{ x: "span.morse-tmsg.msg", name: "morseTmsg" }
 			] }),
-			F.CreateDOM(t, { x: "div#morse-pv.mpv" }),
-			F.CreateDOM(t, { x: "div#morse-list.morse" })
+			F.CreateDOM(t, { x: "div.morse-pv.mpv", name: "morsePv" }),
+			F.CreateDOM(t, { x: "div.morse-list.morse", name: "morseList" })
 		];
 	}
 
-	function open(){
-		var q = SK.dom("morse-q");
-		var list = SK.dom("morse-list");
-		var text = SK.dom("morse-t");
-		var play = SK.dom("morse-play");
-		var stopb = SK.dom("morse-stop");
+	function open(t){
+		page = t;
+		var q = page.doms.morseQ;
+		var list = page.doms.morseList;
+		var text = page.doms.morseT;
+		var play = page.doms.morsePlay;
+		var stopb = page.doms.morseStop;
 		if (!q || !list) return;
 		q.oninput = paint;
 		list.onclick = onclick;
@@ -126,8 +129,8 @@
 
 	// 整段播放：字符内空 1 单位，字符之间空 3 单位，词之间空 7 单位
 	function playtext(){
-		var el = SK.dom("morse-t");
-		var msg = SK.dom("morse-tmsg");
+		var el = page.doms.morseT;
+		var msg = page.doms.morseTmsg;
 		var got = tokens(clean(el ? el.value : ""));
 		var plan;
 		var r;
@@ -159,7 +162,7 @@
 		for (i = 0; i < timers.length; i++) clearTimeout(timers[i]);
 		timers = [];
 		if (SK.bitblipstop) SK.bitblipstop();
-		on = F.qa("#morse-list button.on, #morse-pv span.on");
+		on = F.qa(".morse-list button.on, .morse-pv span.on");
 		for (i = 0; i < on.length; i++) on[i].classList.remove("on");
 	}
 
@@ -170,8 +173,8 @@
 	// 播到第 order 个字符时，把预览里那一段点亮
 	function mark(order, ms){
 		later(ms, function(){
-			var on = F.qa("#morse-pv span.on");
-			var el = F.q('#morse-pv span[data-i="' + order + '"]');
+			var on = F.qa(".morse-pv span.on");
+			var el = F.q(".morse-pv span[data-i=\"" + order + '"]');
 			var i;
 			for (i = 0; i < on.length; i++) on[i].classList.remove("on");
 			if (el) el.classList.add("on");
@@ -263,14 +266,14 @@
 
 	// 输入框下面的点划预览，播放时逐字高亮
 	function paintpv(){
-		var el = SK.dom("morse-t");
-		var out = SK.dom("morse-pv");
+		var el = page.doms.morseT;
+		var out = page.doms.morsePv;
 		var got;
 		var html = "";
 		var order = 0;
 		var i, tk;
 		if (!out) return;
-		if (el) say(SK.dom("morse-tmsg"), "");
+		if (el) say(page.doms.morseTmsg, "");
 		got = tokens(clean(el ? el.value : ""));
 		for (i = 0; i < got.list.length; i++) {
 			tk = got.list[i];
@@ -291,8 +294,8 @@
 	}
 
 	function paint(){
-		var list = SK.dom("morse-list");
-		var qel = SK.dom("morse-q");
+		var list = page.doms.morseList;
+		var qel = page.doms.morseQ;
 		if (!list) return;
 		var q = norm(qel ? qel.value : "");
 		var html = "";

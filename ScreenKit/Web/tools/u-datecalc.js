@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var ALL = "all";
 	var WEEK = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
 	function tr(s){ return SK.tr ? SK.tr(s) : s; }
@@ -14,28 +15,30 @@
 		title: "日期计算",
 		go: "计算",
 		body: function(t){
+			page = t;
 			return [
 				SK.row2(
-					SK.lab("模式", F.CreateDOM(t, { x: "select#dc-mode", c: SK.opts([["diff", "日期差"], ["add", "日期加减"]], "diff") })),
-					SK.lab("开始时间", F.CreateDOM(t, { x: "input#dc-a", type: "datetime-local", step: "1" }))),
+					SK.lab("模式", F.CreateDOM(t, { x: "select.dc-mode", name: "dcMode", c: SK.opts([["diff", "日期差"], ["add", "日期加减"]], "diff") })),
+					SK.lab("开始时间", F.CreateDOM(t, { x: "input.dc-a", name: "dcA", type: "datetime-local", step: "1" }))),
 				SK.row2(
 					[
-						F.CreateDOM(t, { x: "span#dc-bwrap", c: SK.lab("结束时间", F.CreateDOM(t, { x: "input#dc-b", type: "datetime-local", step: "1" })) }),
-						F.CreateDOM(t, { x: "span#dc-nwrap", c: SK.lab("数量", SK.textin("dc-n", "7", "可为负，例如 7、-3、1.5")) })
+						F.CreateDOM(t, { x: "span.dc-bwrap", name: "dcBwrap", c: SK.lab("结束时间", F.CreateDOM(t, { x: "input.dc-b", name: "dcB", type: "datetime-local", step: "1" })) }),
+						F.CreateDOM(t, { x: "span.dc-nwrap", name: "dcNwrap", c: SK.lab("数量", SK.textin("dc-n", "7", "可为负，例如 7、-3、1.5")) })
 					],
-					SK.lab("单位", F.CreateDOM(t, { x: "select#dc-unit" })))
+					SK.lab("单位", F.CreateDOM(t, { x: "select.dc-unit", name: "dcUnit" })))
 			];
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			var now = new Date();
-			F.id("dc-a").value = stamp(now);
-			F.id("dc-b").value = stamp(now);
+			page.doms.dcA.value = stamp(now);
+			page.doms.dcB.value = stamp(now);
 			fillunits(false);
-			F.id("dc-mode").onchange = onpick;
-			F.id("dc-unit").onchange = onpick;
-			F.id("dc-a").oninput = live;
-			F.id("dc-b").oninput = live;
-			F.id("dc-n").oninput = live;
+			page.doms.dcMode.onchange = onpick;
+			page.doms.dcUnit.onchange = onpick;
+			page.doms.dcA.oninput = live;
+			page.doms.dcB.oninput = live;
+			page.doms.dcN.oninput = live;
 			applymode();
 			live();
 		},
@@ -75,19 +78,19 @@
 		var i;
 		for (i = 0; i < rows.length; i++) if (rows[i][0] === cur) pick = cur;
 		if (!pick) pick = add ? "d" : ALL;
-		SK.setopts(SK.dom("dc-unit"), rows, pick);
+		SK.setopts(page.doms.dcUnit, rows, pick);
 	}
 
 	/** 加减藏起结束时间，差值藏起数量。单位始终在这一行的后面。 */
 	function applymode(){
 		var add = SK.val("dc-mode") === "add";
-		F.id("dc-nwrap").hidden = !add;
-		F.id("dc-bwrap").hidden = add;
+		page.doms.dcNwrap.hidden = !add;
+		page.doms.dcBwrap.hidden = add;
 		setlabel("dc-a", add ? "web.f.when" : "web.f.startat", add ? "时间" : "开始时间");
 	}
 
 	function setlabel(id, key, text){
-		var el = F.id(id);
+		var el = page.doms[SK.domkey(id)];
 		var lab = el && el.parentNode;
 		if (!lab) return;
 		var span = F.q("[data-k]", lab);
@@ -102,11 +105,11 @@
 	function live(){
 		SK.msg("box-msg", "");
 		try {
-			F.id("box-out").value = calc();
+			SK.doms.boxOut.value = calc();
 			SK.msg("box-msg", "完成");
 		}
 		catch (ex) {
-			F.id("box-out").value = "";
+			SK.doms.boxOut.value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}

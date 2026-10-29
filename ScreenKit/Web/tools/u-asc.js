@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	// ASCII 0x00-0x7F。控制字符用标准缩写，右边大字预览各类写法。
 	var NAMES = ["NUL", "SOH", "STX", "ETX", "EOT", "ENQ", "ACK", "BEL", "BS", "HT", "LF", "VT", "FF", "CR", "SO", "SI",
 		"DLE", "DC1", "DC2", "DC3", "DC4", "NAK", "SYN", "ETB", "CAN", "EM", "SUB", "ESC", "FS", "GS", "RS", "US"];
@@ -26,19 +27,20 @@
 	SK.regutil("u-asc", {
 		title: "ASCII码表",
 		body: function(t){
+			page = t;
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
-					{ x: "input#a-q", type: "text", placeholder: "字符、0x41、65、0b1000001 或 NUL" },
-					{ x: "select#a-font.ufont", title: "字体" },
-					{ x: "span#a-msg.msg" }
+					{ x: "input.a-q", name: "aQ", type: "text", placeholder: "字符、0x41、65、0b1000001 或 NUL" },
+					{ x: "select.a-font.ufont", name: "aFont", title: "字体" },
+					{ x: "span.a-msg.msg", name: "aMsg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边按类别分组，控制字符显示标准缩写。最右边是大字、十进制、十六进制、八进制、二进制、转义写法。" }),
 				F.CreateDOM(t, { x: "div.unitab", c: [
-					{ x: "div.ugroups#a-groups" },
-					{ x: "div.ugrid.a16h#a-grid" },
+					{ x: "div.ugroups.a-groups", name: "aGroups" },
+					{ x: "div.ugrid.a16h.a-grid", name: "aGrid" },
 					{ x: "aside.uprev", c: [
-						{ x: "div.uprev-ch.ctrl#a-ch" },
-						{ x: "dl.uprev-meta#a-meta" }
+						{ x: "div.uprev-ch.ctrl.a-ch", name: "aCh" },
+						{ x: "dl.uprev-meta.a-meta", name: "aMeta" }
 					] }
 				] })
 			];
@@ -46,7 +48,8 @@
 		run: function(){
 			throw new Error("没有这个工具");
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			SK.onchartfont = null;
 			ascgroups();
 			ascshow(0, -1);
@@ -79,8 +82,8 @@
 				+ esc(runs.map(ascrun).join("、") + " · 点一下看这一组") + '"><b>' + esc(GROUPS[i].name)
 				+ "</b><small>" + (range ? range + " · " : "") + GROUPS[i].codes.length + " 个</small></button>");
 		}
-		SK.dom("a-groups").innerHTML = html.join("");
-		SK.dom("a-groups").onclick = function(ev){
+		page.doms.aGroups.innerHTML = html.join("");
+		page.doms.aGroups.onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "a-groups") {
 				if (el.getAttribute && F.attr(el, "data-i") != null) {
@@ -90,7 +93,7 @@
 				el = el.parentNode;
 			}
 		};
-		SK.dom("a-grid").onclick = function(ev){
+		page.doms.aGrid.onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "a-grid") {
 				if (el.getAttribute && F.attr(el, "data-cp") != null) {
@@ -103,7 +106,7 @@
 				el = el.parentNode;
 			}
 		};
-		SK.dom("a-q").oninput = ascquery;
+		page.doms.aQ.oninput = ascquery;
 	}
 
 	function ascruns(codes){
@@ -136,8 +139,8 @@
 
 	function ascshow(index, focus){
 		var g = GROUPS[index];
-		var buttons = F.qa("#a-groups button");
-		var grid = SK.dom("a-grid");
+		var buttons = F.qa(".a-groups button");
+		var grid = page.doms.aGrid;
 		var has = {};
 		var pick = focus >= 0 && g.codes.indexOf(focus) >= 0 ? focus : g.codes[0];
 		var html = [];
@@ -198,7 +201,7 @@
 	}
 
 	function ascmark(cp){
-		var buttons = F.qa("#a-grid button");
+		var buttons = F.qa(".a-grid button");
 		var i;
 		var cls;
 		for (i = 0; i < buttons.length; i++) {
@@ -210,7 +213,7 @@
 
 	function ascpreview(cp){
 		var ctrl = isctrl(cp);
-		var box = SK.dom("a-ch");
+		var box = page.doms.aCh;
 		box.textContent = ctrl ? (NAMES[cp] || "DEL") : F.ch(cp);
 		box.className = ctrl ? "uprev-ch ctrl" : "uprev-ch";
 		var rows = [
@@ -229,7 +232,7 @@
 			["可打印", ctrl ? (cp === 127 ? "否（删除）" : "否") : "是"]
 		];
 		if (ctrl) rows.push(["中文名", cp === 127 ? "删除" : CN[cp]]);
-		SK.dom("a-meta").innerHTML = rows.map(function(r){
+		page.doms.aMeta.innerHTML = rows.map(function(r){
 			return "<dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>";
 		}).join("");
 	}
@@ -324,7 +327,7 @@
 	}
 
 	function ascquery(){
-		var cp = ascparse(SK.dom("a-q").value);
+		var cp = ascparse(page.doms.aQ.value);
 		if (cp === -2) {
 			SK.msg("a-msg", "");
 			return;
