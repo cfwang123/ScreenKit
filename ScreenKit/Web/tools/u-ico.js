@@ -9,18 +9,18 @@
 			for (i = 0; i < sizes.length; i++)
 				radios.push(SK.radio("ico-size", "ico-" + sizes[i], sizes[i], sizes[i] === "32"));
 			var modes = F.CreateDOM(t, { x: "div.ops", c: [
-					F.CreateDOM(t, { x: "label.check", c: [
-						F.CreateDOM(t, { x: "input#ico-mode-fit", type: "radio", value: "fit", checked: true }),
+					{ x: "label.check", c: [
+						{ x: "input#ico-mode-fit", type: "radio", value: "fit", checked: true },
 						" 适应"
-					] }),
-					F.CreateDOM(t, { x: "label.check", c: [
-						F.CreateDOM(t, { x: "input#ico-mode-stretch", type: "radio", value: "stretch" }),
+					] },
+					{ x: "label.check", c: [
+						{ x: "input#ico-mode-stretch", type: "radio", value: "stretch" },
 						" 拉伸"
-					] }),
-					F.CreateDOM(t, { x: "label.check", c: [
-						F.CreateDOM(t, { x: "input#ico-mode-crop", type: "radio", value: "crop" }),
+					] },
+					{ x: "label.check", c: [
+						{ x: "input#ico-mode-crop", type: "radio", value: "crop" },
 						" 裁剪"
-					] })
+					] }
 				] });
 			// name 在 CreateDOM 里是 doms 登记名，这里要的是 HTML name，单独设。
 			var mi = modes.querySelectorAll("input");
@@ -32,8 +32,8 @@
 				F.CreateDOM(t, { x: "div.ops", c: radios }),
 				modes,
 				F.CreateDOM(t, { x: "div.ico-out", c: [
-					F.CreateDOM(t, { x: "canvas#ico-prev", width: "32", height: "32" }),
-					F.CreateDOM(t, { x: "span#ico-prev-size", c: "32×32" })
+					{ x: "canvas#ico-prev", width: "32", height: "32" },
+					{ x: "span#ico-prev-size", c: "32×32" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: "只生成所选的一种尺寸。方图按实际像素显示，边框就是图标大小。适应等比放进方框，空白透明。拉伸铺满方框。裁剪从中间铺满，多出的部分切掉。" })
 			];

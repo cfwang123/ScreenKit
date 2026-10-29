@@ -286,12 +286,12 @@
 		hideCopy: true,
 		body: function(t){
 			return F.CreateDOM(t, { x: "div.ctab", c: [
-				F.CreateDOM(t, { x: "div.uquery", c: [
-					F.CreateDOM(t, { x: "input#c-q", type: "text", placeholder: "名称（中/英）或十六进制" }),
-					F.CreateDOM(t, { x: "span#box-msg.msg" })
-				] }),
-				F.CreateDOM(t, { x: "div.cgroups#c-groups" }),
-				F.CreateDOM(t, { x: "div.cgrid#c-grid" })
+				{ x: "div.uquery", c: [
+					{ x: "input#c-q", type: "text", placeholder: "名称（中/英）或十六进制" },
+					{ x: "span#box-msg.msg" }
+				] },
+				{ x: "div.cgroups#c-groups" },
+				{ x: "div.cgrid#c-grid" }
 			] });
 		},
 		open: function(){

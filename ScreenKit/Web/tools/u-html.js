@@ -37,12 +37,12 @@
 			btns.push(F.CreateDOM(t, { x: "button", type: "button", "data-htmlui": samples[i].id, c: SK.t(samples[i].key) || samples[i].id }));
 		}
 		return F.CreateDOM(t, { x: "div.htmlui", c: [
-			F.CreateDOM(t, { x: "p.hint", "data-k": "web.htmlui.hint", c: hint }),
-			F.CreateDOM(t, { x: "div.htmlui-tpl", c: btns }),
-			F.CreateDOM(t, { x: "div.htmlui-split", c: [
-				F.CreateDOM(t, { x: "textarea#htmlui-src", spellcheck: "false" }),
-				F.CreateDOM(t, { x: "iframe#htmlui-view", sandbox: "allow-forms allow-scripts", title: "preview" })
-			] })
+			{ x: "p.hint", "data-k": "web.htmlui.hint", c: hint },
+			{ x: "div.htmlui-tpl", c: btns },
+			{ x: "div.htmlui-split", c: [
+				{ x: "textarea#htmlui-src", spellcheck: "false" },
+				{ x: "iframe#htmlui-view", sandbox: "allow-forms allow-scripts", title: "preview" }
+			] }
 		] });
 	}
 

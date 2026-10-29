@@ -26,14 +26,14 @@
 			SK.fakepick = "";
 			return [
 				F.CreateDOM(t, { x: "div.row", c: [
-					F.CreateDOM(t, { x: "label#box-lang-lab", s: { display: "none" }, c: [
-						F.CreateDOM(t, { x: "span", "data-k": "web.f.lang", c: SK.t("web.f.lang") || "语言" }),
-						F.CreateDOM(t, { x: "select#box-lang" })
-					] }),
-					F.CreateDOM(t, { x: "label", c: [
-						F.CreateDOM(t, { x: "span#box-kind-cap", "data-k": "web.f.kind", c: SK.t("web.f.kind") || "类型" }),
-						F.CreateDOM(t, { x: "select#box-kind", c: kindhtml(BASE, kind) })
-					] }),
+					{ x: "label#box-lang-lab", s: { display: "none" }, c: [
+						{ x: "span", "data-k": "web.f.lang", c: SK.t("web.f.lang") || "语言" },
+						{ x: "select#box-lang" }
+					] },
+					{ x: "label", c: [
+						{ x: "span#box-kind-cap", "data-k": "web.f.kind", c: SK.t("web.f.kind") || "类型" },
+						{ x: "select#box-kind", c: kindhtml(BASE, kind) }
+					] },
 					SK.lab("行数", SK.numin("box-n", "10"))
 				] }),
 				F.CreateDOM(t, { x: "p#box-bogus.hint", "data-k": "web.fake.off", c: hint("web.fake.off") })

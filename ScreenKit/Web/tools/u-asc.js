@@ -28,18 +28,18 @@
 		body: function(t){
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
-					F.CreateDOM(t, { x: "input#a-q", type: "text", placeholder: "字符、0x41、65、0b1000001 或 NUL" }),
-					F.CreateDOM(t, { x: "select#a-font.ufont", title: "字体" }),
-					F.CreateDOM(t, { x: "span#a-msg.msg" })
+					{ x: "input#a-q", type: "text", placeholder: "字符、0x41、65、0b1000001 或 NUL" },
+					{ x: "select#a-font.ufont", title: "字体" },
+					{ x: "span#a-msg.msg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边按类别分组，控制字符显示标准缩写。最右边是大字、十进制、十六进制、八进制、二进制、转义写法。" }),
 				F.CreateDOM(t, { x: "div.unitab", c: [
-					F.CreateDOM(t, { x: "div.ugroups#a-groups" }),
-					F.CreateDOM(t, { x: "div.ugrid.a16h#a-grid" }),
-					F.CreateDOM(t, { x: "aside.uprev", c: [
-						F.CreateDOM(t, { x: "div.uprev-ch.ctrl#a-ch" }),
-						F.CreateDOM(t, { x: "dl.uprev-meta#a-meta" })
-					] })
+					{ x: "div.ugroups#a-groups" },
+					{ x: "div.ugrid.a16h#a-grid" },
+					{ x: "aside.uprev", c: [
+						{ x: "div.uprev-ch.ctrl#a-ch" },
+						{ x: "dl.uprev-meta#a-meta" }
+					] }
 				] })
 			];
 		},

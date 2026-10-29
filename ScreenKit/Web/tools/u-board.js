@@ -46,8 +46,8 @@
 		color = "#000000";
 		width = 2;
 		return F.CreateDOM(t, { x: "div.board", c: [
-			F.CreateDOM(t, { x: "div.board-bar", c: [
-				F.CreateDOM(t, { x: "div.board-tools", c: [
+			{ x: "div.board-bar", c: [
+				{ x: "div.board-tools", c: [
 					tbtn("select", "web.board.select", "选择", false),
 					tbtn("rect", "web.board.rect", "矩形", false),
 					tbtn("ellipse", "web.board.ellipse", "椭圆", false),
@@ -55,22 +55,22 @@
 					tbtn("pen", "web.board.pen", "画笔", true),
 					tbtn("lasso", "web.board.lasso", "圈选", false),
 					tbtn("text", "web.board.text", "文字", false),
-					F.CreateDOM(t, { x: "span.sep" }),
+					{ x: "span.sep" },
 					wbtn(2), wbtn(4), wbtn(8),
-					F.CreateDOM(t, { x: "span.sep" }),
+					{ x: "span.sep" },
 					abtn("paste", "web.board.paste", "粘贴"),
 					abtn("undo", "web.board.undo", "撤销"),
 					abtn("clear", "web.board.clear", "清空"),
 					abtn("copy", "web.board.copy", "复制图片"),
 					abtn("save", "web.board.save", "保存")
-				] }),
+				] },
 				colors()
-			] }),
-			F.CreateDOM(t, { x: "div.board-stage", c: [
-				F.CreateDOM(t, { x: "canvas#board-cv" }),
-				F.CreateDOM(t, { x: "input#board-txt.board-text", type: "text", hidden: true, spellcheck: "false" }),
-				F.CreateDOM(t, { x: "p#board-msg.board-msg" })
-			] })
+			] },
+			{ x: "div.board-stage", c: [
+				{ x: "canvas#board-cv" },
+				{ x: "input#board-txt.board-text", type: "text", hidden: true, spellcheck: "false" },
+				{ x: "p#board-msg.board-msg" }
+			] }
 		] });
 	}
 
@@ -86,7 +86,7 @@
 	function abtn(name, key, fb){
 		return F.CreateDOM(null, { x: "button", type: "button", "data-act": name,
 			"data-ktip": key, title: tip(key, fb), c: [
-				F.CreateDOM(null, { x: "span", "data-k": key, c: tip(key, fb) })
+				{ x: "span", "data-k": key, c: tip(key, fb) }
 			] });
 	}
 
@@ -107,12 +107,12 @@
 			else bot.push(btn);
 		}
 		return F.CreateDOM(null, { x: "div.board-colors", c: [
-			F.CreateDOM(null, { x: "input#board-color", type: "color", value: color,
-				"data-ktip": "web.board.color", title: tip("web.board.color", "颜色") }),
-			F.CreateDOM(null, { x: "span.board-swatches", c: [
-				F.CreateDOM(null, { x: "span", c: top }),
-				F.CreateDOM(null, { x: "span", c: bot })
-			] })
+			{ x: "input#board-color", type: "color", value: color,
+				"data-ktip": "web.board.color", title: tip("web.board.color", "颜色") },
+			{ x: "span.board-swatches", c: [
+				{ x: "span", c: top },
+				{ x: "span", c: bot }
+			] }
 		] });
 	}
 

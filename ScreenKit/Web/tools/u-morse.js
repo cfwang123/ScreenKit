@@ -61,15 +61,15 @@
 	function body(t){
 		return [
 			F.CreateDOM(t, { x: "div.uquery", c: [
-				F.CreateDOM(t, { x: "input#morse-q", type: "text", placeholder: "搜索：字母、标点，或 .- / ·−" }),
-				F.CreateDOM(t, { x: "span#morse-msg.msg" })
+				{ x: "input#morse-q", type: "text", placeholder: "搜索：字母、标点，或 .- / ·−" },
+				{ x: "span#morse-msg.msg" }
 			] }),
 			F.CreateDOM(t, { x: "p.hint", c: "国际摩斯码。点下面的码复制并用 8bit 合成器试听（约 784Hz），也可以输入一段文字整段播放。短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。" }),
 			F.CreateDOM(t, { x: "div.mtry", c: [
-				F.CreateDOM(t, { x: "input#morse-t", type: "text", maxlength: "64", value: "HELLO", placeholder: "输入一段文字，如 SOS HELLO 2026" }),
-				F.CreateDOM(t, { x: "button#morse-play.primary", type: "button", c: "播放" }),
-				F.CreateDOM(t, { x: "button#morse-stop", type: "button", c: "停止" }),
-				F.CreateDOM(t, { x: "span#morse-tmsg.msg" })
+				{ x: "input#morse-t", type: "text", maxlength: "64", value: "HELLO", placeholder: "输入一段文字，如 SOS HELLO 2026" },
+				{ x: "button#morse-play.primary", type: "button", c: "播放" },
+				{ x: "button#morse-stop", type: "button", c: "停止" },
+				{ x: "span#morse-tmsg.msg" }
 			] }),
 			F.CreateDOM(t, { x: "div#morse-pv.mpv" }),
 			F.CreateDOM(t, { x: "div#morse-list.morse" })

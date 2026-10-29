@@ -10,18 +10,18 @@
 		body: function(t){
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
-					F.CreateDOM(t, { x: "input#gbk-q", type: "text", "data-kph": "web.gbk.ph", placeholder: SK.t("web.gbk.ph") || "字、B0A1 或 U+4E00" }),
-					F.CreateDOM(t, { x: "select#gbk-font.ufont", title: "字体" }),
-					F.CreateDOM(t, { x: "span#gbk-msg.msg" })
+					{ x: "input#gbk-q", type: "text", "data-kph": "web.gbk.ph", placeholder: SK.t("web.gbk.ph") || "字、B0A1 或 U+4E00" },
+					{ x: "select#gbk-font.ufont", title: "字体" },
+					{ x: "span#gbk-msg.msg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边每个首字节写出字数和起止码。每页 16 列。空位没有字符。" }),
 				F.CreateDOM(t, { x: "div.unitab", c: [
-					F.CreateDOM(t, { x: "div.ugroups#gbk-groups" }),
-					F.CreateDOM(t, { x: "div.ugrid.g16#gbk-grid" }),
-					F.CreateDOM(t, { x: "aside.uprev", c: [
-						F.CreateDOM(t, { x: "div.uprev-ch#gbk-ch" }),
-						F.CreateDOM(t, { x: "dl.uprev-meta#gbk-meta" })
-					] })
+					{ x: "div.ugroups#gbk-groups" },
+					{ x: "div.ugrid.g16#gbk-grid" },
+					{ x: "aside.uprev", c: [
+						{ x: "div.uprev-ch#gbk-ch" },
+						{ x: "dl.uprev-meta#gbk-meta" }
+					] }
 				] })
 			];
 		},

@@ -16,18 +16,18 @@
 		body: function(t){
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
-					F.CreateDOM(t, { x: "input#u-q", type: "text", "data-kph": "web.uni.ph", placeholder: SK.t("web.uni.ph") || "字、U+4E00 或十进制" }),
-					F.CreateDOM(t, { x: "select#u-font.ufont", title: "字体" }),
-					F.CreateDOM(t, { x: "span#u-msg.msg" })
+					{ x: "input#u-q", type: "text", "data-kph": "web.uni.ph", placeholder: SK.t("web.uni.ph") || "字、U+4E00 或十进制" },
+					{ x: "select#u-font.ufont", title: "字体" },
+					{ x: "span#u-msg.msg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位，以及 GBK 等编码。" }),
 				F.CreateDOM(t, { x: "div.unitab", c: [
-					F.CreateDOM(t, { x: "div.ugroups#u-groups" }),
-					F.CreateDOM(t, { x: "div.ugrid#u-grid" }),
-					F.CreateDOM(t, { x: "aside.uprev", c: [
-						F.CreateDOM(t, { x: "div.uprev-ch#u-ch" }),
-						F.CreateDOM(t, { x: "dl.uprev-meta#u-meta" })
-					] })
+					{ x: "div.ugroups#u-groups" },
+					{ x: "div.ugrid#u-grid" },
+					{ x: "aside.uprev", c: [
+						{ x: "div.uprev-ch#u-ch" },
+						{ x: "dl.uprev-meta#u-meta" }
+					] }
 				] })
 			];
 		},

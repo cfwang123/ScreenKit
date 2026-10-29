@@ -172,8 +172,8 @@
 		return [
 			F.CreateDOM(t, { x: "p#kv-hint.hint" }),
 			F.CreateDOM(t, { x: "div.row#kv-row", c: [
-				F.CreateDOM(t, { x: "label#kv-type", c: sel }),
-				F.CreateDOM(t, { x: "label#kv-word", c: SK.combo("kv-in", "먹다", "词典形，如 먹다、예쁘다、학생") })
+				{ x: "label#kv-type", c: sel },
+				{ x: "label#kv-word", c: SK.combo("kv-in", "먹다", "词典形，如 먹다、예쁘다、학생") }
 			] }),
 			F.CreateDOM(t, { x: "div#kv-out" })
 		];

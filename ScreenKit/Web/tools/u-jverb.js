@@ -164,8 +164,8 @@
 		return [
 			F.CreateDOM(t, { x: "p#jv-hint.hint" }),
 			F.CreateDOM(t, { x: "div.row#jv-row", c: [
-				F.CreateDOM(t, { x: "label#jv-type", c: sel }),
-				F.CreateDOM(t, { x: "label#jv-word", c: SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") })
+				{ x: "label#jv-type", c: sel },
+				{ x: "label#jv-word", c: SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") }
 			] }),
 			F.CreateDOM(t, { x: "div#jv-out" })
 		];

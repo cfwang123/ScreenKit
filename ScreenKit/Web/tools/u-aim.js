@@ -30,10 +30,10 @@
 		return [
 			F.CreateDOM(t, { x: "p#aim-hint.hint" }),
 			F.CreateDOM(t, { x: "p#aim-pages.hint", c: [
-				F.CreateDOM(t, { x: "a#aim-models", href: "/chrome", target: "_blank", rel: "noopener" })
+				{ x: "a#aim-models", href: "/chrome", target: "_blank", rel: "noopener" }
 			] }),
 			F.CreateDOM(t, { x: "label#aim-tasklab", c: [
-				F.CreateDOM(t, { x: "select#aim-task", c: [
+				{ x: "select#aim-task", c: [
 					{ x: "option", value: "detect" },
 					{ x: "option", value: "translate" },
 					{ x: "option", value: "summarize" },
@@ -42,33 +42,33 @@
 					{ x: "option", value: "prompt" },
 					{ x: "option", value: "speak" },
 					{ x: "option", value: "listen" }
-				] })
+				] }
 			] }),
 			F.CreateDOM(t, { x: "div.row#aim-speak", hidden: true, c: [
-				F.CreateDOM(t, { x: "label#aim-vlanglab", c: [F.CreateDOM(t, { x: "select#aim-vlang" })] }),
-				F.CreateDOM(t, { x: "label#aim-voicelab", c: [F.CreateDOM(t, { x: "select#aim-voice" })] })
+				{ x: "label#aim-vlanglab", c: [{ x: "select#aim-vlang" }] },
+				{ x: "label#aim-voicelab", c: [{ x: "select#aim-voice" }] }
 			] }),
 			F.CreateDOM(t, { x: "div.row#aim-tr", hidden: true, c: [
-				F.CreateDOM(t, { x: "label#aim-srclab", c: [F.CreateDOM(t, { x: "select#aim-src" })] }),
-				F.CreateDOM(t, { x: "label#aim-dstlab", c: [F.CreateDOM(t, { x: "select#aim-dst" })] })
+				{ x: "label#aim-srclab", c: [{ x: "select#aim-src" }] },
+				{ x: "label#aim-dstlab", c: [{ x: "select#aim-dst" }] }
 			] }),
 			F.CreateDOM(t, { x: "label#aim-sumlab", hidden: true, c: [
-				F.CreateDOM(t, { x: "select#aim-sum", c: [
+				{ x: "select#aim-sum", c: [
 					{ x: "option", value: "key-points" },
 					{ x: "option", value: "tldr" },
 					{ x: "option", value: "teaser" },
 					{ x: "option", value: "headline" }
-				] })
+				] }
 			] }),
 			F.CreateDOM(t, { x: "label#aim-tonelab", hidden: true, c: [
-				F.CreateDOM(t, { x: "select#aim-tone", c: [
+				{ x: "select#aim-tone", c: [
 					{ x: "option", value: "more-formal" },
 					{ x: "option", value: "more-casual" },
 					{ x: "option", value: "shorter" },
 					{ x: "option", value: "longer" }
-				] })
+				] }
 			] }),
-			F.CreateDOM(t, { x: "label#aim-inlab", c: [F.CreateDOM(t, { x: "textarea#aim-in", rows: "8" })] }),
+			F.CreateDOM(t, { x: "label#aim-inlab", c: [{ x: "textarea#aim-in", rows: "8" }] }),
 			F.CreateDOM(t, { x: "p#aim-msg.msg" })
 		];
 	}

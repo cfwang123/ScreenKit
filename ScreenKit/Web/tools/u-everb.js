@@ -486,27 +486,27 @@
 		return [
 			F.CreateDOM(t, { x: "p#ev-hint.hint", "data-k": "web.everb.hint", c: esc(tr(LAB.hint)) }),
 			F.CreateDOM(t, { x: "div.row#ev-row", c: [
-				F.CreateDOM(t, { x: "label#ev-type", c: [
-					F.CreateDOM(t, { x: "span", "data-k": "web.everb.type", c: esc(tr(LAB.type)) }),
+				{ x: "label#ev-type", c: [
+					{ x: "span", "data-k": "web.everb.type", c: esc(tr(LAB.type)) },
 					sel
-				] }),
-				F.CreateDOM(t, { x: "label#ev-word", c: [
-					F.CreateDOM(t, { x: "span", "data-k": "web.everb.word", c: esc(tr(LAB.word)) }),
+				] },
+				{ x: "label#ev-word", c: [
+					{ x: "span", "data-k": "web.everb.word", c: esc(tr(LAB.word)) },
 					SK.combo("ev-in", "walk", LAB.ph[0])
-				] }),
-				F.CreateDOM(t, { x: "label#ev-obj", hidden: true, c: [
-					F.CreateDOM(t, { x: "span", "data-k": "web.everb.obj", c: esc(tr(LAB.obj)) }),
+				] },
+				{ x: "label#ev-obj", hidden: true, c: [
+					{ x: "span", "data-k": "web.everb.obj", c: esc(tr(LAB.obj)) },
 					obj,
-					F.CreateDOM(t, { x: "span#ev-owhy", hidden: true })
-				] }),
-				F.CreateDOM(t, { x: "label#ev-o1", hidden: true, c: [
-					F.CreateDOM(t, { x: "span", "data-k": "web.everb.o1", c: esc(tr(LAB.o1)) }),
+					{ x: "span#ev-owhy", hidden: true }
+				] },
+				{ x: "label#ev-o1", hidden: true, c: [
+					{ x: "span", "data-k": "web.everb.o1", c: esc(tr(LAB.o1)) },
 					SK.combo("ev-oa", "it", "可输入，如 him")
-				] }),
-				F.CreateDOM(t, { x: "label#ev-o2", hidden: true, c: [
-					F.CreateDOM(t, { x: "span", "data-k": "web.everb.o2", c: esc(tr(LAB.o2)) }),
+				] },
+				{ x: "label#ev-o2", hidden: true, c: [
+					{ x: "span", "data-k": "web.everb.o2", c: esc(tr(LAB.o2)) },
 					SK.combo("ev-ob", "a book", "可输入，如 him")
-				] })
+				] }
 			] }),
 			F.CreateDOM(t, { x: "div#ev-out" })
 		];

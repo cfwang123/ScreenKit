@@ -28,18 +28,18 @@
 				F.CreateDOM(t, { x: "span#cam-devlab" }),
 				F.CreateDOM(t, { x: "select#cam-dev" }),
 				F.CreateDOM(t, { x: "div.ops", c: [
-					F.CreateDOM(t, { x: "button#cam-shot", type: "button" }),
-					F.CreateDOM(t, { x: "button#cam-mode", type: "button" }),
-					F.CreateDOM(t, { x: "button#cam-scan", type: "button" }),
-					F.CreateDOM(t, { x: "button#cam-save", type: "button" })
+					{ x: "button#cam-shot", type: "button" },
+					{ x: "button#cam-mode", type: "button" },
+					{ x: "button#cam-scan", type: "button" },
+					{ x: "button#cam-save", type: "button" }
 				] }),
 				F.CreateDOM(t, { x: "div#cam-tune", hidden: true, c: [
-					F.CreateDOM(t, { x: "label#cam-zoomlab", c: [
-						F.CreateDOM(t, { x: "span#cam-zoomtxt" }),
-						F.CreateDOM(t, { x: "input#cam-zoom", type: "range" })
-					] }),
-					F.CreateDOM(t, { x: "button#cam-torch", type: "button", hidden: true }),
-					F.CreateDOM(t, { x: "button#cam-focus", type: "button", hidden: true })
+					{ x: "label#cam-zoomlab", c: [
+						{ x: "span#cam-zoomtxt" },
+						{ x: "input#cam-zoom", type: "range" }
+					] },
+					{ x: "button#cam-torch", type: "button", hidden: true },
+					{ x: "button#cam-focus", type: "button", hidden: true }
 				] }),
 				F.CreateDOM(t, { x: "img#cam-shotimg", alt: "", hidden: true }),
 				F.CreateDOM(t, { x: "pre#cam-code" }),

@@ -34,17 +34,17 @@
 		try { saved = localStorage.getItem("sk-rtsp") || ""; } catch (e) { saved = ""; }
 		try { hear = localStorage.getItem("sk-rtsp-audio"); if (hear == null) hear = "1"; } catch (e2) { hear = "1"; }
 		return F.CreateDOM(t, { x: "div.rtsp", c: [
-			F.CreateDOM(t, { x: "div.rtsp-bar", c: [
-				F.CreateDOM(t, { x: "input#rtsp-url", type: "text", spellcheck: "false", value: saved, placeholder: "rtsp://user:pass@host:554/Streaming/Channels/101" }),
-				F.CreateDOM(t, { x: "label", c: [
-					F.CreateDOM(t, { x: "input#rtsp-audio", type: "checkbox", checked: hear !== "0" }),
+			{ x: "div.rtsp-bar", c: [
+				{ x: "input#rtsp-url", type: "text", spellcheck: "false", value: saved, placeholder: "rtsp://user:pass@host:554/Streaming/Channels/101" },
+				{ x: "label", c: [
+					{ x: "input#rtsp-audio", type: "checkbox", checked: hear !== "0" },
 					" " + sound
-				] }),
-				F.CreateDOM(t, { x: "button#rtsp-play", type: "button", c: play }),
-				F.CreateDOM(t, { x: "button#rtsp-stop", type: "button", hidden: true, c: stop })
-			] }),
-			F.CreateDOM(t, { x: "div#rtsp-msg.rtsp-msg", "data-k": "web.rtsp.hint", c: hint }),
-			F.CreateDOM(t, { x: "div.rtsp-stage", c: [F.CreateDOM(t, { x: "canvas#rtsp-view" })] })
+				] },
+				{ x: "button#rtsp-play", type: "button", c: play },
+				{ x: "button#rtsp-stop", type: "button", hidden: true, c: stop }
+			] },
+			{ x: "div#rtsp-msg.rtsp-msg", "data-k": "web.rtsp.hint", c: hint },
+			{ x: "div.rtsp-stage", c: [{ x: "canvas#rtsp-view" }] }
 		] });
 	}
 

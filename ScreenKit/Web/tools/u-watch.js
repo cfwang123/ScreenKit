@@ -13,7 +13,7 @@
 				F.CreateDOM(t, { x: "div#watch-untilrow", hidden: true, c:
 					SK.lab("日期时间", F.CreateDOM(t, { x: "input#watch-at", type: "datetime-local", step: "1", oninput: function(){ watchuntil(); } })) }),
 				F.CreateDOM(t, { x: "div.row", c: [
-					F.CreateDOM(t, { x: "button#box-start", type: "button", "data-k": "web.go.start", c: "开始", onclick: function(){ watchtoggle(); } })
+					{ x: "button#box-start", type: "button", "data-k": "web.go.start", c: "开始", onclick: function(){ watchtoggle(); } }
 				] })
 			];
 		},

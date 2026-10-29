@@ -18,16 +18,16 @@
 		var hint = SK.t("web.mdread.hint") || "";
 		var openLabel = SK.t("web.mdread.open") || "打开";
 		return F.CreateDOM(t, { x: "div.mdread", c: [
-			F.CreateDOM(t, { x: "div.mdread-bar", c: [
-				F.CreateDOM(t, { x: "button#md-open", type: "button", c: openLabel }),
-				F.CreateDOM(t, { x: "input#md-file", type: "file", accept: ".md,.markdown,.mdown,.mkd,text/markdown", hidden: true }),
-				F.CreateDOM(t, { x: "select#md-theme.mdtheme", title: SK.t("mdread.theme") || "" }),
-				F.CreateDOM(t, { x: "span#md-name", "data-k": "web.mdread.hint", c: hint })
-			] }),
-			F.CreateDOM(t, { x: "div.mdread-stage", c: [
-				F.CreateDOM(t, { x: "iframe#md-view", title: "preview", sandbox: "allow-popups allow-scripts" }),
-				F.CreateDOM(t, { x: "div#md-mask.mdread-mask" })
-			] })
+			{ x: "div.mdread-bar", c: [
+				{ x: "button#md-open", type: "button", c: openLabel },
+				{ x: "input#md-file", type: "file", accept: ".md,.markdown,.mdown,.mkd,text/markdown", hidden: true },
+				{ x: "select#md-theme.mdtheme", title: SK.t("mdread.theme") || "" },
+				{ x: "span#md-name", "data-k": "web.mdread.hint", c: hint }
+			] },
+			{ x: "div.mdread-stage", c: [
+				{ x: "iframe#md-view", title: "preview", sandbox: "allow-popups allow-scripts" },
+				{ x: "div#md-mask.mdread-mask" }
+			] }
 		] });
 	}
 

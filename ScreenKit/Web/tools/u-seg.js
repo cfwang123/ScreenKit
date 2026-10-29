@@ -14,14 +14,14 @@
 		return [
 			F.CreateDOM(t, { x: "p#seg-hint.hint" }),
 			F.CreateDOM(t, { x: "label#seg-glab", c: [
-				F.CreateDOM(t, { x: "select#seg-g", c: [
+				{ x: "select#seg-g", c: [
 					{ x: "option", value: "word" },
 					{ x: "option", value: "sentence" },
 					{ x: "option", value: "grapheme" }
-				] })
+				] }
 			] }),
 			F.CreateDOM(t, { x: "label#seg-inlab", c: [
-				F.CreateDOM(t, { x: "textarea#seg-in", rows: "8" })
+				{ x: "textarea#seg-in", rows: "8" }
 			] })
 		];
 	}

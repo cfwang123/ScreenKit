@@ -75,38 +75,38 @@
 		for (i = 0; i < SFX.length; i++)
 			sfx.push(F.CreateDOM(t, { x: "button.bit-sfx", type: "button", "data-sfx": SFX[i].id, c: SFX[i].name }));
 		return F.CreateDOM(t, { x: "div.bit", c: [
-			F.CreateDOM(t, { x: "div.row", c: [
-				F.CreateDOM(t, { x: "label", c: ["乐器", F.CreateDOM(t, { x: "select#bit-inst", c: opts })] }),
-				F.CreateDOM(t, { x: "label.bitvol", c: ["音量", F.CreateDOM(t, { x: "input#bit-vol", type: "range", min: "0", max: "100", value: "100" })] }),
-				F.CreateDOM(t, { x: "button#bit-demo", type: "button", c: "试听" }),
-				F.CreateDOM(t, { x: "button#bit-stop", type: "button", c: "停止" }),
-				F.CreateDOM(t, { x: "span.bitoct", c: [
+			{ x: "div.row", c: [
+				{ x: "label", c: ["乐器", { x: "select#bit-inst", c: opts }] },
+				{ x: "label.bitvol", c: ["音量", { x: "input#bit-vol", type: "range", min: "0", max: "100", value: "100" }] },
+				{ x: "button#bit-demo", type: "button", c: "试听" },
+				{ x: "button#bit-stop", type: "button", c: "停止" },
+				{ x: "span.bitoct", c: [
 					"八度",
-					F.CreateDOM(t, { x: "button#bit-octdn", type: "button", title: "降一个八度", c: "−" }),
-					F.CreateDOM(t, { x: "b#bit-octv", c: "C3" }),
-					F.CreateDOM(t, { x: "button#bit-octup", type: "button", title: "升一个八度", c: "+" })
-				] })
-			] }),
-			F.CreateDOM(t, { x: "canvas#bit-wave.bitwave" }),
-			F.CreateDOM(t, { x: "div#bit-keys.bitkeys", c: keys() }),
-			F.CreateDOM(t, { x: "p.kicker", c: "编排" }),
-			F.CreateDOM(t, { x: "div.row", c: [
-				F.CreateDOM(t, { x: "label", c: ["速度", F.CreateDOM(t, { x: "input#bit-bpm", type: "number", min: "40", max: "240", value: "120" })] }),
-				F.CreateDOM(t, { x: "label", c: ["记谱", F.CreateDOM(t, { x: "select#bit-oct", c: [
+					{ x: "button#bit-octdn", type: "button", title: "降一个八度", c: "−" },
+					{ x: "b#bit-octv", c: "C3" },
+					{ x: "button#bit-octup", type: "button", title: "升一个八度", c: "+" }
+				] }
+			] },
+			{ x: "canvas#bit-wave.bitwave" },
+			{ x: "div#bit-keys.bitkeys", c: keys() },
+			{ x: "p.kicker", c: "编排" },
+			{ x: "div.row", c: [
+				{ x: "label", c: ["速度", { x: "input#bit-bpm", type: "number", min: "40", max: "240", value: "120" }] },
+				{ x: "label", c: ["记谱", { x: "select#bit-oct", c: [
 					{ x: "option", value: "-12", c: "低八度" },
 					{ x: "option", value: "0", selected: true, c: "原调" },
 					{ x: "option", value: "12", c: "高八度" }
-				] })] }),
-				F.CreateDOM(t, { x: "button#bit-play", type: "button", c: "播放" }),
-				F.CreateDOM(t, { x: "button#bit-songstop", type: "button", c: "停止" }),
-				F.CreateDOM(t, { x: "label", c: ["示例", F.CreateDOM(t, { x: "select#bit-ex", c: exopts() })] }),
-				F.CreateDOM(t, { x: "button#bit-clear", type: "button", c: "清空" })
-			] }),
-			F.CreateDOM(t, { x: "div#bit-grid.bitgrid" }),
-			F.CreateDOM(t, { x: "p.bitmsg", c: "四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。" }),
-			F.CreateDOM(t, { x: "p.kicker", c: "音效" }),
-			F.CreateDOM(t, { x: "div#bit-sfx.ops", c: sfx }),
-			F.CreateDOM(t, { x: "p#bit-msg.bitmsg", c: "点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组），也可以点「八度」旁边的 − / + 换一组。点一个音效会停掉其它正在响的。警报、火警、蜂鸣、电话再点一次就停。" })
+				] }] },
+				{ x: "button#bit-play", type: "button", c: "播放" },
+				{ x: "button#bit-songstop", type: "button", c: "停止" },
+				{ x: "label", c: ["示例", { x: "select#bit-ex", c: exopts() }] },
+				{ x: "button#bit-clear", type: "button", c: "清空" }
+			] },
+			{ x: "div#bit-grid.bitgrid" },
+			{ x: "p.bitmsg", c: "四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。" },
+			{ x: "p.kicker", c: "音效" },
+			{ x: "div#bit-sfx.ops", c: sfx },
+			{ x: "p#bit-msg.bitmsg", c: "点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组），也可以点「八度」旁边的 − / + 换一组。点一个音效会停掉其它正在响的。警报、火警、蜂鸣、电话再点一次就停。" }
 		] });
 	}
 
@@ -125,12 +125,12 @@
 				wi++;
 				whites.appendChild(F.CreateDOM(null, { x: "button.w", type: "button", "data-midi": midi, c: [
 					(name === "C" ? name + (Math.floor(midi / 12) - 1) : name),
-					F.CreateDOM(null, { x: "small", c: lab })
+					{ x: "small", c: lab }
 				] }));
 			}
 			else {
 				blacks.push(F.CreateDOM(null, { x: "button.b", type: "button", "data-midi": midi, "data-after": wi, c: [
-					F.CreateDOM(null, { x: "small", c: lab })
+					{ x: "small", c: lab }
 				] }));
 			}
 		}

@@ -1634,8 +1634,8 @@
 		return [
 			F.CreateDOM(t, { x: "p#rv-hint.hint" }),
 			F.CreateDOM(t, { x: "div.row#rv-row", c: [
-				F.CreateDOM(t, { x: "label#rv-kind", c: sel }),
-				F.CreateDOM(t, { x: "label#rv-word", c: SK.combo("rv-in", "читать", "不定式、形容词或名词") })
+				{ x: "label#rv-kind", c: sel },
+				{ x: "label#rv-word", c: SK.combo("rv-in", "читать", "不定式、形容词或名词") }
 			] }),
 			F.CreateDOM(t, { x: "div#rv-out" })
 		];

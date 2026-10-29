@@ -67,36 +67,36 @@
 
 	function body(t){
 		return F.CreateDOM(t, { x: "div.plot", c: [
-			F.CreateDOM(t, { x: "div.plot-bar", c: [
-				F.CreateDOM(t, { x: "button", type: "button", class: "on", "data-act": "cross", "data-ktip": "web.plot.crossTip",
+			{ x: "div.plot-bar", c: [
+				{ x: "button", type: "button", class: "on", "data-act": "cross", "data-ktip": "web.plot.crossTip",
 					title: tt("web.plot.crossTip", "竖线与曲线的交点。再点一次关闭。"), c: [
-						F.CreateDOM(t, { x: "i.fa-solid.fa-crosshairs" }),
-						F.CreateDOM(t, { x: "span", "data-k": "web.plot.cross", c: tt("web.plot.cross", "Cross") })
-					] }),
-				F.CreateDOM(t, { x: "span.plot-style.plot-seg", hidden: true, c: [
+						{ x: "i.fa-solid.fa-crosshairs" },
+						{ x: "span", "data-k": "web.plot.cross", c: tt("web.plot.cross", "Cross") }
+					] },
+				{ x: "span.plot-style.plot-seg", hidden: true, c: [
 					styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面"),
 					styleBtn("grid", "fa-border-all", "web.plot.grid", "网格"),
 					styleBtn("dots", "fa-braille", "web.plot.dots", "点阵"),
 					styleBtn("level", "fa-layer-group", "web.plot.level", "等高线")
-				] }),
-				F.CreateDOM(t, { x: "input#plot-fn", type: "text", value: "sin(x)", spellcheck: "false", autocomplete: "off",
+				] },
+				{ x: "input#plot-fn", type: "text", value: "sin(x)", spellcheck: "false", autocomplete: "off",
 					"data-kph": "web.plot.ph", placeholder: tt("web.plot.ph", "sin(x)"),
-					"data-ktip": "web.plot.tip", title: tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。自动识别函数和方程：y=f(x)、z=f(x,y)、x^2+y^2=1 这类等式，以及 x^2+y^2+z^2=9 这类含 z 的方程。") }),
-				F.CreateDOM(t, { x: "div.plot-ex", c: [
-					F.CreateDOM(t, { x: "button", type: "button", "data-act": "ex", c: [
-						F.CreateDOM(t, { x: "i.fa-solid.fa-caret-down" }),
-						F.CreateDOM(t, { x: "span", "data-k": "web.plot.ex", c: tt("web.plot.ex", "示例") })
-					] }),
-					F.CreateDOM(t, { x: "div#plot-menu.plot-menu", hidden: true, c: samples() })
-				] }),
-				F.CreateDOM(t, { x: "button", type: "button", "data-act": "reset", "data-k": "web.plot.reset", c: tt("web.plot.reset", "复位") })
-			] }),
-			F.CreateDOM(t, { x: "p.hint", "data-k": "web.plot.hint", c: tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。输入会自动识别二维或三维：函数、方程、含 z 的曲面都能画。点「示例」可选择。") }),
-			F.CreateDOM(t, { x: "div.plot-stage", c: [
-				F.CreateDOM(t, { x: "canvas#plot-cv" }),
-				F.CreateDOM(t, { x: "div#plot-read.plot-read", hidden: true })
-			] }),
-			F.CreateDOM(t, { x: "p#plot-msg.hint" })
+					"data-ktip": "web.plot.tip", title: tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。自动识别函数和方程：y=f(x)、z=f(x,y)、x^2+y^2=1 这类等式，以及 x^2+y^2+z^2=9 这类含 z 的方程。") },
+				{ x: "div.plot-ex", c: [
+					{ x: "button", type: "button", "data-act": "ex", c: [
+						{ x: "i.fa-solid.fa-caret-down" },
+						{ x: "span", "data-k": "web.plot.ex", c: tt("web.plot.ex", "示例") }
+					] },
+					{ x: "div#plot-menu.plot-menu", hidden: true, c: samples() }
+				] },
+				{ x: "button", type: "button", "data-act": "reset", "data-k": "web.plot.reset", c: tt("web.plot.reset", "复位") }
+			] },
+			{ x: "p.hint", "data-k": "web.plot.hint", c: tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。输入会自动识别二维或三维：函数、方程、含 z 的曲面都能画。点「示例」可选择。") },
+			{ x: "div.plot-stage", c: [
+				{ x: "canvas#plot-cv" },
+				{ x: "div#plot-read.plot-read", hidden: true }
+			] },
+			{ x: "p#plot-msg.hint" }
 		] });
 	}
 
@@ -134,8 +134,8 @@
 	function styleBtn(id, icon, key, fb){
 		return F.CreateDOM(null, { x: "button", type: "button", "data-style": id,
 			class: id === style ? "on" : "", c: [
-				F.CreateDOM(null, { x: "i", class: "fa-solid " + icon }),
-				F.CreateDOM(null, { x: "span", "data-k": key, c: tt(key, fb) })
+				{ x: "i", class: "fa-solid " + icon },
+				{ x: "span", "data-k": key, c: tt(key, fb) }
 			] });
 	}
 

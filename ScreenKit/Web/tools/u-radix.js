@@ -16,8 +16,8 @@
 				F.CreateDOM(t, { x: "div.row", c: [
 					SK.lab("从", SK.numin("box-from", "16")),
 					SK.lab("转换到", sel),
-					F.CreateDOM(t, { x: "span#box-base-lab", hidden: true, c:
-						SK.lab("目标进制", F.CreateDOM(t, { x: "input#box-base", type: "number", min: "2", max: "36", value: "3" })) })
+					{ x: "span#box-base-lab", hidden: true, c:
+						SK.lab("目标进制", F.CreateDOM(t, { x: "input#box-base", type: "number", min: "2", max: "36", value: "3" })) }
 				]})
 			];
 		},

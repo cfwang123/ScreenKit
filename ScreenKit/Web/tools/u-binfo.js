@@ -20,9 +20,9 @@
 		return [
 			F.CreateDOM(t, { x: "p#binfo-hint.hint" }),
 			F.CreateDOM(t, { x: "div.ops", c: [
-				F.CreateDOM(t, { x: "button#binfo-refresh", type: "button" }),
-				F.CreateDOM(t, { x: "button#binfo-screens", type: "button" }),
-				F.CreateDOM(t, { x: "button#binfo-idle", type: "button" })
+				{ x: "button#binfo-refresh", type: "button" },
+				{ x: "button#binfo-screens", type: "button" },
+				{ x: "button#binfo-idle", type: "button" }
 			] })
 		];
 	}

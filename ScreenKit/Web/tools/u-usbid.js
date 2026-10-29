@@ -58,13 +58,13 @@
 		body: function(t){
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
-					F.CreateDOM(t, { x: "input#usb-q", type: "text", placeholder: SK.td("厂家、产品、046d 或 046d:c52b") }),
-					F.CreateDOM(t, { x: "span#usb-msg.msg" })
+					{ x: "input#usb-q", type: "text", placeholder: SK.td("厂家、产品、046d 或 046d:c52b") },
+					{ x: "span#usb-msg.msg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", c: SK.td("常见设备的厂家、产品和型号。点一行复制 VID:PID，并按 usb.ids 补上接口。") }),
 				F.CreateDOM(t, { x: "div.usbwrap", c: [
-					F.CreateDOM(t, { x: "div.usbscroll", c: [F.CreateDOM(t, { x: "table.usblist#usb-tab" })] }),
-					F.CreateDOM(t, { x: "pre#usb-detail.usbdetail" })
+					{ x: "div.usbscroll", c: [{ x: "table.usblist#usb-tab" }] },
+					{ x: "pre#usb-detail.usbdetail" }
 				] })
 			];
 		},

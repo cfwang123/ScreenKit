@@ -20,8 +20,8 @@
 				} }),
 				SK.lab("角度", SK.numin("box-n", "90")),
 				F.CreateDOM(t, { x: "div.grad-row", c: [
-					F.CreateDOM(t, { x: "div#grad-view.grad-view" }),
-					F.CreateDOM(t, { x: "textarea#grad-out", readonly: true })
+					{ x: "div#grad-view.grad-view" },
+					{ x: "textarea#grad-out", readonly: true }
 				] })
 			];
 		},
