@@ -1599,7 +1599,7 @@
 								"data-op":"b64enc",
 								c:[
 								{x:"i.fa-solid.fa-lock"},
-								"编码"
+								{x:"span","data-k":"web.op.enc",c:"编码"}
 							]
 							},
 							{
@@ -1608,7 +1608,7 @@
 								"data-op":"b64dec",
 								c:[
 								{x:"i.fa-solid.fa-lock-open"},
-								"解码"
+								{x:"span","data-k":"web.op.dec",c:"解码"}
 							]
 							}
 						]
@@ -1628,7 +1628,7 @@
 								"data-op":"urlenc",
 								c:[
 								{x:"i.fa-solid.fa-link"},
-								"编码"
+								{x:"span","data-k":"web.op.enc",c:"编码"}
 							]
 							},
 							{
@@ -1637,7 +1637,7 @@
 								"data-op":"urldec",
 								c:[
 								{x:"i.fa-solid.fa-link-slash"},
-								"解码"
+								{x:"span","data-k":"web.op.dec",c:"解码"}
 							]
 							}
 						]
@@ -1925,7 +1925,7 @@
 								"data-op":"htmlenc",
 								c:[
 								{x:"i.fa-solid.fa-code"},
-								"编码"
+								{x:"span","data-k":"web.op.enc",c:"编码"}
 							]
 							},
 							{
@@ -1934,7 +1934,7 @@
 								"data-op":"htmldec",
 								c:[
 								{x:"i.fa-solid.fa-rotate-left"},
-								"解码"
+								{x:"span","data-k":"web.op.dec",c:"解码"}
 							]
 							},
 							{
