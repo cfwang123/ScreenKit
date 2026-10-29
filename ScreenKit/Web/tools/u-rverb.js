@@ -1567,7 +1567,7 @@
 	}
 
 	function pickkind(){
-		var sel = F.id("rv-sel-kind");
+		var sel = SK.dom("rv-sel-kind");
 		return sel && sel.value ? sel.value : "auto";
 	}
 
@@ -1624,28 +1624,31 @@
 
 	var langcode = SK.langcode;
 
-	function body(){
-		return '<p class="hint" id="rv-hint"></p>'
-			+ '<div class="row" id="rv-row">'
-			+ '<label id="rv-kind"><select id="rv-sel-kind">'
-			+ '<option value="auto"></option>'
-			+ '<option value="verb"></option>'
-			+ '<option value="adj"></option>'
-			+ '<option value="noun"></option>'
-			+ "</select></label>"
-			+ '<label id="rv-word">' + SK.combo("rv-in", "читать", "不定式、形容词或名词") + "</label>"
-			+ "</div>"
-			+ '<div id="rv-out"></div>';
+	function body(t){
+		var sel = F.CreateDOM(t, { x: "select#rv-sel-kind", c: [
+			{ x: "option", value: "auto" },
+			{ x: "option", value: "verb" },
+			{ x: "option", value: "adj" },
+			{ x: "option", value: "noun" }
+		] });
+		return [
+			F.CreateDOM(t, { x: "p#rv-hint.hint" }),
+			F.CreateDOM(t, { x: "div.row#rv-row", c: [
+				F.CreateDOM(t, { x: "label#rv-kind", c: sel }),
+				F.CreateDOM(t, { x: "label#rv-word", c: SK.combo("rv-in", "читать", "不定式、形容词或名词") })
+			] }),
+			F.CreateDOM(t, { x: "div#rv-out" })
+		];
 	}
 
 	function open(){
 		var lang = langcode();
-		var hint = F.id("rv-hint");
+		var hint = SK.dom("rv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.rverb.hint");
 			hint.textContent = tx("web.rverb.hint", L(lang, LAB.hint));
 		}
-		var title = F.id("box-title");
+		var title = SK.dom("box-title");
 		if (title) title.textContent = tx("web.tool.rverb", L(lang, LAB.title));
 		setlab("rv-kind", "web.rverb.kind", L(lang, LAB.kind));
 		setlab("rv-word", "web.rverb.word", L(lang, LAB.word));
@@ -1654,13 +1657,13 @@
 		setopt("rv-sel-kind", "verb", "web.rverb.verb", L(lang, LAB.verb));
 		setopt("rv-sel-kind", "adj", "web.rverb.adj", L(lang, LAB.adj));
 		setopt("rv-sel-kind", "noun", "web.rverb.noun", L(lang, LAB.noun));
-		var box = F.id("rv-in");
+		var box = SK.dom("rv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.rverb.ph");
 			box.placeholder = tx("web.rverb.ph", L(lang, LAB.ph));
 		}
 		bind("rv-sel-kind", ontype);
-		var out = F.id("rv-out");
+		var out = SK.dom("rv-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = ui.onout;
@@ -1670,7 +1673,7 @@
 	}
 
 	function bind(id, fn){
-		var el = F.id(id);
+		var el = SK.dom(id);
 		if (!el || F.attr(el, "data-bind")) return;
 		F.seta(el, "data-bind", "1");
 		el.onchange = fn;
@@ -1690,9 +1693,9 @@
 
 	function go(){
 		timer = 0;
-		var box = F.id("rv-in");
+		var box = SK.dom("rv-in");
 		var word = box ? box.value : "";
-		var kind = F.id("rv-sel-kind");
+		var kind = SK.dom("rv-sel-kind");
 		if (!norm(word)) {
 			ui.paint("", "", []);
 			SK.msg("box-msg", "");

@@ -66,18 +66,20 @@
 		title: "单位换算",
 		go: "换算",
 		own: true,
-		body: function(){
+		body: function(t){
 			var names = [];
 			var i;
 			for (i = 0; i < KINDS.length; i++) names.push([KINDS[i].id, KINDS[i].name]);
-			return SK.row2(
-				SK.lab("类型", '<select id="box-kind">' + SK.opts(names, "len") + "</select>"),
-				SK.lab("数值", SK.textin("box-in", "1米", "例如 1米、3斤、5kg")))
-				+ SK.row2(
-					SK.lab("原单位", '<select id="box-from"></select>'),
-					SK.lab("新单位", '<select id="box-to"></select>'))
-				+ '<div class="row" id="box-root-row" hidden>' + SK.lab("根字号", SK.textin("box-root", "16")) + "</div>"
-				+ '<p class="hint">数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。外币向中国银行查询中间价，成功或失败都缓存 10 分钟。查询失败时用 2026-10-10 的牌价。</p>';
+			return [
+				SK.row2(
+					SK.lab("类型", F.CreateDOM(t, { x: "select#box-kind", c: SK.opts(names, "len") })),
+					SK.lab("数值", SK.textin("box-in", "1米", "例如 1米、3斤、5kg"))),
+				SK.row2(
+					SK.lab("原单位", F.CreateDOM(t, { x: "select#box-from" })),
+					SK.lab("新单位", F.CreateDOM(t, { x: "select#box-to" }))),
+				F.CreateDOM(t, { x: "div.row#box-root-row", hidden: true, c: SK.lab("根字号", SK.textin("box-root", "16")) }),
+				F.CreateDOM(t, { x: "p.hint", c: "数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。外币向中国银行查询中间价，成功或失败都缓存 10 分钟。查询失败时用 2026-10-10 的牌价。" })
+			];
 		},
 		open: function(){
 			var ids = ["box-kind", "box-from", "box-to"];
@@ -161,8 +163,8 @@
 		var spec = findkind(SK.val("box-kind")) || KINDS[0];
 		var from = keep ? SK.val("box-from") : spec.from;
 		var to = keep ? SK.val("box-to") : ALL;
-		F.id("box-from").innerHTML = SK.opts(spec.units, from);
-		F.id("box-to").innerHTML = SK.opts(allunits(spec.units), to);
+		SK.setopts(SK.dom("box-from"), spec.units, from);
+		SK.setopts(SK.dom("box-to"), allunits(spec.units), to);
 		F.id("box-root-row").hidden = spec.id !== "px";
 	}
 

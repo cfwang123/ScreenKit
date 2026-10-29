@@ -3,13 +3,15 @@
 		title: "随机密码",
 		go: "生成",
 		body: function(){
-			return SK.row2(SK.lab("长度", SK.numin("box-len", "6")), SK.lab("条数", SK.numin("box-n", "10")))
-				+ SK.check("box-low", "小写", true) + SK.check("box-up", "大写", false)
-				+ SK.check("box-dig", "数字", true) + SK.check("box-sym", "符号", false)
-				+ SK.check("box-amb", "去掉易混字符（0、O、o、1、l、I）", false)
-				+ SK.check("box-each", "每类至少一个", false)
-				+ SK.check("box-set", "指定字符集", false)
-				+ SK.lab("字符集", SK.textin("box-set-chars", "", "手动输入，重复的只算一次"));
+			return [
+				SK.row2(SK.lab("长度", SK.numin("box-len", "6")), SK.lab("条数", SK.numin("box-n", "10"))),
+				SK.check("box-low", "小写", true), SK.check("box-up", "大写", false),
+				SK.check("box-dig", "数字", true), SK.check("box-sym", "符号", false),
+				SK.check("box-amb", "去掉易混字符（0、O、o、1、l、I）", false),
+				SK.check("box-each", "每类至少一个", false),
+				SK.check("box-set", "指定字符集", false),
+				SK.lab("字符集", SK.textin("box-set-chars", "", "手动输入，重复的只算一次"))
+			];
 		},
 		run: function(){
 			return pwtext();
@@ -17,8 +19,8 @@
 		open: function(){
 			var pwids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb"];
 			var pi;
-			for (pi = 0; pi < pwids.length; pi++) F.id(pwids[pi]).onchange = fillpwset;
-			F.id("box-set").onchange = pwsetmode;
+			for (pi = 0; pi < pwids.length; pi++) SK.dom(pwids[pi]).onchange = fillpwset;
+			SK.dom("box-set").onchange = pwsetmode;
 			pwsetmode();
 			if (SK.utilrun) SK.utilrun();
 		}
@@ -28,10 +30,10 @@
 		var ids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb", "box-each"];
 		var i;
 		for (i = 0; i < ids.length; i++) {
-			var el = F.id(ids[i]);
+			var el = SK.dom(ids[i]);
 			if (el) el.disabled = on;
 		}
-		var box = F.id("box-set-chars");
+		var box = SK.dom("box-set-chars");
 		if (box) box.disabled = !on;
 		if (!on) fillpwset();
 	}
@@ -51,7 +53,7 @@
 
 	function fillpwset(){
 		if (SK.onbox("box-set")) return;
-		var box = F.id("box-set-chars");
+		var box = SK.dom("box-set-chars");
 		if (!box) return;
 		var groups = pwgroups();
 		var s = "";

@@ -470,35 +470,50 @@
 
 	var langcode = SK.langcode;
 
-	function body(){
-		return '<p class="hint" id="ev-hint" data-k="web.everb.hint">' + esc(tr(LAB.hint)) + "</p>"
-			+ '<div class="row" id="ev-row">'
-			+ '<label id="ev-type"><span data-k="web.everb.type">' + esc(tr(LAB.type)) + "</span>"
-			+ '<select id="ev-sel">'
-			+ '<option value="auto"></option>'
-			+ '<option value="v"></option>'
-			+ '<option value="a"></option>'
-			+ '<option value="n"></option>'
-			+ "</select></label>"
-			+ '<label id="ev-word"><span data-k="web.everb.word">' + esc(tr(LAB.word)) + "</span>"
-			+ SK.combo("ev-in", "walk", LAB.ph[0]) + "</label>"
-			+ '<label id="ev-obj" hidden><span data-k="web.everb.obj">' + esc(tr(LAB.obj)) + "</span>"
-			+ '<select id="ev-on">'
-			+ '<option value="auto" selected></option>'
-			+ '<option value="0"></option>'
-			+ '<option value="1"></option>'
-			+ '<option value="2"></option>'
-			+ '</select><span id="ev-owhy" hidden></span></label>'
-			+ '<label id="ev-o1" hidden><span data-k="web.everb.o1">' + esc(tr(LAB.o1)) + "</span>"
-			+ SK.combo("ev-oa", "it", "可输入，如 him") + "</label>"
-			+ '<label id="ev-o2" hidden><span data-k="web.everb.o2">' + esc(tr(LAB.o2)) + "</span>"
-			+ SK.combo("ev-ob", "a book", "可输入，如 him") + "</label>"
-			+ "</div>"
-			+ '<div id="ev-out"></div>';
+	function body(t){
+		var sel = F.CreateDOM(t, { x: "select#ev-sel", c: [
+			{ x: "option", value: "auto" },
+			{ x: "option", value: "v" },
+			{ x: "option", value: "a" },
+			{ x: "option", value: "n" }
+		] });
+		var obj = F.CreateDOM(t, { x: "select#ev-on", c: [
+			{ x: "option", value: "auto", selected: true },
+			{ x: "option", value: "0" },
+			{ x: "option", value: "1" },
+			{ x: "option", value: "2" }
+		] });
+		return [
+			F.CreateDOM(t, { x: "p#ev-hint.hint", "data-k": "web.everb.hint", c: esc(tr(LAB.hint)) }),
+			F.CreateDOM(t, { x: "div.row#ev-row", c: [
+				F.CreateDOM(t, { x: "label#ev-type", c: [
+					F.CreateDOM(t, { x: "span", "data-k": "web.everb.type", c: esc(tr(LAB.type)) }),
+					sel
+				] }),
+				F.CreateDOM(t, { x: "label#ev-word", c: [
+					F.CreateDOM(t, { x: "span", "data-k": "web.everb.word", c: esc(tr(LAB.word)) }),
+					SK.combo("ev-in", "walk", LAB.ph[0])
+				] }),
+				F.CreateDOM(t, { x: "label#ev-obj", hidden: true, c: [
+					F.CreateDOM(t, { x: "span", "data-k": "web.everb.obj", c: esc(tr(LAB.obj)) }),
+					obj,
+					F.CreateDOM(t, { x: "span#ev-owhy", hidden: true })
+				] }),
+				F.CreateDOM(t, { x: "label#ev-o1", hidden: true, c: [
+					F.CreateDOM(t, { x: "span", "data-k": "web.everb.o1", c: esc(tr(LAB.o1)) }),
+					SK.combo("ev-oa", "it", "可输入，如 him")
+				] }),
+				F.CreateDOM(t, { x: "label#ev-o2", hidden: true, c: [
+					F.CreateDOM(t, { x: "span", "data-k": "web.everb.o2", c: esc(tr(LAB.o2)) }),
+					SK.combo("ev-ob", "a book", "可输入，如 him")
+				] })
+			] }),
+			F.CreateDOM(t, { x: "div#ev-out" })
+		];
 	}
 
 	function open(){
-		var title = F.id("box-title");
+		var title = SK.dom("box-title");
 		if (title) title.textContent = tx("web.tool.everb", LAB.title[0]);
 		SK.combofill("ev-in", pickgroups());
 		setopt("auto", "web.everb.auto", LAB.t_auto[0]);
@@ -511,12 +526,12 @@
 		setobjopt("2", "web.everb.obj2", LAB.obj2);
 		fillobj("ev-oa");
 		fillobj("ev-ob");
-		var sel = F.id("ev-sel");
+		var sel = SK.dom("ev-sel");
 		if (sel && !F.attr(sel, "data-bind")) {
 			F.seta(sel, "data-bind", "1");
 			sel.onchange = ontype;
 		}
-		var on = F.id("ev-on");
+		var on = SK.dom("ev-on");
 		if (on && !F.attr(on, "data-bind")) {
 			F.seta(on, "data-bind", "1");
 			on.onchange = onobj;
@@ -524,7 +539,7 @@
 		bindobj("ev-oa");
 		bindobj("ev-ob");
 		showobj();
-		var out = F.id("ev-out");
+		var out = SK.dom("ev-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = ui.onout;
@@ -534,7 +549,7 @@
 	}
 
 	function setopt(value, key, fb){
-		var sel = F.id("ev-sel");
+		var sel = SK.dom("ev-sel");
 		if (!sel) return;
 		for (var i = 0; i < sel.options.length; i++) {
 			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, tr(fb));
@@ -549,7 +564,7 @@
 	}
 
 	function setobjopt(value, key, pair){
-		var sel = F.id("ev-on");
+		var sel = SK.dom("ev-on");
 		if (!sel) return;
 		for (var i = 0; i < sel.options.length; i++) {
 			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, tr(pair));
@@ -565,7 +580,7 @@
 	}
 
 	function bindobj(id){
-		var el = F.id(id);
+		var el = SK.dom(id);
 		if (!el || F.attr(el, "data-bind")) return;
 		F.seta(el, "data-bind", "1");
 		el.oninput = onobjtext;
@@ -573,7 +588,7 @@
 
 	// 手改或从列表点选后，不再被「自动」写回默认宾语。
 	function onobjtext(){
-		var nsel = F.id("ev-on");
+		var nsel = SK.dom("ev-on");
 		if (nsel && nsel.value === "auto") {
 			var n = resolvedn();
 			nsel.value = n === "0" ? "1" : n;
@@ -589,7 +604,7 @@
 
 	// 类型选了动词，或自动识别成动词，都显示宾语。形容词和名词不显示。
 	function verbpick(){
-		var sel = F.id("ev-sel");
+		var sel = SK.dom("ev-sel");
 		var v = sel && sel.value ? sel.value : "auto";
 		if (v === "a" || v === "n") return false;
 		if (v === "v") return true;
@@ -597,7 +612,7 @@
 	}
 
 	function objmode(){
-		var nsel = F.id("ev-on");
+		var nsel = SK.dom("ev-on");
 		return nsel && nsel.value ? nsel.value : "auto";
 	}
 
@@ -611,16 +626,16 @@
 	function showobj(){
 		var on = verbpick();
 		var n = resolvedn();
-		var box = F.id("ev-obj");
-		var a = F.id("ev-o1");
-		var b = F.id("ev-o2");
+		var box = SK.dom("ev-obj");
+		var a = SK.dom("ev-o1");
+		var b = SK.dom("ev-o2");
 		if (box) box.hidden = !on;
 		if (a) a.hidden = !on || n === "0";
 		if (b) b.hidden = !on || n !== "2";
 	}
 
 	function setwhy(key, pair){
-		var el = F.id("ev-owhy");
+		var el = SK.dom("ev-owhy");
 		if (!el) return;
 		if (!key || objmode() !== "auto") {
 			el.hidden = true;
@@ -634,8 +649,8 @@
 	// mark：2 双宾语，1 及物，0 不及物，-1 词典没写宾语。
 	function applyauto(mark){
 		objn = mark > 0 ? mark : 0;
-		var a = F.id("ev-oa");
-		var b = F.id("ev-ob");
+		var a = SK.dom("ev-oa");
+		var b = SK.dom("ev-ob");
 		if (objn === 1 && a) a.value = "it";
 		if (objn === 2) {
 			if (a) a.value = "him";
@@ -650,11 +665,11 @@
 
 	// 从「无」或「自动」换成 1 个或 2 个时给一个常用宾语。
 	function onobj(){
-		var nsel = F.id("ev-on");
+		var nsel = SK.dom("ev-on");
 		var n = objmode();
 		var prev = nsel ? (F.attr(nsel, "data-prev") || "auto") : "auto";
-		var a = F.id("ev-oa");
-		var b = F.id("ev-ob");
+		var a = SK.dom("ev-oa");
+		var b = SK.dom("ev-ob");
 		if (n === "1" && a && (prev === "auto" || prev === "0")) a.value = "it";
 		if (n === "2") {
 			if (a && prev !== "1") a.value = "him";
@@ -674,7 +689,7 @@
 	}
 
 	function pickkind(){
-		var sel = F.id("ev-sel");
+		var sel = SK.dom("ev-sel");
 		return sel && sel.value ? sel.value : "auto";
 	}
 
@@ -708,8 +723,8 @@
 	function go(){
 		timer = 0;
 		var n = ++gen;
-		var box = F.id("ev-in");
-		var sel = F.id("ev-sel");
+		var box = SK.dom("ev-in");
+		var sel = SK.dom("ev-sel");
 		var word = norm(box ? box.value : "");
 		if (!word) {
 			lastkind = "";
@@ -755,8 +770,8 @@
 		var params = { lang: "en", q: word, type: sel ? sel.value : "auto", ui: langcode() };
 		if (!verbpick()) return params;
 		var n = resolvedn();
-		var a = F.id("ev-oa");
-		var b = F.id("ev-ob");
+		var a = SK.dom("ev-oa");
+		var b = SK.dom("ev-ob");
 		if ((n === "1" || n === "2") && a && a.value) params.o1 = a.value;
 		if (n === "2" && b && b.value) params.o2 = b.value;
 		return params;

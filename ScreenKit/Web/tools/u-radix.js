@@ -4,17 +4,22 @@
 	SK.regutil("u-radix", {
 		title: "进制转换",
 		go: "转换",
-		body: function(){
+		body: function(t){
 			var list = [["all", "全部"]];
 			var i;
 			for (i = 0; i < BASES.length; i++) list.push([String(BASES[i]), BASES[i] + "进制"]);
 			var custom = SK.t("web.radix.custom") || "自定义";
-			return SK.lab("整数", SK.textin("box-in", "", "例如 FF"))
-				+ '<div class="row">'
-				+ SK.lab("从", SK.numin("box-from", "16"))
-				+ SK.lab("转换到", '<select id="box-to">' + SK.opts(list, "all") + '<option value="custom" data-k="web.radix.custom">' + esc(custom) + "</option></select>")
-				+ '<span id="box-base-lab" hidden>' + SK.lab("目标进制", '<input id="box-base" type="number" min="2" max="36" value="3">') + "</span>"
-				+ "</div>";
+			var sel = F.CreateDOM(t, { x: "select#box-to", c: SK.opts(list, "all") });
+			sel.appendChild(F.CreateDOM(t, { x: "option", value: "custom", "data-k": "web.radix.custom", c: custom }));
+			return [
+				SK.lab("整数", SK.textin("box-in", "", "例如 FF")),
+				F.CreateDOM(t, { x: "div.row", c: [
+					SK.lab("从", SK.numin("box-from", "16")),
+					SK.lab("转换到", sel),
+					F.CreateDOM(t, { x: "span#box-base-lab", hidden: true, c:
+						SK.lab("目标进制", F.CreateDOM(t, { x: "input#box-base", type: "number", min: "2", max: "36", value: "3" })) })
+				]})
+			];
 		},
 		open: function(){
 			F.id("box-in").oninput = rerun;

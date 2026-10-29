@@ -3,20 +3,23 @@
 		title: "取色",
 		go: "转换",
 		noGo: true,
-		body: function(){
-			return '<div class="cpick">'
-				+ '<div class="cpick-top"><span>颜色</span><i id="cpick-swatch"></i>'
-				+ '<button type="button" id="cpick-eye"></button></div>'
-				+ '<p id="cpick-msg" class="msg"></p>'
-				+ '<div class="cpick-sv" id="cpick-sv"><i id="cpick-svdot"></i></div>'
-				+ '<div class="cpick-hue" id="cpick-hue"><i id="cpick-huedot"></i></div>'
-				+ '<div class="cpick-rgb">'
-				+ '<label>R<input id="cpick-r" inputmode="numeric"></label>'
-				+ '<label>G<input id="cpick-g" inputmode="numeric"></label>'
-				+ '<label>B<input id="cpick-b" inputmode="numeric"></label>'
-				+ "</div>"
-				+ '<input id="box-color" type="hidden" value="#3366cc">'
-				+ "</div>";
+		body: function(t){
+			return F.CreateDOM(t, { x: "div.cpick", c: [
+				F.CreateDOM(t, { x: "div.cpick-top", c: [
+					F.CreateDOM(t, { x: "span", c: "颜色" }),
+					F.CreateDOM(t, { x: "i#cpick-swatch" }),
+					F.CreateDOM(t, { x: "button#cpick-eye", type: "button" })
+				] }),
+				F.CreateDOM(t, { x: "p#cpick-msg.msg" }),
+				F.CreateDOM(t, { x: "div.cpick-sv#cpick-sv", c: [F.CreateDOM(t, { x: "i#cpick-svdot" })] }),
+				F.CreateDOM(t, { x: "div.cpick-hue#cpick-hue", c: [F.CreateDOM(t, { x: "i#cpick-huedot" })] }),
+				F.CreateDOM(t, { x: "div.cpick-rgb", c: [
+					F.CreateDOM(t, { x: "label", c: ["R", F.CreateDOM(t, { x: "input#cpick-r", inputmode: "numeric" })] }),
+					F.CreateDOM(t, { x: "label", c: ["G", F.CreateDOM(t, { x: "input#cpick-g", inputmode: "numeric" })] }),
+					F.CreateDOM(t, { x: "label", c: ["B", F.CreateDOM(t, { x: "input#cpick-b", inputmode: "numeric" })] })
+				] }),
+				F.CreateDOM(t, { x: "input#box-color", type: "hidden", value: "#3366cc" })
+			] });
 		},
 		run: function(){
 			return SK.colorconv("hex", SK.val("box-color"));
@@ -31,8 +34,8 @@
 		var hue = 220;
 		var sat = 0.75;
 		var val = 0.8;
-		var sv = F.id("cpick-sv");
-		var huebar = F.id("cpick-hue");
+		var sv = SK.dom("cpick-sv");
+		var huebar = SK.dom("cpick-hue");
 		var drag = "";
 		function clamp01(n){
 			if (n < 0) return 0;
@@ -42,15 +45,15 @@
 		function paint(){
 			var rgb = hsv2rgb(hue, sat * 100, val * 100);
 			var hex = "#" + SK.hex2(rgb[0]) + SK.hex2(rgb[1]) + SK.hex2(rgb[2]);
-			F.id("box-color").value = hex;
-			F.id("cpick-swatch").style.background = hex;
+			SK.dom("box-color").value = hex;
+			SK.dom("cpick-swatch").style.background = hex;
 			sv.style.backgroundColor = "hsl(" + hue + ",100%,50%)";
-			F.id("cpick-svdot").style.left = (sat * 100) + "%";
-			F.id("cpick-svdot").style.top = ((1 - val) * 100) + "%";
-			F.id("cpick-huedot").style.left = (hue / 360 * 100) + "%";
-			F.id("cpick-r").value = String(rgb[0]);
-			F.id("cpick-g").value = String(rgb[1]);
-			F.id("cpick-b").value = String(rgb[2]);
+			SK.dom("cpick-svdot").style.left = (sat * 100) + "%";
+			SK.dom("cpick-svdot").style.top = ((1 - val) * 100) + "%";
+			SK.dom("cpick-huedot").style.left = (hue / 360 * 100) + "%";
+			SK.dom("cpick-r").value = String(rgb[0]);
+			SK.dom("cpick-g").value = String(rgb[1]);
+			SK.dom("cpick-b").value = String(rgb[2]);
 			SK.msg("cpick-msg", "");
 			SK.utilrun();
 		}
@@ -89,9 +92,9 @@
 		huebar.onpointermove = function(ev){ if (drag === "hue") fromhue(ev); };
 		huebar.onpointerup = function(){ drag = ""; };
 		function fromrgb(){
-			var r = Number(F.id("cpick-r").value);
-			var g = Number(F.id("cpick-g").value);
-			var b = Number(F.id("cpick-b").value);
+			var r = Number(SK.dom("cpick-r").value);
+			var g = Number(SK.dom("cpick-g").value);
+			var b = Number(SK.dom("cpick-b").value);
 			if (!isFinite(r) || !isFinite(g) || !isFinite(b)) return;
 			if (r < 0) r = 0;
 			if (g < 0) g = 0;
@@ -108,10 +111,10 @@
 			val = hsv[2] / 100;
 			paint();
 		}
-		F.id("cpick-r").oninput = fromrgb;
-		F.id("cpick-g").oninput = fromrgb;
-		F.id("cpick-b").oninput = fromrgb;
-		var eye = F.id("cpick-eye");
+		SK.dom("cpick-r").oninput = fromrgb;
+		SK.dom("cpick-g").oninput = fromrgb;
+		SK.dom("cpick-b").oninput = fromrgb;
+		var eye = SK.dom("cpick-eye");
 		if (eye) {
 			eye.textContent = tx("web.pick.eye", "屏幕取色");
 			eye.onclick = function(){

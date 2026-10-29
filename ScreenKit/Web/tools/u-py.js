@@ -6,11 +6,13 @@
 		go: "转换",
 		own: true,
 		hideOut: true,
-		body: function(){
-			return SK.lab("原文", SK.ta("box-in", 8, ""))
-				+ SK.lab("web.pinyin.py", '<textarea id="py-full" rows="3" readonly></textarea>')
-				+ SK.lab("web.pinyin.init", '<textarea id="py-ini" rows="2" readonly></textarea>')
-				+ '<p id="py-hint" class="hint" data-k="web.pinyin.off">' + SK.esc(SK.t("web.pinyin.off") || "") + "</p>";
+		body: function(t){
+			return [
+				SK.lab("原文", SK.ta("box-in", 8, "")),
+				SK.lab("web.pinyin.py", F.CreateDOM(t, { x: "textarea#py-full", rows: "3", readonly: true })),
+				SK.lab("web.pinyin.init", F.CreateDOM(t, { x: "textarea#py-ini", rows: "2", readonly: true })),
+				F.CreateDOM(t, { x: "p#py-hint.hint", "data-k": "web.pinyin.off", c: SK.t("web.pinyin.off") || "" })
+			];
 		},
 		open: function(){
 			SK.get("/api/pinyin", function(data){

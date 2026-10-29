@@ -284,20 +284,23 @@
 		hideGo: true,
 		hideOut: true,
 		hideCopy: true,
-		body: function(){
-			return '<div class="ctab">'
-				+ '<div class="uquery"><input id="c-q" type="text" placeholder="名称（中/英）或十六进制"><span id="box-msg" class="msg"></span></div>'
-				+ '<div class="cgroups" id="c-groups"></div>'
-				+ '<div class="cgrid" id="c-grid"></div>'
-				+ "</div>";
+		body: function(t){
+			return F.CreateDOM(t, { x: "div.ctab", c: [
+				F.CreateDOM(t, { x: "div.uquery", c: [
+					F.CreateDOM(t, { x: "input#c-q", type: "text", placeholder: "名称（中/英）或十六进制" }),
+					F.CreateDOM(t, { x: "span#box-msg.msg" })
+				] }),
+				F.CreateDOM(t, { x: "div.cgroups#c-groups" }),
+				F.CreateDOM(t, { x: "div.cgrid#c-grid" })
+			] });
 		},
 		open: function(){
 			cur = { set: "web", g: "" };
 			paintgroups();
 			paint();
-			F.id("c-q").oninput = paint;
-			F.id("c-groups").onclick = ongroup;
-			F.id("c-grid").onclick = onswatch;
+			SK.dom("c-q").oninput = paint;
+			SK.dom("c-groups").onclick = ongroup;
+			SK.dom("c-grid").onclick = onswatch;
 		}
 	});
 
@@ -401,7 +404,7 @@
 			for (j = 0; j < t.groups.length; j++)
 				html += node(1, t.id, t.groups[j].id, t.groups[j].name, t.groups[j].colors.length, false);
 		}
-		F.id("c-groups").innerHTML = html;
+		SK.dom("c-groups").innerHTML = html;
 	}
 
 	function node(lv, set, g, name, n, opened){
@@ -427,7 +430,7 @@
 			for (j = 0; j < rows.length; j++) html += card(rows[j]);
 		}
 		if (!html) html = '<p class="cnone">没有这种颜色</p>';
-		F.id("c-grid").innerHTML = html;
+		SK.dom("c-grid").innerHTML = html;
 	}
 
 	function card(c){

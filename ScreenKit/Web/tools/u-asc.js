@@ -25,11 +25,23 @@
 
 	SK.regutil("u-asc", {
 		title: "ASCII码表",
-		body: function(){
-			return '<div class="uquery"><input id="a-q" type="text" placeholder="字符、0x41、65、0b1000001 或 NUL"><select id="a-font" class="ufont" title="字体"></select><span id="a-msg" class="msg"></span></div>'
-				+ '<p class="hint">点一下选中并复制。左边按类别分组，控制字符显示标准缩写。最右边是大字、十进制、十六进制、八进制、二进制、转义写法。</p>'
-				+ '<div class="unitab"><div class="ugroups" id="a-groups"></div><div class="ugrid a16h" id="a-grid"></div>'
-				+ '<aside class="uprev"><div class="uprev-ch ctrl" id="a-ch"></div><dl class="uprev-meta" id="a-meta"></dl></aside></div>';
+		body: function(t){
+			return [
+				F.CreateDOM(t, { x: "div.uquery", c: [
+					F.CreateDOM(t, { x: "input#a-q", type: "text", placeholder: "字符、0x41、65、0b1000001 或 NUL" }),
+					F.CreateDOM(t, { x: "select#a-font.ufont", title: "字体" }),
+					F.CreateDOM(t, { x: "span#a-msg.msg" })
+				] }),
+				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边按类别分组，控制字符显示标准缩写。最右边是大字、十进制、十六进制、八进制、二进制、转义写法。" }),
+				F.CreateDOM(t, { x: "div.unitab", c: [
+					F.CreateDOM(t, { x: "div.ugroups#a-groups" }),
+					F.CreateDOM(t, { x: "div.ugrid.a16h#a-grid" }),
+					F.CreateDOM(t, { x: "aside.uprev", c: [
+						F.CreateDOM(t, { x: "div.uprev-ch.ctrl#a-ch" }),
+						F.CreateDOM(t, { x: "dl.uprev-meta#a-meta" })
+					] })
+				] })
+			];
 		},
 		run: function(){
 			throw new Error("没有这个工具");
@@ -67,8 +79,8 @@
 				+ esc(runs.map(ascrun).join("、") + " · 点一下看这一组") + '"><b>' + esc(GROUPS[i].name)
 				+ "</b><small>" + (range ? range + " · " : "") + GROUPS[i].codes.length + " 个</small></button>");
 		}
-		F.id("a-groups").innerHTML = html.join("");
-		F.id("a-groups").onclick = function(ev){
+		SK.dom("a-groups").innerHTML = html.join("");
+		SK.dom("a-groups").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "a-groups") {
 				if (el.getAttribute && F.attr(el, "data-i") != null) {
@@ -78,7 +90,7 @@
 				el = el.parentNode;
 			}
 		};
-		F.id("a-grid").onclick = function(ev){
+		SK.dom("a-grid").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "a-grid") {
 				if (el.getAttribute && F.attr(el, "data-cp") != null) {
@@ -91,7 +103,7 @@
 				el = el.parentNode;
 			}
 		};
-		F.id("a-q").oninput = ascquery;
+		SK.dom("a-q").oninput = ascquery;
 	}
 
 	function ascruns(codes){
@@ -125,7 +137,7 @@
 	function ascshow(index, focus){
 		var g = GROUPS[index];
 		var buttons = F.qa("#a-groups button");
-		var grid = F.id("a-grid");
+		var grid = SK.dom("a-grid");
 		var has = {};
 		var pick = focus >= 0 && g.codes.indexOf(focus) >= 0 ? focus : g.codes[0];
 		var html = [];
@@ -198,7 +210,7 @@
 
 	function ascpreview(cp){
 		var ctrl = isctrl(cp);
-		var box = F.id("a-ch");
+		var box = SK.dom("a-ch");
 		box.textContent = ctrl ? (NAMES[cp] || "DEL") : F.ch(cp);
 		box.className = ctrl ? "uprev-ch ctrl" : "uprev-ch";
 		var rows = [
@@ -217,7 +229,7 @@
 			["可打印", ctrl ? (cp === 127 ? "否（删除）" : "否") : "是"]
 		];
 		if (ctrl) rows.push(["中文名", cp === 127 ? "删除" : CN[cp]]);
-		F.id("a-meta").innerHTML = rows.map(function(r){
+		SK.dom("a-meta").innerHTML = rows.map(function(r){
 			return "<dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>";
 		}).join("");
 	}
@@ -312,7 +324,7 @@
 	}
 
 	function ascquery(){
-		var cp = ascparse(F.id("a-q").value);
+		var cp = ascparse(SK.dom("a-q").value);
 		if (cp === -2) {
 			SK.msg("a-msg", "");
 			return;

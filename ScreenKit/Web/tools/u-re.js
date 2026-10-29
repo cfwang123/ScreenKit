@@ -2,12 +2,20 @@
 	SK.regutil("u-re", {
 		title: "正则测试",
 		go: "测试",
-		body: function(){
-			return SK.lab("常用", '<select id="box-preset">' + reopts() + "</select>")
-				+ '<div class="row grow">' + SK.lab("表达式", SK.textin("box-pat", "", "例如 \\d+")) + SK.lab("标志", SK.textin("box-flags", "g", "g i m")) + "</div>"
-				+ SK.lab("方式", '<select id="box-re-mode"><option value="find">查找匹配</option><option value="lines">批量测试</option></select>')
-				+ '<p class="hint" id="re-hint" data-k="web.re.find">在文本里查找匹配。</p>'
-				+ SK.lab("文本", SK.ta("box-in", 8, ""));
+		body: function(t){
+			return [
+				SK.lab("常用", F.CreateDOM(t, { x: "select#box-preset", c: reopts() })),
+				F.CreateDOM(t, { x: "div.row.grow", c: [
+					SK.lab("表达式", SK.textin("box-pat", "", "例如 \\d+")),
+					SK.lab("标志", SK.textin("box-flags", "g", "g i m"))
+				]}),
+				SK.lab("方式", F.CreateDOM(t, { x: "select#box-re-mode", c: [
+					{ x: "option", value: "find", c: "查找匹配" },
+					{ x: "option", value: "lines", c: "批量测试" }
+				]})),
+				F.CreateDOM(t, { x: "p#re-hint.hint", "data-k": "web.re.find", c: "在文本里查找匹配。" }),
+				SK.lab("文本", SK.ta("box-in", 8, ""))
+			];
 		},
 		run: function(){
 			return retest(SK.val("box-pat"), SK.val("box-flags"), SK.val("box-in"));
@@ -41,11 +49,10 @@
 
 	function reopts(){
 		var list = repatterns();
-		var html = '<option value="">请选择</option>';
+		var out = [SK.opt("", "请选择")];
 		var i;
-		for (i = 0; i < list.length; i++)
-			html += '<option value="' + i + '">' + SK.esc(list[i][0]) + "</option>";
-		return html;
+		for (i = 0; i < list.length; i++) out.push(SK.opt(String(i), list[i][0]));
+		return out;
 	}
 
 	function repick(){

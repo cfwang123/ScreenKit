@@ -2,9 +2,11 @@
 	SK.regutil("u-ts", {
 		title: "时间戳",
 		go: "转换",
-		body: function(){
-			return SK.lab("日期时间", '<input id="ts-pick" type="datetime-local" step="1">')
-				+ SK.lab("时间戳或日期", SK.ta("box-in", 4, "留空为现在。秒、毫秒，或 2026-10-09 12:00:00"));
+		body: function(t){
+			return [
+				SK.lab("日期时间", F.CreateDOM(t, { x: "input#ts-pick", type: "datetime-local", step: "1" })),
+				SK.lab("时间戳或日期", SK.ta("box-in", 4, "留空为现在。秒、毫秒，或 2026-10-09 12:00:00"))
+			];
 		},
 		run: function(){
 			var d = tsdate(SK.val("box-in"));

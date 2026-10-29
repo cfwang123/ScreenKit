@@ -21,15 +21,23 @@
 		title: "生成测试数据",
 		go: "生成",
 		own: false,
-		body: function(){
+		body: function(t){
 			var kind = SK.fakepick || "name";
 			SK.fakepick = "";
-			return '<div class="row">'
-				+ '<label id="box-lang-lab" style="display:none"><span data-k="web.f.lang">' + (SK.t("web.f.lang") || "语言") + '</span><select id="box-lang"></select></label>'
-				+ '<label><span id="box-kind-cap" data-k="web.f.kind">' + (SK.t("web.f.kind") || "类型") + '</span><select id="box-kind">' + kindhtml(BASE, kind) + "</select></label>"
-				+ SK.lab("行数", SK.numin("box-n", "10"))
-				+ "</div>"
-				+ '<p id="box-bogus" class="hint" data-k="web.fake.off">' + hint("web.fake.off") + "</p>";
+			return [
+				F.CreateDOM(t, { x: "div.row", c: [
+					F.CreateDOM(t, { x: "label#box-lang-lab", s: { display: "none" }, c: [
+						F.CreateDOM(t, { x: "span", "data-k": "web.f.lang", c: SK.t("web.f.lang") || "语言" }),
+						F.CreateDOM(t, { x: "select#box-lang" })
+					] }),
+					F.CreateDOM(t, { x: "label", c: [
+						F.CreateDOM(t, { x: "span#box-kind-cap", "data-k": "web.f.kind", c: SK.t("web.f.kind") || "类型" }),
+						F.CreateDOM(t, { x: "select#box-kind", c: kindhtml(BASE, kind) })
+					] }),
+					SK.lab("行数", SK.numin("box-n", "10"))
+				] }),
+				F.CreateDOM(t, { x: "p#box-bogus.hint", "data-k": "web.fake.off", c: hint("web.fake.off") })
+			];
 		},
 		open: function(){
 			refreshbogus(function(){
@@ -38,7 +46,7 @@
 					SK.utilrun();
 					return;
 				}
-				if (bogus && F.id("box-out") && F.id("box-out").value) SK.utilrun();
+				if (bogus && SK.dom("box-out") && SK.dom("box-out").value) SK.utilrun();
 			});
 		},
 		run: run
@@ -58,13 +66,13 @@
 			SK.fakelang = locale;
 			SK.fakekind = kind;
 			SK.post("/api/fake", { locale: locale, kind: kind, n: count }, function(data){
-				F.id("box-out").value = data.text || "";
+				SK.dom("box-out").value = data.text || "";
 				SK.msg("box-msg", "完成");
 			}, "box-msg");
 		}
 		catch (ex) {
 			if (!spec.own) throw ex;
-			F.id("box-out").value = "";
+			SK.dom("box-out").value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}
@@ -78,9 +86,9 @@
 			var ks = data && data.kinds ? data.kinds : [];
 			var i;
 			for (i = 0; i < ks.length; i++) kindkeys[ks[i].id] = ks[i].key;
-			var langlab = F.id("box-lang-lab");
+			var langlab = SK.dom("box-lang-lab");
 			if (langlab) langlab.style.display = bogus ? "" : "none";
-			var cap = F.id("box-kind-cap");
+			var cap = SK.dom("box-kind-cap");
 			if (cap) {
 				var capkey = bogus ? "web.fake.cat" : "web.f.kind";
 				F.seta(cap, "data-k", capkey);
@@ -88,11 +96,16 @@
 			}
 			if (bogus) filllangs();
 			else {
-				var sel = F.id("box-kind");
+				var sel = SK.dom("box-kind");
 				var cur = sel ? sel.value : "name";
-				if (sel) sel.innerHTML = kindhtml(BASE, cur);
+				if (sel) {
+					while (sel.firstChild) sel.removeChild(sel.firstChild);
+					var arr = kindhtml(BASE, cur);
+					var j;
+					for (j = 0; j < arr.length; j++) sel.appendChild(arr[j]);
+				}
 			}
-			var el = F.id("box-bogus");
+			var el = SK.dom("box-bogus");
 			if (el) {
 				var key = bogus ? "web.fake.on" : "web.fake.off";
 				F.seta(el, "data-k", key);
@@ -107,7 +120,7 @@
 	}
 
 	function filllangs(){
-		var sel = F.id("box-lang");
+		var sel = SK.dom("box-lang");
 		if (!sel) return;
 		var cur = SK.fakelang || sel.value || "zh_CN";
 		var html = "";
@@ -128,8 +141,8 @@
 	}
 
 	function fillkinds(){
-		var sel = F.id("box-kind");
-		var langsel = F.id("box-lang");
+		var sel = SK.dom("box-kind");
+		var langsel = SK.dom("box-lang");
 		if (!sel || !langsel) return;
 		var id = langsel.value;
 		var kinds = [];
@@ -157,7 +170,7 @@
 	}
 
 	function kindhtml(list, sel){
-		var html = "";
+		var out = [];
 		var i;
 		var found = false;
 		for (i = 0; i < list.length; i++) {
@@ -166,11 +179,12 @@
 		if (!found) sel = list[0][0];
 		for (i = 0; i < list.length; i++) {
 			var key = list[i][2];
-			var label = SK.t(key) || list[i][1];
-			html += '<option value="' + list[i][0] + '" data-k="' + key + '"'
-				+ (list[i][0] === sel ? " selected" : "") + ">" + label + "</option>";
+			var op = SK.opt(list[i][0], SK.t(key) || list[i][1]);
+			op.setAttribute("data-k", key);
+			if (list[i][0] === sel) op.selected = true;
+			out.push(op);
 		}
-		return html;
+		return out;
 	}
 
 	function fakedata(count, kind){

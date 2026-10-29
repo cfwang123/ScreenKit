@@ -162,27 +162,30 @@
 
 	var tx = SK.tx;
 
-	function body(){
-		return '<p class="hint" id="kv-hint"></p>'
-			+ '<div class="row" id="kv-row">'
-			+ '<label id="kv-type"><select id="kv-sel">'
-			+ '<option value="auto"></option>'
-			+ '<option value="v"></option>'
-			+ '<option value="a"></option>'
-			+ '<option value="n"></option>'
-			+ "</select></label>"
-			+ '<label id="kv-word">' + SK.combo("kv-in", "먹다", "词典形，如 먹다、예쁘다、학생") + "</label>"
-			+ "</div>"
-			+ '<div id="kv-out"></div>';
+	function body(t){
+		var sel = F.CreateDOM(t, { x: "select#kv-sel", c: [
+			{ x: "option", value: "auto" },
+			{ x: "option", value: "v" },
+			{ x: "option", value: "a" },
+			{ x: "option", value: "n" }
+		] });
+		return [
+			F.CreateDOM(t, { x: "p#kv-hint.hint" }),
+			F.CreateDOM(t, { x: "div.row#kv-row", c: [
+				F.CreateDOM(t, { x: "label#kv-type", c: sel }),
+				F.CreateDOM(t, { x: "label#kv-word", c: SK.combo("kv-in", "먹다", "词典形，如 먹다、예쁘다、학생") })
+			] }),
+			F.CreateDOM(t, { x: "div#kv-out" })
+		];
 	}
 
 	function open(){
-		var hint = F.id("kv-hint");
+		var hint = SK.dom("kv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.kverb.hint");
 			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。表末是朝鲜文化语（ㅂ네다 系）、朝鲜播音体（只列与标准语不同的 -시였습니다）和延边朝鲜语（-ㅁ다/슴다、-ㄴ다이）；与标准语同形的说法不列。");
 		}
-		var title = F.id("box-title");
+		var title = SK.dom("box-title");
 		if (title) title.textContent = tx("web.tool.kverb", "韩语词形变化");
 		setlab("kv-word", "web.kverb.word", "词典形");
 		setlab("kv-type", "web.kverb.type", "类型");
@@ -191,17 +194,17 @@
 		setopt("v", "web.kverb.verb", "动词");
 		setopt("a", "web.kverb.adj", "形容词");
 		setopt("n", "web.kverb.noun", "名词");
-		var sel = F.id("kv-sel");
+		var sel = SK.dom("kv-sel");
 		if (sel && !F.attr(sel, "data-bind")) {
 			F.seta(sel, "data-bind", "1");
 			sel.onchange = ontype;
 		}
-		var box = F.id("kv-in");
+		var box = SK.dom("kv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.kverb.ph");
 			box.placeholder = tx("web.kverb.ph", "词典形，如 먹다、예쁘다、학생");
 		}
-		var out = F.id("kv-out");
+		var out = SK.dom("kv-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
 			out.onclick = ui.onout;
@@ -218,7 +221,7 @@
 
 	function pickgroups(){
 		var lang = langcode();
-		var sel = F.id("kv-sel");
+		var sel = SK.dom("kv-sel");
 		var pick = sel ? sel.value : "auto";
 		var groups = [];
 		var cur = null;
@@ -274,8 +277,8 @@
 	function go(){
 		timer = 0;
 		var n = ++gen;
-		var box = F.id("kv-in");
-		var sel = F.id("kv-sel");
+		var box = SK.dom("kv-in");
+		var sel = SK.dom("kv-sel");
 		var word = norm(box ? box.value : "");
 		var force = sel ? sel.value : "auto";
 		if (!word) {

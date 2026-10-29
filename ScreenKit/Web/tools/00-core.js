@@ -1035,26 +1035,90 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		document.body.removeChild(ta);
 	}
 
+
+
+
+
+
+
+	// ── 工具骨架：统一用 DOM 拼，不再返回 HTML 字符串 ──
+	// 带 id 的控件同时登记进当前工具的 page.doms（id 转驼峰）；
+	// 旧的 SK.val / combo / combofill 仍按 id 找，迁移期间两种取法并存。
+	function domhost(){
+		return SK.curpage || SK.doms || null;
+	}
+
+	function binddom(el, id){
+		if (id) el.id = id;
+		var page = domhost();
+		if (id && page && page.doms) page.doms[domkey(id)] = el;
+		return el;
+	}
+
+	function elem(tag, cls){
+		var el = document.createElement(tag);
+		if (cls) el.className = cls;
+		return el;
+	}
+
+	function knode(text){
+		var key = webkey(text);
+		if (!key) return document.createTextNode(String(text == null ? "" : text));
+		var span = elem("span");
+		span.setAttribute("data-k", key);
+		span.textContent = t(key);
+		return span;
+	}
+
+	// 子节点可以是 DOM、DOM 数组或文本；null 直接跳过。
+	function put(parent, child){
+		var i;
+		if (child == null || child === "") return;
+		if (child instanceof Array) {
+			for (i = 0; i < child.length; i++) put(parent, child[i]);
+			return;
+		}
+		if (child instanceof Node) parent.appendChild(child);
+		else parent.appendChild(document.createTextNode(String(child)));
+	}
+
 	function lab(title, inner){
-		return "<label>" + khtml(title) + inner + "</label>";
+		var el = elem("label");
+		put(el, knode(title));
+		put(el, inner);
+		return el;
 	}
 
 	function row2(a, b){
-		return '<div class="row">' + a + b + "</div>";
+		var el = elem("div", "row");
+		put(el, a);
+		put(el, b);
+		return el;
 	}
 
 	function ta(id, rows, ph){
+		var el = elem("textarea");
+		el.rows = rows;
 		var key = webkey(ph || "");
-		var shown = key ? t(key) : ph;
-		var attr = key ? ' data-kph="' + key + '"' : "";
-		return '<textarea id="' + id + '" rows="' + rows + '" placeholder="' + shown + '"' + attr + "></textarea>";
+		if (key) {
+			F.seta(el, "data-kph", key);
+			el.placeholder = t(key);
+		}
+		else el.placeholder = ph || "";
+		return binddom(el, id);
 	}
 
 	function textin(id, value, ph){
+		var el = elem("input");
+		el.type = "text";
+		el.value = value == null ? "" : value;
 		var key = webkey(ph || "");
-		var shown = key ? t(key) : (ph || "");
-		var attr = key ? ' data-kph="' + key + '"' : "";
-		return '<input id="' + id + '" type="text" value="' + value + '" placeholder="' + shown + '"' + attr + ">";
+		if (key) {
+			F.seta(el, "data-kph", key);
+			el.placeholder = t(key);
+		}
+		else el.placeholder = ph || "";
+		return binddom(el, id);
 	}
 
 	// 可输入的下拉。combo 生成框，combofill 填分组。groups: [{ g, items: [{ v, t }] }]。
@@ -1062,12 +1126,86 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	function combo(id, value, ph){
 		var key = webkey(ph || "");
-		var shown = key ? t(key) : (ph || "");
-		var attr = key ? ' data-kph="' + key + '"' : "";
-		return '<div class="combo">'
-			+ '<input id="' + htmlenc(id) + '" type="text" autocomplete="off" value="' + htmlenc(value || "") + '" placeholder="' + htmlenc(shown) + '"' + attr + ">"
-			+ '<button type="button" class="combo-btn" tabindex="-1"><i class="fa-solid fa-chevron-down"></i></button>'
-			+ '<div class="combo-pop" hidden></div></div>';
+		var box = elem("div", "combo");
+		var input = elem("input");
+		input.type = "text";
+		input.autocomplete = "off";
+		input.value = value || "";
+		input.placeholder = key ? t(key) : (ph || "");
+		if (key) F.seta(input, "data-kph", key);
+		binddom(input, id);
+		var btn = elem("button", "combo-btn");
+		btn.type = "button";
+		btn.tabIndex = -1;
+		put(btn, elem("i", "fa-solid fa-chevron-down"));
+		var pop = elem("div", "combo-pop");
+		pop.hidden = true;
+		put(box, [input, btn, pop]);
+		return box;
+	}
+
+	function numin(id, value){
+		var el = elem("input");
+		el.type = "number";
+		el.value = value == null ? "" : value;
+		return binddom(el, id);
+	}
+
+	function check(id, title, on){
+		var el = elem("label", "check");
+		var box = elem("input");
+		box.type = "checkbox";
+		box.checked = !!on;
+		binddom(box, id);
+		put(el, [box, document.createTextNode(" "), knode(title)]);
+		return el;
+	}
+
+	function radio(name, id, title, on){
+		var el = elem("label", "check");
+		var box = elem("input");
+		box.type = "radio";
+		box.name = name;
+		box.value = title;
+		box.checked = !!on;
+		binddom(box, id);
+		put(el, [box, document.createTextNode(" "), knode(title)]);
+		return el;
+	}
+
+	// 单个 option，给要在 JS 里拼下拉的地方用。
+	function mkopt(value, text){
+		var op = document.createElement("option");
+		op.value = value;
+		op.textContent = text;
+		return op;
+	}
+
+	function opts(list, sel){
+		var out = [];
+		var i, op, key;
+		for (i = 0; i < list.length; i++) {
+			op = document.createElement("option");
+			op.value = list[i][0];
+			if (list[i][0] === sel) op.selected = true;
+			key = webkey(list[i][1]);
+			if (key) {
+				op.setAttribute("data-k", key);
+				op.textContent = t(key);
+			}
+			else op.textContent = list[i][1];
+			out.push(op);
+		}
+		return out;
+	}
+
+	// 动态换下拉内容（单位、进制、日期单位之类）。
+	function setopts(sel, list, chosen){
+		if (!sel) return;
+		while (sel.firstChild) sel.removeChild(sel.firstChild);
+		var arr = opts(list, chosen);
+		var i;
+		for (i = 0; i < arr.length; i++) sel.appendChild(arr[i]);
 	}
 
 	function combofill(id, groups){
@@ -1299,39 +1437,25 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		closecombos();
 	}
 
-	function numin(id, value){
-		return '<input id="' + id + '" type="number" value="' + value + '">';
-	}
 
-	function check(id, title, on){
-		return '<label class="check"><input id="' + id + '" type="checkbox"' + (on ? " checked" : "") + "> " + khtml(title) + "</label>";
-	}
 
-	function radio(name, id, title, on){
-		return '<label class="check"><input id="' + id + '" name="' + name + '" type="radio" value="' + title + '"' + (on ? " checked" : "") + "> " + khtml(title) + "</label>";
-	}
 
-	function opts(list, sel){
-		var html = "";
-		var i;
-		var label;
-		var key;
-		for (i = 0; i < list.length; i++) {
-			label = list[i][1];
-			key = webkey(label);
-			html += '<option value="' + list[i][0] + '"' + (list[i][0] === sel ? " selected" : "")
-				+ (key ? ' data-k="' + key + '"' : "") + ">" + (key ? esc(t(key)) : label) + "</option>";
-		}
-		return html;
+
+
+
+	// 工具里要拿元素时用 SK.dom("box-h")：先看当前工具的 page.doms，
+	// 没有再退回 HTML id。迁移期间两种写法都能用。
+	function domof(id){
+		return (SK.curpage && SK.curpage.doms && SK.curpage.doms[domkey(id)]) || F.id(id);
 	}
 
 	function val(id){
-		var el = F.id(id);
+		var el = domof(id);
 		return el && el.value != null ? String(el.value) : "";
 	}
 
 	function onbox(id){
-		var el = F.id(id);
+		var el = domof(id);
 		return !!(el && el.checked);
 	}
 
@@ -1607,7 +1731,13 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			F.unset(SK.doms.boxGo, "data-k");
 			SK.doms.boxGo.textContent = spec.go;
 		}
-		SK.doms.boxBody.innerHTML = spec.body();
+		SK.curpage = { doms: {} };
+		var body = spec.body ? spec.body(SK.curpage) : "";
+		if (typeof body === "string") SK.doms.boxBody.innerHTML = body;
+		else {
+			SK.doms.boxBody.innerHTML = "";
+			put(SK.doms.boxBody, body);
+		}
 		SK.doms.boxOut.value = "";
 		SK.doms.boxGo.parentElement.style.display = "";
 		SK.doms.boxGo.style.display = "";
@@ -1620,7 +1750,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (spec.noGo) SK.doms.boxGo.style.display = "none";
 		if (spec.hideCopy) SK.doms.boxCopy.style.display = "none";
 		if (spec.hideOut) SK.doms.boxOut.parentElement.style.display = "none";
-		if (spec.open) spec.open();
+		if (spec.open) spec.open(SK.curpage);
 		if (spec.live === true || (spec.live !== false && textcard(name))) bindboxlive();
 	}
 
@@ -1687,6 +1817,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.paintstars = paintstars;
 	SK.$ = F.id;
 	SK.msg = msg;
+	SK.dom = domof;
 	SK.post = post;
 	SK.playwav = playwav;
 	SK.stopwav = stopwav;
@@ -1707,6 +1838,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.check = check;
 	SK.radio = radio;
 	SK.opts = opts;
+	SK.opt = mkopt;
+	SK.setopts = setopts;
 	SK.val = val;
 	SK.onbox = onbox;
 	SK.ymd = ymd;

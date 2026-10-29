@@ -13,14 +13,18 @@
 	SK.regutil("u-datecalc", {
 		title: "日期计算",
 		go: "计算",
-		body: function(){
-			return SK.row2(
-				SK.lab("模式", '<select id="dc-mode">' + SK.opts([["diff", "日期差"], ["add", "日期加减"]], "diff") + "</select>"),
-				SK.lab("开始时间", '<input id="dc-a" type="datetime-local" step="1">'))
-				+ SK.row2(
-					'<span id="dc-bwrap">' + SK.lab("结束时间", '<input id="dc-b" type="datetime-local" step="1">') + "</span>"
-					+ '<span id="dc-nwrap">' + SK.lab("数量", SK.textin("dc-n", "7", "可为负，例如 7、-3、1.5")) + "</span>",
-					SK.lab("单位", '<select id="dc-unit"></select>'));
+		body: function(t){
+			return [
+				SK.row2(
+					SK.lab("模式", F.CreateDOM(t, { x: "select#dc-mode", c: SK.opts([["diff", "日期差"], ["add", "日期加减"]], "diff") })),
+					SK.lab("开始时间", F.CreateDOM(t, { x: "input#dc-a", type: "datetime-local", step: "1" }))),
+				SK.row2(
+					[
+						F.CreateDOM(t, { x: "span#dc-bwrap", c: SK.lab("结束时间", F.CreateDOM(t, { x: "input#dc-b", type: "datetime-local", step: "1" })) }),
+						F.CreateDOM(t, { x: "span#dc-nwrap", c: SK.lab("数量", SK.textin("dc-n", "7", "可为负，例如 7、-3、1.5")) })
+					],
+					SK.lab("单位", F.CreateDOM(t, { x: "select#dc-unit" })))
+			];
 		},
 		open: function(){
 			var now = new Date();
@@ -71,7 +75,7 @@
 		var i;
 		for (i = 0; i < rows.length; i++) if (rows[i][0] === cur) pick = cur;
 		if (!pick) pick = add ? "d" : ALL;
-		F.id("dc-unit").innerHTML = SK.opts(rows, pick);
+		SK.setopts(SK.dom("dc-unit"), rows, pick);
 	}
 
 	/** 加减藏起结束时间，差值藏起数量。单位始终在这一行的后面。 */

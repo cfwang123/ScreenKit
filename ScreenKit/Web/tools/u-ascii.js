@@ -13,11 +13,23 @@
 	SK.regutil("u-ascii", {
 		title: "Unicode码表",
 		go: "显示",
-		body: function(){
-			return '<div class="uquery"><input id="u-q" type="text" data-kph="web.uni.ph" placeholder="' + SK.esc(SK.t("web.uni.ph") || "字、U+4E00 或十进制") + '"><select id="u-font" class="ufont" title="字体"></select><span id="u-msg" class="msg"></span></div>'
-				+ '<p class="hint">点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位，以及 GBK 等编码。</p>'
-				+ '<div class="unitab"><div class="ugroups" id="u-groups"></div><div class="ugrid" id="u-grid"></div>'
-				+ '<aside class="uprev"><div class="uprev-ch" id="u-ch"></div><dl class="uprev-meta" id="u-meta"></dl></aside></div>';
+		body: function(t){
+			return [
+				F.CreateDOM(t, { x: "div.uquery", c: [
+					F.CreateDOM(t, { x: "input#u-q", type: "text", "data-kph": "web.uni.ph", placeholder: SK.t("web.uni.ph") || "字、U+4E00 或十进制" }),
+					F.CreateDOM(t, { x: "select#u-font.ufont", title: "字体" }),
+					F.CreateDOM(t, { x: "span#u-msg.msg" })
+				] }),
+				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位，以及 GBK 等编码。" }),
+				F.CreateDOM(t, { x: "div.unitab", c: [
+					F.CreateDOM(t, { x: "div.ugroups#u-groups" }),
+					F.CreateDOM(t, { x: "div.ugrid#u-grid" }),
+					F.CreateDOM(t, { x: "aside.uprev", c: [
+						F.CreateDOM(t, { x: "div.uprev-ch#u-ch" }),
+						F.CreateDOM(t, { x: "dl.uprev-meta#u-meta" })
+					] })
+				] })
+			];
 		},
 		run: function(){
 			throw new Error("没有这个工具");
@@ -41,8 +53,8 @@
 			html.push('<button type="button" data-i="' + i + '" title="' + unihtml(unirange(slices[i])) + '"><b'
 				+ unitag(slices[i][0]) + '>' + unihtml(uniname(slices[i][0])) + '</b><small>'
 				+ unihtml(unirange(slices[i])) + '</small></button>');
-		F.id("u-groups").innerHTML = html.join("");
-		F.id("u-groups").onclick = function(ev){
+		SK.dom("u-groups").innerHTML = html.join("");
+		SK.dom("u-groups").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "u-groups") {
 				if (el.getAttribute && F.attr(el, "data-i") != null) {
@@ -52,7 +64,7 @@
 				el = el.parentNode;
 			}
 		};
-		F.id("u-grid").onclick = function(ev){
+		SK.dom("u-grid").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "u-grid") {
 				if (el.getAttribute && F.attr(el, "data-cp") != null) {
@@ -65,12 +77,12 @@
 				el = el.parentNode;
 			}
 		};
-		F.id("u-q").oninput = uniquery;
+		SK.dom("u-q").oninput = uniquery;
 		unishow(0, -1);
 	}
 
 	function uniquery(){
-		var cp = uniparse(F.id("u-q").value);
+		var cp = uniparse(SK.dom("u-q").value);
 		if (cp === -1) {
 			SK.msg("u-msg", "");
 			return;
@@ -91,7 +103,7 @@
 	function unirefont(){
 		uniInk = {};
 		uniSeen = {};
-		if (!F.id("u-grid")) return;
+		if (!SK.dom("u-grid")) return;
 		unishow(uniAt, uniCp);
 	}
 
@@ -120,8 +132,8 @@
 				+ (cls ? ' class="' + cls + '"' : '') + (cp === pick ? ' id="u-on"' : '') + '>'
 				+ glyph.t + '</button>');
 		}
-		F.id("u-grid").innerHTML = html.join("");
-		var on = F.id("u-on");
+		SK.dom("u-grid").innerHTML = html.join("");
+		var on = SK.dom("u-on");
 		if (on) {
 			on.className = (on.className ? on.className + " " : "") + "on";
 			F.unset(on, "id");
@@ -143,7 +155,7 @@
 
 	function unipreview(cp){
 		var glyph = uniglyph(cp);
-		var box = F.id("u-ch");
+		var box = SK.dom("u-ch");
 		if (glyph.empty) {
 			box.textContent = "";
 			box.className = "uprev-ch gap";
@@ -198,7 +210,7 @@
 			else
 				html.push("<dt>" + rows[i][0] + "</dt><dd>" + unihtml(rows[i][1]) + "</dd>");
 		}
-		F.id("u-meta").innerHTML = html.join("");
+		SK.dom("u-meta").innerHTML = html.join("");
 		uniask(cp);
 	}
 
