@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace ScreenKit;
 
@@ -10,11 +11,13 @@ public partial class PasswordWindow : Window {
 	readonly OcrOptions opt;
 	readonly ObservableCollection<WordLexRow> lexRows = new();
 	readonly ObservableCollection<PasswordVariantRow> varRows = new();
+	readonly DispatcherTimer autogen = new() { Interval = TimeSpan.FromMilliseconds(250) };
 	CancellationTokenSource lexCts;
 	CancellationTokenSource varCts;
 	bool lexBusy;
 	bool varBusy;
 	bool lexUiLoading;
+	bool genUi;
 
 	public PasswordWindow(OcrOptions options) {
 		opt = options ?? new OcrOptions();
@@ -29,6 +32,7 @@ public partial class PasswordWindow : Window {
 		Closing += (_, _) => {
 			try { lexCts?.Cancel(); } catch { }
 			try { varCts?.Cancel(); } catch { }
+			try { autogen.Stop(); } catch { }
 			saveui();
 		};
 		gen();
@@ -66,6 +70,10 @@ public partial class PasswordWindow : Window {
 	}
 
 	void initev() {
+		autogen.Tick += (_, _) => {
+			autogen.Stop();
+			gen();
+		};
 		bgen.Click += (_, _) => gen();
 		bcopy.Click += (_, _) => copy();
 		bclose.Click += (_, _) => Close();
@@ -79,10 +87,11 @@ public partial class PasswordWindow : Window {
 		csymbol.Unchecked += (_, _) => onclass();
 		cnoamb.Checked += (_, _) => onclass();
 		cnoamb.Unchecked += (_, _) => onclass();
-		ccustom.Checked += (_, _) => applycustom();
-		ccustom.Unchecked += (_, _) => applycustom();
-		echarset.TextChanged += (_, _) => updatestat();
-		elen.TextChanged += (_, _) => updatestat();
+		ccustom.Checked += (_, _) => { applycustom(); gen(); };
+		ccustom.Unchecked += (_, _) => { applycustom(); gen(); };
+		echarset.TextChanged += (_, _) => { updatestat(); queuegen(); };
+		elen.TextChanged += (_, _) => { updatestat(); queuegen(); };
+		ecount.TextChanged += (_, _) => queuegen();
 		elexllm.SelectionChanged += (_, _) => onllmchange(elexllm, evarllm);
 		evarllm.SelectionChanged += (_, _) => onllmchange(evarllm, elexllm);
 		blex.Click += (_, _) => golex();
@@ -149,7 +158,7 @@ public partial class PasswordWindow : Window {
 		var len = 16;
 		if (int.TryParse((elen.Text ?? "").Trim(), out var n))
 			len = Compat.Clamp(n, 4, 128);
-		var count = 5;
+		var count = 10;
 		if (int.TryParse((ecount.Text ?? "").Trim(), out var c))
 			count = Compat.Clamp(c, 1, 50);
 		return new PasswordOpts {
@@ -168,6 +177,7 @@ public partial class PasswordWindow : Window {
 
 	void onclass() {
 		fillcharset();
+		gen();
 	}
 
 	void fillcharset() {
@@ -196,19 +206,30 @@ public partial class PasswordWindow : Window {
 	public void Generate() => gen();
 
 	void gen() {
+		autogen.Stop();
+		genUi = true;
 		try {
-			var o = opts();
-			elen.Text = o.Length.ToString();
-			ecount.Text = o.Count.ToString();
-			var list = PasswordGen.Generate(o);
-			eout.Text = string.Join("\r\n", list);
-			saveui();
-			updatestat();
+			try {
+				var o = opts();
+				elen.Text = o.Length.ToString();
+				ecount.Text = o.Count.ToString();
+				var list = PasswordGen.Generate(o);
+				eout.Text = string.Join("\r\n", list);
+				saveui();
+				updatestat();
+			}
+			catch (Exception ex) {
+				eout.Text = "";
+				lbstat.Text = Loc.T("pwgen.fail", ex.Message);
+			}
 		}
-		catch (Exception ex) {
-			eout.Text = "";
-			lbstat.Text = Loc.T("pwgen.fail", ex.Message);
-		}
+		finally { genUi = false; }
+	}
+
+	void queuegen() {
+		if (genUi) return;
+		autogen.Stop();
+		autogen.Start();
 	}
 
 	void copy() {

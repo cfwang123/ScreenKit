@@ -55,6 +55,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web tools page skeleton is now a page object: elements are reached through SK.doms and events are declared in the DOM spec instead of being bound by HTML id.
 - Web tool pages now build their markup from DOM nodes declared in JS instead of HTML strings, so controls are reached through SK.dom/doms and events are attached where the node is declared.
 - The conjugation JSON export now supports Korean and English via --conj-json ko|en; Russian uses scripts/export-ru-conj.js
+- The password generator regenerates automatically after changing the length, count or character options
+- The password generator now defaults to 10 passwords
 
 #### Fixed
 
@@ -76,6 +78,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具页骨架改为页面对象：元素统一用 SK.doms 取，事件写在节点定义里，不再按 HTML id 绑定。
 - web 工具页改为用 JS 声明 DOM 节点生成界面，不再拼 HTML 字符串；控件统一走 SK.dom/doms，事件写在节点定义里。
 - 变形表 JSON 导出新增韩语和英语（--conj-json ko|en）；俄语用 scripts/export-ru-conj.js
+- 密码生成器修改长度、数量或字符选项后自动重新生成
+- 密码生成器条数默认改为 10
 
 #### 修复
 
