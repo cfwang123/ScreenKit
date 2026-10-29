@@ -27,8 +27,9 @@ static class DictWeb {
 	}
 
 	public static string NormLang(string lang) {
-		lang = (lang ?? "").Trim().ToLowerInvariant();
-		if (lang == "zh" || lang == "en" || lang == "ja" || lang == "ko") return lang;
+		// 网页传的是 zh-CN、ja-JP 这类带地区的码，先归到主语言；词典只收中日韩英。
+		var s = DictTts.NormLang(lang);
+		if (s == "zh" || s == "en" || s == "ja" || s == "ko") return s;
 		return "en";
 	}
 

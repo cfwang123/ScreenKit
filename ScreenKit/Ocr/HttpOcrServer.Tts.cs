@@ -281,6 +281,34 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, err(803, "text 过长（上限 20000 字）"));
 			return;
 		}
+		// 网页工具的发音按钮一般只给 text 和 lang：按「参数设置 → 语音合成 → 词典发音」里
+		// 该语言的引擎、发音人、语速来，跟词典弹窗发音同一个声音、同一份缓存。
+		var dictlang = DictTts.NormLang(jo["lang"]?.GetValue<string>() ?? "");
+		var dictpref = dictprefpinned(jo) ? null : dictprefof(dictlang);
+		if (dictpref != null) {
+			var dicteng = DictTts.ResolveEngine(dictpref.Engine, dictlang);
+			var dictvoice = DictTts.VoiceOf(dictpref, dictlang, dicteng) ?? "";
+			try {
+				if (dicteng == DictTts.CHROME) {
+					// Chrome 语音在这台机器上直接出声，只回一段静音占位（和词典发音一致）。
+					if (!fromlocal(ctx)) {
+						writejson(ctx, 403, err(403, "Chrome 语音只允许本机调用"));
+						return;
+					}
+					DictTts.PlayChrome(getOpts?.Invoke(), dictpref, dictlang, text);
+					writewavjson(ctx, DictTts.AckWav(), dicteng, dictvoice);
+				}
+				else {
+					var chars = text.Length < 400 ? 400 : text.Length > 4000 ? 4000 : text.Length;
+					var path = DictTts.EnsureWav(dictpref, dictlang, text, chars).GetAwaiter().GetResult();
+					writewavjson(ctx, path, dicteng, dictvoice);
+				}
+			}
+			catch (Exception ex) {
+				writejson(ctx, 200, err(924, ex.Message));
+			}
+			return;
+		}
 		if (ischromereq(jo)) {
 			// Chrome 语音在这台机器上说话，局域网请求不接。
 			if (!fromlocal(ctx)) {
@@ -311,6 +339,50 @@ sealed partial class HttpOcrServer {
 				["provider"] = made.Provider,
 			},
 			["time"] = ms,
+			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
+		});
+	}
+
+	/// <summary>请求没指定引擎/模型/发音人时，按词典发音表取这个语言的配置；表里没这个语言（且非中日韩英）返回 null。</summary>
+	DictTtsLang dictprefof(string lang) {
+		if (lang.Length == 0) return null;
+		var o = getOpts?.Invoke();
+		var map = o?.DictTtsMap;
+		if (!DictTts.IsCoreLang(lang) && (map == null || !map.ContainsKey(lang))) return null;
+		return DictTts.For(o, lang);
+	}
+
+	/// <summary>请求里有没有点名引擎、模型或发音人。</summary>
+	static bool dictprefpinned(JsonObject jo) {
+		foreach (var key in new[] { "engine", "model", "voice", "speaker" }) {
+			if (!string.IsNullOrWhiteSpace(jo[key]?.GetValue<string>() ?? "")) return true;
+		}
+		return false;
+	}
+
+	/// <summary>把词典发音缓存的 WAV 按 /api/tts 的返回格式发出去。</summary>
+	void writewavjson(SockCtx ctx, string path, string engine, string voice) {
+		var bytes = File.ReadAllBytes(path);
+		var sr = 0;
+		var samples = 0;
+		if (bytes.Length > 44) {
+			sr = BitConverter.ToInt32(bytes, 24);
+			samples = (bytes.Length - 44) / 2;
+		}
+		writejson(ctx, 200, new JsonObject {
+			["code"] = 100,
+			["data"] = new JsonObject {
+				["format"] = "wav",
+				["sample_rate"] = sr,
+				["samples"] = samples,
+				["wav_base64"] = Convert.ToBase64String(bytes),
+				["engine"] = engine,
+				["model"] = "",
+				["voice"] = voice,
+				["speaker_id"] = 0,
+				["provider"] = "dict",
+			},
+			["time"] = 0,
 			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
 		});
 	}

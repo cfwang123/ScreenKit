@@ -2829,7 +2829,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			a.Add("GET  /api/tts/engines");
 			a.Add("GET  /api/tts/models  ?engine=&refresh=");
 			a.Add("GET  /api/tts/devices");
-			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}");
+			a.Add("POST /api/tts   JSON{text, engine?, model?, voice?, speaker_id?, speed?, volume?}  不给 engine/voice/model 时按词典发音配置");
 			a.Add("POST /api/tts/speak  JSON{text, devices?, play=queue|now, engine?, voice?}  仅本机");
 		}
 		if (o.HttpTranslate && o.ModTranslate) {
