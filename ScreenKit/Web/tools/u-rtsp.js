@@ -24,7 +24,7 @@
 		dispose: halt
 	});
 
-	function body(){
+	function body(t){
 		var hint = SK.t("web.rtsp.hint") || "";
 		var play = SK.t("web.rtsp.play") || "播放";
 		var stop = SK.t("web.rtsp.stop") || "停止";
@@ -33,27 +33,30 @@
 		var hear = "1";
 		try { saved = localStorage.getItem("sk-rtsp") || ""; } catch (e) { saved = ""; }
 		try { hear = localStorage.getItem("sk-rtsp-audio"); if (hear == null) hear = "1"; } catch (e2) { hear = "1"; }
-		return '<div class="rtsp">'
-			+ '<div class="rtsp-bar">'
-			+ '<input id="rtsp-url" type="text" spellcheck="false" value="' + SK.esc(saved) + '" placeholder="rtsp://user:pass@host:554/Streaming/Channels/101">'
-			+ '<label><input id="rtsp-audio" type="checkbox"' + (hear === "0" ? "" : " checked") + ">" + SK.esc(sound) + "</label>"
-			+ '<button type="button" id="rtsp-play">' + SK.esc(play) + "</button>"
-			+ '<button type="button" id="rtsp-stop" hidden>' + SK.esc(stop) + "</button>"
-			+ "</div>"
-			+ '<div id="rtsp-msg" class="rtsp-msg" data-k="web.rtsp.hint">' + SK.esc(hint) + "</div>"
-			+ '<div class="rtsp-stage"><canvas id="rtsp-view"></canvas></div>'
-			+ "</div>";
+		return F.CreateDOM(t, { x: "div.rtsp", c: [
+			F.CreateDOM(t, { x: "div.rtsp-bar", c: [
+				F.CreateDOM(t, { x: "input#rtsp-url", type: "text", spellcheck: "false", value: saved, placeholder: "rtsp://user:pass@host:554/Streaming/Channels/101" }),
+				F.CreateDOM(t, { x: "label", c: [
+					F.CreateDOM(t, { x: "input#rtsp-audio", type: "checkbox", checked: hear !== "0" }),
+					" " + sound
+				] }),
+				F.CreateDOM(t, { x: "button#rtsp-play", type: "button", c: play }),
+				F.CreateDOM(t, { x: "button#rtsp-stop", type: "button", hidden: true, c: stop })
+			] }),
+			F.CreateDOM(t, { x: "div#rtsp-msg.rtsp-msg", "data-k": "web.rtsp.hint", c: hint }),
+			F.CreateDOM(t, { x: "div.rtsp-stage", c: [F.CreateDOM(t, { x: "canvas#rtsp-view" })] })
+		] });
 	}
 
 	function open(){
-		var play = F.id("rtsp-play");
-		var stop = F.id("rtsp-stop");
+		var play = SK.dom("rtsp-play");
+		var stop = SK.dom("rtsp-stop");
 		if (play) play.onclick = start;
 		if (stop) stop.onclick = halt;
 	}
 
 	function start(){
-		var url = (F.id("rtsp-url").value || "").trim();
+		var url = (SK.dom("rtsp-url").value || "").trim();
 		if (!/^rtsp:\/\//i.test(url)) {
 			say(SK.t("web.rtsp.bad") || "", true);
 			return;
@@ -62,7 +65,7 @@
 			say(SK.t("web.rtsp.nocodec") || "", true);
 			return;
 		}
-		var box = F.id("rtsp-audio");
+		var box = SK.dom("rtsp-audio");
 		var hear = !box || box.checked;
 		try { localStorage.setItem("sk-rtsp", url); } catch (e) {}
 		try { localStorage.setItem("sk-rtsp-audio", hear ? "1" : "0"); } catch (e2) {}
@@ -79,8 +82,8 @@
 		var wsurl = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/rtsp?rtsp=" + encodeURIComponent(url) + "&audio=" + (hear ? "1" : "0");
 		ws = new WebSocket(wsurl);
 		ws.binaryType = "arraybuffer";
-		F.id("rtsp-play").hidden = true;
-		F.id("rtsp-stop").hidden = false;
+		SK.dom("rtsp-play").hidden = true;
+		SK.dom("rtsp-stop").hidden = false;
 		say(SK.t("web.rtsp.wait") || "", false);
 		ws.onmessage = function(ev){
 			if (typeof ev.data === "string") {
@@ -90,9 +93,9 @@
 			onbin(new Uint8Array(ev.data));
 		};
 		ws.onclose = function(){
-			if (F.id("rtsp-play")) {
-				F.id("rtsp-play").hidden = false;
-				F.id("rtsp-stop").hidden = true;
+			if (SK.dom("rtsp-play")) {
+				SK.dom("rtsp-play").hidden = false;
+				SK.dom("rtsp-stop").hidden = true;
 			}
 			closedec();
 			closeaud();
@@ -107,14 +110,14 @@
 		}
 		closedec();
 		closeaud();
-		var play = F.id("rtsp-play");
-		var stop = F.id("rtsp-stop");
+		var play = SK.dom("rtsp-play");
+		var stop = SK.dom("rtsp-stop");
 		if (play) play.hidden = false;
 		if (stop) stop.hidden = true;
 	}
 
 	function say(text, bad){
-		var el = F.id("rtsp-msg");
+		var el = SK.dom("rtsp-msg");
 		if (!el) return;
 		F.unset(el, "data-k");
 		el.textContent = text || "";
@@ -198,7 +201,7 @@
 
 	function makedec(){
 		closedec();
-		var canvas = F.id("rtsp-view");
+		var canvas = SK.dom("rtsp-view");
 		var ctx = canvas.getContext("2d", { alpha: false });
 		decoder = new VideoDecoder({
 			output: function(frame){

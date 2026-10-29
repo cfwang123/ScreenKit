@@ -41,35 +41,37 @@
 		open: open
 	});
 
-	function body(){
+	function body(t){
 		tool = "pen";
 		color = "#000000";
 		width = 2;
-		return '<div class="board">'
-			+ '<div class="board-bar">'
-			+ '<div class="board-tools">'
-			+ tbtn("select", "web.board.select", "选择", false)
-			+ tbtn("rect", "web.board.rect", "矩形", false)
-			+ tbtn("ellipse", "web.board.ellipse", "椭圆", false)
-			+ tbtn("arrow", "web.board.arrow", "箭头", false)
-			+ tbtn("pen", "web.board.pen", "画笔", true)
-			+ tbtn("lasso", "web.board.lasso", "圈选", false)
-			+ tbtn("text", "web.board.text", "文字", false)
-			+ '<span class="sep"></span>'
-			+ wbtn(2) + wbtn(4) + wbtn(8)
-			+ '<span class="sep"></span>'
-			+ abtn("paste", "web.board.paste", "粘贴")
-			+ abtn("undo", "web.board.undo", "撤销")
-			+ abtn("clear", "web.board.clear", "清空")
-			+ abtn("copy", "web.board.copy", "复制图片")
-			+ abtn("save", "web.board.save", "保存")
-			+ "</div>"
-			+ colors()
-			+ "</div>"
-			+ '<div class="board-stage"><canvas id="board-cv"></canvas>'
-			+ '<input id="board-txt" class="board-text" type="text" hidden spellcheck="false">'
-			+ '<p class="board-msg" id="board-msg"></p>'
-			+ "</div></div>";
+		return F.CreateDOM(t, { x: "div.board", c: [
+			F.CreateDOM(t, { x: "div.board-bar", c: [
+				F.CreateDOM(t, { x: "div.board-tools", c: [
+					tbtn("select", "web.board.select", "选择", false),
+					tbtn("rect", "web.board.rect", "矩形", false),
+					tbtn("ellipse", "web.board.ellipse", "椭圆", false),
+					tbtn("arrow", "web.board.arrow", "箭头", false),
+					tbtn("pen", "web.board.pen", "画笔", true),
+					tbtn("lasso", "web.board.lasso", "圈选", false),
+					tbtn("text", "web.board.text", "文字", false),
+					F.CreateDOM(t, { x: "span.sep" }),
+					wbtn(2), wbtn(4), wbtn(8),
+					F.CreateDOM(t, { x: "span.sep" }),
+					abtn("paste", "web.board.paste", "粘贴"),
+					abtn("undo", "web.board.undo", "撤销"),
+					abtn("clear", "web.board.clear", "清空"),
+					abtn("copy", "web.board.copy", "复制图片"),
+					abtn("save", "web.board.save", "保存")
+				] }),
+				colors()
+			] }),
+			F.CreateDOM(t, { x: "div.board-stage", c: [
+				F.CreateDOM(t, { x: "canvas#board-cv" }),
+				F.CreateDOM(t, { x: "input#board-txt.board-text", type: "text", hidden: true, spellcheck: "false" }),
+				F.CreateDOM(t, { x: "p#board-msg.board-msg" })
+			] })
+		] });
 	}
 
 	function tip(key, fb){
@@ -77,30 +79,41 @@
 	}
 
 	function tbtn(name, key, fb, on){
-		return '<button type="button" data-board="' + name + '"' + (on ? ' class="on"' : "") + ' data-ktip="' + key + '" title="' + tip(key, fb) + '">'
-			+ icon(name) + "</button>";
+		return F.CreateDOM(null, { x: "button", type: "button", "data-board": name, "data-ktip": key,
+			title: tip(key, fb), class: on ? "on" : "", c: [icon(name)] });
 	}
 
 	function abtn(name, key, fb){
-		return '<button type="button" data-act="' + name + '" data-ktip="' + key + '" title="' + tip(key, fb) + '">'
-			+ '<span data-k="' + key + '">' + tip(key, fb) + "</span></button>";
+		return F.CreateDOM(null, { x: "button", type: "button", "data-act": name,
+			"data-ktip": key, title: tip(key, fb), c: [
+				F.CreateDOM(null, { x: "span", "data-k": key, c: tip(key, fb) })
+			] });
 	}
 
 	function wbtn(n){
-		return '<button type="button" data-w="' + n + '"' + (width === n ? ' class="on"' : "") + ' data-ktip="web.board.wide" title="' + tip("web.board.wide", "线宽") + '">' + n + "</button>";
+		return F.CreateDOM(null, { x: "button", type: "button", "data-w": n,
+			"data-ktip": "web.board.wide", title: tip("web.board.wide", "线宽"),
+			class: width === n ? "on" : "", c: String(n) });
 	}
 
 	function colors(){
-		var top = "", bot = "", i, hex, btn;
+		var top = [], bot = [], i, hex, btn;
 		for (i = 0; i < PALETTE.length; i++) {
 			hex = PALETTE[i];
-			btn = '<button type="button" data-color="' + hex + '"' + (hex.toLowerCase() === String(color).toLowerCase() ? ' class="on"' : "") + ' title="' + hex + '" style="background:' + hex + '"></button>';
-			if (i < 14) top += btn;
-			else bot += btn;
+			btn = F.CreateDOM(null, { x: "button", type: "button", "data-color": hex,
+				class: hex.toLowerCase() === String(color).toLowerCase() ? "on" : "",
+				title: hex, s: { background: hex } });
+			if (i < 14) top.push(btn);
+			else bot.push(btn);
 		}
-		return '<div class="board-colors">'
-			+ '<input type="color" id="board-color" value="' + color + '" data-ktip="web.board.color" title="' + tip("web.board.color", "颜色") + '">'
-			+ '<span class="board-swatches"><span>' + top + "</span><span>" + bot + "</span></span></div>";
+		return F.CreateDOM(null, { x: "div.board-colors", c: [
+			F.CreateDOM(null, { x: "input#board-color", type: "color", value: color,
+				"data-ktip": "web.board.color", title: tip("web.board.color", "颜色") }),
+			F.CreateDOM(null, { x: "span.board-swatches", c: [
+				F.CreateDOM(null, { x: "span", c: top }),
+				F.CreateDOM(null, { x: "span", c: bot })
+			] })
+		] });
 	}
 
 	function icon(name){
@@ -113,12 +126,15 @@
 			lasso: '<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2.2 1.4" d="M8.1 2.5a4.3 3.6 0 1 0 .5 6.9"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8.4 9.2l2.3 3.3"/>',
 			text: '<path fill="currentColor" d="M2.2 2.2h11.6v2.2H9.2v9.2H6.8V4.4H2.2V2.2z"/>'
 		};
-		return '<svg viewBox="0 0 16 16" aria-hidden="true">' + (d[name] || "") + "</svg>";
+		var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("viewBox", "0 0 16 16");
+		svg.setAttribute("aria-hidden", "true");
+		svg.innerHTML = d[name] || "";
+		return svg;
 	}
-
 	function open(){
 		hook();
-		canvas = F.id("board-cv");
+		canvas = SK.dom("board-cv");
 		if (!canvas) return;
 		canvas.onpointerdown = down;
 		canvas.onpointermove = move;
@@ -131,12 +147,12 @@
 		canvas.ondblclick = dbl;
 		var bar = F.q(".board-bar");
 		if (bar) bar.onclick = onbar;
-		var col = F.id("board-color");
+		var col = SK.dom("board-color");
 		if (col) {
 			col.value = color;
 			col.oninput = function(){ setcolor(col.value); };
 		}
-		var txt = F.id("board-txt");
+		var txt = SK.dom("board-txt");
 		if (txt) {
 			txt.onkeydown = function(ev){
 				if (ev.key === "Enter") { F.pd(ev); committext(true); }
@@ -210,7 +226,7 @@
 
 	function setcolor(hex){
 		color = hex;
-		var col = F.id("board-color");
+		var col = SK.dom("board-color");
 		if (col && col.value !== hex) col.value = hex;
 		var nodes = F.qa(".board-colors [data-color]");
 		var i, want = String(hex).toLowerCase();
@@ -324,7 +340,7 @@
 	}
 
 	function say(key){
-		var el = F.id("board-msg");
+		var el = SK.dom("board-msg");
 		if (el) el.textContent = SK.t(key) || FB[key] || "";
 	}
 
@@ -473,7 +489,7 @@
 
 	function up(){
 		if (tool === "text" && edit && !textarmed) {
-			var txt = F.id("board-txt");
+			var txt = SK.dom("board-txt");
 			if (txt) setTimeout(function(){
 				if (!edit || textarmed) return;
 				txt.focus();
@@ -636,7 +652,7 @@
 		texttok++;
 		textarmed = false;
 		if (edit) committext(true);
-		var txt = F.id("board-txt");
+		var txt = SK.dom("board-txt");
 		if (!txt || !canvas) return;
 		var it = i >= 0 ? items[i] : null;
 		edit = { i: i, x: it ? it.x : x, y: it ? it.y : y };
@@ -667,7 +683,7 @@
 	function committext(keep){
 		if (!edit) return;
 		var ed = edit;
-		var txt = F.id("board-txt");
+		var txt = SK.dom("board-txt");
 		var val = txt ? String(txt.value || "").replace(/^\s+|\s+$/g, "") : "";
 		edit = null;
 		if (txt) txt.hidden = true;

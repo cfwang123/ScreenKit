@@ -65,35 +65,47 @@
 		return SK.t(key) || fb;
 	}
 
-	function body(){
-		return '<div class="plot">'
-			+ '<div class="plot-bar">'
-			+ '<button type="button" class="on" data-act="cross" data-ktip="web.plot.crossTip" title="' + SK.esc(tt("web.plot.crossTip", "竖线与曲线的交点。再点一次关闭。")) + '"><i class="fa-solid fa-crosshairs"></i><span data-k="web.plot.cross">' + SK.esc(tt("web.plot.cross", "Cross")) + "</span></button>"
-			+ '<span class="plot-style plot-seg" hidden>'
-			+ styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面")
-			+ styleBtn("grid", "fa-border-all", "web.plot.grid", "网格")
-			+ styleBtn("dots", "fa-braille", "web.plot.dots", "点阵")
-			+ styleBtn("level", "fa-layer-group", "web.plot.level", "等高线")
-			+ "</span>"
-			+ '<input id="plot-fn" type="text" value="sin(x)" spellcheck="false" autocomplete="off"'
-			+ ' data-kph="web.plot.ph" placeholder="' + SK.esc(tt("web.plot.ph", "sin(x)")) + '"'
-			+ ' data-ktip="web.plot.tip" title="' + SK.esc(tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。自动识别函数和方程：y=f(x)、z=f(x,y)、x^2+y^2=1 这类等式，以及 x^2+y^2+z^2=9 这类含 z 的方程。")) + '">'
-			+ '<div class="plot-ex"><button type="button" data-act="ex"><i class="fa-solid fa-caret-down"></i><span data-k="web.plot.ex">' + SK.esc(tt("web.plot.ex", "示例")) + "</span></button>"
-			+ '<div class="plot-menu" id="plot-menu" hidden>' + samples() + "</div></div>"
-			+ '<button type="button" data-act="reset" data-k="web.plot.reset">' + SK.esc(tt("web.plot.reset", "复位")) + "</button>"
-			+ "</div>"
-			+ '<p class="hint" data-k="web.plot.hint">' + SK.esc(tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。输入会自动识别二维或三维：函数、方程、含 z 的曲面都能画。点「示例」可选择。")) + "</p>"
-			+ '<div class="plot-stage"><canvas id="plot-cv"></canvas><div class="plot-read" id="plot-read" hidden></div></div>'
-			+ '<p class="hint" id="plot-msg"></p>'
-			+ "</div>";
+	function body(t){
+		return F.CreateDOM(t, { x: "div.plot", c: [
+			F.CreateDOM(t, { x: "div.plot-bar", c: [
+				F.CreateDOM(t, { x: "button", type: "button", class: "on", "data-act": "cross", "data-ktip": "web.plot.crossTip",
+					title: tt("web.plot.crossTip", "竖线与曲线的交点。再点一次关闭。"), c: [
+						F.CreateDOM(t, { x: "i.fa-solid.fa-crosshairs" }),
+						F.CreateDOM(t, { x: "span", "data-k": "web.plot.cross", c: tt("web.plot.cross", "Cross") })
+					] }),
+				F.CreateDOM(t, { x: "span.plot-style.plot-seg", hidden: true, c: [
+					styleBtn("fill", "fa-chart-area", "web.plot.fill", "曲面"),
+					styleBtn("grid", "fa-border-all", "web.plot.grid", "网格"),
+					styleBtn("dots", "fa-braille", "web.plot.dots", "点阵"),
+					styleBtn("level", "fa-layer-group", "web.plot.level", "等高线")
+				] }),
+				F.CreateDOM(t, { x: "input#plot-fn", type: "text", value: "sin(x)", spellcheck: "false", autocomplete: "off",
+					"data-kph": "web.plot.ph", placeholder: tt("web.plot.ph", "sin(x)"),
+					"data-ktip": "web.plot.tip", title: tt("web.plot.tip", "支持 + - * / ^、括号、sin cos tan sqrt abs ln log exp，常数 pi 和 e，可以写 2x。自动识别函数和方程：y=f(x)、z=f(x,y)、x^2+y^2=1 这类等式，以及 x^2+y^2+z^2=9 这类含 z 的方程。") }),
+				F.CreateDOM(t, { x: "div.plot-ex", c: [
+					F.CreateDOM(t, { x: "button", type: "button", "data-act": "ex", c: [
+						F.CreateDOM(t, { x: "i.fa-solid.fa-caret-down" }),
+						F.CreateDOM(t, { x: "span", "data-k": "web.plot.ex", c: tt("web.plot.ex", "示例") })
+					] }),
+					F.CreateDOM(t, { x: "div#plot-menu.plot-menu", hidden: true, c: samples() })
+				] }),
+				F.CreateDOM(t, { x: "button", type: "button", "data-act": "reset", "data-k": "web.plot.reset", c: tt("web.plot.reset", "复位") })
+			] }),
+			F.CreateDOM(t, { x: "p.hint", "data-k": "web.plot.hint", c: tt("web.plot.hint", "拖动平移，滚轮缩放。按住 Ctrl 只缩放 x 轴，按住 Shift 只缩放 y 轴。三维时拖动转动视角，Shift 拖动平移。三角函数用弧度。双击恢复初始视图。输入会自动识别二维或三维：函数、方程、含 z 的曲面都能画。点「示例」可选择。") }),
+			F.CreateDOM(t, { x: "div.plot-stage", c: [
+				F.CreateDOM(t, { x: "canvas#plot-cv" }),
+				F.CreateDOM(t, { x: "div#plot-read.plot-read", hidden: true })
+			] }),
+			F.CreateDOM(t, { x: "p#plot-msg.hint" })
+		] });
 	}
 
 	function open(){
-		canvas = F.id("plot-cv");
+		canvas = SK.dom("plot-cv");
 		if (!canvas) return;
 		var bar = F.q(".plot-bar");
 		if (bar) bar.onclick = onbar;
-		var input = F.id("plot-fn");
+		var input = SK.dom("plot-fn");
 		if (input) input.oninput = function(){ reparse(); paint(); };
 		canvas.onpointerdown = down;
 		canvas.onpointermove = move;
@@ -120,8 +132,11 @@
 	}
 
 	function styleBtn(id, icon, key, fb){
-		var on = id === style ? ' class="on"' : "";
-		return '<button type="button" data-style="' + id + '"' + on + '><i class="fa-solid ' + icon + '"></i><span data-k="' + key + '">' + SK.esc(tt(key, fb)) + "</span></button>";
+		return F.CreateDOM(null, { x: "button", type: "button", "data-style": id,
+			class: id === style ? "on" : "", c: [
+				F.CreateDOM(null, { x: "i", class: "fa-solid " + icon }),
+				F.CreateDOM(null, { x: "span", "data-k": key, c: tt(key, fb) })
+			] });
 	}
 
 	function onbar(ev){
@@ -160,7 +175,7 @@
 	}
 
 	function samples(){
-		var html = "";
+		var out = [];
 		var g = "";
 		var i, row, key, fb;
 		for (i = 0; i < SAMPLES.length; i++) {
@@ -169,33 +184,33 @@
 				g = row.g;
 				key = g === "eq" ? "web.plot.exeq" : g === "eq3" ? "web.plot.exeq3" : g === "z" ? "web.plot.z" : "web.plot.y";
 				fb = g === "eq" ? "方程" : g === "eq3" ? "三维方程" : g === "z" ? "z = f(x, y)" : "y = f(x)";
-				html += '<p data-k="' + key + '">' + SK.esc(tt(key, fb)) + "</p>";
+				out.push(F.CreateDOM(null, { x: "p", "data-k": key, c: tt(key, fb) }));
 			}
-			html += '<button type="button" data-ex="' + SK.esc(row.fn) + '" data-mode="' + row.mode + '">' + SK.esc(row.fn) + "</button>";
+			out.push(F.CreateDOM(null, { x: "button", type: "button", "data-ex": row.fn, "data-mode": row.mode, c: row.fn }));
 		}
-		return html;
+		return out;
 	}
 
 	function togglemenu(){
-		var menu = F.id("plot-menu");
+		var menu = SK.dom("plot-menu");
 		if (!menu) return;
 		menu.hidden = !menu.hidden;
 	}
 
 	function hidemenu(){
-		var menu = F.id("plot-menu");
+		var menu = SK.dom("plot-menu");
 		if (menu) menu.hidden = true;
 	}
 
 	function ondoc(ev){
-		var menu = F.id("plot-menu");
+		var menu = SK.dom("plot-menu");
 		if (!menu || menu.hidden) return;
 		if (ev.target && ev.target.closest && ev.target.closest(".plot-ex")) return;
 		menu.hidden = true;
 	}
 
 	function pick(src){
-		var input = F.id("plot-fn");
+		var input = SK.dom("plot-fn");
 		if (input) input.value = src;
 		hidemenu();
 		resetview();
@@ -219,7 +234,7 @@
 	}
 
 	function say(text, bad){
-		var el = F.id("plot-msg");
+		var el = SK.dom("plot-msg");
 		if (!el) return;
 		el.textContent = text || "";
 		el.className = bad ? "hint bad" : "hint";
@@ -246,7 +261,7 @@
 	}
 
 	function reparse(){
-		var input = F.id("plot-fn");
+		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		implicit = false;
 		try {
@@ -325,7 +340,7 @@
 	}
 
 	function sceneKey(w, h){
-		var input = F.id("plot-fn");
+		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		if (mode === "3")
 			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
@@ -447,7 +462,7 @@
 	}
 
 	function hideRead(){
-		var el = F.id("plot-read");
+		var el = SK.dom("plot-read");
 		if (el) el.hidden = true;
 	}
 
@@ -488,7 +503,7 @@
 			ctx.fill();
 		}
 		ctx.restore();
-		var box = F.id("plot-read");
+		var box = SK.dom("plot-read");
 		if (!box) return;
 		if (!lines.length) {
 			box.hidden = true;

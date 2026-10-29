@@ -26,46 +26,56 @@
 
 	var tx = SK.tx;
 
-	function body(){
-		return '<p class="hint" id="aim-hint"></p>'
-			+ '<p class="hint" id="aim-pages"><a id="aim-models" href="/chrome" target="_blank" rel="noopener"></a></p>'
-			+ '<label id="aim-tasklab"><select id="aim-task">'
-			+ '<option value="detect"></option>'
-			+ '<option value="translate"></option>'
-			+ '<option value="summarize"></option>'
-			+ '<option value="rewrite"></option>'
-			+ '<option value="proof"></option>'
-			+ '<option value="prompt"></option>'
-			+ '<option value="speak"></option>'
-			+ '<option value="listen"></option>'
-			+ "</select></label>"
-			+ '<div class="row" id="aim-speak" hidden>'
-			+ '<label id="aim-vlanglab"><select id="aim-vlang"></select></label>'
-			+ '<label id="aim-voicelab"><select id="aim-voice"></select></label>'
-			+ "</div>"
-			+ '<div class="row" id="aim-tr" hidden>'
-			+ '<label id="aim-srclab"><select id="aim-src"></select></label>'
-			+ '<label id="aim-dstlab"><select id="aim-dst"></select></label>'
-			+ "</div>"
-			+ '<label id="aim-sumlab" hidden><select id="aim-sum">'
-			+ '<option value="key-points"></option>'
-			+ '<option value="tldr"></option>'
-			+ '<option value="teaser"></option>'
-			+ '<option value="headline"></option>'
-			+ "</select></label>"
-			+ '<label id="aim-tonelab" hidden><select id="aim-tone">'
-			+ '<option value="more-formal"></option>'
-			+ '<option value="more-casual"></option>'
-			+ '<option value="shorter"></option>'
-			+ '<option value="longer"></option>'
-			+ "</select></label>"
-			+ '<label id="aim-inlab"><textarea id="aim-in" rows="8"></textarea></label>'
-			+ '<p id="aim-msg" class="msg"></p>';
+	function body(t){
+		return [
+			F.CreateDOM(t, { x: "p#aim-hint.hint" }),
+			F.CreateDOM(t, { x: "p#aim-pages.hint", c: [
+				F.CreateDOM(t, { x: "a#aim-models", href: "/chrome", target: "_blank", rel: "noopener" })
+			] }),
+			F.CreateDOM(t, { x: "label#aim-tasklab", c: [
+				F.CreateDOM(t, { x: "select#aim-task", c: [
+					{ x: "option", value: "detect" },
+					{ x: "option", value: "translate" },
+					{ x: "option", value: "summarize" },
+					{ x: "option", value: "rewrite" },
+					{ x: "option", value: "proof" },
+					{ x: "option", value: "prompt" },
+					{ x: "option", value: "speak" },
+					{ x: "option", value: "listen" }
+				] })
+			] }),
+			F.CreateDOM(t, { x: "div.row#aim-speak", hidden: true, c: [
+				F.CreateDOM(t, { x: "label#aim-vlanglab", c: [F.CreateDOM(t, { x: "select#aim-vlang" })] }),
+				F.CreateDOM(t, { x: "label#aim-voicelab", c: [F.CreateDOM(t, { x: "select#aim-voice" })] })
+			] }),
+			F.CreateDOM(t, { x: "div.row#aim-tr", hidden: true, c: [
+				F.CreateDOM(t, { x: "label#aim-srclab", c: [F.CreateDOM(t, { x: "select#aim-src" })] }),
+				F.CreateDOM(t, { x: "label#aim-dstlab", c: [F.CreateDOM(t, { x: "select#aim-dst" })] })
+			] }),
+			F.CreateDOM(t, { x: "label#aim-sumlab", hidden: true, c: [
+				F.CreateDOM(t, { x: "select#aim-sum", c: [
+					{ x: "option", value: "key-points" },
+					{ x: "option", value: "tldr" },
+					{ x: "option", value: "teaser" },
+					{ x: "option", value: "headline" }
+				] })
+			] }),
+			F.CreateDOM(t, { x: "label#aim-tonelab", hidden: true, c: [
+				F.CreateDOM(t, { x: "select#aim-tone", c: [
+					{ x: "option", value: "more-formal" },
+					{ x: "option", value: "more-casual" },
+					{ x: "option", value: "shorter" },
+					{ x: "option", value: "longer" }
+				] })
+			] }),
+			F.CreateDOM(t, { x: "label#aim-inlab", c: [F.CreateDOM(t, { x: "textarea#aim-in", rows: "8" })] }),
+			F.CreateDOM(t, { x: "p#aim-msg.msg" })
+		];
 	}
 
 	function open(){
 		aimGen++;
-		var go = F.id("box-go");
+		var go = SK.dom("box-go");
 		if (go) {
 			F.seta(go, "data-k", "web.aim.run");
 			go.textContent = tx("web.aim.run", "运行");
@@ -74,9 +84,9 @@
 		fillvoices();
 		loadpacks();
 		labels();
-		var task = F.id("aim-task");
+		var task = SK.dom("aim-task");
 		if (task) task.onchange = showtask;
-		var vlang = F.id("aim-vlang");
+		var vlang = SK.dom("aim-vlang");
 		if (vlang) vlang.onchange = function(){ fillvoices(); };
 		var syn = window.speechSynthesis;
 		if (syn && !voicesHooked) {
@@ -89,9 +99,9 @@
 	}
 
 	function labels(){
-		var hint = F.id("aim-hint");
+		var hint = SK.dom("aim-hint");
 		if (hint) hint.textContent = tx("web.aim.hint", "本地小模型做检测、翻译、摘要、改写、校对和提问。朗读和语音识别用浏览器自己的语音，不下载模型。");
-		var models = F.id("aim-models");
+		var models = SK.dom("aim-models");
 		if (models) models.textContent = tx("web.aim.models", "查看和安装模型");
 		setlab("aim-tasklab", "web.aim.task", "任务");
 		setlab("aim-srclab", "web.aim.src", "原文语言");
@@ -132,7 +142,7 @@
 	}
 
 	function fillsel(id, cur, names){
-		var sel = F.id(id);
+		var sel = SK.dom(id);
 		if (!sel) return;
 		var prev = sel.value || cur;
 		sel.innerHTML = "";
@@ -150,17 +160,17 @@
 	}
 
 	function showtask(){
-		var task = F.id("aim-task");
+		var task = SK.dom("aim-task");
 		var kind = task ? task.value : "detect";
-		var tr = F.id("aim-tr");
-		var sum = F.id("aim-sumlab");
-		var tone = F.id("aim-tonelab");
+		var tr = SK.dom("aim-tr");
+		var sum = SK.dom("aim-sumlab");
+		var tone = SK.dom("aim-tonelab");
 		if (tr) tr.hidden = kind !== "translate" && kind !== "listen";
-		var dst = F.id("aim-dstlab");
+		var dst = SK.dom("aim-dstlab");
 		if (dst) dst.hidden = kind !== "translate";
 		if (sum) sum.hidden = kind !== "summarize";
 		if (tone) tone.hidden = kind !== "rewrite";
-		var speak = F.id("aim-speak");
+		var speak = SK.dom("aim-speak");
 		if (speak) speak.hidden = kind !== "speak";
 		if (kind !== "listen") stophear();
 		if (kind !== "speak") {
@@ -171,8 +181,8 @@
 	}
 
 	function paintgo(){
-		var go = F.id("box-go");
-		var task = F.id("aim-task");
+		var go = SK.dom("box-go");
+		var task = SK.dom("aim-task");
 		var kind = task ? task.value : "";
 		if (!go) return;
 		if (kind === "listen" && hearing) {
@@ -195,12 +205,12 @@
 	}
 
 	function run(){
-		var task = F.id("aim-task");
+		var task = SK.dom("aim-task");
 		var kind = task ? task.value : "detect";
 		if (kind === "listen") { listen(); return; }
 		if (kind === "speak") { speak(); return; }
 		var mine = ++aimGen;
-		var box = F.id("aim-in");
+		var box = SK.dom("aim-in");
 		var text = box ? String(box.value || "").trim() : "";
 		if (!text) {
 			SK.msg("aim-msg", tx("web.aim.empty", "先写一段文字"), true);
@@ -216,7 +226,7 @@
 		else job = prompt(text);
 		Promise.resolve(job).then(function(out){
 			if (mine !== aimGen || SK.curtool !== "u-aim") return;
-			var el = F.id("box-out");
+			var el = SK.dom("box-out");
 			if (el) el.value = out == null ? "" : String(out);
 			SK.msg("aim-msg", "");
 		}, function(err){
@@ -298,8 +308,8 @@
 	function translate(text){
 		var ctor = api("Translator");
 		if (!ctor) return Promise.reject(new Error(tx("web.aim.nokind", "这个浏览器没有这项")));
-		var srcEl = F.id("aim-src");
-		var dstEl = F.id("aim-dst");
+		var srcEl = SK.dom("aim-src");
+		var dstEl = SK.dom("aim-dst");
 		var src = srcEl ? srcEl.value : "en";
 		var dst = dstEl ? dstEl.value : "zh";
 		var opt = { sourceLanguage: src, targetLanguage: dst };
@@ -312,7 +322,7 @@
 	function summarize(text){
 		var ctor = api("Summarizer");
 		if (!ctor) return Promise.reject(new Error(tx("web.aim.nokind", "这个浏览器没有这项")));
-		var sel = F.id("aim-sum");
+		var sel = SK.dom("aim-sum");
 		var type = sel ? sel.value : "key-points";
 		var opt = {
 			type: type,
@@ -328,7 +338,7 @@
 	function rewrite(text){
 		var ctor = api("Rewriter");
 		if (!ctor) return Promise.reject(new Error(tx("web.aim.nokind", "这个浏览器没有这项")));
-		var sel = F.id("aim-tone");
+		var sel = SK.dom("aim-tone");
 		var tone = sel ? sel.value : "more-formal";
 		var opt = {};
 		if (tone === "shorter" || tone === "longer") opt.length = tone;
@@ -366,14 +376,14 @@
 	}
 
 	function speechlang(){
-		var el = F.id("aim-src");
+		var el = SK.dom("aim-src");
 		var code = el ? el.value : "zh";
 		return SPEECH[code] || code || "zh-CN";
 	}
 
 	function fillvoices(){
 		var syn = window.speechSynthesis;
-		var sel = F.id("aim-voice");
+		var sel = SK.dom("aim-voice");
 		if (!syn || !sel) return;
 		var list = syn.getVoices() || [];
 		fillvlang(list);
@@ -465,12 +475,12 @@
 	}
 
 	function vlang(){
-		var el = F.id("aim-vlang");
+		var el = SK.dom("aim-vlang");
 		return el ? el.value : "";
 	}
 
 	function fillvlang(list){
-		var sel = F.id("aim-vlang");
+		var sel = SK.dom("aim-vlang");
 		if (!sel) return;
 		var prev = sel.value;
 		var seen = {};
@@ -536,7 +546,7 @@
 			SK.msg("aim-msg", tx("web.aim.novoice", "这个浏览器不能朗读"), true);
 			return;
 		}
-		var box = F.id("aim-in");
+		var box = SK.dom("aim-in");
 		var text = box ? String(box.value || "").trim() : "";
 		if (!text) {
 			SK.msg("aim-msg", tx("web.aim.empty", "先写一段文字"), true);
@@ -546,9 +556,9 @@
 		syn.cancel();
 		if (SK.stopwav) SK.stopwav();
 		var mine = ++speakGen;
-		var out = F.id("box-out");
+		var out = SK.dom("box-out");
 		if (out) out.value = text;
-		var sel = F.id("aim-voice");
+		var sel = SK.dom("aim-voice");
 		var uri = sel ? sel.value : "";
 		var list = syn.getVoices() || [];
 		var picked = null;
@@ -707,8 +717,8 @@
 				if (res && res[0]) parts.push(res[0].transcript);
 			}
 			var text = parts.join("");
-			var out = F.id("box-out");
-			var box = F.id("aim-in");
+			var out = SK.dom("box-out");
+			var box = SK.dom("aim-in");
 			if (out) out.value = text;
 			if (box) box.value = text;
 		};

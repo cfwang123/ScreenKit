@@ -92,19 +92,24 @@
 
 		SK.regutil(name, {
 			title: spec.title,
-			body: function(){
+			body: function(t){
 				var cls = setnow().cls || "";
-				var html = '<div class="reftab">'
-					+ '<div class="uquery"><input id="' + name + '-q" type="text">'
-					+ '<span id="' + name + '-msg" class="msg"></span></div>';
+				var kids = [
+					{ x: "div.uquery", c: [
+						{ x: "input#" + name + "-q", type: "text", oninput: function(){ paint(); } },
+						{ x: "span#" + name + "-msg.msg" }
+					] }
+				];
 				if (sets.length > 1)
-					html += '<div class="refchips refsets" id="' + name + '-sets"></div>';
-				html += '<div class="refchips" id="' + name + '-chips"></div>'
-					+ '<div class="refbody">'
-					+ '<div class="refscroll"><table class="reflist refdata' + (cls ? " " + cls : "") + '" id="' + name + '-tab"></table></div>'
-					+ '<aside class="refdetail" id="' + name + '-detail"></aside>'
-					+ "</div></div>";
-				return html;
+					kids.push({ x: "div.refchips.refsets#" + name + "-sets", onclick: function(ev){ onset(ev); } });
+				kids.push({ x: "div.refchips#" + name + "-chips", onclick: function(ev){ onchip(ev); } });
+				kids.push({ x: "div.refbody", c: [
+					{ x: "div.refscroll", c: [
+						{ x: "table.reflist.refdata" + (cls ? "." + cls : "") + "#" + name + "-tab", onclick: function(ev){ onrow(ev); } }
+					] },
+					{ x: "aside.refdetail#" + name + "-detail" }
+				] });
+				return F.CreateDOM(t, { x: "div.reftab", c: kids });
 			},
 			run: function(){
 				throw new Error("没有这个工具");
@@ -113,13 +118,7 @@
 				setat = readsaved();
 				cur = "all";
 				picked = null;
-				if (sets.length > 1) {
-					paintsets();
-					F.id(name + "-sets").onclick = onset;
-				}
-				F.id(name + "-q").oninput = paint;
-				F.id(name + "-chips").onclick = onchip;
-				F.id(name + "-tab").onclick = onrow;
+				if (sets.length > 1) paintsets();
 				reload();
 			},
 			hideGo: true,

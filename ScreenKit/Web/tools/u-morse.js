@@ -58,25 +58,30 @@
 		return map;
 	}
 
-	function body(){
-		return '<div class="uquery"><input id="morse-q" type="text" placeholder="搜索：字母、标点，或 .- / ·−">'
-			+ '<span id="morse-msg" class="msg"></span></div>'
-			+ '<p class="hint">国际摩斯码。点下面的码复制并用 8bit 合成器试听（约 784Hz），也可以输入一段文字整段播放。'
-			+ '短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。</p>'
-			+ '<div class="mtry"><input id="morse-t" type="text" maxlength="64" value="HELLO" placeholder="输入一段文字，如 SOS HELLO 2026">'
-			+ '<button type="button" id="morse-play" class="primary">播放</button>'
-			+ '<button type="button" id="morse-stop">停止</button>'
-			+ '<span id="morse-tmsg" class="msg"></span></div>'
-			+ '<div class="mpv" id="morse-pv"></div>'
-			+ '<div class="morse" id="morse-list"></div>';
+	function body(t){
+		return [
+			F.CreateDOM(t, { x: "div.uquery", c: [
+				F.CreateDOM(t, { x: "input#morse-q", type: "text", placeholder: "搜索：字母、标点，或 .- / ·−" }),
+				F.CreateDOM(t, { x: "span#morse-msg.msg" })
+			] }),
+			F.CreateDOM(t, { x: "p.hint", c: "国际摩斯码。点下面的码复制并用 8bit 合成器试听（约 784Hz），也可以输入一段文字整段播放。短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。" }),
+			F.CreateDOM(t, { x: "div.mtry", c: [
+				F.CreateDOM(t, { x: "input#morse-t", type: "text", maxlength: "64", value: "HELLO", placeholder: "输入一段文字，如 SOS HELLO 2026" }),
+				F.CreateDOM(t, { x: "button#morse-play.primary", type: "button", c: "播放" }),
+				F.CreateDOM(t, { x: "button#morse-stop", type: "button", c: "停止" }),
+				F.CreateDOM(t, { x: "span#morse-tmsg.msg" })
+			] }),
+			F.CreateDOM(t, { x: "div#morse-pv.mpv" }),
+			F.CreateDOM(t, { x: "div#morse-list.morse" })
+		];
 	}
 
 	function open(){
-		var q = F.id("morse-q");
-		var list = F.id("morse-list");
-		var text = F.id("morse-t");
-		var play = F.id("morse-play");
-		var stopb = F.id("morse-stop");
+		var q = SK.dom("morse-q");
+		var list = SK.dom("morse-list");
+		var text = SK.dom("morse-t");
+		var play = SK.dom("morse-play");
+		var stopb = SK.dom("morse-stop");
 		if (!q || !list) return;
 		q.oninput = paint;
 		list.onclick = onclick;
@@ -121,8 +126,8 @@
 
 	// 整段播放：字符内空 1 单位，字符之间空 3 单位，词之间空 7 单位
 	function playtext(){
-		var el = F.id("morse-t");
-		var msg = F.id("morse-tmsg");
+		var el = SK.dom("morse-t");
+		var msg = SK.dom("morse-tmsg");
 		var got = tokens(clean(el ? el.value : ""));
 		var plan;
 		var r;
@@ -258,14 +263,14 @@
 
 	// 输入框下面的点划预览，播放时逐字高亮
 	function paintpv(){
-		var el = F.id("morse-t");
-		var out = F.id("morse-pv");
+		var el = SK.dom("morse-t");
+		var out = SK.dom("morse-pv");
 		var got;
 		var html = "";
 		var order = 0;
 		var i, tk;
 		if (!out) return;
-		if (el) say(F.id("morse-tmsg"), "");
+		if (el) say(SK.dom("morse-tmsg"), "");
 		got = tokens(clean(el ? el.value : ""));
 		for (i = 0; i < got.list.length; i++) {
 			tk = got.list[i];
@@ -286,8 +291,8 @@
 	}
 
 	function paint(){
-		var list = F.id("morse-list");
-		var qel = F.id("morse-q");
+		var list = SK.dom("morse-list");
+		var qel = SK.dom("morse-q");
 		if (!list) return;
 		var q = norm(qel ? qel.value : "");
 		var html = "";

@@ -14,32 +14,33 @@
 		open: open
 	});
 
-	function body(){
+	function body(t){
 		var hint = SK.t("web.mdread.hint") || "";
 		var openLabel = SK.t("web.mdread.open") || "打开";
-		return '<div class="mdread">'
-			+ '<div class="mdread-bar">'
-			+ '<button type="button" id="md-open">' + SK.esc(openLabel) + "</button>"
-			+ '<input id="md-file" type="file" accept=".md,.markdown,.mdown,.mkd,text/markdown" hidden>'
-			+ '<select id="md-theme" class="mdtheme" title="' + SK.esc(SK.t("mdread.theme") || "") + '"></select>'
-			+ '<span id="md-name" data-k="web.mdread.hint">' + SK.esc(hint) + "</span>"
-			+ "</div>"
-			+ '<div class="mdread-stage">'
-			+ '<iframe id="md-view" title="preview" sandbox="allow-popups allow-scripts"></iframe>'
-			+ '<div id="md-mask" class="mdread-mask"></div>'
-			+ "</div></div>";
+		return F.CreateDOM(t, { x: "div.mdread", c: [
+			F.CreateDOM(t, { x: "div.mdread-bar", c: [
+				F.CreateDOM(t, { x: "button#md-open", type: "button", c: openLabel }),
+				F.CreateDOM(t, { x: "input#md-file", type: "file", accept: ".md,.markdown,.mdown,.mkd,text/markdown", hidden: true }),
+				F.CreateDOM(t, { x: "select#md-theme.mdtheme", title: SK.t("mdread.theme") || "" }),
+				F.CreateDOM(t, { x: "span#md-name", "data-k": "web.mdread.hint", c: hint })
+			] }),
+			F.CreateDOM(t, { x: "div.mdread-stage", c: [
+				F.CreateDOM(t, { x: "iframe#md-view", title: "preview", sandbox: "allow-popups allow-scripts" }),
+				F.CreateDOM(t, { x: "div#md-mask.mdread-mask" })
+			] })
+		] });
 	}
 
 	function open(){
-		var btn = F.id("md-open");
-		var file = F.id("md-file");
+		var btn = SK.dom("md-open");
+		var file = SK.dom("md-file");
 		if (btn && file) btn.onclick = function(){ file.click(); };
 		if (file) file.onchange = function(){
 			take(file.files && file.files[0]);
 			file.value = "";
 		};
 		filltheme();
-		var sel = F.id("md-theme");
+		var sel = SK.dom("md-theme");
 		if (sel) sel.onchange = function(){
 			savetheme(sel.value);
 			render();
@@ -53,7 +54,7 @@
 	}
 
 	function filltheme(){
-		var sel = F.id("md-theme");
+		var sel = SK.dom("md-theme");
 		if (!sel) return;
 		while (sel.firstChild) sel.removeChild(sel.firstChild);
 		var i;
@@ -79,19 +80,19 @@
 	}
 
 	function arm(ev){
-		var mask = F.id("md-mask");
+		var mask = SK.dom("md-mask");
 		if (!mask) return;
 		F.pd(ev);
 		mask.className = "mdread-mask on";
 	}
 
 	function disarm(){
-		var mask = F.id("md-mask");
+		var mask = SK.dom("md-mask");
 		if (mask) mask.className = "mdread-mask";
 	}
 
 	function ondrop(ev){
-		var mask = F.id("md-mask");
+		var mask = SK.dom("md-mask");
 		if (!mask) return;
 		F.pd(ev);
 		disarm();
@@ -115,7 +116,7 @@
 			var bytes = new Uint8Array(reader.result);
 			lastb64 = tob64(bytes);
 			lasttitle = file.name || "";
-			var name = F.id("md-name");
+			var name = SK.dom("md-name");
 			if (name) {
 				F.unset(name, "data-k");
 				name.textContent = file.name || "";
@@ -127,9 +128,9 @@
 
 	function render(){
 		if (!lastb64) return;
-		var sel = F.id("md-theme");
+		var sel = SK.dom("md-theme");
 		SK.post("/api/md", { base64: lastb64, title: lasttitle, theme: sel ? sel.value : "" }, function(data){
-			var view = F.id("md-view");
+			var view = SK.dom("md-view");
 			if (view) {
 				view.srcdoc = (data && data.html) || "";
 				if (data && data.bg) view.style.background = data.bg;
