@@ -90,24 +90,27 @@
 			return set.copyfn ? String(set.copyfn(row)) : rowkey(set, row);
 		}
 
-		SK.regutil(name, {
+		var page = null;
+
+	SK.regutil(name, {
 			title: spec.title,
 			body: function(t){
+				page = t;
 				var cls = setnow().cls || "";
 				var kids = [
 					{ x: "div.uquery", c: [
-						{ x: "input#" + name + "-q", type: "text", oninput: function(){ paint(); } },
-						{ x: "span#" + name + "-msg.msg" }
+						{ x: "input.refq", name: "refQ", type: "text", oninput: function(){ paint(); } },
+						{ x: "span.refmsg.msg", name: "refMsg" }
 					] }
 				];
 				if (sets.length > 1)
-					kids.push({ x: "div.refchips.refsets#" + name + "-sets", onclick: function(ev){ onset(ev); } });
-				kids.push({ x: "div.refchips#" + name + "-chips", onclick: function(ev){ onchip(ev); } });
+					kids.push({ x: "div.refchips.refsets", name: "refSets", onclick: function(ev){ onset(ev); } });
+				kids.push({ x: "div.refchips", name: "refChips", onclick: function(ev){ onchip(ev); } });
 				kids.push({ x: "div.refbody", c: [
 					{ x: "div.refscroll", c: [
-						{ x: "table.reflist.refdata" + (cls ? "." + cls : "") + "#" + name + "-tab", onclick: function(ev){ onrow(ev); } }
+						{ x: "table.reflist.refdata" + (cls ? "." + cls : ""), name: "refTab", onclick: function(ev){ onrow(ev); } }
 					] },
-					{ x: "aside.refdetail#" + name + "-detail" }
+					{ x: "aside.refdetail", name: "refDetail" }
 				] });
 				return F.CreateDOM(t, { x: "div.reftab", c: kids });
 			},
@@ -169,11 +172,11 @@
 		}
 
 		function query(){
-			return String(SK.val(name + "-q") || "").trim().toLowerCase();
+			return String(page.doms.refQ.value || "").trim().toLowerCase();
 		}
 
 		function scrollbox(){
-			return F.id(name + "-tab").parentNode;
+			return page.doms.refTab.parentNode;
 		}
 
 		function groupname(set, id){
@@ -202,7 +205,7 @@
 			var html = [];
 			var i, j, g, rows, n;
 			var total = 0;
-			F.id(name + "-q").placeholder = t(set, set.placeholder || "");
+			page.doms.refQ.placeholder = t(set, set.placeholder || "");
 			if (set.widths && set.widths.length) {
 				html.push("<colgroup>");
 				for (i = 0; i < cols.length; i++)
@@ -232,13 +235,13 @@
 			html.push("</tbody>");
 			if (!total)
 				html = ['<tbody><tr><td class="refnone" colspan="' + cols.length + '">' + esc(t(set, "没有匹配的条目")) + "</td></tr></tbody>"];
-			F.id(name + "-tab").innerHTML = html.join("");
+			page.doms.refTab.innerHTML = html.join("");
 			// 换分类或搜索都从头看；有的内核重排后还会保留旧位置，这里显式回顶部。
 			box.scrollTop = 0;
-			SK.msg(name + "-msg", total ? t(set, q ? (set.countHit || "%n 条") : (set.count || "共 %n 条")).replace("%n", total) : "");
+			SK.msg("ref-msg", total ? t(set, q ? (set.countHit || "%n 条") : (set.count || "共 %n 条")).replace("%n", total) : "");
 			paintchips(set);
 			if (total) selectrow(set, q);
-			else F.id(name + "-detail").innerHTML = "";
+			else page.doms.refDetail.innerHTML = "";
 		}
 
 		function pick(set, gid, q){
@@ -282,7 +285,7 @@
 			}
 			else {
 				picked = null;
-				F.id(name + "-detail").innerHTML = "";
+				page.doms.refDetail.innerHTML = "";
 			}
 		}
 
@@ -329,13 +332,13 @@
 				html += '<div class="refsample-t">' + esc(t(set, set.sampleTitle || "示例")) + "</div>"
 					+ '<div class="refsample">' + box + "</div>";
 			}
-			F.id(name + "-detail").innerHTML = html;
+			page.doms.refDetail.innerHTML = html;
 			// 换条目后详情从头显示，别接着上一条的滚动位置。
-			F.id(name + "-detail").scrollTop = 0;
+			page.doms.refDetail.scrollTop = 0;
 		}
 
 		function paintchips(set){
-			var box = F.id(name + "-chips");
+			var box = page.doms.refChips;
 			if (!set.groups || !set.groups.length) {
 				box.innerHTML = "";
 				box.hidden = true;
@@ -367,7 +370,7 @@
 					+ (i === setat ? ' class="on"' : "") + ">" + esc(t(sets[i], sets[i].name))
 					+ "<small>" + sets[i].rows.length + "</small></button>");
 			}
-			F.id(name + "-sets").innerHTML = html.join("");
+			page.doms.refSets.innerHTML = html.join("");
 		}
 
 		function onchip(ev){
@@ -392,7 +395,7 @@
 					writesaved();
 					cur = "all";
 					picked = null;
-					F.id(name + "-q").value = "";
+					page.doms.refQ.value = "";
 					paintsets();
 					paint();
 					return;
@@ -403,7 +406,7 @@
 
 		// 点行只换高亮和右侧详情，不重建表格，免得列表跟着跳。
 		function markrow(){
-			var trs = F.qa("tr[data-k]", F.id(name + "-tab"));
+			var trs = F.qa("tr[data-k]", page.doms.refTab);
 			var i;
 			for (i = 0; i < trs.length; i++)
 				trs[i].className = F.attr(trs[i], "data-k") === picked ? "on" : "";
@@ -419,7 +422,7 @@
 			picked = rowkey(set, row);
 			markrow();
 			showdetail(set, row);
-			SK.copytext(rowcopy(set, row), name + "-msg");
+			SK.copytext(rowcopy(set, row), "ref-msg");
 		}
 	};
 

@@ -258,7 +258,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	// 给下拉里指定 value 的 option 换文案。
 	function setopt(selId, value, key, fb){
-		var sel = F.id(selId);
+		var sel = domof(selId);
 		if (!sel) return;
 		var i;
 		for (i = 0; i < sel.options.length; i++) {
@@ -875,7 +875,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function chartfont(id){
-		var box = F.id(id);
+		var box = domof(id);
 		if (!box) return;
 		if (chartFont == null) {
 			chartFont = "";
@@ -1227,7 +1227,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function comboroot(id){
-		var box = F.id(id);
+		var box = domof(id);
 		var el = box ? box.parentNode : null;
 		if (!el || !el.className || String(el.className).indexOf("combo") < 0) return null;
 		return el;
@@ -1289,7 +1289,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var st = COMBOS[id];
 		var pop = combopop(comboroot(id));
 		if (!st || !pop) return;
-		var box = F.id(id);
+		var box = domof(id);
 		var q = st.all || !box ? "" : String(box.value || "").toLowerCase();
 		var html = "";
 		var vis = [];
@@ -1334,7 +1334,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function placecombo(id){
-		var box = F.id(id);
+		var box = domof(id);
 		var pop = combopop(comboroot(id));
 		if (!box || !pop || pop.hidden) return;
 		var r = box.getBoundingClientRect();
@@ -1354,7 +1354,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function combopick(id, value){
-		var box = F.id(id);
+		var box = domof(id);
 		if (!box) return;
 		box.value = value;
 		comboclose(id);
@@ -1448,7 +1448,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	// 工具里要拿元素时用 SK.dom("box-h")：先看当前工具的 page.doms，
 	// 没有再退回 HTML id。迁移期间两种写法都能用。
 	function domof(id){
-		return (SK.curpage && SK.curpage.doms && SK.curpage.doms[domkey(id)]) || F.id(id);
+		var k = domkey(id);
+		return (SK.curpage && SK.curpage.doms && SK.curpage.doms[k]) || (SK.doms && SK.doms[k]) || F.id(id);
 	}
 
 	function val(id){
@@ -1699,7 +1700,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		SK.icoPic = file;
 		if (SK.icoUrl) F.unurl(SK.icoUrl);
 		SK.icoUrl = F.url(file);
-		var img = F.id("ico-img");
+		var img = domof("ico-img");
 		if (img) {
 			img.onload = SK.drawicoprev;
 			img.src = SK.icoUrl;
@@ -1878,3 +1879,4 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.t = t;
 	combowatch();
 })();
+

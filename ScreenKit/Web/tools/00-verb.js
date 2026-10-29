@@ -36,7 +36,8 @@
 		return ui;
 
 		function out(){
-			return F.id(outId);
+			var k = SK.domkey(outId);
+			return (SK.curpage && SK.curpage.doms && SK.curpage.doms[k]) || null;
 		}
 
 		function paint(head, note, rows, tm){

@@ -2,7 +2,8 @@
 	SK.regutil("u-pw", {
 		title: "随机密码",
 		go: "生成",
-		body: function(){
+		body: function(t){
+			page = t;
 			return [
 				SK.row2(SK.lab("长度", SK.numin("box-len", "6")), SK.lab("条数", SK.numin("box-n", "10"))),
 				SK.check("box-low", "小写", true), SK.check("box-up", "大写", false),
@@ -16,11 +17,12 @@
 		run: function(){
 			return pwtext();
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			var pwids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb"];
 			var pi;
-			for (pi = 0; pi < pwids.length; pi++) SK.dom(pwids[pi]).onchange = fillpwset;
-			SK.dom("box-set").onchange = pwsetmode;
+			for (pi = 0; pi < pwids.length; pi++) page.doms[SK.domkey(pwids[pi])].onchange = fillpwset;
+			page.doms.boxSet.onchange = pwsetmode;
 			pwsetmode();
 			if (SK.utilrun) SK.utilrun();
 		}
@@ -30,10 +32,10 @@
 		var ids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb", "box-each"];
 		var i;
 		for (i = 0; i < ids.length; i++) {
-			var el = SK.dom(ids[i]);
+			var el = page.doms[SK.domkey(ids[i])];
 			if (el) el.disabled = on;
 		}
-		var box = SK.dom("box-set-chars");
+		var box = page.doms.boxSetChars;
 		if (box) box.disabled = !on;
 		if (!on) fillpwset();
 	}
@@ -53,7 +55,7 @@
 
 	function fillpwset(){
 		if (SK.onbox("box-set")) return;
-		var box = SK.dom("box-set-chars");
+		var box = page.doms.boxSetChars;
 		if (!box) return;
 		var groups = pwgroups();
 		var s = "";
@@ -136,3 +138,4 @@
 	SK.pwtext = pwtext;
 	SK.pwone = pwone;
 })();
+
