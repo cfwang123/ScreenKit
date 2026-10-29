@@ -249,7 +249,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	// 改写 label 元素的第一个文本节点，保留里面的 input/select。
 	function setlab(id, key, fb){
-		var el = F.id(id);
+		var el = domof(id);
 		if (!el) return;
 		var text = tx(key, fb);
 		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
