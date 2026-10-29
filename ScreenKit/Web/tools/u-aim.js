@@ -24,10 +24,7 @@
 		dispose: aimclose
 	});
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 	function body(){
 		return '<p class="hint" id="aim-hint"></p>'
@@ -122,23 +119,9 @@
 		setopt("aim-tone", "longer", "web.aim.tone.longer", "更长");
 	}
 
-	function setlab(id, key, fb){
-		var el = F.id(id);
-		if (!el) return;
-		var text = tx(key, fb);
-		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
-		else el.insertBefore(document.createTextNode(text), el.firstChild);
-	}
+	var setlab = SK.setlab;
 
-	function setopt(selId, value, key, fb){
-		var sel = F.id(selId);
-		if (!sel) return;
-		var i, o;
-		for (i = 0; i < sel.options.length; i++) {
-			o = sel.options[i];
-			if (o.value === value) o.textContent = tx(key, fb);
-		}
-	}
+	var setopt = SK.setopt;
 
 	function fillangs(){
 		var names = null;

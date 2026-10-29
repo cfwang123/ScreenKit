@@ -8,10 +8,7 @@
 		run: run
 	});
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 	function body(){
 		return '<p class="hint" id="seg-hint"></p>'
@@ -38,22 +35,9 @@
 		setopt("grapheme", "web.seg.grapheme", "字素");
 	}
 
-	function setlab(id, key, fb){
-		var el = F.id(id);
-		if (!el) return;
-		var text = tx(key, fb);
-		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
-		else el.insertBefore(document.createTextNode(text), el.firstChild);
-	}
+	var setlab = SK.setlab;
 
-	function setopt(value, key, fb){
-		var sel = F.id("seg-g");
-		if (!sel) return;
-		var i;
-		for (i = 0; i < sel.options.length; i++) {
-			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
-		}
-	}
+	function setopt(value, key, fb){ SK.setopt("seg-g", value, key, fb); }
 
 	function run(){
 		if (typeof Intl === "undefined" || !Intl.Segmenter) throw new Error(tx("web.seg.none", "这个浏览器没有分词"));

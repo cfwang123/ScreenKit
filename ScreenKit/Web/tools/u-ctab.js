@@ -441,9 +441,7 @@
 			+ "<small>" + c[1] + (note ? '<span class="note">' + esc(note) + "</span>" : "") + "</small></button>";
 	}
 
-	function esc(s){
-		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-	}
+	var esc = SK.esc;
 
 	SK.ctabgroups = TREE;
 })();

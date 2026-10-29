@@ -274,6 +274,36 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		return row[0] || "";
 	}
 
+	// 键查不到就用兜底文案。多个工具原来各写一份 tx，统一到这里。
+	function tx(key, fb){
+		return t(key) || fb;
+	}
+
+	// 界面当前语言代码，读左上角的下拉。
+	function langcode(){
+		var sel = F.id("lang");
+		return sel && sel.value ? sel.value : "zh";
+	}
+
+	// 改写 label 元素的第一个文本节点，保留里面的 input/select。
+	function setlab(id, key, fb){
+		var el = F.id(id);
+		if (!el) return;
+		var text = tx(key, fb);
+		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
+		else el.insertBefore(document.createTextNode(text), el.firstChild);
+	}
+
+	// 给下拉里指定 value 的 option 换文案。
+	function setopt(selId, value, key, fb){
+		var sel = F.id(selId);
+		if (!sel) return;
+		var i;
+		for (i = 0; i < sel.options.length; i++) {
+			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
+		}
+	}
+
 	function webkey(text){
 		if (!text || !window.L) return "";
 		if (GO[text]) return GO[text];
@@ -1580,11 +1610,14 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		msg("box-msg", "已放入图片");
 	}
 
+	// 转义 HTML 文本和属性值。各工具统一用这个，别在各自文件里再写一份；
+	// 属性里必须转引号，所以双引号也一并转掉。htmlenc 在此基础上多转单引号。
 	function esc(s){
 		return String(s == null ? "" : s)
 			.replace(/&/g, "&amp;")
 			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;");
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;");
 	}
 
 	function openutil(name){
@@ -1725,6 +1758,10 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.stoptick = stoptick;
 	SK.seticopic = seticopic;
 	SK.esc = esc;
+	SK.tx = tx;
+	SK.langcode = langcode;
+	SK.setlab = setlab;
+	SK.setopt = setopt;
 	SK.tr = tr;
 	SK.markhtml = markhtml;
 	SK.openutil = openutil;

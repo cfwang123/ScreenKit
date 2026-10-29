@@ -14,10 +14,7 @@
 		open: open
 	});
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 	function body(){
 		return '<p class="hint" id="binfo-hint"></p>'

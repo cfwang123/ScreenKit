@@ -129,12 +129,6 @@
 		["n", "컴퓨터", "电脑", "", "computer"]
 	];
 	var clip = null;
-	var perline = 2;
-	var maxcols = 4;
-	var tries = 0;
-	var lastpaint = null;
-	var rtimer = 0;
-	var bound = false;
 
 	if (exp) {
 
@@ -142,6 +136,14 @@
 		return;
 	}
 	if (typeof SK === "undefined" || !SK.regutil) return;
+
+	var ui = SK.verbui({
+		outId: "kv-out",
+		lang: "ko",
+		nospeak: ["web.kverb.nospeak", "无法发音"],
+		groupof: function(row){ return row.g || ""; },
+		cell: cell
+	});
 
 	SK.regutil("u-kverb", {
 		title: "韩语词形变化",
@@ -155,13 +157,10 @@
 		open: open,
 		relang: open,
 		run: run,
-		dispose: dropspeak
+		dispose: ui.dropspeak
 	});
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 	function body(){
 		return '<p class="hint" id="kv-hint"></p>'
@@ -205,12 +204,9 @@
 		var out = F.id("kv-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
-			out.onclick = onout;
+			out.onclick = ui.onout;
 		}
-		if (!bound) {
-			bound = true;
-			window.addEventListener("resize", onresize);
-		}
+		ui.bind();
 		run();
 	}
 
@@ -241,117 +237,15 @@
 		return groups;
 	}
 
-	function onout(ev){
-		var btn = ev.target;
-		var out = F.id("kv-out");
-		while (btn && btn !== out && btn.tagName !== "BUTTON") btn = btn.parentNode;
-		if (!btn || btn === out) return;
-		var text = F.attr(btn, "data-v") || "";
-		if (text) speak(text);
-	}
 
-	function dropspeak(){
-		if (SK.stopwav) SK.stopwav();
-		if (!clip) return;
-		try { clip.pause(); } catch (e) {}
-		clip = null;
-	}
 
-	function speak(text){
-		SK.stopwav();
-		if (clip) {
-			try { clip.pause(); } catch (e) {}
-			clip = null;
-		}
-		var audio = new Audio("/api/dict/speak?text=" + encodeURIComponent(text) + "&lang=ko");
-		clip = audio;
-		audio.onerror = function(){
-			if (clip === audio) SK.msg("box-msg", tx("web.kverb.nospeak", "无法发音"), true);
-		};
-		var played = audio.play();
-		if (played && played.then) played.then(function(){}, function(){
-			if (clip === audio) SK.msg("box-msg", tx("web.kverb.nospeak", "无法发音"), true);
-		});
-	}
 
-	function paint(word, note, rows, tm){
-		var out = F.id("kv-out");
-		if (!out) return;
-		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
-		lastpaint = { word: word, note: note, rows: rows, tm: tm };
-		render(out);
-	}
 
-	// 栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。
-	var CELLW = 200;
 
-	function tabopen(cls){
-		var n = perline;
-		var html = '<table class="' + cls + '" style="width:' + (n <= 2 ? "100%" : (n * CELLW) + "px") + '">';
-		if (n > 2) {
-			html += "<colgroup>";
-			for (var i = 0; i < n; i++) html += '<col style="width:' + CELLW + 'px">';
-			html += "</colgroup>";
-		}
-		return html;
-	}
 
-	function render(out){
-		if (!out || !lastpaint) return;
-		var cw = out.clientWidth;
-		if (cw <= 0) {
-			// 刚切到工具页时容器可能还没显示，等一帧再量。
-			if (tries < 5) { tries++; setTimeout(refit, 40); }
-			return;
-		}
-		tries = 0;
-		perline = Math.floor(cw / CELLW);
-		if (perline < 1) perline = 1;
-		if (perline > 8) perline = 8;
-		out.innerHTML = tablehtml(lastpaint.word, lastpaint.note, lastpaint.rows, lastpaint.tm);
-	}
 
-	function onresize(){
-		if (rtimer) clearTimeout(rtimer);
-		rtimer = setTimeout(refit, 150);
-	}
 
-	function refit(){
-		var out = F.id("kv-out");
-		if (out && lastpaint) render(out);
-	}
 
-	function tablehtml(word, note, rows, tm){
-		var tip = esc(tx("dict.speak", "发音"));
-		var html = '<div class="jv-head"><b>' + esc(word) + "</b><span>" + esc(note) + "</span>"
-			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div>" + tabopen("jv-tab");
-		var g = "";
-		var buf = [];
-		var i;
-		for (i = 0; i < rows.length; i++) {
-			if (rows[i].g !== g) {
-				html += flush(buf, tip);
-				buf = [];
-				g = rows[i].g;
-				html += '<tr><td class="kv-g" colspan="' + perline + '">' + esc(g) + "</td></tr>";
-			}
-			buf.push(rows[i]);
-		}
-		return html + flush(buf, tip) + "</table>";
-	}
-
-	function flush(buf, tip){
-		var html = "";
-		var j, k;
-		for (j = 0; j < buf.length; j += perline) {
-			html += "<tr>";
-			for (k = 0; k < perline; k++) {
-				html += j + k < buf.length ? cell(buf[j + k], tip) : '<td class="c-k"></td>';
-			}
-			html += "</tr>";
-		}
-		return html;
-	}
 
 	function cell(item, tip){
 		var forms = String(item.text || "").split(" / ");
@@ -365,26 +259,11 @@
 		return html + "</td>";
 	}
 
-	function esc(s){
-		return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-	}
+	var esc = SK.esc;
 
-	function setlab(id, key, fb){
-		var el = F.id(id);
-		if (!el) return;
-		var text = tx(key, fb);
-		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
-		else el.insertBefore(document.createTextNode(text), el.firstChild);
-	}
+	var setlab = SK.setlab;
 
-	function setopt(value, key, fb){
-		var sel = F.id("kv-sel");
-		if (!sel) return;
-		var i;
-		for (i = 0; i < sel.options.length; i++) {
-			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
-		}
-	}
+	function setopt(value, key, fb){ SK.setopt("kv-sel", value, key, fb); }
 
 	// 输入变化先防抖 180 ms 再算：现在要先查一次词典，逐字触发太费。
 	function run(){
@@ -400,30 +279,30 @@
 		var word = norm(box ? box.value : "");
 		var force = sel ? sel.value : "auto";
 		if (!word) {
-			paint("", "", []);
+			ui.paint("", "", []);
 			SK.msg("box-msg", "");
 			return;
 		}
-		var t0 = now();
+		var t0 = ui.now();
 		lookup(word, function(hits){
 			if (n !== gen) return;
-			var tdict = hits ? now() - t0 : -1;
+			var tdict = hits ? ui.now() - t0 : -1;
 			var miss = hits && !hits.length ? tx("web.kverb.miss", "词典里没有这个词，已按词尾判断。") : "";
-			var t1 = now();
+			var t1 = ui.now();
 			conjreq({ lang: "ko", q: word, type: force, ui: langcode() }, function(d){
 				if (n !== gen) return;
-				var tcalc = now() - t1;
+				var tcalc = ui.now() - t1;
 				if (!d) {
-					paint("", "", []);
+					ui.paint("", "", []);
 					SK.msg("box-msg", tx("web.kverb.down", "变形接口不可用"), true);
 					return;
 				}
 				if (!d.ok) {
-					paint("", "", []);
+					ui.paint("", "", []);
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
-				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc, miss));
+				ui.paint(d.head, d.note, objrows(d.rows), ui.timestr(tdict, tcalc, miss));
 				SK.msg("box-msg", "");
 			});
 		});
@@ -457,10 +336,7 @@
 		return out;
 	}
 
-	function langcode(){
-		var sel = F.id("lang");
-		return sel && sel.value ? sel.value : "zh";
-	}
+	var langcode = SK.langcode;
 
 	function ci(ch){ return CHO.indexOf(ch); }
 	function vi(ch){ return JUNG.indexOf(ch); }
@@ -600,21 +476,7 @@
 	// 名词（이다）的方言说法：只列证据明确的四种
 
 	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
-	function timestr(dictms, calcms, extra){
-		var a = "";
-		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
-		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
-		if (extra) a += (a ? " · " : "") + extra;
-		return a;
-	}
 
-	function fmtms(v){
-		v = Math.round(v * 10) / 10;
-		return v < 1 ? "<1 ms" : Math.round(v) + " ms";
-	}
 
-	function now(){
-		return window.performance && window.performance.now ? window.performance.now() : Date.now();
-	}
 })();
 

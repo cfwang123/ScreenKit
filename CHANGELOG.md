@@ -41,6 +41,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Changed
+
+- Refactored the web tools page: escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
+
+### 中文
+
+#### 变更
+
+- 重构 web 工具页：转义、翻译等小函数合并到公共模块；HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件；英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
+
 ## v1.0.31 (2026-10-29)
 
 ### English

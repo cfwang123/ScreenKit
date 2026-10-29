@@ -169,12 +169,5 @@
 		return { vid: m[1].toUpperCase(), pid: m[2] ? m[2].toUpperCase() : "" };
 	}
 
-	function esc(s){
-		return String(s).replace(/[&<>"]/g, function(ch){
-			if (ch === "&") return "&amp;";
-			if (ch === "<") return "&lt;";
-			if (ch === ">") return "&gt;";
-			return "&quot;";
-		});
-	}
+	var esc = SK.esc;
 })();

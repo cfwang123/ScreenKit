@@ -25,10 +25,7 @@
 			bindpick();
 		}
 	});
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 	function bindpick(){
 		var hue = 220;

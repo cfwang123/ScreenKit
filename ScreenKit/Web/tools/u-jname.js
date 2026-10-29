@@ -325,10 +325,7 @@
 		});
 	}
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 		// 完整姓名的切分。空格或间隔号只切一刀，否则每个长度都试一次。
 	function splitraw(raw){
@@ -553,9 +550,5 @@
 		return out;
 	}
 
-	function esc(s){
-		return String(s).replace(/[&<>"]/g, function(c){
-			return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c];
-		});
-	}
+	var esc = SK.esc;
 })();

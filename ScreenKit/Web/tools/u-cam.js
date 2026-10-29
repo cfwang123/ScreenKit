@@ -89,10 +89,7 @@
 		try { exit.call(document); } catch (e) {}
 	}
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 	function labels(){
 		var hint = F.id("cam-hint");

@@ -1584,9 +1584,7 @@
 		list.innerHTML = html;
 	}
 
-	function esc(s){
-		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-	}
+	var esc = SK.esc;
 
 	SK.numread = numread;
 })();
