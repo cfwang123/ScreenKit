@@ -1281,9 +1281,9 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .wclock-card.night { background: #241f1b; color: #f4efe8; }
 .wclock-card.night .wclock-name,
 .wclock-card.night .wclock-sub { color: #c8bfb4; }
-#wclock-one { margin: 0 0 10px; }
-#wclock-one .wclock-card { cursor: default; }
-#wclock-one .wclock-time { font-size: 32px; }
+.wclock-one { margin: 0 0 10px; }
+.wclock-one .wclock-card { cursor: default; }
+.wclock-one .wclock-time { font-size: 32px; }
 .wclock-name { font-size: 13px; font-weight: 600; }
 .wclock-time {
 	display: block; margin: 2px 0; font-size: 22px; font-weight: 650;
@@ -1304,13 +1304,13 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	flex: 1 1 auto; min-height: 0; min-width: 0;
 }
 .jn > .uquery, .jn > .jnseg, .jn > .jnidx, .jn > .jnpager, .jn > .hint { flex: none; }
-#jn-q { flex: none; width: 240px; max-width: 46%; }
-#jn-rand {
+.jn-q { flex: none; width: 240px; max-width: 46%; }
+.jn-rand {
 	flex: none; height: 32px; padding: 0 12px; cursor: pointer;
 	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
-#jn-rand:hover { background: #fff1e8; }
+.jn-rand:hover { background: #fff1e8; }
 .jn > .uquery .msg { margin-left: auto; }
 .jnscroll { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .jnseg, .jnidx { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
@@ -1332,7 +1332,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 }
 .jnpager button:disabled { opacity: .4; cursor: default; }
 .jnpager .msg { color: var(--muted); font-size: 13px; }
-#jn-pager .jnpi { flex: none; 
+.jnpager .jnpi { flex: none; 
 	width: 56px; height: 28px; margin: 0; padding: 0 6px; text-align: center;
 	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
 	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
@@ -1359,3 +1359,5 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 }
 .jnrow .jn-spk:hover { background: #fff1e8; }
 .jnnone { color: var(--muted); }
+
+
