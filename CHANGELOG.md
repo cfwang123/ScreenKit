@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Dragging a file into the file analyzer no longer leaves the Explorer drag image stuck on the window. The drop format is checked once on entry, and UI updates after the drop run after the drag loop returns.
+- Fix the conditional contraction of 買う in Japanese conjugation
 
 ### 中文
 
@@ -74,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 文件分析拖入文件时不再把资源管理器的拖影留在窗口上。进入时只检查一次数据格式，松手后的界面更新等拖放循环结束后再执行。
+- 修复日语词形变化中「買う」的ば形缩约
 
 ## v1.0.31 (2026-10-29)
 

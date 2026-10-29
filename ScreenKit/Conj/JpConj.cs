@@ -1297,8 +1297,8 @@ static class JpConj {
 	static string ryaf(string ba) {
 		if (string.IsNullOrEmpty(ba) || !ba.EndsWith("ば")) return ba;
 		var s = ba.Substring(0, ba.Length - 1);
-		const string e = "けれせてねめげべでへ";
-		const string i = "きりしちにみぎびぢひ";
+		const string e = "けれせてねめげべでへえ";
+		const string i = "きりしちにみぎびぢひい";
 		var last = s[s.Length - 1];
 		var n = e.IndexOf(last);
 		if (n < 0) return s + "ゃ";
