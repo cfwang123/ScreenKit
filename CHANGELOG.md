@@ -45,6 +45,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Add CLI JSON export for Japanese conjugation tables
+
 #### Changed
 
 - Refactored the web tools page: escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
@@ -56,6 +60,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dragging a file into the file analyzer no longer leaves the Explorer drag image stuck on the window. The drop format is checked once on entry, and UI updates after the drop run after the drag loop returns.
 
 ### 中文
+
+#### 新增
+
+- 日语词形变化支持 CLI 导出 JSON
 
 #### 变更
 
