@@ -770,6 +770,26 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
+	function fit3scale(w, h, maxx, maxy, pad){
+		var sx = maxx > 1e-9 ? (w / 2 - pad) / maxx : Infinity;
+		var sy = maxy > 1e-9 ? (h / 2 - pad) / maxy : Infinity;
+		var s = Math.min(sx, sy);
+		return isFinite(s) && s > 0 ? s : Math.min(w, h) * 0.42;
+	}
+
+	// 用点集到原点的最大距离作为包围球半径。
+	// 正交投影下任意旋转都不会超过这个半径，因此既能填满画布，也不会在转角后截断。
+	function fit3radius(points){
+		var r = 0;
+		for (var i = 0; i < points.length; i++) {
+			var p = points[i];
+			if (p.ok === false) continue;
+			var d = p.wx * p.wx + p.wy * p.wy + p.wz * p.wz;
+			if (d > r) r = d;
+		}
+		return Math.sqrt(r);
+	}
+
 	function draw3(ctx, w, h){
 		if (implicit) {
 			draw3implicit(ctx, w, h);
@@ -800,7 +820,6 @@
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
 		var zfit = fit / (hi - lo);
-		var scale = Math.min(w, h) * 0.42 / fit;
 		var pts = new Array(grid * grid);
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
@@ -817,18 +836,28 @@
 				var X = (x - cam.cx) / cam.xspan * fit;
 				var Y = (y - cam.cy) / cam.yspan * fit;
 				var Z = ok ? (z - zmid) * zfit : 0;
+				var wx = X * 4 / fit, wy = Y * 4 / fit, wz = Z * 4 / fit;
 				var x1 = X * cyaw - Y * syaw;
 				var y1 = X * syaw + Y * cyaw;
 				var y2 = y1 * cp - Z * sp;
 				var z2 = y1 * sp + Z * cp;
 				pts[j * grid + i] = {
-					x: w / 2 + x1 * scale,
-					y: h / 2 - z2 * scale,
+					x: x1,
+					y: z2,
 					d: y2,
 					ok: ok,
-					t: ok ? (z - lo) / (hi - lo) : 0
+					t: ok ? (z - lo) / (hi - lo) : 0,
+					wx: wx,
+					wy: wy,
+					wz: wz
 				};
 			}
+		}
+		var r0 = fit3radius(pts);
+		var scale = r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit;
+		for (i = 0; i < pts.length; i++) {
+			pts[i].x = w / 2 + pts[i].x * scale;
+			pts[i].y = h / 2 - pts[i].y * scale;
 		}
 		ctx.save();
 		ctx.beginPath();
@@ -846,14 +875,13 @@
 	// 再按样式画成填充面、网格线、点阵或水平等高线。
 	function draw3implicit(ctx, w, h){
 		var fit = Math.max(cam.xspan, cam.yspan);
-		var scale = Math.min(w, h) * 0.42 / fit;
 		var n = drag ? 46 : (style === "dots" ? 88 : 72);
 		var m = drag ? 46 : 80;
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var cw = n + 1;
-		var gap = 2 * fit * scale / n;
 		var cols = new Array(cw * cw);
+		var all = [];
 		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
 		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, X, Y, x1, y1, y2, z2;
 		for (j = 0; j <= n; j++) {
@@ -874,7 +902,13 @@
 							lo = z;
 							hi = z;
 						}
-						else if (f0 !== 0) {
+						else if (f0 === 0) {
+							// 极点处 z 扫描线正好落在零点上，根是上一格的 z；
+							// 若拿 (z-dz, z) 的中点会内缩，球面顶部/底部会被削平。
+							lo = z - dz;
+							hi = z - dz;
+						}
+						else {
 							for (zm = 0; zm < 10; zm++) {
 								var zmid = (lo + hi) / 2;
 								fm = ev(fn, x, y, zmid);
@@ -896,33 +930,49 @@
 						y1 = X * syaw + Y * cyaw;
 						y2 = y1 * cp - zz * sp;
 						z2 = y1 * sp + zz * cp;
-						list.push({
-							x: w / 2 + x1 * scale,
-							y: h / 2 - z2 * scale,
+						var wx = X * 4 / fit, wy = Y * 4 / fit, wz = zz;
+						var p = {
+							x: x1,
+							y: z2,
 							d: y2,
 							t: (zz - z0) / (z1 - z0),
 							z: zz,
-							wx: x,
-							wy: y
-						});
+							wx: wx,
+							wy: wy,
+							wz: wz
+						};
+						list.push(p);
+						all.push(p);
 					}
 					f0 = f1;
 				}
+				cols[j * cw + i] = list;
+			}
+		}
+		var r0 = fit3radius(all);
+		var scale = r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit;
+		var gap = 2 * fit * scale / n;
+		for (j = 0; j <= n; j++) {
+			for (i = 0; i <= n; i++) {
+				var col = cols[j * cw + i];
+				for (k = 0; k < col.length; k++) {
+					col[k].x = w / 2 + col[k].x * scale;
+					col[k].y = h / 2 - col[k].y * scale;
+				}
 				// 两层解在相切处几乎重合，合并成一个点，网格线就能连上。
-				for (k = 0; k + 1 < list.length; k++) {
-					if (Math.abs(list[k + 1].x - list[k].x) + Math.abs(list[k + 1].y - list[k].y) < gap) {
+				for (k = 0; k + 1 < col.length; k++) {
+					if (Math.abs(col[k + 1].x - col[k].x) + Math.abs(col[k + 1].y - col[k].y) < gap) {
 						var mm = {
-							x: (list[k].x + list[k + 1].x) / 2,
-							y: (list[k].y + list[k + 1].y) / 2,
-							d: (list[k].d + list[k + 1].d) / 2,
+							x: (col[k].x + col[k + 1].x) / 2,
+							y: (col[k].y + col[k + 1].y) / 2,
+							d: (col[k].d + col[k + 1].d) / 2,
 							t: 0.5,
-							z: (list[k].z + list[k + 1].z) / 2
+							z: (col[k].z + col[k + 1].z) / 2
 						};
-						list[k] = mm;
-						list[k + 1] = mm;
+						col[k] = mm;
+						col[k + 1] = mm;
 					}
 				}
-				cols[j * cw + i] = list;
 			}
 		}
 		ctx.save();
