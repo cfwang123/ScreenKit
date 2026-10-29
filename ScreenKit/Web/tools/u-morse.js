@@ -14,16 +14,16 @@
 			["6", "-...."], ["7", "--..."], ["8", "---.."], ["9", "----."], ["0", "-----"]
 		]},
 		{ name: "标点", rows: [
-			[".", ".-.-.-", "句号"], [",", "--..--", "逗号"], ["?", "..--..", "问号"],
-			["'", ".----.", "撇号"], ["!", "-.-.--", "叹号"], ["/", "-..-.", "斜线"],
-			["(", "-.--.", "左括号"], [")", "-.--.-", "右括号"], ["&", ".-...", "和"],
-			[":", "---...", "冒号"], [";", "-.-.-.", "分号"], ["=", "-...-", "等号"],
-			["+", ".-.-.", "加号"], ["-", "-....-", "连字符"], ["_", "..--.-", "下划线"],
-			["\"", ".-..-.", "引号"], ["$", "...-..-", "美元"], ["@", ".--.-.", "艾特"]
+			[".", ".-.-.-", "句号", "Full stop"], [",", "--..--", "逗号", "Comma"], ["?", "..--..", "问号", "Question mark"],
+			["'", ".----.", "撇号", "Apostrophe"], ["!", "-.-.--", "叹号", "Exclamation mark"], ["/", "-..-.", "斜线", "Slash"],
+			["(", "-.--.", "左括号", "Left parenthesis"], [")", "-.--.-", "右括号", "Right parenthesis"], ["&", ".-...", "和", "Ampersand"],
+			[":", "---...", "冒号", "Colon"], [";", "-.-.-.", "分号", "Semicolon"], ["=", "-...-", "等号", "Equals sign"],
+			["+", ".-.-.", "加号", "Plus sign"], ["-", "-....-", "连字符", "Hyphen"], ["_", "..--.-", "下划线", "Underscore"],
+			["\"", ".-..-.", "引号", "Quotation mark"], ["$", "...-..-", "美元", "Dollar sign"], ["@", ".--.-.", "艾特", "At sign"]
 		]},
 		{ name: "信号", rows: [
-			["AR", ".-.-.", "报文完"], ["SK", "...-.-", "通信完"], ["AS", ".-...", "请等待"],
-			["BT", "-...-", "分隔"], ["KN", "-.--.", "只请对方发"], ["HH", "........", "错误"]
+			["AR", ".-.-.", "报文完", "End of message"], ["SK", "...-.-", "通信完", "End of contact"], ["AS", ".-...", "请等待", "Wait"],
+			["BT", "-...-", "分隔", "Separator"], ["KN", "-.--.", "只请对方发", "Invitation to transmit"], ["HH", "........", "错误", "Error"]
 		]}
 	];
 	// 试听用：约 784Hz 的报务音，一个点 90 毫秒（划 3 点），整段最长播 20 秒
@@ -310,7 +310,7 @@
 				shown += '<button type="button" data-code="' + esc(row[1]) + '" title="'
 					+ esc(tip(row)) + '"><b>' + esc(row[0]) + "</b>"
 					+ '<span class="mvis">' + vis(row[1]) + "</span>"
-					+ '<small>' + esc(row[1]) + (row[2] ? " " + esc(row[2]) : "") + "</small></button>";
+					+ '<small>' + esc(row[1]) + (mkname(row) ? " " + esc(mkname(row)) : "") + "</small></button>";
 			}
 			if (!n) continue;
 			html += '<h4 class="mgh">' + esc(GROUPS[g].name) + '<span class="n">' + n + "</span></h4>" + shown;
@@ -320,13 +320,19 @@
 	}
 
 	function hit(row, q){
-		var blob = (row[0] + " " + row[1] + " " + (row[2] || "")).toLowerCase();
+		var blob = (row[0] + " " + row[1] + " " + (row[2] || "") + " " + (row[3] || "")).toLowerCase();
 		if (blob.indexOf(q) >= 0) return true;
 		return norm(row[1]).indexOf(q) >= 0;
 	}
 
+	function mkname(row){
+		var zh = !SK.langcode || SK.langcode() === "zh";
+		return zh ? (row[2] || "") : (row[3] || "");
+	}
+
 	function tip(row){
-		return row[0] + (row[2] ? " " + row[2] : "") + "  " + row[1];
+		var nm = mkname(row);
+		return row[0] + (nm ? " " + nm : "") + "  " + row[1];
 	}
 
 	function vis(code){

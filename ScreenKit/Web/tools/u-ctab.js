@@ -439,11 +439,16 @@
 	function card(c){
 		var en = c[2] || "";
 		var note = c[3] || "";
-		return '<button type="button" data-hex="' + c[1] + '" data-name="' + esc(c[0]) + '"'
+		// 中文界面中文名为主、英文名做小字；其它语言直接用英文名，省得满屏中文。
+		var zh = !SK.langcode || SK.langcode() === "zh";
+		var big = zh || !en ? c[0] : en;
+		var small = zh && en ? '<span class="en">' + esc(en) + "</span>" : "";
+		var tip = zh && en ? c[0] + " " + en : big;
+		return '<button type="button" data-hex="' + c[1] + '" data-name="' + esc(c[0] + " " + en) + '"'
 			+ ' data-en="' + esc(en) + '"'
-			+ ' title="' + esc(c[0] + " " + en + "  " + c[1] + (note ? "  " + note : "")) + '">'
+			+ ' title="' + esc(tip + "  " + c[1] + (note ? "  " + note : "")) + '">'
 			+ (note ? '<i class="chk"></i>' : '<i style="background:' + c[1] + '"></i>')
-			+ "<b>" + esc(c[0]) + (en ? '<span class="en">' + esc(en) + "</span>" : "") + "</b>"
+			+ "<b>" + esc(big) + small + "</b>"
 			+ "<small>" + c[1] + (note ? '<span class="note">' + esc(note) + "</span>" : "") + "</small></button>";
 	}
 

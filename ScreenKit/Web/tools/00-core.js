@@ -418,7 +418,9 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function markattr(el){
-		if (!el || el.nodeType !== 1 || skipped(el)) return;
+		// 输入框自己的 placeholder / title 也要换，不能因为 skipped 把 INPUT 自己算进去；
+		// 只看祖先里有没有不该动的地方（聊天记录等）。
+		if (!el || el.nodeType !== 1 || (el.parentNode && skipped(el.parentNode))) return;
 		var ph = el.getAttribute("placeholder");
 		var key;
 		if (ph && !el.getAttribute("data-kph")) {
@@ -528,14 +530,18 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		}
 		var code = langs()[langAt] || "zh";
 		document.documentElement.lang = code === "zh" ? "zh-CN" : code;
+		// 先把页面文案换成当前语言，marktool / settitle 再去读卡片上的名字，
+		// 否则标题会拿到还没换过的中文。
+		markhtml(document.body);
 		if (SK.curtool && SK.curtool !== "home") {
 			var panel = SK.curtool.indexOf("u-") === 0 ? "box" : SK.curtool;
 			marktool(SK.curtool, panel);
 		}
 		settitle();
-		markhtml(document.body);
 		if (SK.fillttslang && SK.doms.ttsLang) SK.fillttslang();
 		if (SK.filltrlang) SK.filltrlang();
+		// 语言下拉、语音语言这些是脚本临时填的，上一步扫不到，补扫一次。
+		markhtml(document.body);
 		paintstars();
 		if (!SK.curtool || SK.curtool === "home") paintcats();
 	}

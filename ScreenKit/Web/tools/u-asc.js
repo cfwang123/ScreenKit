@@ -71,7 +71,8 @@
 	}
 
 	function ascgroups(){
-		var html = ['<div class="usum">共 128 个字符（0x00–0x7F）</div>'];
+		var zh = !SK.langcode || SK.langcode() === "zh";
+		var html = ['<div class="usum">' + (zh ? "共 128 个字符（0x00–0x7F）" : "128 characters (0x00–0x7F)") + "</div>"];
 		var i;
 		var range;
 		var runs;
@@ -79,8 +80,8 @@
 			runs = ascruns(GROUPS[i].codes);
 			range = ascrange(GROUPS[i].codes);
 			html.push('<button type="button" data-i="' + i + '" title="'
-				+ esc(runs.map(ascrun).join("、") + " · 点一下看这一组") + '"><b>' + esc(GROUPS[i].name)
-				+ "</b><small>" + (range ? range + " · " : "") + GROUPS[i].codes.length + " 个</small></button>");
+				+ esc(runs.map(ascrun).join("、") + (zh ? " · 点一下看这一组" : " · click to see this group")) + '"><b>' + esc(GROUPS[i].name)
+				+ "</b><small>" + (range ? range + " · " : "") + GROUPS[i].codes.length + (zh ? " 个" : "") + "</small></button>");
 		}
 		page.doms.aGroups.innerHTML = html.join("");
 		page.doms.aGroups.onclick = function(ev){

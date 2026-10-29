@@ -169,7 +169,7 @@
 			var sps = ttsItems[i].speakers || [];
 			for (j = 0; j < sps.length; j++) ttslangadd(seen, sps[j].lang);
 		}
-		var rows = [{ value: "", label: "全部语言" }];
+		var rows = [{ value: "", label: SK.tr ? SK.tr("全部语言") : "全部语言" }];
 		var used = {};
 		for (i = 0; i < named.length; i++) {
 			if (!seen[named[i][0]]) continue;
