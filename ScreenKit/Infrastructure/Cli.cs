@@ -450,6 +450,8 @@ static class Cli {
 					return testdictconj(cw, ck);
 				}
 				case "--conj-json": {
+					var jl = "ja";
+					if (i + 1 < args.Length && args[i + 1] is "ja" or "ko" or "en" or "ru") jl = Next();
 					var jp = "conj-export.json";
 					var jw = new List<string>();
 					while (i + 1 < args.Length) {
@@ -459,7 +461,7 @@ static class Cli {
 						if (jw.Count == 0 && v.EndsWith(".json", StringComparison.OrdinalIgnoreCase)) jp = v;
 						else jw.Add(v);
 					}
-					return JpConjExport.Run(jp, jw, Out);
+					return ConjJsonExport.Run(jl, jp, jw, Out);
 				}
 				case "--test-dict-install":
 					return testdictinstall();
@@ -7772,7 +7774,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
   ScreenKit --test-dict-conj [词] [词性]
-  ScreenKit --conj-json [out.json] [kind:词 ...]
+  ScreenKit --conj-json [ja|ko|en] [out.json] [kind:词 ...]
   ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word
@@ -7892,7 +7894,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-count <甲.bin> <乙.bin> [词...]  比较两个词库的全部命中数（不受 4000 条限制）。不给词时用 ing、tion 等命中很多的片段
       --test-dict-install  按安装功能下载 dict3.7z，解压出 exe 旁的 dict3.bin，再查 hello
       --test-dict-conj [词] [词性]  打印变形表全部分组与结果，词性 1/2/3/ai/an/n 可指定
-      --conj-json [out.json] [kind:词 ...]  导出日语变形表 JSON；不给词时每个类型取几个代表词
+      --conj-json [ja|ko|en] [out.json] [kind:词 ...]  导出变形表 JSON；不给词时每个类型取几个代表词
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回
       --test-dict-word  剪贴板单词判定（汉字 1–4 / 英文 1–20 字母 / 日语 / 韩语）
       --test-dict-host  选词搜索打开独立词典窗口并查出 hello；双击选词弹出浮窗；划词词条再开窗口；浮窗不挡选区，失活即关
@@ -8011,7 +8013,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-dict-search
   ScreenKit --test-dict-count <甲.bin> <乙.bin> [词...]
   ScreenKit --test-dict-conj [词] [词性]
-  ScreenKit --conj-json [out.json] [kind:词 ...]
+  ScreenKit --conj-json [ja|ko|en] [out.json] [kind:词 ...]
   ScreenKit --test-dict-install
   ScreenKit --test-dict-sel
   ScreenKit --test-dict-word

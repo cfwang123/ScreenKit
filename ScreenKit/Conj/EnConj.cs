@@ -300,6 +300,7 @@ static class EnConj {
 		["g_oth"] = new[] { "其他形式", "Other forms" },
 		["f_base"] = new[] { "原形", "Base form" },
 		["f_s3"] = new[] { "第三人称单数", "3rd person singular" },
+		["f_be"] = new[] { "现在式（am / is / are）", "Present (am / is / are)" },
 		["f_ing"] = new[] { "现在分词", "Present participle" },
 		["f_past"] = new[] { "过去式", "Past" },
 		["f_pp"] = new[] { "过去分词", "Past participle" },
@@ -868,7 +869,7 @@ static class EnConj {
 		// 基本形式
 		g = L("g_form");
 		R(g, L("f_base"), b);
-		R(g, L("f_s3"), isBe ? beof("am") + " / " + beof("is") + " / " + beof("are") : s3F);
+		R(g, isBe ? L("f_be") : L("f_s3"), isBe ? beof("am") + " / " + beof("is") + " / " + beof("are") : s3F);
 		R(g, L("f_ing"), ingF);
 		R(g, L("f_past"), isBe ? beof("was") + " / " + beof("were") : (pasts.Count > 0 ? variants(row[1], particle, o1, o2) : vx(ed(baseword))));
 		R(g, L("f_pp"), isBe ? vx("been") : (pps.Count > 0 ? variants(row[2], particle, o1, o2) : vx(ed(baseword))));
@@ -1194,7 +1195,17 @@ static class EnConj {
 		R(g, L("p_poss"), p[3]);
 		R(g, L("p_refl"), p[4]);
 		g = L("g_sent");
-		R(g, L("p_use"), "between you and me · It's me. · by " + p[4]);
+		var use = p[0] switch {
+			"I" => "between you and me · It's me. · by myself",
+			"you" => "between you and me · It's you. · by yourself / yourselves",
+			"he" => "between him and me · It's him. · by himself",
+			"she" => "between her and me · It's her. · by herself",
+			"it" => "It's it. · by itself",
+			"we" => "between us · It's us. · by ourselves",
+			"they" => "between them and me · It's them. · by themselves",
+			_ => "It's one. · by oneself",
+		};
+		R(g, L("p_use"), use);
 		return ok(p[0], zh ? p[5] : p[6], rows);
 	}
 

@@ -54,11 +54,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Refactored the web tools page: escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
 - The web tools page skeleton is now a page object: elements are reached through SK.doms and events are declared in the DOM spec instead of being bound by HTML id.
 - Web tool pages now build their markup from DOM nodes declared in JS instead of HTML strings, so controls are reached through SK.dom/doms and events are attached where the node is declared.
+- The conjugation JSON export now supports Korean and English via --conj-json ko|en; Russian uses scripts/export-ru-conj.js
 
 #### Fixed
 
 - Dragging a file into the file analyzer no longer leaves the Explorer drag image stuck on the window. The drop format is checked once on entry, and UI updates after the drop run after the drag loop returns.
 - Fix the conditional contraction of 買う in Japanese conjugation
+- Korean 살다 now quotes the imperative as 살라고 instead of 사라고
+- English pronoun usage examples follow the person, and be no longer labels am/is/are as third-person singular
+- Russian short passive participles keep ё only in the masculine form (говорён, but говорена/говорено/говорены)
 
 ### 中文
 
@@ -71,11 +75,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 重构 web 工具页：转义、翻译等小函数合并到公共模块；HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件；英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
 - web 工具页骨架改为页面对象：元素统一用 SK.doms 取，事件写在节点定义里，不再按 HTML id 绑定。
 - web 工具页改为用 JS 声明 DOM 节点生成界面，不再拼 HTML 字符串；控件统一走 SK.dom/doms，事件写在节点定义里。
+- 变形表 JSON 导出新增韩语和英语（--conj-json ko|en）；俄语用 scripts/export-ru-conj.js
 
 #### 修复
 
 - 文件分析拖入文件时不再把资源管理器的拖影留在窗口上。进入时只检查一次数据格式，松手后的界面更新等拖放循环结束后再执行。
 - 修复日语词形变化中「買う」的ば形缩约
+- 修复韩语「살다」的命令引用形，由 사라고 改为 살라고
+- 修复英语代词用法例句按人称生成，be 的 am/is/are 不再标成第三人称单数
+- 修复俄语 -ённый 短尾分词，只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
 
 ## v1.0.31 (2026-10-29)
 

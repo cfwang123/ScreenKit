@@ -152,10 +152,11 @@ This program receives while it is running, and that can be turned off in Setting
   - **Placeholder image**: Make a placeholder picture
   - **Random colors**: A set of random colors
 - **Lookup**
-  - **Japanese conjugation**: Enter the dictionary form or pick a word from the dropdown; auto tells a verb from an i-adjective, na-adjective or noun, and the type can be set by hand. Verbs are listed by class with auxiliaries, politeness, dialect forms and N5-N1 patterns; adjectives and nouns get their own patterns and literary forms, and rough, written, character-speech and sentence-ending groups are listed separately. Each form has a speak button. From the command line, `--conj-json` exports the full table by type.
+  - **Japanese conjugation**: Enter the dictionary form or pick a word from the dropdown; auto tells a verb from an i-adjective, na-adjective or noun, and the type can be set by hand. Verbs are listed by class with auxiliaries, politeness, dialect forms and N5-N1 patterns; adjectives and nouns get their own patterns and literary forms, and rough, written, character-speech and sentence-ending groups are listed separately. Each form has a speak button.
   - **Korean word forms**: Pick verb, adjective or noun, type a word or choose one from the list. Forms are grouped by speech level, grammar pattern, contraction, colloquial and literary ending, classical ending, character speech, in-group slang, rough endings, dialect, North Korean, DPRK broadcast or Yanbian. Each form has a speak button.
   - **Russian word forms**: Pick a type and enter the base form; every form is listed at once. Verbs show tense, mood, participles and gerunds, adjectives and nouns their full declension, each form with a speak button.
   - **English word forms**: Pick auto, verb, adjective or noun and type a word or choose one from the list. Verbs list the sixteen tenses with negatives, questions, passive and moods. Objects follow the dictionary by default: none if intransitive, one if transitive, two if ditransitive, and the choice can be set by hand. Each object can be picked from the list or typed. Adjectives list the comparison forms, nouns the plurals, articles and agreement, each with a speak button.
+  - **Word-form export**: `--conj-json [ja|ko|en]` exports the full table by type; Russian uses `node scripts/export-ru-conj.js`.
   - **Color chart**: Named colors
   - **HTTP status codes**: Status codes, descriptions, and specs by 1xx–5xx, plus common non-standard ones
   - **MIME types**: MIME types, file extensions, and Content-Type examples

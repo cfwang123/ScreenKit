@@ -1379,7 +1379,7 @@ static class KoConj {
 			add("plan", "려고 해요", quad(pluseu(st, "려고 해요", false), jn(syls) + "지 않으려고 해요", pluseu(st, "려고 했어요", false), jn(syls) + "지 않으려고 했어요"));
 			add("decide", "아야겠어요", pairneg(ba + "야겠어요", jn(syls) + "지 않아야겠어요"));
 			add("promise", "기로 해요", quad(jn(syls) + "기로 해요", jn(syls) + "지 않기로 해요", jn(syls) + "기로 했어요", jn(syls) + "지 않기로 했어요"));
-			add("cquote", "라고", pluseu(st, "라고", true) + " / " + jn(syls) + "지 말라고");
+			add("cquote", "라고", pluseu(st, "라고", false) + " / " + jn(syls) + "지 말라고");
 			add("squote", "자고", jn(syls) + "자고 / " + jn(syls) + "지 말자고");
 		}
 		add("geolkkeol", "ㄹ걸요", rl + "걸요");
