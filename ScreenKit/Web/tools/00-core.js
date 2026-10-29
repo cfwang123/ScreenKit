@@ -81,48 +81,10 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var today = new Date();
 		var month = today.getMonth() + 1;
 		var day = today.getDate();
-		F.id("cal-date").value = today.getFullYear()
+		SK.doms.calDate.value = today.getFullYear()
 			+ "-" + (month < 10 ? "0" : "") + month
 			+ "-" + (day < 10 ? "0" : "") + day;
 		F.on(document, "click", onclick);
-		F.id("cal-go").onclick = SK.cal;
-		F.id("tr-go").onclick = function(){ if (SK.trgo) SK.trgo(); };
-		F.id("tr-swap").onclick = function(){ if (SK.trswap) SK.trswap(); };
-		F.id("tr-copy").onclick = function(){ copytext(F.id("tr-out").value, "tr-msg"); };
-		F.id("tr-paste").onclick = function(){ if (SK.trpaste) SK.trpaste(); };
-		F.id("tr-speak-src").onclick = function(){ if (SK.trspeak) SK.trspeak("src"); };
-		F.id("tr-speak-dst").onclick = function(){ if (SK.trspeak) SK.trspeak("dst"); };
-		F.id("tr-src").onchange = function(){ if (SK.trdst) SK.trdst(true); };
-		F.id("tr-dst").onchange = function(){ if (SK.trsync) SK.trsync(); };
-		F.id("tr-engine").onchange = function(){ if (SK.trfillmodel) SK.trfillmodel(); };
-		F.id("tr-model").onchange = function(){ if (SK.trmodel) SK.trmodel(); };
-		F.id("tr-in").onkeydown = function(ev){
-			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
-				F.pd(ev);
-				if (SK.trgo) SK.trgo();
-			}
-		};
-		F.id("tx-copy").onclick = function(){ copytext(F.id("tx-out").value, "tx-msg"); };
-		F.id("qr-make").onclick = SK.qrmake;
-		F.id("qr-scan").onclick = SK.qrscan;
-		F.id("ocr-pack").onchange = SK.fillocrmodels;
-		F.id("ocr-file").onchange = SK.onocrfile;
-		F.id("ocr-go").onclick = SK.ocrgo;
-		F.on(document, "paste", SK.onocrpaste);
-		F.id("ocr-copy").onclick = function(){ copytext(F.id("ocr-out").value, "ocr-msg"); };
-		F.id("tts-eng").onchange = SK.fillttsmodels;
-		F.id("tts-lang").onchange = SK.fillttsmodels;
-		F.id("tts-gender").onchange = SK.fillttsmodels;
-		F.id("tts-model").onchange = SK.fillttsvoices;
-		F.id("tts-go").onclick = function(){ SK.ttsgo(false); };
-		F.id("tts-wav").onclick = function(){ SK.ttsgo(true); };
-		F.id("asr-eng").onchange = SK.fillasrmodels;
-		F.id("asr-filego").onclick = SK.asrfile;
-		F.id("asr-rec").onclick = SK.asrrec;
-		F.id("asr-copy").onclick = function(){ copytext(F.id("asr-out").value, "asr-msg"); };
-		F.id("tool-q").oninput = paintcats;
-		F.id("box-go").onclick = utilrun;
-		F.id("box-copy").onclick = function(){ copytext(F.id("box-out").value, "box-msg"); };
 		filllang();
 		loadfav();
 		buildgroups();
@@ -224,9 +186,9 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var i;
 		for (i = 0; i < panels.length; i++)
 			panels[i].className = panels[i].id === name ? "panel on" : "panel";
-		F.id("back").hidden = name === "home";
+		SK.doms.back.hidden = name === "home";
 		document.documentElement.classList.toggle("in-tool", SK.curtool !== "home");
-		var favbtn = F.id("tool-fav");
+		var favbtn = SK.doms.toolFav;
 		if (SK.curtool === "home") {
 			favbtn.hidden = true;
 			F.unset(favbtn, "data-fav");
@@ -281,7 +243,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	// 界面当前语言代码，读左上角的下拉。
 	function langcode(){
-		var sel = F.id("lang");
+		var sel = SK.doms.lang;
 		return sel && sel.value ? sel.value : "zh";
 	}
 
@@ -485,7 +447,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function filllang(){
-		var sel = F.id("lang");
+		var sel = SK.doms.lang;
 		if (!sel) return;
 		var codes = langs();
 		var names = (window.L && L._name) || [];
@@ -503,11 +465,10 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			if (use === codes[i]) { langAt = i; break; }
 		}
 		sel.value = codes[langAt] || codes[0] || "";
-		sel.onchange = onlang;
 	}
 
 	function onlang(){
-		var code = F.id("lang").value;
+		var code = SK.doms.lang.value;
 		var codes = langs();
 		var i;
 		langAt = 0;
@@ -523,10 +484,10 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	// 自绘表格的工具换语言时整个重建 body（占位、表头、提示都在 body 里），并尽量保留搜索词。
 	SK.reopenutil = function(){
 		if (!util || SK.curtool !== util) return;
-		var old = F.q(".uquery input", F.id("box-body"));
+		var old = F.q(".uquery input", SK.doms.boxBody);
 		var val = old ? old.value : "";
 		openutil(util);
-		var box = F.q(".uquery input", F.id("box-body"));
+		var box = F.q(".uquery input", SK.doms.boxBody);
 		if (box && val) {
 			box.value = val;
 			box.dispatchEvent(new Event("input"));
@@ -573,7 +534,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		}
 		settitle();
 		markhtml(document.body);
-		if (SK.fillttslang && F.id("tts-lang")) SK.fillttslang();
+		if (SK.fillttslang && SK.doms.ttsLang) SK.fillttslang();
 		if (SK.filltrlang) SK.filltrlang();
 		paintstars();
 		if (!SK.curtool || SK.curtool === "home") paintcats();
@@ -597,7 +558,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function buildgroups(){
-		var host = F.id("cards");
+		var host = SK.doms.cards;
 		var btns = F.qa("button, a", host);
 		var nav = F.qa("#cats button");
 		var pending = [];
@@ -628,6 +589,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 				var empty = F.el("p");
 				empty.className = "none";
 				empty.id = "fav-none";
+			SK.doms.favNone = empty;
 				empty.hidden = true;
 				F.seta(empty, "data-k", "web.fav.none");
 				empty.textContent = t("web.fav.none") || "还没有收藏。点卡片右侧的星可以加进来。";
@@ -657,7 +619,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			copy.hidden = false;
 			F.append(grid, copy);
 		}
-		var empty = F.id("fav-none");
+		var empty = SK.doms.favNone;
 		if (empty) empty.hidden = favs.length !== 0;
 	}
 
@@ -672,12 +634,12 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		curcat = cat;
 		if (SK.curtool !== "home") show("home");
 		else paintcats();
-		var home = F.id("home");
+		var home = SK.doms.home;
 		if (home) home.scrollTop = 0;
 	}
 
 	function paintcats(){
-		var q = (F.id("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
+		var q = (SK.doms.toolQ.value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
 		var cards = F.qa(".catsec .cards button, .catsec .cards a");
 		var n = 0;
 		var i;
@@ -704,13 +666,13 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			for (j = 0; j < buttons.length; j++) if (!buttons[j].hidden) visn++;
 			if (cat === "fav" && !q) {
 				secs[i].hidden = false;
-				var empty = F.id("fav-none");
+				var empty = SK.doms.favNone;
 				if (empty) empty.hidden = visn !== 0;
 			}
 			else secs[i].hidden = visn === 0;
 		}
-		F.id("tool-none").textContent = t("web.find.none") || "没有匹配的工具";
-		F.id("tool-none").hidden = n !== 0;
+		SK.doms.toolNone.textContent = t("web.find.none") || "没有匹配的工具";
+		SK.doms.toolNone.hidden = n !== 0;
 		paintnav();
 	}
 
@@ -797,7 +759,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			F.seta(nodes[i], "data-ktip", tipKey);
 			nodes[i].title = t(tipKey) || (on ? "取消收藏" : "收藏");
 		}
-		var btn = F.id("tool-fav");
+		var btn = SK.doms.toolFav;
 		if (!btn) return;
 		var picked = F.attr(btn, "data-fav") || "";
 		var lit = picked && isfav(picked);
@@ -807,8 +769,18 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		btn.title = t(favKey) || (lit ? "已收藏" : "收藏");
 	}
 
+	// 工具传进来的键（如 "h-msg"）先在 page.doms 里找，没有才退回 HTML id。
+	function domkey(id){
+		var parts = String(id == null ? "" : id).split("-");
+		var out = parts[0];
+		var i;
+		for (i = 1; i < parts.length; i++) out += parts[i].charAt(0).toUpperCase() + parts[i].substring(1);
+		return out;
+	}
+
 	function msg(id, text, bad){
-		var el = F.id(id);
+		var el = SK.doms && SK.doms[domkey(id)];
+		if (!el) el = F.id(id);
 		if (!el) return;
 		var key = webkey(text);
 		if (key) {
@@ -1625,29 +1597,29 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var spec = SK.utils[name];
 		if (!spec) return;
 		util = name;
-		F.id("box-title").textContent = spec.title;
+		SK.doms.boxTitle.textContent = spec.title;
 		var gokey = webkey(spec.go);
 		if (gokey) {
-			F.seta(F.id("box-go"), "data-k", gokey);
-			F.id("box-go").textContent = t(gokey);
+			F.seta(SK.doms.boxGo, "data-k", gokey);
+			SK.doms.boxGo.textContent = t(gokey);
 		}
 		else {
-			F.unset(F.id("box-go"), "data-k");
-			F.id("box-go").textContent = spec.go;
+			F.unset(SK.doms.boxGo, "data-k");
+			SK.doms.boxGo.textContent = spec.go;
 		}
-		F.id("box-body").innerHTML = spec.body();
-		F.id("box-out").value = "";
-		F.id("box-go").parentElement.style.display = "";
-		F.id("box-go").style.display = "";
-		F.id("box-copy").style.display = "";
-		F.id("box-out").parentElement.style.display = "";
+		SK.doms.boxBody.innerHTML = spec.body();
+		SK.doms.boxOut.value = "";
+		SK.doms.boxGo.parentElement.style.display = "";
+		SK.doms.boxGo.style.display = "";
+		SK.doms.boxCopy.style.display = "";
+		SK.doms.boxOut.parentElement.style.display = "";
 		if (SK.showreout) SK.showreout(false);
 		if (SK.showrcolor) SK.showrcolor(false);
 		msg("box-msg", "");
-		if (spec.hideGo) F.id("box-go").parentElement.style.display = "none";
-		if (spec.noGo) F.id("box-go").style.display = "none";
-		if (spec.hideCopy) F.id("box-copy").style.display = "none";
-		if (spec.hideOut) F.id("box-out").parentElement.style.display = "none";
+		if (spec.hideGo) SK.doms.boxGo.parentElement.style.display = "none";
+		if (spec.noGo) SK.doms.boxGo.style.display = "none";
+		if (spec.hideCopy) SK.doms.boxCopy.style.display = "none";
+		if (spec.hideOut) SK.doms.boxOut.parentElement.style.display = "none";
 		if (spec.open) spec.open();
 		if (spec.live === true || (spec.live !== false && textcard(name))) bindboxlive();
 	}
@@ -1658,7 +1630,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function bindboxlive(){
-		var body = F.id("box-body");
+		var body = SK.doms.boxBody;
 		if (!body) return;
 		body.oninput = function(){ utilrun(); };
 		body.onchange = function(ev){
@@ -1681,11 +1653,11 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			var out = spec.run();
 			out = out == null ? "" : String(out);
 			var outKey = webkey(out);
-			F.id("box-out").value = outKey ? (t(outKey) || out) : out;
+			SK.doms.boxOut.value = outKey ? (t(outKey) || out) : out;
 			msg("box-msg", SK.reNote || "完成");
 		}
 		catch (ex) {
-			F.id("box-out").value = "";
+			SK.doms.boxOut.value = "";
 			if (SK.showreout) SK.showreout(false);
 			if (SK.showrcolor) SK.showrcolor(false);
 			msg("box-msg", ex && ex.message ? ex.message : "失败", true);
@@ -1694,6 +1666,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	SK.boot = boot;
 	SK.onclick = onclick;
+	SK.onlang = onlang;
+	SK.domkey = domkey;
 	SK.toolhash = toolhash;
 	SK.pushhash = pushhash;
 	SK.applyhash = applyhash;

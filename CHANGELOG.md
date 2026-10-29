@@ -48,12 +48,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Refactored the web tools page: escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
+- The web tools page skeleton is now a page object: elements are reached through SK.doms and events are declared in the DOM spec instead of being bound by HTML id.
 
 ### 中文
 
 #### 变更
 
 - 重构 web 工具页：转义、翻译等小函数合并到公共模块；HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件；英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
+- web 工具页骨架改为页面对象：元素统一用 SK.doms 取，事件写在节点定义里，不再按 HTML id 绑定。
 
 ## v1.0.31 (2026-10-29)
 
