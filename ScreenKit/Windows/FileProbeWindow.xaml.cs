@@ -1,4 +1,5 @@
 using System.Text;
+using System.Windows.Threading;
 
 namespace ScreenKit;
 
@@ -30,14 +31,33 @@ public partial class FileProbeWindow : Window {
 			if (e.Key == Key.Enter) look();
 		};
 		AllowDrop = true;
+		// 拖放回调要尽快返回：在这里同步改界面、或每次 DragOver 都去查数据格式，
+		// 会让资源管理器等待目标响应，拖影就停在窗口上不走了。格式只在 DragEnter 问一次。
+		bool dropok = false;
+		DragEnter += (_, e) => {
+			dropok = e.Data.GetDataPresent(DataFormats.FileDrop);
+			e.Effects = dropok ? DragDropEffects.Copy : DragDropEffects.None;
+			e.Handled = true;
+		};
 		DragOver += (_, e) => {
-			e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
+			if (!dropok) dropok = e.Data.GetDataPresent(DataFormats.FileDrop);
+			e.Effects = dropok ? DragDropEffects.Copy : DragDropEffects.None;
+			e.Handled = true;
+		};
+		DragLeave += (_, e) => {
+			dropok = false;
 			e.Handled = true;
 		};
 		Drop += (_, e) => {
+			e.Handled = true;
+			e.Effects = DragDropEffects.Copy;
+			dropok = false;
 			if (e.Data.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) return;
-			epath.Text = files[0];
-			look();
+			var file = files[0];
+			Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
+				epath.Text = file;
+				look();
+			}));
 		};
 		WindowEsc.Attach(this);
 	}
@@ -102,12 +122,12 @@ public partial class FileProbeWindow : Window {
 			FileProbe.Report got = null;
 			try { got = FileProbe.Look(path, out err); }
 			catch (Exception ex) { err = ex.Message; }
-			Dispatcher.Invoke(() => {
+			Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
 				if (n != gen) return;
 				bfile.IsEnabled = true;
 				report = got;
 				paint(err);
-			});
+			}));
 		});
 	}
 

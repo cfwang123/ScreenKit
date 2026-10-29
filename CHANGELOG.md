@@ -51,6 +51,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The web tools page skeleton is now a page object: elements are reached through SK.doms and events are declared in the DOM spec instead of being bound by HTML id.
 - Web tool pages now build their markup from DOM nodes declared in JS instead of HTML strings, so controls are reached through SK.dom/doms and events are attached where the node is declared.
 
+#### Fixed
+
+- Dragging a file into the file analyzer no longer leaves the Explorer drag image stuck on the window. The drop format is checked once on entry, and UI updates after the drop run after the drag loop returns.
+
 ### 中文
 
 #### 变更
@@ -58,6 +62,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 重构 web 工具页：转义、翻译等小函数合并到公共模块；HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件；英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
 - web 工具页骨架改为页面对象：元素统一用 SK.doms 取，事件写在节点定义里，不再按 HTML id 绑定。
 - web 工具页改为用 JS 声明 DOM 节点生成界面，不再拼 HTML 字符串；控件统一走 SK.dom/doms，事件写在节点定义里。
+
+#### 修复
+
+- 文件分析拖入文件时不再把资源管理器的拖影留在窗口上。进入时只检查一次数据格式，松手后的界面更新等拖放循环结束后再执行。
 
 ## v1.0.31 (2026-10-29)
 
