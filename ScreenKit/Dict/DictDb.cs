@@ -654,10 +654,12 @@ static class DictDb {
 			return;
 		}
 		var bags = new List<DictHit>[n];
+		// 每个线程只分 1/n 的条数：全表扫的命中远多于界面要的条数，少建几万个命中对象。
+		var per = cap / n + 1;
 		try {
 			Parallel.For(0, n, t => {
 				var mine = new List<DictHit>();
-				scanrange(recs, recs.Count * t / n, recs.Count * (t + 1) / n, null, pat, code, mine, cap);
+				scanrange(recs, recs.Count * t / n, recs.Count * (t + 1) / n, null, pat, code, mine, per);
 				bags[t] = mine;
 			});
 		}
