@@ -872,6 +872,9 @@
 				pts[j * grid + i] = {
 					x: x1,
 					y: z2,
+					// 屏幕纵向拆成 xy 平面和 z 轴两段，滚轮缩放只放大前一段。
+					yxy: y1 * sp,
+					yz: Z * cp,
 					d: y2,
 					ok: ok,
 					t: ok ? (z - lo) / (hi - lo) : 0
@@ -880,11 +883,13 @@
 		}
 		var box = fit3bounds(pts);
 		// 横竖分开适配：画布是宽屏，等比缩放只能撑满高度，左右会空一大截。
-		var scaleX = (box.x > 1e-9 ? (w / 2 - 40) / box.x : Math.min(w, h) * 0.42 / fit) * cam.zoom;
-		var scaleY = (box.y > 1e-9 ? (h / 2 - 40) / box.y : Math.min(w, h) * 0.42 / fit) * cam.zoom;
+		var scaleX = (box.x > 1e-9 ? (w / 2 - 40) / box.x : Math.min(w, h) * 0.42 / fit);
+		var scaleY = (box.y > 1e-9 ? (h / 2 - 40) / box.y : Math.min(w, h) * 0.42 / fit);
+		var zoom = cam.zoom;
 		for (i = 0; i < pts.length; i++) {
-			pts[i].x = w / 2 + pts[i].x * scaleX;
-			pts[i].y = h / 2 - pts[i].y * scaleY;
+			// 滚轮缩放只放大 xy 平面投影，z 轴高度保持不动。
+			pts[i].x = w / 2 + pts[i].x * scaleX * zoom;
+			pts[i].y = h / 2 - (pts[i].yxy * zoom + pts[i].yz) * scaleY;
 		}
 		ctx.save();
 		ctx.beginPath();
@@ -894,7 +899,7 @@
 		else if (style === "dots") drawDots(ctx, pts);
 		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
 		else drawFill(ctx, pts, n, grid, scaleY);
-		drawaxes(ctx, w, h, scaleX, scaleY, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
+		drawaxes(ctx, w, h, scaleX, scaleY, true, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
 		ctx.restore();
 	}
 
@@ -1012,7 +1017,7 @@
 		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
 		else if (style === "level") implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp);
 		else impfill(ctx, rawcols, n, cw, gap, scale);
-		drawaxes(ctx, w, h, scale, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
+		drawaxes(ctx, w, h, scale, scale, false, cyaw, syaw, cp, sp, 0, 1, z0, z1);
 		ctx.restore();
 	}
 
@@ -1453,7 +1458,8 @@
 		tris.push({ p0: p0, p1: p1, p2: p2, d: (p0.d + p1.d + p2.d) / 3 });
 	}
 
-	function drawaxes(ctx, w, h, sx, sy, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
+	function drawaxes(ctx, w, h, sx, sy, zlock, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
+		var zk = zlock ? cam.zoom : 1;
 		function proj(x, y, z){
 			var X = x - cam.cx;
 			var Y = y - cam.cy;
@@ -1461,7 +1467,7 @@
 			var x1 = X * cyaw - Y * syaw;
 			var y1 = X * syaw + Y * cyaw;
 			var z2 = y1 * sp + Z * cp;
-			return { x: w / 2 + x1 * sx, y: h / 2 - z2 * sy };
+			return { x: w / 2 + x1 * sx * zk, y: h / 2 - (y1 * sp * zk + Z * cp) * sy };
 		}
 		var arm = cam.yspan * 0.85;
 		var o = proj(0, 0, 0);

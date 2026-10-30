@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
 - Plot: the surface style renders as brushed metal with a moving highlight and shading
 - Plot: z=f(x,y) surfaces spread to the canvas edges; the 3D sampling window opens up to the canvas aspect ratio so the sides are no longer blank
+- Plot: mouse wheel zooms only the x/y plane of a 3D surface, leaving the z height unchanged
 
 #### Fixed
 
@@ -89,6 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
 - 函数图像：曲面样式改为金属质感，带随视角变化的高光和明暗
 - 函数图像：z=f(x,y) 曲面横向铺到画布边缘，三维采样区域按画布宽高比张开，左右不再留白
+- 函数图像：三维曲面滚轮缩放只缩放 xy 平面，z 轴高度保持不变
 
 #### 修复
 
