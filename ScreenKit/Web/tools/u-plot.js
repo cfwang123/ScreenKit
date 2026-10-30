@@ -124,7 +124,10 @@
 		}
 		if (watch) watch.disconnect();
 		if (window.ResizeObserver && canvas.parentElement) {
-			watch = new ResizeObserver(function(){ paint(); });
+			watch = new ResizeObserver(function(){
+				if (mode === "3") fit3cam();
+				paint();
+			});
 			watch.observe(canvas.parentElement);
 		}
 		markmode();
@@ -243,12 +246,25 @@
 		el.className = bad ? "hint bad" : "hint";
 	}
 
-	function resetview(){
-		if (mode === "3") {
+	// 三维采样区域按画布宽高比张开，曲面正好延伸到画布左右边缘。
+	function camratio(){
+		var stage = canvas && canvas.parentElement;
+		var w = stage && stage.clientWidth > 2 ? stage.clientWidth : 800;
+		var h = stage && stage.clientHeight > 2 ? stage.clientHeight : 420;
+		var r = (w - 80) / (h - 80);
+		return r > 0.2 ? r : 1;
+	}
+
+	function fit3cam(){
+		var r = camratio();
+		if (Math.abs(cam.xspan / cam.yspan - r) > 0.02) cam.yspan = cam.xspan / r;
+	}
+
+	function resetview(){		if (mode === "3") {
 			cam.cx = 0;
 			cam.cy = 0;
-			cam.xspan = 4;
 			cam.yspan = 4;
+			cam.xspan = 4 * camratio();
 			cam.yaw = -0.6;
 			cam.pitch = 0.65;
 			cam.zoom = 1;
@@ -387,9 +403,9 @@
 			if (pan) {
 				var stage = canvas.parentElement;
 				var w = stage.clientWidth || 1;
-				var rate = 2 / cam.zoom / w;
-				cam.cx = drag.cx - dx * drag.xspan * rate;
-				cam.cy = drag.cy + dy * drag.yspan * rate;
+				var h = stage.clientHeight || 1;
+				cam.cx = drag.cx - dx * drag.xspan * 2 / cam.zoom / w;
+				cam.cy = drag.cy + dy * drag.yspan * 2 / cam.zoom / h;
 			}
 			else {
 				cam.yaw = drag.yaw + dx * 0.01;
@@ -831,7 +847,7 @@
 		}
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
-		var zfit = fit / (hi - lo);
+		var zfit = cam.yspan / (hi - lo);
 		var pts = new Array(grid * grid);
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
@@ -845,10 +861,10 @@
 					if (z < lo - pad) z = lo - pad;
 					else if (z > hi + pad) z = hi + pad;
 				}
-				var X = (x - cam.cx) / cam.xspan * fit;
-				var Y = (y - cam.cy) / cam.yspan * fit;
+				// x、y 用同一比例（都是数据单位），采样范围是宽矩形，投影后才不会变形。
+				var X = x - cam.cx;
+				var Y = y - cam.cy;
 				var Z = ok ? (z - zmid) * zfit : 0;
-				var wx = X * 4 / fit, wy = Y * 4 / fit, wz = Z * 4 / fit;
 				var x1 = X * cyaw - Y * syaw;
 				var y1 = X * syaw + Y * cyaw;
 				var y2 = y1 * cp - Z * sp;
@@ -858,18 +874,17 @@
 					y: z2,
 					d: y2,
 					ok: ok,
-					t: ok ? (z - lo) / (hi - lo) : 0,
-					wx: wx,
-					wy: wy,
-					wz: wz
+					t: ok ? (z - lo) / (hi - lo) : 0
 				};
 			}
 		}
 		var box = fit3bounds(pts);
-		var scale = (box.x > 1e-9 && box.y > 1e-9 ? fit3scale(w, h, box.x, box.y, 40) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
+		// 横竖分开适配：画布是宽屏，等比缩放只能撑满高度，左右会空一大截。
+		var scaleX = (box.x > 1e-9 ? (w / 2 - 40) / box.x : Math.min(w, h) * 0.42 / fit) * cam.zoom;
+		var scaleY = (box.y > 1e-9 ? (h / 2 - 40) / box.y : Math.min(w, h) * 0.42 / fit) * cam.zoom;
 		for (i = 0; i < pts.length; i++) {
-			pts[i].x = w / 2 + pts[i].x * scale;
-			pts[i].y = h / 2 - pts[i].y * scale;
+			pts[i].x = w / 2 + pts[i].x * scaleX;
+			pts[i].y = h / 2 - pts[i].y * scaleY;
 		}
 		ctx.save();
 		ctx.beginPath();
@@ -878,8 +893,8 @@
 		if (style === "grid") drawGrid(ctx, pts, n, grid);
 		else if (style === "dots") drawDots(ctx, pts);
 		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
-		else drawFill(ctx, pts, n, grid, scale);
-		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
+		else drawFill(ctx, pts, n, grid, scaleY);
+		drawaxes(ctx, w, h, scaleX, scaleY, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
 		ctx.restore();
 	}
 
@@ -894,12 +909,12 @@
 		var cw = n + 1;
 		var cols = new Array(cw * cw);
 		var all = [];
-		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
+		var z0 = -cam.yspan, z1 = cam.yspan, dz = (z1 - z0) / m;
 		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, X, Y, x1, y1, y2, z2;
 		for (j = 0; j <= n; j++) {
 			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
 			for (i = 0; i <= n; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
+				x = cam.cx - cam.yspan + cam.yspan * 2 * i / n;
 				var list = [];
 				f0 = ev(fn, x, y, z0);
 				for (k = 1; k <= m; k++) {
@@ -936,22 +951,18 @@
 							}
 						}
 						zz = (lo + hi) / 2;
-						X = (x - cam.cx) / cam.xspan * fit;
-						Y = (y - cam.cy) / cam.yspan * fit;
+						X = x - cam.cx;
+						Y = y - cam.cy;
 						x1 = X * cyaw - Y * syaw;
 						y1 = X * syaw + Y * cyaw;
 						y2 = y1 * cp - zz * sp;
 						z2 = y1 * sp + zz * cp;
-						var wx = X * 4 / fit, wy = Y * 4 / fit, wz = zz;
 						var p = {
 							x: x1,
 							y: z2,
 							d: y2,
 							t: (zz - z0) / (z1 - z0),
-							z: zz,
-							wx: wx,
-							wy: wy,
-							wz: wz
+							z: zz
 						};
 						list.push(p);
 						all.push(p);
@@ -963,7 +974,7 @@
 		}
 		var box = fit3bounds(all);
 		var scale = (box.x > 1e-9 && box.y > 1e-9 ? fit3scale(w, h, box.x, box.y, 40) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
-		var gap = 2 * fit * scale / n;
+		var gap = 2 * cam.yspan * scale / n;
 		var rawcols = new Array(cw * cw);
 		for (j = 0; j <= n; j++) {
 			for (i = 0; i <= n; i++) {
@@ -1001,7 +1012,7 @@
 		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
 		else if (style === "level") implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp);
 		else impfill(ctx, rawcols, n, cw, gap, scale);
-		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
+		drawaxes(ctx, w, h, scale, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
 		ctx.restore();
 	}
 
@@ -1109,8 +1120,8 @@
 		var vals = new Float64Array(gw * gw);
 		var i, j, x, y, v00, v10, v11, v01, ps, k;
 		function proj0(x, y){
-			var X = (x - cam.cx) / cam.xspan * fit;
-			var Y = (y - cam.cy) / cam.yspan * fit;
+			var X = (x - cam.cx);
+			var Y = (y - cam.cy);
 			var a = X * cyaw - Y * syaw;
 			var b = X * syaw + Y * cyaw;
 			return { x: w / 2 + a * scale, y: h / 2 - (b * sp) * scale };
@@ -1118,7 +1129,7 @@
 		for (j = 0; j <= gn; j++) {
 			y = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
 			for (i = 0; i <= gn; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+				x = cam.cx - cam.yspan + cam.yspan * 2 * i / gn;
 				vals[j * gw + i] = ev(fn, x, y, 0);
 			}
 		}
@@ -1131,8 +1142,8 @@
 			var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
 			var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gn;
 			for (i = 0; i < gn; i++) {
-				var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
-				var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gn;
+				var x0 = cam.cx - cam.yspan + cam.yspan * 2 * i / gn;
+				var x1 = cam.cx - cam.yspan + cam.yspan * 2 * (i + 1) / gn;
 				v00 = vals[j * gw + i];
 				v10 = vals[j * gw + i + 1];
 				v11 = vals[(j + 1) * gw + i + 1];
@@ -1191,8 +1202,8 @@
 		var gn = drag ? 30 : 52;
 		var segs = [];
 		function proj(x, y, z){
-			var X = (x - cam.cx) / cam.xspan * fit;
-			var Y = (y - cam.cy) / cam.yspan * fit;
+			var X = (x - cam.cx);
+			var Y = (y - cam.cy);
 			var x1 = X * cyaw - Y * syaw;
 			var y1 = X * syaw + Y * cyaw;
 			var y2 = y1 * cp - z * sp;
@@ -1212,7 +1223,7 @@
 			for (j = 0; j <= gn; j++) {
 				var yv = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
 				for (i = 0; i <= gn; i++) {
-					var xv = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+					var xv = cam.cx - cam.yspan + cam.yspan * 2 * i / gn;
 					vals[j * gw + i] = ev(fn, xv, yv, zc);
 				}
 			}
@@ -1220,8 +1231,8 @@
 				var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
 				var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gn;
 				for (i = 0; i < gn; i++) {
-					var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
-					var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gn;
+					var x0 = cam.cx - cam.yspan + cam.yspan * 2 * i / gn;
+					var x1 = cam.cx - cam.yspan + cam.yspan * 2 * (i + 1) / gn;
 					v00 = vals[j * gw + i];
 					v10 = vals[j * gw + i + 1];
 					v11 = vals[(j + 1) * gw + i + 1];
@@ -1442,20 +1453,20 @@
 		tris.push({ p0: p0, p1: p1, p2: p2, d: (p0.d + p1.d + p2.d) / 3 });
 	}
 
-	function drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
+	function drawaxes(ctx, w, h, sx, sy, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
 		function proj(x, y, z){
-			var fit = Math.max(cam.xspan, cam.yspan);
-			var X = (x - cam.cx) / cam.xspan * fit;
-			var Y = (y - cam.cy) / cam.yspan * fit;
+			var X = x - cam.cx;
+			var Y = y - cam.cy;
 			var Z = (z - zmid) * zfit;
 			var x1 = X * cyaw - Y * syaw;
 			var y1 = X * syaw + Y * cyaw;
 			var z2 = y1 * sp + Z * cp;
-			return { x: w / 2 + x1 * scale, y: h / 2 - z2 * scale };
+			return { x: w / 2 + x1 * sx, y: h / 2 - z2 * sy };
 		}
+		var arm = cam.yspan * 0.85;
 		var o = proj(0, 0, 0);
-		var ax = proj(cam.xspan * 0.85, 0, 0);
-		var ay = proj(0, cam.yspan * 0.85, 0);
+		var ax = proj(arm, 0, 0);
+		var ay = proj(0, arm, 0);
 		var az = proj(0, 0, hi);
 		ctx.lineWidth = 1.5;
 		ctx.font = '12px "Segoe UI", "Microsoft YaHei UI", sans-serif';
