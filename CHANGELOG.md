@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English pronoun usage examples follow the person, and be no longer labels am/is/are as third-person singular
 - Russian short passive participles keep ё only in the masculine form (говорён, but говорена/говорено/говорены)
 - 3D plots now fit the canvas and keep a stable size while rotating; implicit surface poles are no longer flattened
+- Plot: mouse wheel now zooms the 3D view itself, so a zoomed surface fills the empty space at the sides; panning follows the zoom level
 
 ### 中文
 
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复英语代词用法例句按人称生成，be 的 am/is/are 不再标成第三人称单数
 - 修复俄语 -ённый 短尾分词，只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
 - 三维函数图像按画布自适应，旋转时大小保持稳定；隐式曲面极点不再被削平
+- 函数图像：三维视图的滚轮现在直接放大画面，放大后可填满左右空白；平移速度跟随缩放倍数
 
 ## v1.0.31 (2026-10-29)
 

@@ -42,7 +42,7 @@
 		{ g: "eq3", mode: "3", fn: "x^2+y^2-z^2=-1" },
 		{ g: "eq3", mode: "3", fn: "(x^2+9/4*y^2+z^2-1)^3-x^2*z^3-9/80*y^2*z^3=0" }
 	];
-	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
+	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65, zoom: 1 };
 	var canvas = null;
 	var watch = null;
 	var drag = null;
@@ -251,6 +251,7 @@
 			cam.yspan = 4;
 			cam.yaw = -0.6;
 			cam.pitch = 0.65;
+			cam.zoom = 1;
 			return;
 		}
 		var stage = canvas && canvas.parentElement;
@@ -346,7 +347,7 @@
 		var input = page.doms.plotFn;
 		var src = input ? input.value : "";
 		if (mode === "3")
-			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom;
 		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1;
 	}
 
@@ -386,8 +387,9 @@
 			if (pan) {
 				var stage = canvas.parentElement;
 				var w = stage.clientWidth || 1;
-				cam.cx = drag.cx - dx * (drag.xspan * 2 / w);
-				cam.cy = drag.cy + dy * (drag.yspan * 2 / w);
+				var rate = 2 / cam.zoom / w;
+				cam.cx = drag.cx - dx * drag.xspan * rate;
+				cam.cy = drag.cy + dy * drag.yspan * rate;
 			}
 			else {
 				cam.yaw = drag.yaw + dx * 0.01;
@@ -426,8 +428,16 @@
 		var xonly = ev.ctrlKey && !ev.shiftKey;
 		var yonly = ev.shiftKey && !ev.ctrlKey;
 		if (mode === "3") {
-			if (!yonly) setspan("xspan", factor);
-			if (!xonly) setspan("yspan", factor);
+			if (xonly || yonly) {
+				if (!yonly) setspan("xspan", factor);
+				if (!xonly) setspan("yspan", factor);
+			}
+			else {
+				// 三维视图按画布等比适配，只缩放采样范围看不出变大变小；
+				// 单独记一个缩放倍数，放大后图像可超出画布，左右空白随之用上。
+				var zoom = cam.zoom * (delta > 0 ? 1 / 1.12 : 1.12);
+				cam.zoom = zoom < 0.2 ? 0.2 : (zoom > 40 ? 40 : zoom);
+			}
 			paint();
 			return;
 		}
@@ -854,7 +864,7 @@
 			}
 		}
 		var r0 = fit3radius(pts);
-		var scale = r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit;
+		var scale = (r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
 		for (i = 0; i < pts.length; i++) {
 			pts[i].x = w / 2 + pts[i].x * scale;
 			pts[i].y = h / 2 - pts[i].y * scale;
@@ -950,7 +960,7 @@
 			}
 		}
 		var r0 = fit3radius(all);
-		var scale = r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit;
+		var scale = (r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
 		var gap = 2 * fit * scale / n;
 		for (j = 0; j <= n; j++) {
 			for (i = 0; i <= n; i++) {
