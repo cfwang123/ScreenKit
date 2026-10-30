@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var GROUPS = [
 		{ name: "字母", rows: [
 			["A", ".-"], ["B", "-..."], ["C", "-.-."], ["D", "-.."], ["E", "."],
@@ -13,16 +14,16 @@
 			["6", "-...."], ["7", "--..."], ["8", "---.."], ["9", "----."], ["0", "-----"]
 		]},
 		{ name: "标点", rows: [
-			[".", ".-.-.-", "句号"], [",", "--..--", "逗号"], ["?", "..--..", "问号"],
-			["'", ".----.", "撇号"], ["!", "-.-.--", "叹号"], ["/", "-..-.", "斜线"],
-			["(", "-.--.", "左括号"], [")", "-.--.-", "右括号"], ["&", ".-...", "和"],
-			[":", "---...", "冒号"], [";", "-.-.-.", "分号"], ["=", "-...-", "等号"],
-			["+", ".-.-.", "加号"], ["-", "-....-", "连字符"], ["_", "..--.-", "下划线"],
-			["\"", ".-..-.", "引号"], ["$", "...-..-", "美元"], ["@", ".--.-.", "艾特"]
+			[".", ".-.-.-", "句号", "Full stop"], [",", "--..--", "逗号", "Comma"], ["?", "..--..", "问号", "Question mark"],
+			["'", ".----.", "撇号", "Apostrophe"], ["!", "-.-.--", "叹号", "Exclamation mark"], ["/", "-..-.", "斜线", "Slash"],
+			["(", "-.--.", "左括号", "Left parenthesis"], [")", "-.--.-", "右括号", "Right parenthesis"], ["&", ".-...", "和", "Ampersand"],
+			[":", "---...", "冒号", "Colon"], [";", "-.-.-.", "分号", "Semicolon"], ["=", "-...-", "等号", "Equals sign"],
+			["+", ".-.-.", "加号", "Plus sign"], ["-", "-....-", "连字符", "Hyphen"], ["_", "..--.-", "下划线", "Underscore"],
+			["\"", ".-..-.", "引号", "Quotation mark"], ["$", "...-..-", "美元", "Dollar sign"], ["@", ".--.-.", "艾特", "At sign"]
 		]},
 		{ name: "信号", rows: [
-			["AR", ".-.-.", "报文完"], ["SK", "...-.-", "通信完"], ["AS", ".-...", "请等待"],
-			["BT", "-...-", "分隔"], ["KN", "-.--.", "只请对方发"], ["HH", "........", "错误"]
+			["AR", ".-.-.", "报文完", "End of message"], ["SK", "...-.-", "通信完", "End of contact"], ["AS", ".-...", "请等待", "Wait"],
+			["BT", "-...-", "分隔", "Separator"], ["KN", "-.--.", "只请对方发", "Invitation to transmit"], ["HH", "........", "错误", "Error"]
 		]}
 	];
 	// 试听用：约 784Hz 的报务音，一个点 90 毫秒（划 3 点），整段最长播 20 秒
@@ -58,25 +59,32 @@
 		return map;
 	}
 
-	function body(){
-		return '<div class="uquery"><input id="morse-q" type="text" placeholder="搜索：字母、标点，或 .- / ·−">'
-			+ '<span id="morse-msg" class="msg"></span></div>'
-			+ '<p class="hint">国际摩斯码。点下面的码复制并用 8bit 合成器试听（约 784Hz），也可以输入一段文字整段播放。'
-			+ '短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。</p>'
-			+ '<div class="mtry"><input id="morse-t" type="text" maxlength="64" value="HELLO" placeholder="输入一段文字，如 SOS HELLO 2026">'
-			+ '<button type="button" id="morse-play" class="primary">播放</button>'
-			+ '<button type="button" id="morse-stop">停止</button>'
-			+ '<span id="morse-tmsg" class="msg"></span></div>'
-			+ '<div class="mpv" id="morse-pv"></div>'
-			+ '<div class="morse" id="morse-list"></div>';
+	function body(t){
+		page = t;
+		return [
+			F.CreateDOM(t, { x: "div.uquery", c: [
+				{ x: "input.morse-q", name: "morseQ", type: "text", placeholder: "搜索：字母、标点，或 .- / ·−" },
+				{ x: "span.morse-msg.msg", name: "morseMsg" }
+			] }),
+			F.CreateDOM(t, { x: "p.hint", c: "国际摩斯码。点下面的码复制并用 8bit 合成器试听（约 784Hz），也可以输入一段文字整段播放。短点 . ，长划 - ，划约是点的 3 倍。字母之间空 3 点，词之间空 7 点。" }),
+			F.CreateDOM(t, { x: "div.mtry", c: [
+				{ x: "input.morse-t", name: "morseT", type: "text", maxlength: "64", value: "HELLO", placeholder: "输入一段文字，如 SOS HELLO 2026" },
+				{ x: "button.morse-play.primary", name: "morsePlay", type: "button", c: "播放" },
+				{ x: "button.morse-stop", name: "morseStop", type: "button", c: "停止" },
+				{ x: "span.morse-tmsg.msg", name: "morseTmsg" }
+			] }),
+			F.CreateDOM(t, { x: "div.morse-pv.mpv", name: "morsePv" }),
+			F.CreateDOM(t, { x: "div.morse-list.morse", name: "morseList" })
+		];
 	}
 
-	function open(){
-		var q = F.id("morse-q");
-		var list = F.id("morse-list");
-		var text = F.id("morse-t");
-		var play = F.id("morse-play");
-		var stopb = F.id("morse-stop");
+	function open(t){
+		page = t;
+		var q = page.doms.morseQ;
+		var list = page.doms.morseList;
+		var text = page.doms.morseT;
+		var play = page.doms.morsePlay;
+		var stopb = page.doms.morseStop;
 		if (!q || !list) return;
 		q.oninput = paint;
 		list.onclick = onclick;
@@ -121,8 +129,8 @@
 
 	// 整段播放：字符内空 1 单位，字符之间空 3 单位，词之间空 7 单位
 	function playtext(){
-		var el = F.id("morse-t");
-		var msg = F.id("morse-tmsg");
+		var el = page.doms.morseT;
+		var msg = page.doms.morseTmsg;
 		var got = tokens(clean(el ? el.value : ""));
 		var plan;
 		var r;
@@ -154,7 +162,7 @@
 		for (i = 0; i < timers.length; i++) clearTimeout(timers[i]);
 		timers = [];
 		if (SK.bitblipstop) SK.bitblipstop();
-		on = F.qa("#morse-list button.on, #morse-pv span.on");
+		on = F.qa(".morse-list button.on, .morse-pv span.on");
 		for (i = 0; i < on.length; i++) on[i].classList.remove("on");
 	}
 
@@ -165,8 +173,8 @@
 	// 播到第 order 个字符时，把预览里那一段点亮
 	function mark(order, ms){
 		later(ms, function(){
-			var on = F.qa("#morse-pv span.on");
-			var el = F.q('#morse-pv span[data-i="' + order + '"]');
+			var on = F.qa(".morse-pv span.on");
+			var el = F.q(".morse-pv span[data-i=\"" + order + '"]');
 			var i;
 			for (i = 0; i < on.length; i++) on[i].classList.remove("on");
 			if (el) el.classList.add("on");
@@ -258,14 +266,14 @@
 
 	// 输入框下面的点划预览，播放时逐字高亮
 	function paintpv(){
-		var el = F.id("morse-t");
-		var out = F.id("morse-pv");
+		var el = page.doms.morseT;
+		var out = page.doms.morsePv;
 		var got;
 		var html = "";
 		var order = 0;
 		var i, tk;
 		if (!out) return;
-		if (el) say(F.id("morse-tmsg"), "");
+		if (el) say(page.doms.morseTmsg, "");
 		got = tokens(clean(el ? el.value : ""));
 		for (i = 0; i < got.list.length; i++) {
 			tk = got.list[i];
@@ -286,8 +294,8 @@
 	}
 
 	function paint(){
-		var list = F.id("morse-list");
-		var qel = F.id("morse-q");
+		var list = page.doms.morseList;
+		var qel = page.doms.morseQ;
 		if (!list) return;
 		var q = norm(qel ? qel.value : "");
 		var html = "";
@@ -302,7 +310,7 @@
 				shown += '<button type="button" data-code="' + esc(row[1]) + '" title="'
 					+ esc(tip(row)) + '"><b>' + esc(row[0]) + "</b>"
 					+ '<span class="mvis">' + vis(row[1]) + "</span>"
-					+ '<small>' + esc(row[1]) + (row[2] ? " " + esc(row[2]) : "") + "</small></button>";
+					+ '<small>' + esc(row[1]) + (mkname(row) ? " " + esc(mkname(row)) : "") + "</small></button>";
 			}
 			if (!n) continue;
 			html += '<h4 class="mgh">' + esc(GROUPS[g].name) + '<span class="n">' + n + "</span></h4>" + shown;
@@ -312,13 +320,19 @@
 	}
 
 	function hit(row, q){
-		var blob = (row[0] + " " + row[1] + " " + (row[2] || "")).toLowerCase();
+		var blob = (row[0] + " " + row[1] + " " + (row[2] || "") + " " + (row[3] || "")).toLowerCase();
 		if (blob.indexOf(q) >= 0) return true;
 		return norm(row[1]).indexOf(q) >= 0;
 	}
 
+	function mkname(row){
+		var zh = !SK.langcode || SK.langcode() === "zh";
+		return zh ? (row[2] || "") : (row[3] || "");
+	}
+
 	function tip(row){
-		return row[0] + (row[2] ? " " + row[2] : "") + "  " + row[1];
+		var nm = mkname(row);
+		return row[0] + (nm ? " " + nm : "") + "  " + row[1];
 	}
 
 	function vis(code){
@@ -339,7 +353,5 @@
 			.replace(/\s+/g, "");
 	}
 
-	function esc(s){
-		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-	}
+	var esc = SK.esc;
 })();

@@ -1,27 +1,32 @@
 (function(){
+	var page = null;
 	SK.regutil("u-ts", {
 		title: "时间戳",
 		go: "转换",
-		body: function(){
-			return SK.lab("日期时间", '<input id="ts-pick" type="datetime-local" step="1">')
-				+ SK.lab("时间戳或日期", SK.ta("box-in", 4, "留空为现在。秒、毫秒，或 2026-10-09 12:00:00"));
+		body: function(t){
+			page = t;
+			return [
+				SK.lab("日期时间", F.CreateDOM(t, { x: "input.ts-pick", name: "tsPick", type: "datetime-local", step: "1" })),
+				SK.lab("时间戳或日期", SK.ta("box-in", 4, "留空为现在。秒、毫秒，或 2026-10-09 12:00:00"))
+			];
 		},
 		run: function(){
 			var d = tsdate(SK.val("box-in"));
 			settspick(d);
 			return tsline(d);
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			var now = new Date();
-			F.id("box-in").value = String(Math.floor(now.getTime() / 1000));
+			page.doms.boxIn.value = String(Math.floor(now.getTime() / 1000));
 			settspick(now);
-			F.id("ts-pick").onchange = function(){
-				var v = F.id("ts-pick").value;
+			page.doms.tsPick.onchange = function(){
+				var v = page.doms.tsPick.value;
 				if (!v) return;
-				F.id("box-in").value = v.replace("T", " ");
+				page.doms.boxIn.value = v.replace("T", " ");
 				SK.utilrun();
 			};
-			F.id("box-in").oninput = function(){
+			page.doms.boxIn.oninput = function(){
 				try { tsdate(SK.val("box-in")); }
 				catch (e) { return; }
 				SK.utilrun();
@@ -54,7 +59,7 @@
 	}
 
 	function settspick(d){
-		var el = F.id("ts-pick");
+		var el = page.doms.tsPick;
 		if (!el) return;
 		el.value = SK.fmtdt(d).replace(" ", "T");
 	}

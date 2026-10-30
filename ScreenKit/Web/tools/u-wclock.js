@@ -19,62 +19,68 @@
 	];
 	var extra = "";
 	var shownLang = "";
+	var page = null;
 
 	SK.regutil("u-wclock", {
 		title: "世界时钟",
 		hideGo: true,
 		hideCopy: true,
 		hideOut: true,
-		body(){
-			return '<div class="wclock">'
-				+ '<div class="row wclock-bar">'
-				+ "<label><span data-k=\"web.wclock.find\">筛选地区</span>"
-				+ '<input id="wclock-q" type="text"></label>'
-				+ "<label><span data-k=\"web.wclock.pick\">再看一个地区</span>"
-				+ '<select id="wclock-pick"></select></label>'
-				+ "</div>"
-				+ '<div id="wclock-one"></div>'
-				+ '<div class="wclock-h" data-k="web.wclock.common">常用地区</div>'
-				+ '<div id="wclock-grid" class="wclock-grid"></div>'
-				+ "</div>";
+		body: function(t){
+			page = t;
+			return F.CreateDOM(t, { x: "div.wclock", c: [
+				{ x: "div.row.wclock-bar", c: [
+					{ x: "label", c: [
+						{ x: "span", "data-k": "web.wclock.find", c: "筛选地区" },
+						{ x: "input", name: "wclockQ", type: "text", oninput: fillpick }
+					] },
+					{ x: "label", c: [
+						{ x: "span", "data-k": "web.wclock.pick", c: "再看一个地区" },
+						{ x: "select", name: "wclockPick", onchange: pickzone }
+					] }
+				] },
+				{ x: "div.wclock-one", name: "wclockOne" },
+				{ x: "div.wclock-h", "data-k": "web.wclock.common", c: "常用地区" },
+				{ x: "div.wclock-grid", name: "wclockGrid", onclick: gridclick }
+			] });
 		},
-		open(){
+		open: function(t){
+			page = t;
 			extra = "";
 			shownLang = "";
-			var title = F.id("box-title");
+			var title = SK.doms.boxTitle;
 			if (title) {
 				F.seta(title, "data-k", "web.tool.wclock");
 				title.textContent = say("web.tool.wclock", "世界时钟");
 			}
-			F.id("wclock-q").oninput = function(){
-				fillpick();
-			};
-			F.id("wclock-pick").onchange = function(){
-				extra = F.id("wclock-pick").value || "";
-				paintone();
-				markon();
-			};
-			F.id("wclock-grid").onclick = function(ev){
-				var node = ev.target;
-				while (node && node.id !== "wclock-grid") {
-					if (node.getAttribute && node.getAttribute("data-zone")) {
-						var id = node.getAttribute("data-zone");
-						if (!id) return;
-						extra = id;
-						fillpick();
-						paintone();
-						markon();
-						return;
-					}
-					node = node.parentNode;
-				}
-			};
 			ensurelang();
 			paint();
 			SK.stoptick();
 			SK.tick = setInterval(paint, 1000);
 		}
 	});
+
+	function pickzone(){
+		extra = page.doms.wclockPick.value || "";
+		paintone();
+		markon();
+	}
+
+	function gridclick(ev){
+		var node = ev.target;
+		while (node && node !== page.doms.wclockGrid) {
+			if (node.getAttribute && node.getAttribute("data-zone")) {
+				var id = node.getAttribute("data-zone");
+				if (!id) return;
+				extra = id;
+				fillpick();
+				paintone();
+				markon();
+				return;
+			}
+			node = node.parentNode;
+		}
+	}
 
 	SK.wclockParts = function(zone, date, loc){
 		return {
@@ -94,13 +100,7 @@
 		return s;
 	}
 
-	function esc(s){
-		return String(s == null ? "" : s)
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;");
-	}
+	var esc = SK.esc;
 
 	function zones(){
 		if (Intl.supportedValuesOf) {
@@ -207,9 +207,9 @@
 	}
 
 	function fillpick(){
-		var sel = F.id("wclock-pick");
+		var sel = page.doms.wclockPick;
 		if (!sel) return;
-		var q = (F.id("wclock-q").value || "").trim().toLowerCase();
+		var q = (page.doms.wclockQ.value || "").trim().toLowerCase();
 		var loc = uilang();
 		var list = zones();
 		var rows = [];
@@ -244,7 +244,7 @@
 	}
 
 	function buildgrid(){
-		var grid = F.id("wclock-grid");
+		var grid = page.doms.wclockGrid;
 		if (!grid) return;
 		var html = "";
 		var i;
@@ -267,7 +267,7 @@
 	}
 
 	function paintone(){
-		var box = F.id("wclock-one");
+		var box = page.doms.wclockOne;
 		if (!box) return;
 		if (!extra || iscommon(extra)) {
 			box.innerHTML = "";
@@ -281,7 +281,7 @@
 	}
 
 	function markon(){
-		var grid = F.id("wclock-grid");
+		var grid = page.doms.wclockGrid;
 		if (!grid) return;
 		var cards = grid.querySelectorAll(".wclock-card");
 		var i;
@@ -293,7 +293,7 @@
 		ensurelang();
 		var date = new Date();
 		var loc = uilang();
-		var grid = F.id("wclock-grid");
+		var grid = page.doms.wclockGrid;
 		if (grid) {
 			var cards = grid.querySelectorAll(".wclock-card");
 			var i, zone;
@@ -302,6 +302,7 @@
 				paintcard(cards[i], zone, date, loc);
 			}
 		}
-		if (extra && !iscommon(extra)) paintcard(F.id("wclock-one").firstChild, extra, date, loc);
+		if (extra && !iscommon(extra)) paintcard(page.doms.wclockOne.firstChild, extra, date, loc);
 	}
 })();
+

@@ -31,7 +31,7 @@
 				html += "<button type=\"button\" data-v=\"" + escv(parts[k]) + "\">" + escv(parts[k]) + "</button>";
 			html += "</li>";
 		}
-		var list = F.id("rcolor-list");
+		var list = SK.doms.rcolorList;
 		if (list) {
 			list.innerHTML = html;
 			if (SK.showrcolor) SK.showrcolor(true);
@@ -60,7 +60,7 @@
 	}
 
 	function bindrcolor(){
-		var list = F.id("rcolor-list");
+		var list = SK.doms.rcolorList;
 		if (!list || F.attr(list, "data-bind")) return;
 		F.seta(list, "data-bind", "1");
 		list.onclick = function(ev){
@@ -72,8 +72,8 @@
 	}
 
 	function showrcolor(on){
-		var list = F.id("rcolor-list");
-		var out = F.id("box-out");
+		var list = SK.doms.rcolorList;
+		var out = SK.doms.boxOut;
 		if (!list || !out) return;
 		list.hidden = !on;
 		out.hidden = !!on;
@@ -83,3 +83,4 @@
 	SK.rcolor = rcolor;
 	SK.showrcolor = showrcolor;
 })();
+

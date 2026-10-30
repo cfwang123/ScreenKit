@@ -22,7 +22,7 @@
 	];
 	var PERPAGE = 60;
 	var sur = null, giv = null, surix = null, givix = null, loading = {};
-	var hits = [], page = 0, blank = "";
+	var hits = [], pageno = 0, blank = "";
 	var kind = "all", row = "", sep = " | ";
 	var markn = 1;
 
@@ -40,35 +40,54 @@
 		dispose: dropspeak
 	});
 
-	function body(){
-		var i;
-		var html = '<div class="jn"><div class="uquery"><input id="jn-q" type="text" placeholder="输入汉字、假名或姓名，如 佐藤 / 佐藤太郎">'
-			+ '<button type="button" id="jn-rand">随机</button>'
-			+ '<span id="jn-msg" class="msg"></span></div>'
-			+ '<div class="jnseg" id="jn-seg">';
-		for (i = 0; i < KINDS.length; i++)
-			html += '<button type="button" data-kind="' + KINDS[i].id + '"'
-				+ (KINDS[i].id === kind ? ' class="on"' : "") + ">" + KINDS[i].name + "</button>";
-		html += '</div><div class="jnidx" id="jn-idx"><button type="button" data-row="" class="on">全部</button>';
-		for (i = 0; i < ROWS.length; i++)
-			html += '<button type="button" data-row="' + ROWS[i].id + '">' + ROWS[i].name + "</button>";
-		html += '</div><div class="jnscroll"><div class="jnlist" id="jn-list"></div></div>'
-			+ '<div class="jnpager" id="jn-pager"><button type="button" id="jn-prev">‹</button>'
-			+ '<input id="jn-page" class="jnpi" type="text" inputmode="numeric" maxlength="7" title="输入页码后回车跳转">'
-			+ '<span id="jn-pages" class="msg"></span>'
-			+ '<button type="button" id="jn-next">›</button></div>'
-			+ '<p class="hint">取自 JMnedict。</p></div>';
-		return html;
+	var page = null;
+
+	function body(t){
+		page = t;
+		return F.CreateDOM(t, { x: "div.jn", c: [
+			{ x: "div.uquery", c: [
+				{ x: "input.jn-q", name: "jnQ", type: "text", placeholder: "输入汉字、假名或姓名，如 佐藤 / 佐藤太郎" },
+				{ x: "button.jn-rand", name: "jnRand", type: "button", c: "随机" },
+				{ x: "span.jn-msg.msg", name: "jnMsg" }
+			] },
+			{ x: "div.jnseg", name: "jnSeg", c: kindbtns() },
+			{ x: "div.jnidx", name: "jnIdx", c: rowbtns() },
+			{ x: "div.jnscroll", c: [
+				{ x: "div.jnlist", name: "jnList" }
+			] },
+			{ x: "div.jnpager", name: "jnPager", c: [
+				{ x: "button.jn-prev", name: "jnPrev", type: "button", c: "‹" },
+				{ x: "input.jnpi", name: "jnPage", type: "text", inputmode: "numeric", maxlength: "7", title: "输入页码后回车跳转" },
+				{ x: "span.jn-pages.msg", name: "jnPages" },
+				{ x: "button.jn-next", name: "jnNext", type: "button", c: "›" }
+			] },
+			{ x: "p.hint", c: "取自 JMnedict。" }
+		] });
 	}
 
-	function open(){
-		var q = F.id("jn-q");
-		var seg = F.id("jn-seg");
-		var idx = F.id("jn-idx");
-		var list = F.id("jn-list");
+	function kindbtns(){
+		var out = [], i;
+		for (i = 0; i < KINDS.length; i++)
+			out.push({ x: "button", type: "button", "data-kind": KINDS[i].id, class: KINDS[i].id === kind ? "on" : "", c: KINDS[i].name });
+		return out;
+	}
+
+	function rowbtns(){
+		var out = [{ x: "button", type: "button", "data-row": "", class: "on", c: "全部" }], i;
+		for (i = 0; i < ROWS.length; i++)
+			out.push({ x: "button", type: "button", "data-row": ROWS[i].id, c: ROWS[i].name });
+		return out;
+	}
+
+	function open(t){
+		page = t;
+		var q = page.doms.jnQ;
+		var seg = page.doms.jnSeg;
+		var idx = page.doms.jnIdx;
+		var list = page.doms.jnList;
 		if (!q || !list) return;
 		var timer = 0;
-		var randbtn = F.id("jn-rand");
+		var randbtn = page.doms.jnRand;
 		if (randbtn) randbtn.onclick = rand;
 		q.oninput = function(){
 			clearTimeout(timer);
@@ -90,9 +109,9 @@
 			paint();
 		};
 
-		var prev = F.id("jn-prev");
-		var next = F.id("jn-next");
-		var pin = F.id("jn-page");
+		var prev = page.doms.jnPrev;
+		var next = page.doms.jnNext;
+		var pin = page.doms.jnPage;
 		if (pin) {
 			pin.onkeydown = function(ev){
 				if (ev.key === "Enter") {
@@ -102,8 +121,8 @@
 			};
 			pin.onblur = jumpto;
 		}
-		if (prev) prev.onclick = function(){ goto(page - 1); };
-		if (next) next.onclick = function(){ goto(page + 1); };
+		if (prev) prev.onclick = function(){ goto(pageno - 1); };
+		if (next) next.onclick = function(){ goto(pageno + 1); };
 		list.onclick = onlist;
 		window.addEventListener("resize", function(){ render(true); });
 		place();
@@ -113,8 +132,8 @@
 	function rand(){
 		SK.post("/api/fake", { locale: "ja", kind: "name", n: 8 }, function(data){
 			var lines = String(data && data.text || "").split(/\r?\n/);
-			var q = F.id("jn-q");
-			var seg = F.id("jn-seg");
+			var q = page.doms.jnQ;
+			var seg = page.doms.jnSeg;
 			var i, line, pick;
 			if (!q) return;
 			kind = "all";
@@ -133,7 +152,7 @@
 	}
 
 	function place(){
-		var q = F.id("jn-q");
+		var q = page.doms.jnQ;
 		if (!q) return;
 		q.placeholder = "输入汉字、假名或姓名，如 佐藤 / 佐藤太郎";
 	}
@@ -218,7 +237,7 @@
 				if (!found) found = pairsof(raw);
 				if (found && found.length) {
 					hits = found;
-					page = 0;
+					pageno = 0;
 					render();
 					return;
 				}
@@ -232,13 +251,13 @@
 			if (b.sc !== a.sc) return b.sc - a.sc;
 			return b.r.p - a.r.p;
 		});
-		page = 0;
+		pageno = 0;
 		render();
 	}
 
 	// 每页固定条数，按行从左到右排。超出列表高度时在列表里滚动。
 	function render(keep){
-		var box = F.id("jn-list");
+		var box = page.doms.jnList;
 		var scroll, pages, from, slice;
 		if (!box) return;
 		scroll = box.parentNode;
@@ -250,9 +269,9 @@
 			return;
 		}
 		pages = Math.max(1, Math.ceil(hits.length / PERPAGE));
-		if (page < 0) page = 0;
-		if (page > pages - 1) page = pages - 1;
-		from = page * PERPAGE;
+		if (pageno < 0) pageno = 0;
+		if (pageno > pages - 1) pageno = pages - 1;
+		from = pageno * PERPAGE;
 		slice = hits.slice(from, from + PERPAGE);
 		filllist(box, slice);
 		if (scroll && !keep) scroll.scrollTop = 0;
@@ -268,33 +287,33 @@
 
 	function pager(pages){
 		SK.msg("jn-msg", hits.length ? "共 " + hits.length + " 条" : "");
-		var pin = F.id("jn-page");
-		if (pin && document.activeElement !== pin) pin.value = hits.length ? String(page + 1) : "";
+		var pin = page.doms.jnPage;
+		if (pin && document.activeElement !== pin) pin.value = hits.length ? String(pageno + 1) : "";
 		SK.msg("jn-pages", hits.length ? "/ " + pages + " 页" : "");
-		var prev = F.id("jn-prev");
-		var next = F.id("jn-next");
-		if (prev) prev.disabled = page <= 0;
-		if (next) next.disabled = page >= pages - 1;
+		var prev = page.doms.jnPrev;
+		var next = page.doms.jnNext;
+		if (prev) prev.disabled = pageno <= 0;
+		if (next) next.disabled = pageno >= pages - 1;
 	}
 
 	// 输入页码跳转：留空、不是数字或超出范围都落回最近的页，输入框里换成实际页码
 	function jumpto(){
-		var pin = F.id("jn-page");
+		var pin = page.doms.jnPage;
 		if (!pin) return;
 		var n = parseInt(String(pin.value).replace(/[^0-9]/g, ""), 10);
 		if (n > 0) goto(n - 1);
 		else render();
-		pin.value = hits.length ? String(page + 1) : "";
+		pin.value = hits.length ? String(pageno + 1) : "";
 	}
 
 	function goto(n){
-		page = n;
+		pageno = n;
 		render();
 	}
 
 	function onlist(ev){
 		var btn = ev.target;
-		var list = F.id("jn-list");
+		var list = page.doms.jnList;
 		while (btn && btn !== list && btn.tagName !== "BUTTON") btn = btn.parentNode;
 		if (!btn || btn === list) return;
 		var text = F.attr(btn, "data-v") || "";
@@ -325,10 +344,7 @@
 		});
 	}
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
-	}
+	var tx = SK.tx;
 
 		// 完整姓名的切分。空格或间隔号只切一刀，否则每个长度都试一次。
 	function splitraw(raw){
@@ -553,9 +569,5 @@
 		return out;
 	}
 
-	function esc(s){
-		return String(s).replace(/[&<>"]/g, function(c){
-			return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c];
-		});
-	}
+	var esc = SK.esc;
 })();

@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var seq = 0;
 	var wait = 0;
 	var spec = {
@@ -6,13 +7,17 @@
 		go: "转换",
 		own: true,
 		hideOut: true,
-		body: function(){
-			return SK.lab("原文", SK.ta("box-in", 8, ""))
-				+ SK.lab("web.pinyin.py", '<textarea id="py-full" rows="3" readonly></textarea>')
-				+ SK.lab("web.pinyin.init", '<textarea id="py-ini" rows="2" readonly></textarea>')
-				+ '<p id="py-hint" class="hint" data-k="web.pinyin.off">' + SK.esc(SK.t("web.pinyin.off") || "") + "</p>";
+		body: function(t){
+			page = t;
+			return [
+				SK.lab("原文", SK.ta("box-in", 8, "")),
+				SK.lab("web.pinyin.py", F.CreateDOM(t, { x: "textarea.py-full", name: "pyFull", rows: "3", readonly: true })),
+				SK.lab("web.pinyin.init", F.CreateDOM(t, { x: "textarea.py-ini", name: "pyIni", rows: "2", readonly: true })),
+				F.CreateDOM(t, { x: "p.py-hint.hint", name: "pyHint", "data-k": "web.pinyin.off", c: SK.t("web.pinyin.off") || "" })
+			];
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			SK.get("/api/pinyin", function(data){
 				sethint(!!(data && data.installed));
 			}, "", function(){});
@@ -22,7 +27,7 @@
 	SK.regutil("u-py", spec);
 
 	function sethint(on){
-		var el = F.id("py-hint");
+		var el = page.doms.pyHint;
 		if (!el) return;
 		if (on) {
 			F.unset(el, "data-k");
@@ -36,9 +41,9 @@
 	function show(data, on){
 		var full = on && data ? (data.pinyin || "") : "";
 		var ini = on && data ? (data.py || "") : "";
-		if (F.id("py-full")) F.id("py-full").value = full;
-		if (F.id("py-ini")) F.id("py-ini").value = ini;
-		if (F.id("box-out")) F.id("box-out").value = full && ini ? full + "\n" + ini : (full || ini);
+		if (page.doms.pyFull) page.doms.pyFull.value = full;
+		if (page.doms.pyIni) page.doms.pyIni.value = ini;
+		if (SK.doms.boxOut) SK.doms.boxOut.value = full && ini ? full + "\n" + ini : (full || ini);
 	}
 
 	function run(){

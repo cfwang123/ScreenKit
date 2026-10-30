@@ -8,18 +8,18 @@
 		lastop = op;
 		var seq = ++textseq;
 		if (op === "yomi" || op === "yomimono") {
-			SK.post("/api/jpyomi", { text: F.id("tx-in").value, mono: op === "yomimono" }, function(data){
+			SK.post("/api/jpyomi", { text: SK.doms.txIn.value, mono: op === "yomimono" }, function(data){
 				if (seq !== textseq) return;
 				var ruby = data.ruby || "";
 				var yomi = data.yomi || "";
-				F.id("tx-out").value = ruby && yomi && ruby !== yomi ? ruby + "\n" + yomi : (yomi || ruby);
+				SK.doms.txOut.value = ruby && yomi && ruby !== yomi ? ruby + "\n" + yomi : (yomi || ruby);
 			}, "tx-msg");
 			return;
 		}
 		if (op === "trad" || op === "simp") {
-			SK.post("/api/zhconv", { text: F.id("tx-in").value, to: op }, function(data){
+			SK.post("/api/zhconv", { text: SK.doms.txIn.value, to: op }, function(data){
 				if (seq !== textseq) return;
-				F.id("tx-out").value = data.text || "";
+				SK.doms.txOut.value = data.text || "";
 			}, "tx-msg");
 			return;
 		}
@@ -31,9 +31,9 @@
 			textlocal(op, seq);
 			return;
 		}
-		SK.post("/api/text", { text: F.id("tx-in").value, op: op }, function(data){
+		SK.post("/api/text", { text: SK.doms.txIn.value, op: op }, function(data){
 			if (seq !== textseq) return;
-			F.id("tx-out").value = data.text || "";
+			SK.doms.txOut.value = data.text || "";
 		}, "tx-msg");
 	}
 
@@ -47,7 +47,7 @@
 	}
 
 	function textlocal(op, seq){
-		var text = F.id("tx-in").value;
+		var text = SK.doms.txIn.value;
 		if (op === "sha") {
 			if (text.length > 200000) {
 				SK.msg("tx-msg", "文字太长", true);
@@ -60,7 +60,7 @@
 			SK.msg("tx-msg", "计算中");
 			crypto.subtle.digest("SHA-256", SK.utf8bytes(text)).then(function(buf){
 				if (seq !== textseq) return;
-				F.id("tx-out").value = SK.hexbytes(new Uint8Array(buf));
+				SK.doms.txOut.value = SK.hexbytes(new Uint8Array(buf));
 				SK.msg("tx-msg", "完成");
 			}, function(){
 				if (seq !== textseq) return;
@@ -88,11 +88,11 @@
 			else if (op === "hmin") out = htmlmin(text);
 			else if (op === "cmin") out = cssmin(text);
 			else if (op === "jsmin") out = jsmin(text);
-			F.id("tx-out").value = out;
+			SK.doms.txOut.value = out;
 			SK.msg("tx-msg", "完成");
 		}
 		catch (ex) {
-			F.id("tx-out").value = "";
+			SK.doms.txOut.value = "";
 			SK.msg("tx-msg", ex && ex.message ? ex.message : "失败", true);
 		}
 	}
@@ -510,8 +510,8 @@
 			textwait = 0;
 		}
 		textseq++;
-		var src = F.id("tx-in");
-		var out = F.id("tx-out");
+		var src = SK.doms.txIn;
+		var out = SK.doms.txOut;
 		if (!src || !out) return;
 		var text = src.value;
 		src.value = out.value;
@@ -520,8 +520,8 @@
 	}
 
 	SK.textop = textop;
-	if (F.id("tx-in")) F.id("tx-in").oninput = textlive;
-	if (F.id("tx-swap")) F.id("tx-swap").onclick = txswap;
+	if (SK.doms.txIn) SK.doms.txIn.oninput = textlive;
+	if (SK.doms.txSwap) SK.doms.txSwap.onclick = txswap;
 	SK.textlocal = textlocal;
 	SK.htmldec = htmldec;
 	SK.jsonmin = jsonmin;

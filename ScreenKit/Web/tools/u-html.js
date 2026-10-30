@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var wait = 0;
 	var samples = [
 		{ id: "buttons", key: "htmlui.tpl.buttons", html: buttons() },
@@ -29,24 +30,27 @@
 		open: open
 	});
 
-	function body(){
+	function body(t){
+		page = t;
 		var hint = SK.t("web.htmlui.hint") || "";
-		var html = "";
-		for (var i = 0; i < samples.length; i++) {
-			var one = samples[i];
-			html += '<button type="button" data-htmlui="' + one.id + '">' + SK.esc(SK.t(one.key) || one.id) + "</button>";
+		var btns = [];
+		var i;
+		for (i = 0; i < samples.length; i++) {
+			btns.push(F.CreateDOM(t, { x: "button", type: "button", "data-htmlui": samples[i].id, c: SK.t(samples[i].key) || samples[i].id }));
 		}
-		return '<div class="htmlui">'
-			+ '<p class="hint" data-k="web.htmlui.hint">' + SK.esc(hint) + "</p>"
-			+ '<div class="htmlui-tpl">' + html + "</div>"
-			+ '<div class="htmlui-split">'
-			+ '<textarea id="htmlui-src" spellcheck="false"></textarea>'
-			+ '<iframe id="htmlui-view" sandbox="allow-forms allow-scripts" title="preview"></iframe>'
-			+ "</div></div>";
+		return F.CreateDOM(t, { x: "div.htmlui", c: [
+			{ x: "p.hint", "data-k": "web.htmlui.hint", c: hint },
+			{ x: "div.htmlui-tpl", c: btns },
+			{ x: "div.htmlui-split", c: [
+				{ x: "textarea.htmlui-src", name: "htmluiSrc", spellcheck: "false" },
+				{ x: "iframe.htmlui-view", name: "htmluiView", sandbox: "allow-forms allow-scripts", title: "preview" }
+			] }
+		] });
 	}
 
-	function open(){
-		var src = F.id("htmlui-src");
+	function open(t){
+		page = t;
+		var src = page.doms.htmluiSrc;
 		var bar = F.q(".htmlui-tpl");
 		if (!src || !bar) return;
 		src.oninput = schedule;
@@ -81,8 +85,8 @@
 	}
 
 	function paint(){
-		var src = F.id("htmlui-src");
-		var view = F.id("htmlui-view");
+		var src = page.doms.htmluiSrc;
+		var view = page.doms.htmluiView;
 		if (!src || !view) return;
 		view.srcdoc = wrap(src.value);
 	}

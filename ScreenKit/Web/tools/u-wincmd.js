@@ -2374,27 +2374,20 @@
 	};
 
 	function makeset(id, name, rows, placeholder, defaultPick){
-		var all = rows.concat(syntaxrows(id));
-		var out = [];
-		var i;
-		for (i = 0; i < all.length; i++) out.push(R(all[i], id));
-		return {
+		return SK.refset({
 			id: id,
 			name: name,
 			cols: COLS,
 			widths: WIDTHS,
 			groups: GROUPS,
-			rows: out,
+			rows: rows.concat(syntaxrows(id)).map(function(r){ return R(r, id); }),
 			placeholder: placeholder,
-			big: 0,
-			sub: 1,
-			copy: 0,
 			hl: id === "cmd" ? "cmd" : "ps",
 			defaultPick: defaultPick,
 			mline: 2,
 			sample: function(r){ return r.s; },
 			sampleTitle: "多行示例"
-		};
+		});
 	}
 
 	SK.regref("u-wincmd", {

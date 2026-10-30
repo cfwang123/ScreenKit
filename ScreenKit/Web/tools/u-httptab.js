@@ -169,39 +169,7 @@
 		{ id: "5", name: "5xx 服务端错误" },
 		{ id: "x", name: "非标准 / 实现扩展" }
 	];
-	var cur = "all";
-	var picked = 200;
-
-	SK.regutil("u-httptab", {
-		title: "HTTP状态码表",
-		body: function(){
-			return '<div class="reftab">'
-				+ '<div class="uquery"><input id="h-q" type="text" placeholder="' + esc(SK.td("搜索：404、重定向、Not Found、RFC 6585")) + '">'
-				+ '<span id="h-msg" class="msg"></span></div>'
-				+ '<div class="refchips" id="h-chips"></div>'
-				+ '<div class="refbody">'
-				+ '<div class="refscroll"><table class="reflist hcodes" id="h-tab"></table></div>'
-				+ '<aside class="refdetail" id="h-detail"></aside>'
-				+ "</div></div>";
-		},
-		run: function(){
-			throw new Error("没有这个工具");
-		},
-		open: function(){
-			cur = "all";
-			picked = 200;
-			paintchips();
-			F.id("h-q").oninput = paint;
-			F.id("h-chips").onclick = onchip;
-			F.id("h-tab").onclick = onrow;
-			paint();
-		},
-		hideGo: true,
-		live: false,
-		hideOut: true,
-		relang: function(){ SK.reopenutil(); }
-	});
-
+	// 换分组时按代码首位归类；非标准实现统一进 x。
 	function groupof(row){
 		return row[4] ? String(row[0]).charAt(0) : "x";
 	}
@@ -212,151 +180,39 @@
 		return "";
 	}
 
-	function query(){
-		return String(SK.val("h-q") || "").trim().toLowerCase();
-	}
-
-	function hit(row, q){
-		if (!q) return true;
-		// 纯数字只按代码匹配，避免描述里提到的「改用 429」把 420、509 也带出来。
-		if (/^[0-9]+$/.test(q)) return String(row[0]).indexOf(q) === 0;
-		var blob = String(row[0]) + " " + row[1] + " " + row[2] + " " + row[3] + " "
-			+ row[5] + " " + row[6] + " " + (row[7] || "") + " " + groupname(groupof(row));
-		return blob.toLowerCase().indexOf(q) >= 0;
-	}
-
-	function paintchips(){
-		var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">" + esc(SK.td("全部")) + "<small>"
-			+ ROWS.length + "</small></button>"];
-		var i, j, n;
-		for (i = 0; i < GROUPS.length; i++) {
-			n = 0;
-			for (j = 0; j < ROWS.length; j++) if (groupof(ROWS[j]) === GROUPS[i].id) n++;
-			html.push('<button type="button" data-g="' + GROUPS[i].id + '"'
-				+ (cur === GROUPS[i].id ? ' class="on"' : "") + ">" + esc(SK.td(GROUPS[i].name))
-				+ "<small>" + n + "</small></button>");
-		}
-		F.id("h-chips").innerHTML = html.join("");
-	}
-
-	function paint(){
-		var q = query();
-		var html = ["<thead><tr><th>" + esc(SK.td("代码")) + "</th><th>" + esc(SK.td("原因短语")) + "</th><th>"
-			+ esc(SK.td("中文")) + "</th><th>" + esc(SK.td("规范 / 来源")) + "</th></tr></thead><tbody>"];
-		var total = 0;
-		var i, j, rows, n;
-		for (i = 0; i < GROUPS.length; i++) {
-			if (cur !== "all" && cur !== GROUPS[i].id) continue;
-			rows = [];
-			for (j = 0; j < ROWS.length; j++) {
-				if (groupof(ROWS[j]) === GROUPS[i].id && hit(ROWS[j], q)) rows.push(ROWS[j]);
-			}
-			if (!rows.length) continue;
-			total += rows.length;
-			html.push('<tr class="refgh"><td colspan="4">' + esc(SK.td(GROUPS[i].name))
-				+ '<span class="n">' + rows.length + "</span></td></tr>");
-			for (n = 0; n < rows.length; n++) html.push(rowhtml(rows[n]));
-		}
-		html.push("</tbody>");
-		if (!total) {
-			html = ['<tbody><tr><td class="refnone">' + esc(SK.td("没有匹配的状态码")) + "</td></tr></tbody>"];
-		}
-		F.id("h-tab").innerHTML = html.join("");
-		SK.msg("h-msg", total ? SK.td(q ? "%n 条" : "共 %n 条").replace("%n", total) : "");
-		if (total) {
-			var sel = rowby(picked);
-			if (!visible(sel, q)) sel = firstvisible(q);
-			showdetail(sel || ROWS[0]);
-		}
-		else F.id("h-detail").innerHTML = "";
-	}
-
-	function visible(row, q){
-		if (!row) return false;
-		if (cur !== "all" && cur !== groupof(row)) return false;
-		return hit(row, q);
-	}
-
-	function firstvisible(q){
-		var i, j;
-		for (i = 0; i < GROUPS.length; i++) {
-			if (cur !== "all" && cur !== GROUPS[i].id) continue;
-			for (j = 0; j < ROWS.length; j++) {
-				if (groupof(ROWS[j]) === GROUPS[i].id && hit(ROWS[j], q)) return ROWS[j];
-			}
-		}
-		return null;
-	}
-
-	function rowby(code){
-		var i;
-		for (i = 0; i < ROWS.length; i++) if (ROWS[i][0] === code) return ROWS[i];
-		return null;
-	}
-
-	function rowhtml(row){
-		var g = groupof(row);
-		return '<tr data-code="' + row[0] + '" title="' + esc(SK.td("点击复制 %s").replace("%s", row[0] + " " + row[1])) + '"'
-			+ (row[0] === picked ? ' class="on"' : "") + ">"
-			+ '<td class="hcode c' + g + '">' + row[0] + "</td>"
-			+ "<td>" + esc(row[1]) + "</td>"
-			+ "<td>" + esc(SK.td(row[2])) + "</td>"
-			+ '<td class="hspec">' + esc(SK.td(row[3])) + "</td></tr>";
-	}
-
-	function showdetail(row){
-		if (!row) return;
-		var g = groupof(row);
-		var meta = [
-			["类别", SK.td(groupname(g)) + (row[4] ? "" : SK.td("（非标准）"))],
-			["规范", SK.td(row[3])],
-			["默认缓存", SK.td(row[5])],
-			["标准", SK.td(row[4] ? "是，IANA 注册" : "否，实现扩展")],
-			["说明", SK.td(row[6])]
+	// 数组行转成速查表的通用行：g 分组、c 可见列、x 额外搜索文字、d 详情项。
+	function tabrow(r){
+		var g = groupof(r);
+		var d = [
+			["类别", groupname(g)],
+			["规范", r[3]],
+			["默认缓存", r[5]],
+			["标准", r[4] ? "是，IANA 注册" : "否，实现扩展"],
+			["说明", r[6]]
 		];
-		if (row[7]) meta.push(["备注", SK.td(row[7])]);
-		var html = '<div class="refbig c' + g + '">' + row[0] + "</div>"
-			+ '<div class="refsub">' + esc(row[1]) + "</div>"
-			+ '<div class="refcn">' + esc(SK.td(row[2])) + "</div>"
-			+ '<dl class="refmeta">';
-		var i;
-		for (i = 0; i < meta.length; i++)
-			html += "<dt>" + esc(SK.td(meta[i][0])) + "</dt><dd>" + esc(meta[i][1]) + "</dd>";
-		html += "</dl>";
-		F.id("h-detail").innerHTML = html;
+		if (r[7]) d.push(["备注", r[7]]);
+		return { g: g, c: [r[0], r[1], r[2], r[3]], x: r[3] + " " + r[6] + " " + (r[7] || ""), d: d };
 	}
 
-	function onchip(ev){
-		var el = ev.target;
-		while (el && el !== this) {
-			if (el.getAttribute && F.attr(el, "data-g")) {
-				cur = F.attr(el, "data-g");
-				paintchips();
-				paint();
-				return;
-			}
-			el = el.parentNode;
-		}
-	}
-
-	function onrow(ev){
-		var el = ev.target;
-		while (el && el.tagName !== "TR") el = el.parentNode;
-		if (!el || !F.attr(el, "data-code")) return;
-		var code = parseInt(F.attr(el, "data-code"), 10);
-		var row = rowby(code);
-		if (!row) return;
-		picked = code;
-		paint();
-		showdetail(row);
-		SK.copytext(row[0] + " " + row[1], "h-msg");
-	}
-
-	function esc(s){
-		return String(s == null ? "" : s)
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;");
-	}
+	SK.regref("u-httptab", {
+		title: "HTTP状态码表",
+		cls: "hcodes",
+		cols: [
+			{ name: "代码", cls: function(row){ return "hcode c" + row.g; } },
+			{ name: "原因短语" },
+			{ name: "中文" },
+			{ name: "规范 / 来源", cls: "hspec" }
+		],
+		groups: GROUPS,
+		rows: ROWS.map(tabrow),
+		placeholder: "搜索：404、重定向、Not Found、RFC 6585",
+		big: 0,
+		sub: 1,
+		cn: 2,
+		copy: 0,
+		copyfn: function(row){ return row.c[0] + " " + row.c[1]; },
+		numeric: true,
+		bigCls: function(row){ return "c" + row.g; },
+		defaultPick: 200
+	});
 })();

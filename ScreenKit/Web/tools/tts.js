@@ -33,9 +33,9 @@
 				seen[eng] = true;
 				rows.push({ value: eng, label: ttslabel(eng) });
 			}
-			var curEng = F.id("tts-eng").value;
+			var curEng = SK.doms.ttsEng.value;
 			if (!curEng) curEng = "winrt";
-			SK.fillsel(F.id("tts-eng"), rows, curEng);
+			SK.fillsel(SK.doms.ttsEng, rows, curEng);
 			fillttsmodels();
 			if (!hasEdge && ttsEdgeWait < 2) {
 				ttsEdgeWait++;
@@ -46,9 +46,9 @@
 
 	function fillttsmodels(){
 		fillttslang();
-		var eng = F.id("tts-eng").value;
+		var eng = SK.doms.ttsEng.value;
 		var want = ttswant();
-		var prev = F.id("tts-model").value;
+		var prev = SK.doms.ttsModel.value;
 		var rows = [];
 		var i;
 		for (i = 0; i < ttsItems.length; i++) {
@@ -56,12 +56,12 @@
 			if (!ttsmodelok(ttsItems[i], want)) continue;
 			rows.push({ value: String(i), label: ttsItems[i].name || eng });
 		}
-		SK.fillsel(F.id("tts-model"), rows, prev);
+		SK.fillsel(SK.doms.ttsModel, rows, prev);
 		fillttsvoices();
 	}
 
 	function ttsitem(){
-		var n = parseInt(F.id("tts-model").value, 10);
+		var n = parseInt(SK.doms.ttsModel.value, 10);
 		if (isNaN(n) || n < 0 || n >= ttsItems.length) return null;
 		return ttsItems[n];
 	}
@@ -70,7 +70,7 @@
 		var item = ttsitem();
 		var speakers = (item && item.speakers) || [];
 		var want = ttswant();
-		var prevIdx = parseInt(F.id("tts-voice").value, 10);
+		var prevIdx = parseInt(SK.doms.ttsVoice.value, 10);
 		var prev = speakers[prevIdx] || null;
 		var rows = [];
 		var pick = "";
@@ -84,7 +84,7 @@
 			if (prev && ((prev.key && prev.key === sp.key) || (!prev.key && prev.name && prev.name === sp.name)))
 				pick = String(i);
 		}
-		SK.fillsel(F.id("tts-voice"), rows, pick);
+		SK.fillsel(SK.doms.ttsVoice, rows, pick);
 	}
 
 	function ttsgo(save){
@@ -93,17 +93,17 @@
 			SK.msg("tts-msg", "没有可用的语音", true);
 			return;
 		}
-		if (!F.id("tts-voice").options.length) {
+		if (!SK.doms.ttsVoice.options.length) {
 			SK.msg("tts-msg", "没有符合筛选的发音人", true);
 			return;
 		}
 		var speakers = item.speakers || [];
-		var vi = parseInt(F.id("tts-voice").value, 10);
+		var vi = parseInt(SK.doms.ttsVoice.value, 10);
 		var sp = speakers[vi] || {};
-		var speed = parseFloat(F.id("tts-speed").value);
+		var speed = parseFloat(SK.doms.ttsSpeed.value);
 		if (isNaN(speed)) speed = 1;
 		SK.post("/api/tts", {
-			text: F.id("tts-in").value,
+			text: SK.doms.ttsIn.value,
 			engine: item.engine,
 			model: item.name,
 			voice: sp.key || sp.name || "",
@@ -118,7 +118,7 @@
 				ttssavewav(data.wav_base64, sp, item);
 				return;
 			}
-			var audio = F.id("tts-audio");
+			var audio = SK.doms.ttsAudio;
 			audio.src = "data:audio/wav;base64," + data.wav_base64;
 			audio.hidden = false;
 			F.sink(audio);
@@ -149,14 +149,14 @@
 
 	function ttswant(){
 		return {
-			lang: (F.id("tts-lang") && F.id("tts-lang").value) || "",
-			gender: (F.id("tts-gender") && F.id("tts-gender").value) || "",
+			lang: (SK.doms.ttsLang && SK.doms.ttsLang.value) || "",
+			gender: (SK.doms.ttsGender && SK.doms.ttsGender.value) || "",
 		};
 	}
 
 	function fillttslang(){
-		var eng = F.id("tts-eng").value;
-		var prev = F.id("tts-lang").value;
+		var eng = SK.doms.ttsEng.value;
+		var prev = SK.doms.ttsLang.value;
 		var seen = {};
 		var named = [
 			["zh", "中文 (zh)"], ["en", "英文 (en)"], ["ja", "日文 (ja)"], ["ko", "韩文 (ko)"],
@@ -169,7 +169,7 @@
 			var sps = ttsItems[i].speakers || [];
 			for (j = 0; j < sps.length; j++) ttslangadd(seen, sps[j].lang);
 		}
-		var rows = [{ value: "", label: "全部语言" }];
+		var rows = [{ value: "", label: SK.tr ? SK.tr("全部语言") : "全部语言" }];
 		var used = {};
 		for (i = 0; i < named.length; i++) {
 			if (!seen[named[i][0]]) continue;
@@ -180,7 +180,7 @@
 		for (var k in seen) if (!used[k]) rest.push(k);
 		rest.sort();
 		for (i = 0; i < rest.length; i++) rows.push({ value: rest[i], label: ttslanglabel(rest[i]) });
-		SK.fillsel(F.id("tts-lang"), rows, seen[ttsnormlang(prev)] ? ttsnormlang(prev) : "");
+		SK.fillsel(SK.doms.ttsLang, rows, seen[ttsnormlang(prev)] ? ttsnormlang(prev) : "");
 	}
 
 	function ttslanglabel(code){
@@ -313,7 +313,7 @@
 	SK.ttsspeakerok = ttsspeakerok;
 	SK.regutil("tts", {
 		dispose: function(){
-			var audio = F.id("tts-audio");
+			var audio = SK.doms.ttsAudio;
 			if (!audio) return;
 			try { audio.pause(); } catch (e) {}
 			audio.removeAttribute("src");

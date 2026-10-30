@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	// 俄语动词变形：输入不定式（可带 -ся），列出体、变位、现在/将来时、过去时、命令式、
 	// 假定式、分词和副动词。规则按词尾推导，常见不规则动词和重音引起的特殊形单独列表。
 	var CONF = {
@@ -1467,7 +1468,9 @@
 		if (!m || !/ый$/.test(m)) return null;
 		var s = m.slice(0, -2);
 		if (/нн$/.test(s)) s = s.slice(0, -1);
-		return [s, s + "а", s + "о", s + "ы"];
+		// -ённый 的短尾只有阳性保留 ё：говорён，但 говорена / говорено / говорены。
+		var a = /ён$/.test(s) ? s.slice(0, -2) + "ен" : s;
+		return [s, a + "а", a + "о", a + "ы"];
 	}
 
 	function prefForm(s, pref, base){
@@ -1567,7 +1570,7 @@
 	}
 
 	function pickkind(){
-		var sel = F.id("rv-sel-kind");
+		var sel = page.doms.rvSelKind;
 		return sel && sel.value ? sel.value : "auto";
 	}
 
@@ -1596,6 +1599,15 @@
 	}
 	if (typeof SK === "undefined" || !SK.regutil) return;
 
+	var ui = SK.verbui({
+		outId: "rv-out",
+		lang: "ru",
+		tabcls: "jv-tab rv-tab",
+		nospeak: ["web.rverb.nospeak", "无法发音"],
+		groupof: function(row){ return row.g || ""; },
+		cell: cellhtml
+	});
+
 	SK.regutil("u-rverb", {
 		title: "俄语词形变化",
 		go: "变形",
@@ -1608,41 +1620,40 @@
 		open: open,
 		relang: open,
 		run: run,
-		dispose: dropspeak
+		dispose: ui.dropspeak
 	});
 
-	function tx(key, fb){
-		var s = SK.t ? SK.t(key) : "";
-		return s || fb;
+	var tx = SK.tx;
+
+	var langcode = SK.langcode;
+
+	function body(t){
+		page = t;
+		var sel = F.CreateDOM(t, { x: "select.rv-sel-kind", name: "rvSelKind", c: [
+			{ x: "option", value: "auto" },
+			{ x: "option", value: "verb" },
+			{ x: "option", value: "adj" },
+			{ x: "option", value: "noun" }
+		] });
+		return [
+			F.CreateDOM(t, { x: "p.rv-hint.hint", name: "rvHint" }),
+			F.CreateDOM(t, { x: "div.row.rv-row", name: "rvRow", c: [
+				{ x: "label.rv-kind", name: "rvKind", c: sel },
+				{ x: "label.rv-word", name: "rvWord", c: SK.combo("rv-in", "читать", "不定式、形容词或名词") }
+			] }),
+			F.CreateDOM(t, { x: "div.rv-out", name: "rvOut" })
+		];
 	}
 
-	function langcode(){
-		var sel = F.id("lang");
-		return sel && sel.value ? sel.value : "zh";
-	}
-
-	function body(){
-		return '<p class="hint" id="rv-hint"></p>'
-			+ '<div class="row" id="rv-row">'
-			+ '<label id="rv-kind"><select id="rv-sel-kind">'
-			+ '<option value="auto"></option>'
-			+ '<option value="verb"></option>'
-			+ '<option value="adj"></option>'
-			+ '<option value="noun"></option>'
-			+ "</select></label>"
-			+ '<label id="rv-word">' + SK.combo("rv-in", "читать", "不定式、形容词或名词") + "</label>"
-			+ "</div>"
-			+ '<div id="rv-out"></div>';
-	}
-
-	function open(){
+	function open(t){
+		page = t;
 		var lang = langcode();
-		var hint = F.id("rv-hint");
+		var hint = page.doms.rvHint;
 		if (hint) {
 			F.seta(hint, "data-k", "web.rverb.hint");
 			hint.textContent = tx("web.rverb.hint", L(lang, LAB.hint));
 		}
-		var title = F.id("box-title");
+		var title = SK.doms.boxTitle;
 		if (title) title.textContent = tx("web.tool.rverb", L(lang, LAB.title));
 		setlab("rv-kind", "web.rverb.kind", L(lang, LAB.kind));
 		setlab("rv-word", "web.rverb.word", L(lang, LAB.word));
@@ -1651,114 +1662,34 @@
 		setopt("rv-sel-kind", "verb", "web.rverb.verb", L(lang, LAB.verb));
 		setopt("rv-sel-kind", "adj", "web.rverb.adj", L(lang, LAB.adj));
 		setopt("rv-sel-kind", "noun", "web.rverb.noun", L(lang, LAB.noun));
-		var box = F.id("rv-in");
+		var box = page.doms.rvIn;
 		if (box) {
 			F.seta(box, "data-kph", "web.rverb.ph");
 			box.placeholder = tx("web.rverb.ph", L(lang, LAB.ph));
 		}
 		bind("rv-sel-kind", ontype);
-		var out = F.id("rv-out");
+		var out = page.doms.rvOut;
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
-			out.onclick = onout;
+			out.onclick = ui.onout;
 		}
-		if (!bound) {
-			bound = true;
-			window.addEventListener("resize", onresize);
-		}
+		ui.bind();
 		run();
 	}
 
 	function bind(id, fn){
-		var el = F.id(id);
+		var el = page.doms[SK.domkey(id)];
 		if (!el || F.attr(el, "data-bind")) return;
 		F.seta(el, "data-bind", "1");
 		el.onchange = fn;
 	}
 
-	function setlab(id, key, fb){
-		var el = F.id(id);
-		if (!el) return;
-		var text = tx(key, fb);
-		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
-		else el.insertBefore(document.createTextNode(text), el.firstChild);
-	}
+	var setlab = SK.setlab;
 
-	function setopt(selId, value, key, fb){
-		var sel = F.id(selId);
-		if (!sel) return;
-		for (var i = 0; i < sel.options.length; i++) {
-			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
-		}
-	}
+	var setopt = SK.setopt;
 
-	function onout(ev){
-		var btn = ev.target;
-		var out = F.id("rv-out");
-		while (btn && btn !== out && btn.tagName !== "BUTTON") btn = btn.parentNode;
-		if (!btn || btn === out) return;
-		var text = F.attr(btn, "data-v") || "";
-		if (text) speak(text);
-	}
 
-	function dropspeak(){
-		speakSeq++;
-		if (SK.stopwav) SK.stopwav();
-		if (clip) {
-			try { clip.pause(); } catch (e) {}
-			clip = null;
-		}
-		if (clipUrl) {
-			try { URL.revokeObjectURL(clipUrl); } catch (e2) {}
-			clipUrl = null;
-		}
-	}
 
-	function speak(text){
-		SK.stopwav();
-		if (clip) {
-			try { clip.pause(); } catch (e) {}
-			clip = null;
-		}
-		if (clipUrl) {
-			try { URL.revokeObjectURL(clipUrl); } catch (e) {}
-			clipUrl = null;
-		}
-		var seq = ++speakSeq;
-		fetch("/api/dict/speak?text=" + encodeURIComponent(text) + "&lang=ru").then(function(r){
-			var ct = r.headers.get("content-type") || "";
-			if (ct.indexOf("audio") < 0) return r.json().then(function(j){ throw j || {}; });
-			return r.blob();
-		}).then(function(b){
-			if (seq !== speakSeq) return;
-			var url = URL.createObjectURL(b);
-			var audio = new Audio(url);
-			clip = audio;
-			clipUrl = url;
-			audio.onended = function(){
-				if (clipUrl === url) {
-					try { URL.revokeObjectURL(url); } catch (e) {}
-					clipUrl = null;
-				}
-			};
-			audio.onerror = function(){
-				if (clip === audio) SK.msg("box-msg", tx("web.rverb.nospeak", "无法发音"), true);
-			};
-			var played = audio.play();
-			if (played && played.then) played.then(function(){}, function(){
-				if (clip === audio) SK.msg("box-msg", tx("web.rverb.nospeak", "无法发音"), true);
-			});
-		}).catch(function(j){
-			if (seq !== speakSeq) return;
-			if (j && (j.error === "novoice" || (j.code === 802 && j.error !== "noword"))) {
-				var need = tx("web.rverb.novoice", "未安装俄语语音，无法发音。请打开「安装功能 → Windows语音合成」，勾选俄语并安装，装好后重启 ScreenKit。");
-				SK.msg("box-msg", need, true);
-				try { window.alert(need); } catch (e) {}
-				return;
-			}
-			SK.msg("box-msg", (j && (j.data || j.message)) || tx("web.rverb.nospeak", "无法发音"), true);
-		});
-	}
 
 	function run(){
 		if (timer) clearTimeout(timer);
@@ -1767,15 +1698,15 @@
 
 	function go(){
 		timer = 0;
-		var box = F.id("rv-in");
+		var box = page.doms.rvIn;
 		var word = box ? box.value : "";
-		var kind = F.id("rv-sel-kind");
+		var kind = page.doms.rvSelKind;
 		if (!norm(word)) {
-			paint("", "", []);
+			ui.paint("", "", []);
 			SK.msg("box-msg", "");
 			return;
 		}
-		var t0 = now();
+		var t0 = ui.now();
 		var built = build(word, langcode(), {
 			kind: kind ? kind.value : "auto",
 			aspect: "auto",
@@ -1783,103 +1714,24 @@
 			gender: "auto",
 			variant: "all"
 		});
-		var tcalc = now() - t0;
+		var tcalc = ui.now() - t0;
 		if (!built.ok) {
-			paint("", "", []);
+			ui.paint("", "", []);
 			SK.msg("box-msg", built.err, true);
 			return;
 		}
-		paint(built.head, built.note, built.rows, timestr(-1, tcalc));
+		ui.paint(built.head, built.note, built.rows, ui.timestr(-1, tcalc));
 		SK.msg("box-msg", "");
 	}
 
-	var perline = 2;
-	var maxcols = 4;
-	var tries = 0;
-	var lastpaint = null;
-	var rtimer = 0;
-	var bound = false;
 
-	function paint(head, note, rows, tm){
-		var out = F.id("rv-out");
-		if (!out) return;
-		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
-		lastpaint = { head: head, note: note, rows: rows, tm: tm };
-		render(out);
-	}
 
-	// 栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。
-	var CELLW = 200;
 
-	function tabopen(cls){
-		var n = perline;
-		var html = '<table class="' + cls + '" style="width:' + (n <= 2 ? "100%" : (n * CELLW) + "px") + '">';
-		if (n > 2) {
-			html += "<colgroup>";
-			for (var i = 0; i < n; i++) html += '<col style="width:' + CELLW + 'px">';
-			html += "</colgroup>";
-		}
-		return html;
-	}
 
-	function render(out){
-		if (!out || !lastpaint) return;
-		var cw = out.clientWidth;
-		if (cw <= 0) {
-			// 刚切到工具页时容器可能还没显示，等一帧再量。
-			if (tries < 5) { tries++; setTimeout(refit, 40); }
-			return;
-		}
-		tries = 0;
-		perline = Math.floor(cw / CELLW);
-		if (perline < 1) perline = 1;
-		if (perline > 8) perline = 8;
-		out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows, lastpaint.tm);
-	}
 
-	function onresize(){
-		if (rtimer) clearTimeout(rtimer);
-		rtimer = setTimeout(refit, 150);
-	}
-
-	function refit(){
-		var out = F.id("rv-out");
-		if (out && lastpaint) render(out);
-	}
 
 	// 一行两组「名称 + 词形」。
-	function tablehtml(head, note, rows, tm){
-		var tip = esc(tx("dict.speak", "发音"));
-		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(note) + "</span>"
-			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div>"
-			+ tabopen("jv-tab rv-tab");
-		var g = null;
-		var buf = [];
-		var i;
-		for (i = 0; i < rows.length; i++) {
-			if (rows[i].g !== g) {
-				html += flushrows(buf, tip);
-				buf = [];
-				g = rows[i].g;
-				if (g) html += '<tr><td class="kv-g" colspan="' + perline + '">' + esc(g) + "</td></tr>";
-			}
-			buf.push(rows[i]);
-		}
-		return html + flushrows(buf, tip) + "</table>";
-	}
 
-	function flushrows(buf, tip){
-		var html = "";
-		var j, k;
-		for (j = 0; j < buf.length; j += perline) {
-			html += "<tr>";
-			for (k = 0; k < perline; k++) {
-				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="c-k"></td>';
-			}
-			html += "</tr>";
-		}
-		return html;
-	}
 
 	function cellhtml(item, tip){
 		var html = '<td class="c-k"><div class="clab">' + esc(item.name) + '</div><div class="cex"><span>'
@@ -1896,24 +1748,9 @@
 	}
 
 	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
-	function timestr(dictms, calcms){
-		var a = "";
-		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
-		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
-		return a;
-	}
 
-	function fmtms(v){
-		v = Math.round(v * 10) / 10;
-		return v < 1 ? "<1 ms" : Math.round(v) + " ms";
-	}
 
-	function now(){
-		return window.performance && window.performance.now ? window.performance.now() : Date.now();
-	}
 
-	function esc(s){
-		return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-	}
+	var esc = SK.esc;
 })();
 

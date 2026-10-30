@@ -1,10 +1,17 @@
 (function(){
+	var page = null;
 	SK.regutil("u-loan", {
 		title: "房贷",
 		go: "计算",
-		body: function(){
-			return SK.row2(SK.lab("金额", SK.textin("box-p", "100000")), SK.lab("年利率 %", SK.textin("box-rate", "3.5")))
-				+ SK.row2(SK.lab("月数", SK.numin("box-n", "360")), SK.lab("方式", '<select id="box-mode"><option value="annuity">等额本息</option><option value="principal">等额本金</option></select>'));
+		body: function(t){
+			page = t;
+			return [
+				SK.row2(SK.lab("金额", SK.textin("box-p", "100000")), SK.lab("年利率 %", SK.textin("box-rate", "3.5"))),
+				SK.row2(SK.lab("月数", SK.numin("box-n", "360")), SK.lab("方式", F.CreateDOM(t, { x: "select.box-mode", name: "boxMode", c: [
+					{ x: "option", value: "annuity", c: "等额本息" },
+					{ x: "option", value: "principal", c: "等额本金" }
+				] })))
+			];
 		},
 		run: function(){
 			return loanpay(SK.val("box-p"), SK.val("box-rate"), SK.val("box-n"), SK.val("box-mode"));

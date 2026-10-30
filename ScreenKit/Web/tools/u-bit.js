@@ -1,4 +1,5 @@
 (function(){
+	var page = null;
 	var ac, master, waves, nbuf;
 	var analyser, wavebuf, wavef, viewf, waveraf, waveon;
 	var WAVE_VIEW = 2048;
@@ -66,47 +67,55 @@
 		dispose: leave
 	});
 
-	function body(){
-		var opts = "";
+	function body(t){
+		page = t;
+		var opts = [];
 		var i;
 		for (i = 0; i < INST.length; i++)
-			opts += '<option value="' + INST[i].id + '">' + INST[i].name + "</option>";
-		var sfx = "";
+			opts.push({ x: "option", value: INST[i].id, c: INST[i].name });
+		var sfx = [];
 		for (i = 0; i < SFX.length; i++)
-			sfx += '<button type="button" class="bit-sfx" data-sfx="' + SFX[i].id + '">' + SFX[i].name + "</button>";
-		return '<div class="bit">'
-			+ '<div class="row">'
-			+ '<label>乐器<select id="bit-inst">' + opts + "</select></label>"
-			+ '<label class="bitvol">音量<input id="bit-vol" type="range" min="0" max="100" value="100"></label>'
-			+ '<button type="button" id="bit-demo">试听</button>'
-			+ '<button type="button" id="bit-stop">停止</button>'
-			+ '<span class="bitoct">八度<button type="button" id="bit-octdn" title="降一个八度">−</button>'
-			+ '<b id="bit-octv">C3</b>'
-			+ '<button type="button" id="bit-octup" title="升一个八度">+</button></span>'
-			+ "</div>"
-			+ '<canvas class="bitwave" id="bit-wave"></canvas>'
-			+ '<div class="bitkeys" id="bit-keys">' + keys() + "</div>"
-			+ '<p class="kicker">编排</p>'
-			+ '<div class="row">'
-			+ '<label>速度<input id="bit-bpm" type="number" min="40" max="240" value="120"></label>'
-			+ '<label>记谱<select id="bit-oct"><option value="-12">低八度</option><option value="0" selected>原调</option><option value="12">高八度</option></select></label>'
-			+ '<button type="button" id="bit-play">播放</button>'
-			+ '<button type="button" id="bit-songstop">停止</button>'
-			+ '<label>示例<select id="bit-ex">' + exopts() + "</select></label>"
-			+ '<button type="button" id="bit-clear">清空</button>'
-			+ "</div>"
-			+ '<div class="bitgrid" id="bit-grid"></div>'
-			+ '<p class="bitmsg">四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。</p>'
-			+ '<p class="kicker">音效</p>'
-			+ '<div class="ops" id="bit-sfx">' + sfx + "</div>"
-			+ '<p class="bitmsg" id="bit-msg">点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组），也可以点「八度」旁边的 − / + 换一组。点一个音效会停掉其它正在响的。警报、火警、蜂鸣、电话再点一次就停。</p>'
-			+ "</div>";
+			sfx.push(F.CreateDOM(t, { x: "button.bit-sfx", type: "button", "data-sfx": SFX[i].id, c: SFX[i].name }));
+		return F.CreateDOM(t, { x: "div.bit", c: [
+			{ x: "div.row", c: [
+				{ x: "label", c: ["乐器", { x: "select.bit-inst", name: "bitInst", c: opts }] },
+				{ x: "label.bitvol", c: ["音量", { x: "input.bit-vol", name: "bitVol", type: "range", min: "0", max: "100", value: "100" }] },
+				{ x: "button.bit-demo", name: "bitDemo", type: "button", c: "试听" },
+				{ x: "button.bit-stop", name: "bitStop", type: "button", c: "停止" },
+				{ x: "span.bitoct", c: [
+					"八度",
+					{ x: "button.bit-octdn", name: "bitOctdn", type: "button", title: "降一个八度", c: "−" },
+					{ x: "b.bit-octv", name: "bitOctv", c: "C3" },
+					{ x: "button.bit-octup", name: "bitOctup", type: "button", title: "升一个八度", c: "+" }
+				] }
+			] },
+			{ x: "canvas.bit-wave.bitwave", name: "bitWave" },
+			{ x: "div.bit-keys.bitkeys", name: "bitKeys", c: keys() },
+			{ x: "p.kicker", c: "编排" },
+			{ x: "div.row", c: [
+				{ x: "label", c: ["速度", { x: "input.bit-bpm", name: "bitBpm", type: "number", min: "40", max: "240", value: "120" }] },
+				{ x: "label", c: ["记谱", { x: "select.bit-oct", name: "bitOct", c: [
+					{ x: "option", value: "-12", c: "低八度" },
+					{ x: "option", value: "0", selected: true, c: "原调" },
+					{ x: "option", value: "12", c: "高八度" }
+				] }] },
+				{ x: "button.bit-play", name: "bitPlay", type: "button", c: "播放" },
+				{ x: "button.bit-songstop", name: "bitSongstop", type: "button", c: "停止" },
+				{ x: "label", c: ["示例", { x: "select.bit-ex", name: "bitEx", c: exopts() }] },
+				{ x: "button.bit-clear", name: "bitClear", type: "button", c: "清空" }
+			] },
+			{ x: "div.bit-grid.bitgrid", name: "bitGrid" },
+			{ x: "p.bitmsg", c: "四个通道，每路自己选乐器，选择和曲子一起记在这台浏览器里。点格子再点琴键写入，写完到下一格；再点当前格就清掉。噪声鼓点一下在 1–6 档之间换。速度是每分钟多少拍，一格是十六分音符。示例是六段 FC 风格的一小节循环。" },
+			{ x: "p.kicker", c: "音效" },
+			{ x: "div.bit-sfx.ops", name: "bitSfx", c: sfx },
+			{ x: "p.bit-msg.bitmsg", name: "bitMsg", c: "点琴键，或用键盘 A–V 那一排；按住 Shift 升 8 度、Alt 降 8 度（琴键跟着换一组），也可以点「八度」旁边的 − / + 换一组。点一个音效会停掉其它正在响的。警报、火警、蜂鸣、电话再点一次就停。" }
+		] });
 	}
 
 	// 三个八度（36 个半音）：上面两个八度是 A–V 那一排的键位，整组跟着 Shift/Alt 移调
 	function keys(){
-		var whites = "";
-		var blacks = "";
+		var whites = F.CreateDOM(null, { x: "div.whites" });
+		var blacks = [];
 		var wi = -1;
 		var lo = 48 + shift;
 		var i, midi, name, lab;
@@ -116,41 +125,44 @@
 			lab = LABEL[midi - shift] || "";
 			if (name.indexOf("#") < 0) {
 				wi++;
-				whites += '<button type="button" class="w" data-midi="' + midi + '">'
-					+ (name === "C" ? name + (Math.floor(midi / 12) - 1) : name)
-					+ "<small>" + lab + "</small></button>";
+				whites.appendChild(F.CreateDOM(null, { x: "button.w", type: "button", "data-midi": midi, c: [
+					(name === "C" ? name + (Math.floor(midi / 12) - 1) : name),
+					{ x: "small", c: lab }
+				] }));
 			}
 			else {
-				blacks += '<button type="button" class="b" data-midi="' + midi + '" data-after="' + wi + '">'
-					+ "<small>" + lab + "</small></button>";
+				blacks.push(F.CreateDOM(null, { x: "button.b", type: "button", "data-midi": midi, "data-after": wi, c: [
+					{ x: "small", c: lab }
+				] }));
 			}
 		}
-		return '<div class="whites">' + whites + "</div>" + blacks;
+		return [whites].concat(blacks);
 	}
 
-	function open(){
-		var root = F.id("bit-keys");
-		var sfx = F.id("bit-sfx");
+	function open(t){
+		page = t;
+		var root = page.doms.bitKeys;
+		var sfx = page.doms.bitSfx;
 		if (!root || !sfx) return;
 		root.onpointerdown = onpointerdown;
 		root.onpointerup = onpointerup;
 		root.onpointercancel = onpointerup;
 		sfx.onclick = onsfx;
-		F.id("bit-demo").onclick = demo;
-		F.id("bit-stop").onclick = stopaudio;
-		F.id("bit-octdn").onclick = function(){ stepoct(-1); };
-		F.id("bit-octup").onclick = function(){ stepoct(1); };
+		page.doms.bitDemo.onclick = demo;
+		page.doms.bitStop.onclick = stopaudio;
+		page.doms.bitOctdn.onclick = function(){ stepoct(-1); };
+		page.doms.bitOctup.onclick = function(){ stepoct(1); };
 		paintoct();
-		F.id("bit-play").onclick = songplay;
-		F.id("bit-songstop").onclick = function(){ songstop(); };
-		F.id("bit-ex").onchange = onex;
-		F.id("bit-clear").onclick = clearsong;
-		F.id("bit-bpm").onchange = function(){ readbpm(); savesong(); };
-		F.id("bit-grid").onclick = ongrid;
-		F.id("bit-grid").onchange = onmute;
+		page.doms.bitPlay.onclick = songplay;
+		page.doms.bitSongstop.onclick = function(){ songstop(); };
+		page.doms.bitEx.onchange = onex;
+		page.doms.bitClear.onclick = clearsong;
+		page.doms.bitBpm.onchange = function(){ readbpm(); savesong(); };
+		page.doms.bitGrid.onclick = ongrid;
+		page.doms.bitGrid.onchange = onmute;
 		loadsong();
 		paintgrid();
-		F.id("bit-vol").oninput = applyvol;
+		page.doms.bitVol.oninput = applyvol;
 		bind();
 		layoutkeys();
 		F.raf(layoutkeys);
@@ -182,8 +194,8 @@
 	}
 
 	function placeblack(){
-		var whites = F.qa("#bit-keys .w");
-		var blacks = F.qa("#bit-keys .b");
+		var whites = F.qa(".bit-keys .w");
+		var blacks = F.qa(".bit-keys .b");
 		var i, w, bw;
 		if (!whites.length) return;
 		for (i = 0; i < blacks.length; i++) {
@@ -199,7 +211,7 @@
 
 	// 白键能到 40px 宽就一行放下 21 个，不然一行一个八度分三行（21×40 + 20 = 860）
 	function layoutkeys(){
-		var root = F.id("bit-keys");
+		var root = page.doms.bitKeys;
 		if (!root) return;
 		root.className = "bitkeys " + (root.clientWidth >= 21 * 40 + 20 ? "onerow" : "rows3");
 		placeblack();
@@ -213,7 +225,7 @@
 	}
 
 	function paintkeys(){
-		var root = F.id("bit-keys");
+		var root = page.doms.bitKeys;
 		var k;
 		if (!root) return;
 		root.innerHTML = keys();
@@ -227,7 +239,7 @@
 	}
 
 	function paintoct(){
-		var el = F.id("bit-octv");
+		var el = page.doms.bitOctv;
 		if (el) el.textContent = "C" + baseoct();
 	}
 
@@ -245,7 +257,7 @@
 	}
 
 	function inst(){
-		var el = F.id("bit-inst");
+		var el = page.doms.bitInst;
 		var id = el ? el.value : "sq";
 		var i;
 		for (i = 0; i < INST.length; i++) if (INST[i].id === id) return INST[i];
@@ -259,7 +271,7 @@
 	}
 
 	function volnow(){
-		var el = F.id("bit-vol");
+		var el = page.doms.bitVol;
 		var v = el ? Number(el.value) : 100;
 		if (!(v >= 0)) v = 100;
 		return v / 100;
@@ -293,7 +305,7 @@
 
 	function armwave(){
 		if (waveon) return;
-		if (!F.id("bit-wave")) return;
+		if (!page.doms.bitWave) return;
 		waveon = true;
 		drawwave();
 	}
@@ -308,7 +320,7 @@
 		waveraf = 0;
 		if (!waveon) return;
 		waveraf = requestAnimationFrame(drawwave);
-		var cv = F.id("bit-wave");
+		var cv = page.doms.bitWave;
 		if (!cv) return;
 		var dpr = window.devicePixelRatio || 1;
 		var w = cv.clientWidth;
@@ -411,7 +423,7 @@
 	}
 
 	function say(text){
-		var el = F.id("bit-msg");
+		var el = page.doms.bitMsg;
 		if (el) el.textContent = text;
 	}
 
@@ -566,7 +578,7 @@
 	}
 
 	function paintkey(midi, on){
-		var btn = F.q('#bit-keys button[data-midi="' + midi + '"]');
+		var btn = F.q(".bit-keys button[data-midi=\"" + midi + '"]');
 		if (!btn) return;
 		if (on) btn.classList.add("on");
 		else btn.classList.remove("on");
@@ -1016,8 +1028,8 @@
 	}
 
 	function paintgrid(){
-		var grid = F.id("bit-grid");
-		var bpmel = F.id("bit-bpm");
+		var grid = page.doms.bitGrid;
+		var bpmel = page.doms.bitBpm;
 		if (!grid) return;
 		if (bpmel) bpmel.value = String(bpm);
 		var html = "";
@@ -1043,7 +1055,7 @@
 	}
 
 	function marknow(step){
-		var nodes = F.qa("#bit-grid .bitcell");
+		var nodes = F.qa(".bit-grid .bitcell");
 		var i, on;
 		for (i = 0; i < nodes.length; i++) {
 			on = step >= 0 && Number(F.attr(nodes[i], "data-step")) === step;
@@ -1053,7 +1065,7 @@
 	}
 
 	function paintplaybtn(){
-		var b = F.id("bit-play");
+		var b = page.doms.bitPlay;
 		if (!b) return;
 		if (playOn) b.classList.add("primary");
 		else b.classList.remove("primary");
@@ -1115,7 +1127,7 @@
 		if (!sel) return false;
 		var ch = sel.ch;
 		if (isnoise(ch)) return false;
-		var oct = F.id("bit-oct");
+		var oct = page.doms.bitOct;
 		var shift = oct ? Number(oct.value) : 0;
 		if (shift !== -12 && shift !== 12) shift = 0;
 		var n = midi + shift;
@@ -1137,11 +1149,11 @@
 	}
 
 	function exopts(){
-		var html = '<option value="">示例</option>';
+		var out = [{ x: "option", value: "", c: "示例" }];
 		var i;
 		for (i = 0; i < EXS.length; i++)
-			html += '<option value="' + EXS[i].id + '">' + EXS[i].name + "</option>";
-		return html;
+			out.push({ x: "option", value: EXS[i].id, c: EXS[i].name });
+		return out;
 	}
 
 	function exof(id){
@@ -1151,7 +1163,7 @@
 	}
 
 	function onex(){
-		var el = F.id("bit-ex");
+		var el = page.doms.bitEx;
 		var id = el ? el.value : "";
 		if (!id) return;
 		fillex(id);
@@ -1172,7 +1184,7 @@
 	}
 
 	function readbpm(){
-		var el = F.id("bit-bpm");
+		var el = page.doms.bitBpm;
 		var v = el ? Number(el.value) : bpm;
 		if (!(v >= 40)) v = 40;
 		if (v > 240) v = 240;

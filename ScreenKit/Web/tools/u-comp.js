@@ -3,8 +3,10 @@
 		title: "复利",
 		go: "计算",
 		body: function(){
-			return SK.row2(SK.lab("本金", SK.textin("box-p", "10000")), SK.lab("年利率 %", SK.textin("box-rate", "3")))
-				+ SK.row2(SK.lab("年数", SK.textin("box-years", "5")), SK.lab("每年计息次数", SK.numin("box-n", "12")));
+			return [
+				SK.row2(SK.lab("本金", SK.textin("box-p", "10000")), SK.lab("年利率 %", SK.textin("box-rate", "3"))),
+				SK.row2(SK.lab("年数", SK.textin("box-years", "5")), SK.lab("每年计息次数", SK.numin("box-n", "12")))
+			];
 		},
 		run: function(){
 			return compound(SK.val("box-p"), SK.val("box-rate"), SK.val("box-years"), SK.val("box-n"));

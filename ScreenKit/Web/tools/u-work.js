@@ -1,25 +1,28 @@
 (function(){
+	var page = null;
 	SK.regutil("u-work", {
 		title: "工作日",
 		go: "计算",
 		noGo: true,
-		body: function(){
-			return SK.row2(SK.lab("开始", '<input id="box-a" type="date">'), SK.lab("结束", '<input id="box-b" type="date">'));
+		body: function(t){
+			page = t;
+			var onin = function(){ SK.utilrun(); };
+			return SK.row2(
+				SK.lab("开始", F.CreateDOM(t, { x: "input.box-a", name: "boxA", type: "date", oninput: onin, onchange: onin })),
+				SK.lab("结束", F.CreateDOM(t, { x: "input.box-b", name: "boxB", type: "date", oninput: onin, onchange: onin }))
+			);
 		},
 		run: function(){
 			return workdays(SK.val("box-a"), SK.val("box-b"));
 		},
-		open: function(){
+		open: function(t){
+			page = t;
 			var day = new Date();
-			var a = F.id("box-a");
-			var b = F.id("box-b");
+			var a = page.doms.boxA;
+			var b = page.doms.boxB;
 			b.value = SK.ymd(day);
 			day.setDate(day.getDate() - 7);
 			a.value = SK.ymd(day);
-			a.oninput = SK.utilrun;
-			b.oninput = SK.utilrun;
-			a.onchange = SK.utilrun;
-			b.onchange = SK.utilrun;
 			SK.utilrun();
 		}
 	});

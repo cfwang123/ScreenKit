@@ -163,136 +163,14 @@
 		{ id: "model", name: "3D 模型" },
 		{ id: "message", name: "消息" }
 	];
-	var cur = "all";
-	var picked = "text/plain";
-
-	SK.regutil("u-mimetab", {
-		title: "MIME类型表",
-		body: function(){
-			return '<div class="reftab">'
-				+ '<div class="uquery"><input id="m-q" type="text" placeholder="' + esc(SK.td("搜索：.jpg、image/、json、视频")) + '">'
-				+ '<span id="m-msg" class="msg"></span></div>'
-				+ '<div class="refchips" id="m-chips"></div>'
-				+ '<div class="refbody">'
-				+ '<div class="refscroll"><table class="reflist mtypes" id="m-tab"></table></div>'
-				+ '<aside class="refdetail" id="m-detail"></aside>'
-				+ "</div></div>";
-		},
-		run: function(){
-			throw new Error("没有这个工具");
-		},
-		open: function(){
-			cur = "all";
-			picked = "text/plain";
-			paintchips();
-			F.id("m-q").oninput = paint;
-			F.id("m-chips").onclick = onchip;
-			F.id("m-tab").onclick = onrow;
-			paint();
-		},
-		hideGo: true,
-		live: false,
-		hideOut: true,
-		relang: function(){ SK.reopenutil(); }
-	});
-
 	function catname(id){
 		var i;
 		for (i = 0; i < CATS.length; i++) if (CATS[i].id === id) return CATS[i].name;
 		return "";
 	}
 
-	function query(){
-		return String(SK.val("m-q") || "").trim().toLowerCase();
-	}
-
-	function hit(row, q){
-		if (!q) return true;
-		var ext = row[1] || "";
-		var qq = q.charAt(0) === "." ? q.substring(1) : q;
-		var blob = (row[0] + " " + ext + " " + ext.replace(/\./g, " ") + " " + catname(row[2])
-			+ " " + row[3] + " " + (row[4] || "")).toLowerCase();
-		if (blob.indexOf(q) >= 0) return true;
-		return qq !== q && blob.indexOf(qq) >= 0;
-	}
-
-	function paintchips(){
-		var html = ['<button type="button" data-g="all"' + (cur === "all" ? ' class="on"' : "") + ">" + esc(SK.td("全部")) + "<small>"
-			+ ROWS.length + "</small></button>"];
-		var i, j, n;
-		for (i = 0; i < CATS.length; i++) {
-			n = 0;
-			for (j = 0; j < ROWS.length; j++) if (ROWS[j][2] === CATS[i].id) n++;
-			html.push('<button type="button" data-g="' + CATS[i].id + '"'
-				+ (cur === CATS[i].id ? ' class="on"' : "") + ">" + esc(SK.td(CATS[i].name))
-				+ "<small>" + n + "</small></button>");
-		}
-		F.id("m-chips").innerHTML = html.join("");
-	}
-
-	function paint(){
-		var q = query();
-		var html = ["<thead><tr><th>" + esc(SK.td("MIME 类型")) + "</th><th>" + esc(SK.td("扩展名"))
-			+ "</th><th>" + esc(SK.td("说明")) + "</th></tr></thead><tbody>"];
-		var total = 0;
-		var i, j, rows, n;
-		for (i = 0; i < CATS.length; i++) {
-			if (cur !== "all" && cur !== CATS[i].id) continue;
-			rows = [];
-			for (j = 0; j < ROWS.length; j++) {
-				if (ROWS[j][2] === CATS[i].id && hit(ROWS[j], q)) rows.push(ROWS[j]);
-			}
-			if (!rows.length) continue;
-			total += rows.length;
-			html.push('<tr class="refgh"><td colspan="3">' + esc(SK.td(CATS[i].name))
-				+ '<span class="n">' + rows.length + "</span></td></tr>");
-			for (n = 0; n < rows.length; n++) html.push(rowhtml(rows[n]));
-		}
-		html.push("</tbody>");
-		if (!total) html = ['<tbody><tr><td class="refnone">' + esc(SK.td("没有匹配的类型")) + "</td></tr></tbody>"];
-		F.id("m-tab").innerHTML = html.join("");
-		SK.msg("m-msg", total ? SK.td(q ? "%n 条" : "共 %n 条").replace("%n", total) : "");
-		if (total) {
-			var sel = rowby(picked);
-			if (!visible(sel, q)) sel = firstvisible(q);
-			showdetail(sel || ROWS[0]);
-		}
-		else F.id("m-detail").innerHTML = "";
-	}
-
-	function visible(row, q){
-		if (!row) return false;
-		if (cur !== "all" && cur !== row[2]) return false;
-		return hit(row, q);
-	}
-
-	function firstvisible(q){
-		var i, j;
-		for (i = 0; i < CATS.length; i++) {
-			if (cur !== "all" && cur !== CATS[i].id) continue;
-			for (j = 0; j < ROWS.length; j++) {
-				if (ROWS[j][2] === CATS[i].id && hit(ROWS[j], q)) return ROWS[j];
-			}
-		}
-		return null;
-	}
-
-	function rowby(mime){
-		var i;
-		for (i = 0; i < ROWS.length; i++) if (ROWS[i][0] === mime) return ROWS[i];
-		return null;
-	}
-
-	function rowhtml(row){
-		return '<tr data-mime="' + esc(row[0]) + '" title="' + esc(SK.td("点击复制 %s").replace("%s", row[0])) + '"'
-			+ (row[0] === picked ? ' class="on"' : "") + ">"
-			+ '<td class="mtype">' + esc(row[0]) + "</td>"
-			+ '<td class="mext">' + (row[1] ? esc(row[1]) : "—") + "</td>"
-			+ "<td>" + esc(SK.td(row[3])) + "</td></tr>";
-	}
-
 	function sample(row){
-		var m = row[0];
+		var m = row.c[0];
 		if (m.indexOf("multipart/") === 0)
 			return "Content-Type: " + m + "; boundary=----WebKitFormBoundary";
 		if (m.indexOf("text/") === 0 || m === "application/javascript")
@@ -300,65 +178,44 @@
 		return "Content-Type: " + m;
 	}
 
-	// 在分号后留换行点，窄面板里不会把 charset 从单词中间截断
+	// 在分号后留换行点，窄面板里不会把 charset 从单词中间截断。
 	function samplehtml(row){
 		var parts = sample(row).split("; ");
-		var out = esc(parts[0]);
+		var out = SK.esc(parts[0]);
 		var i;
-		for (i = 1; i < parts.length; i++) out += "; <wbr>" + esc(parts[i]);
+		for (i = 1; i < parts.length; i++) out += "; <wbr>" + SK.esc(parts[i]);
 		return out;
 	}
 
-	function showdetail(row){
-		if (!row) return;
-		var meta = [
-			["类别", SK.td(catname(row[2]))],
-			["扩展名", row[1] || "—"],
-			["说明", SK.td(row[3])]
-		];
-		if (row[4]) meta.push(["备注", SK.td(row[4])]);
-		var html = '<div class="refbig mime">' + esc(row[0]) + "</div>"
-			+ '<div class="refsub">' + esc(SK.td(catname(row[2]))) + "</div>"
-			+ '<dl class="refmeta">';
-		var i;
-		for (i = 0; i < meta.length; i++)
-			html += "<dt>" + esc(SK.td(meta[i][0])) + "</dt><dd>" + esc(meta[i][1]) + "</dd>";
-		html += "</dl>"
-			+ '<div class="refsample">' + samplehtml(row) + "</div>";
-		F.id("m-detail").innerHTML = html;
+	// 扩展名的点去掉再拼进搜索串，搜「jpg」也能命中。
+	function tabrow(r){
+		var d = [["类别", catname(r[2])], ["扩展名", r[1] || "—"], ["说明", r[3]]];
+		if (r[4]) d.push(["备注", r[4]]);
+		return {
+			g: r[2],
+			c: [r[0], r[1], r[3]],
+			x: r[1].replace(/\./g, " ") + " " + catname(r[2]) + " " + r[3] + " " + (r[4] || ""),
+			d: d
+		};
 	}
 
-	function onchip(ev){
-		var el = ev.target;
-		while (el && el !== this) {
-			if (el.getAttribute && F.attr(el, "data-g")) {
-				cur = F.attr(el, "data-g");
-				paintchips();
-				paint();
-				return;
-			}
-			el = el.parentNode;
-		}
-	}
-
-	function onrow(ev){
-		var el = ev.target;
-		while (el && el.tagName !== "TR") el = el.parentNode;
-		if (!el || !F.attr(el, "data-mime")) return;
-		var mime = F.attr(el, "data-mime");
-		var row = rowby(mime);
-		if (!row) return;
-		picked = mime;
-		paint();
-		showdetail(row);
-		SK.copytext(mime, "m-msg");
-	}
-
-	function esc(s){
-		return String(s == null ? "" : s)
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;");
-	}
+	SK.regref("u-mimetab", {
+		title: "MIME类型表",
+		cls: "mtypes",
+		cols: [
+			{ name: "MIME 类型", cls: "mtype" },
+			{ name: "扩展名", cls: "mext" },
+			{ name: "说明" }
+		],
+		groups: CATS,
+		rows: ROWS.map(tabrow),
+		placeholder: "搜索：.jpg、image/、json、视频",
+		big: 0,
+		sub: null,
+		copy: 0,
+		bigCls: "mime",
+		defaultPick: "text/plain",
+		sample: sample,
+		samplehtml: samplehtml
+	});
 })();

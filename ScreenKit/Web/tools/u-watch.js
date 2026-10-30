@@ -1,40 +1,58 @@
 (function(){
+	var page = null;
 	SK.regutil("u-watch", {
 		title: "计时",
 		go: "复位",
-		body: function(){
-			return '<div class="row">'
-				+ moderadio("watch-sw", "web.watch.sw", "秒表", true)
-				+ moderadio("watch-down", "web.watch.down", "倒计时", false)
-				+ moderadio("watch-until", "web.watch.until", "截止", false)
-				+ "</div>"
-				+ '<div id="watch-secrow">' + SK.lab("秒数", SK.numin("box-n", "60")) + "</div>"
-				+ '<div id="watch-untilrow" hidden>' + SK.lab("日期时间", '<input id="watch-at" type="datetime-local" step="1">') + "</div>"
-				+ '<div class="row"><button type="button" id="box-start" data-k="web.go.start">开始</button></div>';
+		body: function(t){
+			page = t;
+			return [
+				F.CreateDOM(t, { x: "div.row", c: [
+					moderadio(t, "watch-sw", "web.watch.sw", "秒表", true),
+					moderadio(t, "watch-down", "web.watch.down", "倒计时", false),
+					moderadio(t, "watch-until", "web.watch.until", "截止", false)
+				] }),
+				F.CreateDOM(t, { x: "div.watch-secrow", name: "watchSecrow", c: SK.lab("秒数", SK.numin("box-n", "60")) }),
+				F.CreateDOM(t, { x: "div.watch-untilrow", name: "watchUntilrow", hidden: true, c:
+					SK.lab("日期时间", F.CreateDOM(t, { x: "input.watch-at", name: "watchAt", type: "datetime-local", step: "1", oninput: function(){ watchuntil(); } })) }),
+				F.CreateDOM(t, { x: "div.row", c: [
+					{ x: "button.box-start", name: "boxStart", type: "button", "data-k": "web.go.start", c: "开始", onclick: function(){ watchtoggle(); } }
+				] })
+			];
 		},
 		run: function(){
 			return watchreset();
 		},
-		open: function(){
-			F.id("box-start").onclick = watchtoggle;
-			F.id("watch-sw").onchange = watchmode;
-			F.id("watch-down").onchange = watchmode;
-			F.id("watch-until").onchange = watchmode;
-			F.id("watch-at").oninput = watchuntil;
+		open: function(t){
+			page = t;
 			filluntil();
 			watchmode();
 		}
 	});
 
-	function moderadio(id, key, fallback, on){
+	function moderadio(t, id, key, fallback, on){
 		var label = (SK.t && SK.t(key)) || fallback;
-		return '<label class="check"><input id="' + id + '" name="watch-mode" type="radio" value="' + id + '"'
-			+ (on ? " checked" : "") + '> <span data-k="' + key + '">' + label + "</span></label>";
+		var span = document.createElement("span");
+		span.setAttribute("data-k", key);
+		span.textContent = label;
+		var box = document.createElement("input");
+		box.type = "radio";
+		box.id = id;
+		box.name = "watch-mode";
+		box.value = id;
+		box.checked = !!on;
+		box.onchange = function(){ watchmode(); };
+		var el = document.createElement("label");
+		el.className = "check";
+		el.appendChild(box);
+		el.appendChild(document.createTextNode(" "));
+		el.appendChild(span);
+		if (t && t.doms) t.doms[SK.domkey(id)] = box;
+		return el;
 	}
 
 	function curmode(){
-		if (F.id("watch-down") && F.id("watch-down").checked) return "down";
-		if (F.id("watch-until") && F.id("watch-until").checked) return "until";
+		if (page.doms.watchDown && page.doms.watchDown.checked) return "down";
+		if (page.doms.watchUntil && page.doms.watchUntil.checked) return "until";
 		return "sw";
 	}
 
@@ -80,7 +98,7 @@
 	}
 
 	function filluntil(){
-		var el = F.id("watch-at");
+		var el = page.doms.watchAt;
 		if (!el || el.value) return;
 		var d = new Date(Date.now() + 3600000);
 		el.value = d.getFullYear() + "-" + SK.pad2(d.getMonth() + 1) + "-" + SK.pad2(d.getDate())
@@ -97,21 +115,21 @@
 
 	function donebox(){
 		SK.stoptick();
-		watchcap(F.id("box-start"), "web.go.start", "开始");
-		F.id("box-out").value = "00:00:00\n" + say("web.watch.done", "时间到");
+		watchcap(page.doms.boxStart, "web.go.start", "开始");
+		SK.doms.boxOut.value = "00:00:00\n" + say("web.watch.done", "时间到");
 		SK.msg("box-msg", say("web.watch.done", "时间到"));
 	}
 
 	function watchmode(){
 		SK.stoptick();
 		SK.watchAcc = 0;
-		watchcap(F.id("box-start"), "web.go.start", "开始");
+		watchcap(page.doms.boxStart, "web.go.start", "开始");
 		var mode = curmode();
-		F.id("watch-secrow").hidden = mode !== "down";
-		F.id("watch-untilrow").hidden = mode !== "until";
+		page.doms.watchSecrow.hidden = mode !== "down";
+		page.doms.watchUntilrow.hidden = mode !== "until";
 		SK.msg("box-msg", "");
 		if (mode === "down") {
-			F.id("box-out").value = fmthms(readsec(false));
+			SK.doms.boxOut.value = fmthms(readsec(false));
 			return;
 		}
 		if (mode === "until") {
@@ -119,12 +137,12 @@
 			watchuntil();
 			return;
 		}
-		F.id("box-out").value = "00:00.00";
+		SK.doms.boxOut.value = "00:00.00";
 	}
 
 	function watchtoggle(){
 		var mode = curmode();
-		var btn = F.id("box-start");
+		var btn = page.doms.boxStart;
 		if (mode === "down") {
 			if (SK.watchOn) {
 				SK.stoptick();
@@ -147,14 +165,14 @@
 		if (SK.watchOn) {
 			SK.stoptick();
 			watchcap(btn, "web.go.start", "开始");
-			F.id("box-out").value = fmtwatch(SK.watchAcc);
+			SK.doms.boxOut.value = fmtwatch(SK.watchAcc);
 			return;
 		}
 		SK.watch0 = Date.now();
 		SK.watchOn = true;
 		watchcap(btn, "web.f.stop", "停止");
 		SK.tick = setInterval(function(){
-			F.id("box-out").value = fmtwatch(SK.watchAcc + Date.now() - SK.watch0);
+			SK.doms.boxOut.value = fmtwatch(SK.watchAcc + Date.now() - SK.watch0);
 		}, 50);
 	}
 
@@ -163,8 +181,8 @@
 		var sec = readsec(true);
 		var end = Date.now() + sec * 1000;
 		SK.watchOn = true;
-		watchcap(F.id("box-start"), "web.f.stop", "停止");
-		F.id("box-out").value = fmthms(sec);
+		watchcap(page.doms.boxStart, "web.f.stop", "停止");
+		SK.doms.boxOut.value = fmthms(sec);
 		SK.msg("box-msg", say("web.watch.run", "计时中"));
 		SK.tick = setInterval(function(){
 			var left = Math.ceil((end - Date.now()) / 1000);
@@ -172,7 +190,7 @@
 				donebox();
 				return;
 			}
-			F.id("box-out").value = fmthms(left);
+			SK.doms.boxOut.value = fmthms(left);
 		}, 200);
 	}
 
@@ -188,7 +206,7 @@
 			return;
 		}
 		SK.watchOn = true;
-		watchcap(F.id("box-start"), "web.f.stop", "停止");
+		watchcap(page.doms.boxStart, "web.f.stop", "停止");
 		SK.msg("box-msg", say("web.watch.run", "计时中"));
 		function tick(){
 			var left = end - Date.now();
@@ -196,7 +214,7 @@
 				donebox();
 				return;
 			}
-			F.id("box-out").value = fmtleft(left);
+			SK.doms.boxOut.value = fmtleft(left);
 		}
 		tick();
 		SK.tick = setInterval(tick, 200);
@@ -205,7 +223,7 @@
 	function watchreset(){
 		SK.stoptick();
 		SK.watchAcc = 0;
-		watchcap(F.id("box-start"), "web.go.start", "开始");
+		watchcap(page.doms.boxStart, "web.go.start", "开始");
 		SK.msg("box-msg", "");
 		var mode = curmode();
 		if (mode === "down") return fmthms(readsec(false));
