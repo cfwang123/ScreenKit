@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The password generator regenerates automatically after changing the length, count or character options
 - The password generator now defaults to 10 passwords
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
+- Plot: the surface style renders as brushed metal with a moving highlight and shading
 
 #### Fixed
 
@@ -68,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Russian short passive participles keep ё only in the masculine form (говорён, but говорена/говорено/говорены)
 - 3D plots now fit the canvas and keep a stable size while rotating; implicit surface poles are no longer flattened
 - Plot: mouse wheel now zooms the 3D view itself, so a zoomed surface fills the empty space at the sides; panning follows the zoom level
+- Plot: 3D views fit the actual projected extent, so surfaces no longer shrink into the middle of a wide canvas
 
 ### 中文
 
@@ -84,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 密码生成器修改长度、数量或字符选项后自动重新生成
 - 密码生成器条数默认改为 10
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
+- 函数图像：曲面样式改为金属质感，带随视角变化的高光和明暗
 
 #### 修复
 
@@ -94,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复俄语 -ённый 短尾分词，只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
 - 三维函数图像按画布自适应，旋转时大小保持稳定；隐式曲面极点不再被削平
 - 函数图像：三维视图的滚轮现在直接放大画面，放大后可填满左右空白；平移速度跟随缩放倍数
+- 函数图像：三维视图按实际投影范围适配，宽画布下曲面不再缩在中间
 
 ## v1.0.31 (2026-10-29)
 

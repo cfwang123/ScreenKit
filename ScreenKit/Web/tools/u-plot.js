@@ -787,17 +787,19 @@
 		return isFinite(s) && s > 0 ? s : Math.min(w, h) * 0.42;
 	}
 
-	// 用点集到原点的最大距离作为包围球半径。
-	// 正交投影下任意旋转都不会超过这个半径，因此既能填满画布，也不会在转角后截断。
-	function fit3radius(points){
-		var r = 0;
-		for (var i = 0; i < points.length; i++) {
-			var p = points[i];
+	// 当前视点下图形的投影半宽、半高。按它取等比缩放能把画布用满；
+	// 半径自适应（包围球）太保守，宽画布下曲面会缩成中间一小块。
+	function fit3bounds(points){
+		var ex = 0, ey = 0, i, p, v;
+		for (i = 0; i < points.length; i++) {
+			p = points[i];
 			if (p.ok === false) continue;
-			var d = p.wx * p.wx + p.wy * p.wy + p.wz * p.wz;
-			if (d > r) r = d;
+			v = p.x < 0 ? -p.x : p.x;
+			if (v > ex) ex = v;
+			v = p.y < 0 ? -p.y : p.y;
+			if (v > ey) ey = v;
 		}
-		return Math.sqrt(r);
+		return { x: ex, y: ey };
 	}
 
 	function draw3(ctx, w, h){
@@ -863,8 +865,8 @@
 				};
 			}
 		}
-		var r0 = fit3radius(pts);
-		var scale = (r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
+		var box = fit3bounds(pts);
+		var scale = (box.x > 1e-9 && box.y > 1e-9 ? fit3scale(w, h, box.x, box.y, 40) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
 		for (i = 0; i < pts.length; i++) {
 			pts[i].x = w / 2 + pts[i].x * scale;
 			pts[i].y = h / 2 - pts[i].y * scale;
@@ -876,7 +878,7 @@
 		if (style === "grid") drawGrid(ctx, pts, n, grid);
 		else if (style === "dots") drawDots(ctx, pts);
 		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
-		else drawFill(ctx, pts, n, grid);
+		else drawFill(ctx, pts, n, grid, scale);
 		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
 		ctx.restore();
 	}
@@ -959,9 +961,10 @@
 				cols[j * cw + i] = list;
 			}
 		}
-		var r0 = fit3radius(all);
-		var scale = (r0 > 1e-9 ? fit3scale(w, h, r0, r0, 32) * (4 / fit) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
+		var box = fit3bounds(all);
+		var scale = (box.x > 1e-9 && box.y > 1e-9 ? fit3scale(w, h, box.x, box.y, 40) : Math.min(w, h) * 0.42 / fit) * cam.zoom;
 		var gap = 2 * fit * scale / n;
+		var rawcols = new Array(cw * cw);
 		for (j = 0; j <= n; j++) {
 			for (i = 0; i <= n; i++) {
 				var col = cols[j * cw + i];
@@ -969,6 +972,8 @@
 					col[k].x = w / 2 + col[k].x * scale;
 					col[k].y = h / 2 - col[k].y * scale;
 				}
+				// 填充要的是两层解各自的原始位置，先留一份引用。
+				rawcols[j * cw + i] = col.slice(0);
 				// 两层解在相切处几乎重合，合并成一个点，网格线就能连上。
 				for (k = 0; k + 1 < col.length; k++) {
 					if (Math.abs(col[k + 1].x - col[k].x) + Math.abs(col[k + 1].y - col[k].y) < gap) {
@@ -995,7 +1000,7 @@
 		}
 		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
 		else if (style === "level") implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp);
-		else impfill(ctx, cols, n, cw, gap);
+		else impfill(ctx, rawcols, n, cw, gap, scale);
 		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
 		ctx.restore();
 	}
@@ -1020,28 +1025,43 @@
 		return best;
 	}
 
-	// 所有解点按深度排序后画成实心圆盘，叠起来就是曲面，不会把锥面连成柱面。
-	function impfill(ctx, cols, n, cw, gap){
+	// 每个解点按深度排序后画实心圆盘，叠起来就是曲面，锥面不会被连成柱面。
+	// 点的切平面法向量由相邻网格点估计，再按金属光照取色。
+	function impfill(ctx, cols, n, cw, gap, scale){
 		var pts = [];
-		var i, j, r, rad = Math.max(2.4, gap * 1.6);
+		var i, j, r, lim = gap * 3, rad = Math.max(3, gap * 2);
+		var list, west, south, qa, qb, p, ax, ay, az, bx, by, bz, nx, ny, nz, len;
 		for (j = 0; j <= n; j++) {
 			for (i = 0; i <= n; i++) {
-				var list = cols[j * cw + i];
-				for (r = 0; r < list.length; r++) pts.push(list[r]);
+				list = cols[j * cw + i];
+				west = i > 0 ? cols[j * cw + i - 1] : null;
+				south = j > 0 ? cols[(j - 1) * cw + i] : null;
+				for (r = 0; r < list.length; r++) {
+					p = list[r];
+					qa = west && west[r] && impnear(p, west[r], lim) ? west[r] : null;
+					qb = south && south[r] && impnear(p, south[r], lim) ? south[r] : null;
+					nx = 0; ny = -1; nz = 0;
+					if (qa && qb) {
+						ax = qa.x - p.x; ay = (qa.d - p.d) * scale; az = p.y - qa.y;
+						bx = qb.x - p.x; by = (qb.d - p.d) * scale; bz = p.y - qb.y;
+						nx = ay * bz - az * by;
+						ny = az * bx - ax * bz;
+						nz = ax * by - ay * bx;
+						len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+						if (len > 1e-9) { nx /= len; ny /= len; nz /= len; }
+						else { nx = 0; ny = -1; nz = 0; }
+					}
+					p.c = metalcolor(p.t, nx, ny, nz);
+					pts.push(p);
+				}
 			}
 		}
-		var lower = [], upper = [], k, arr;
-		for (i = 0; i < pts.length; i++) (pts[i].z < 0 ? lower : upper).push(pts[i]);
-		lower.sort(function(a, b){ return b.d - a.d; });
-		upper.sort(function(a, b){ return b.d - a.d; });
-		for (k = 0; k < 2; k++) {
-			arr = k ? upper : lower;
-			for (i = 0; i < arr.length; i++) {
-				ctx.fillStyle = zcolor(arr[i].t);
-				ctx.beginPath();
-				ctx.arc(arr[i].x, arr[i].y, rad, 0, 6.2832);
-				ctx.fill();
-			}
+		pts.sort(function(a, b){ return b.d - a.d; });
+		for (i = 0; i < pts.length; i++) {
+			ctx.fillStyle = pts[i].c || zcolor(pts[i].t);
+			ctx.beginPath();
+			ctx.arc(pts[i].x, pts[i].y, rad, 0, 6.2832);
+			ctx.fill();
 		}
 	}
 
@@ -1241,9 +1261,9 @@
 		}
 	}
 
-	function drawFill(ctx, pts, n, grid){
+	function drawFill(ctx, pts, n, grid, scale){
 		var tris = [];
-		var i, j, a, b, c, d, p0, p1, p2;
+		var i, j, a, b, c, d;
 		for (j = 0; j < n; j++) {
 			for (i = 0; i < n; i++) {
 				a = j * grid + i;
@@ -1254,17 +1274,46 @@
 				pushtri(tris, pts, c, d, b);
 			}
 		}
+		filltris(ctx, tris, scale);
+	}
+
+	// 三角形按深度从远到近填色。法向量取相邻三角形面法向量的平均，
+	// 再叠金属光照，高光才不会一格一格地跳。
+	function filltris(ctx, tris, scale){
+		var i, p0, p1, p2, t, nn, nx, ny, nz, len;
+		for (i = 0; i < tris.length; i++) {
+			tris[i].p0.nx = 0; tris[i].p0.ny = 0; tris[i].p0.nz = 0;
+			tris[i].p1.nx = 0; tris[i].p1.ny = 0; tris[i].p1.nz = 0;
+			tris[i].p2.nx = 0; tris[i].p2.ny = 0; tris[i].p2.nz = 0;
+		}
+		for (i = 0; i < tris.length; i++) {
+			p0 = tris[i].p0;
+			p1 = tris[i].p1;
+			p2 = tris[i].p2;
+			nn = trinormal(p0, p1, p2, scale);
+			if (!nn) continue;
+			p0.nx += nn.x; p0.ny += nn.y; p0.nz += nn.z;
+			p1.nx += nn.x; p1.ny += nn.y; p1.nz += nn.z;
+			p2.nx += nn.x; p2.ny += nn.y; p2.nz += nn.z;
+		}
 		tris.sort(function(u, v){ return v.d - u.d; });
 		for (i = 0; i < tris.length; i++) {
-			p0 = pts[tris[i].a];
-			p1 = pts[tris[i].b];
-			p2 = pts[tris[i].c];
+			p0 = tris[i].p0;
+			p1 = tris[i].p1;
+			p2 = tris[i].p2;
+			nx = p0.nx + p1.nx + p2.nx;
+			ny = p0.ny + p1.ny + p2.ny;
+			nz = p0.nz + p1.nz + p2.nz;
+			len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+			if (len > 1e-9) { nx /= len; ny /= len; nz /= len; }
+			else { nx = 0; ny = -1; nz = 0; }
+			t = (p0.t + p1.t + p2.t) / 3;
 			ctx.beginPath();
 			ctx.moveTo(p0.x, p0.y);
 			ctx.lineTo(p1.x, p1.y);
 			ctx.lineTo(p2.x, p2.y);
 			ctx.closePath();
-			ctx.fillStyle = zcolor((p0.t + p1.t + p2.t) / 3);
+			ctx.fillStyle = metalcolor(t, nx, ny, nz);
 			ctx.fill();
 		}
 	}
@@ -1384,7 +1433,13 @@
 	function pushtri(tris, pts, a, b, c){
 		var p0 = pts[a], p1 = pts[b], p2 = pts[c];
 		if (!p0.ok || !p1.ok || !p2.ok) return;
-		tris.push({ a: a, b: b, c: c, d: (p0.d + p1.d + p2.d) / 3 });
+		pushtri3(tris, p0, p1, p2);
+	}
+
+	// 三个点重合的三角形不画。
+	function pushtri3(tris, p0, p1, p2){
+		if (p0 === p1 || p1 === p2 || p0 === p2) return;
+		tris.push({ p0: p0, p1: p1, p2: p2, d: (p0.d + p1.d + p2.d) / 3 });
 	}
 
 	function drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
@@ -1420,23 +1475,62 @@
 		ctx.fillText(name, b.x + 4, b.y);
 	}
 
-	function zcolor(t){
+	function zrgb(t){
 		if (t < 0) t = 0;
 		if (t > 1) t = 1;
-		var r, g, b;
 		if (t < 0.5) {
 			var u = t / 0.5;
-			r = 37 + u * 50;
-			g = 99 + u * 140;
-			b = 196 - u * 50;
+			return [37 + u * 50, 99 + u * 140, 196 - u * 50];
 		}
-		else {
-			var v = (t - 0.5) / 0.5;
-			r = 87 + v * 168;
-			g = 239 - v * 140;
-			b = 146 - v * 110;
-		}
-		return "rgb(" + Math.round(r) + "," + Math.round(g) + "," + Math.round(b) + ")";
+		var v = (t - 0.5) / 0.5;
+		return [87 + v * 168, 239 - v * 140, 146 - v * 110];
+	}
+
+	function zcolor(t){
+		var c = zrgb(t);
+		return "rgb(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + ")";
+	}
+
+	// 金属曲面用的光：主光在相机左上方，另算好半角向量。
+	// 视图空间是 (屏幕 x, 深度 y, 屏幕上下 z)，深度越小越靠近相机。
+	var LIGHT = lightdir(-0.55, -0.72, 0.60);
+
+	function lightdir(x, y, z){
+		var len = Math.sqrt(x * x + y * y + z * z) || 1;
+		var lx = x / len, ly = y / len, lz = z / len;
+		var hx = lx, hy = ly - 1, hz = lz;
+		var hlen = Math.sqrt(hx * hx + hy * hy + hz * hz) || 1;
+		return { lx: lx, ly: ly, lz: lz, hx: hx / hlen, hy: hy / hlen, hz: hz / hlen };
+	}
+
+	// 按高度取色，再叠环境光、漫反射、镜面高光和边缘反射。
+	// 法向量为视图空间单位向量；背面先翻到朝相机一侧，两面都有光。
+	function metalcolor(t, nx, ny, nz){
+		if (ny > 0) { nx = -nx; ny = -ny; nz = -nz; }
+		var ndl = nx * LIGHT.lx + ny * LIGHT.ly + nz * LIGHT.lz;
+		if (ndl < 0) ndl = 0;
+		var ndh = nx * LIGHT.hx + ny * LIGHT.hy + nz * LIGHT.hz;
+		var spec = ndh > 0 ? Math.pow(ndh, 48) * 0.95 : 0;
+		var base = zrgb(t);
+		var lum = 0.24 + ndl * 0.58 + (nz > 0 ? nz * 0.14 : 0);
+		var rim = Math.pow(1 + ny, 3) * 0.30;
+		var r = base[0] * (lum + rim) + spec * (base[0] * 0.35 + 170);
+		var g = base[1] * (lum + rim) + spec * (base[1] * 0.35 + 170);
+		var b = base[2] * (lum + rim) + spec * (base[2] * 0.35 + 170);
+		return "rgb(" + Math.round(r > 255 ? 255 : r) + "," +
+			Math.round(g > 255 ? 255 : g) + "," + Math.round(b > 255 ? 255 : b) + ")";
+	}
+
+	// 三个点（已投影到屏幕，d 为深度）求视图空间法向量，退化时返回空。
+	function trinormal(p0, p1, p2, scale){
+		var ax = p1.x - p0.x, ay = (p1.d - p0.d) * scale, az = p0.y - p1.y;
+		var bx = p2.x - p0.x, by = (p2.d - p0.d) * scale, bz = p0.y - p2.y;
+		var nx = ay * bz - az * by;
+		var ny = az * bx - ax * bz;
+		var nz = ax * by - ay * bx;
+		var len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+		if (!(len > 1e-9)) return null;
+		return { x: nx / len, y: ny / len, z: nz / len };
 	}
 
 	function nicestep(span){
