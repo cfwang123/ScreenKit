@@ -213,6 +213,15 @@ static class SelBar {
 			var sel = new Rect(240, 220, 160, 28);
 			win.ShowAt(sel);
 			for (var i = 0; i < 6; i++) pump();
+			win.ShowRows(new List<DictSelRow> {
+				new() { Id = 1, Word = "hello", Title = "hello", Gloss = "喂" },
+			}, false, 100, 10);
+			for (var i = 0; i < 3; i++) pump();
+			say($"meta=[{win.MetaText}]");
+			if (win.MetaText.IndexOf("100", StringComparison.Ordinal) < 0 || win.MetaText.IndexOf("ms", StringComparison.Ordinal) < 0) {
+				say("FAIL: 浮窗没有显示条数和用时");
+				return 6;
+			}
 			var hwnd = new WindowInteropHelper(win).Handle;
 			var px = win.ScreenPx();
 			say($"bar {px.Width:0}x{px.Height:0} at {px.Left:0},{px.Top:0} noact={SelBarWindow.HasNoActivate(hwnd)} label={win.SearchLabel}");

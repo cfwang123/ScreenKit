@@ -337,6 +337,9 @@
 					        AutomationProperties.AutomationId="dict.sel.search"/>
 					<Button x:Name="bselcopy" Content="复制" Style="{StaticResource SelBtn}" Margin="0"
 					        AutomationProperties.AutomationId="dict.sel.copy"/>
+					<TextBlock x:Name="lbselmeta" FontSize="12" Foreground="#8A9199" Margin="8,0,4,0"
+					           VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+					           AutomationProperties.AutomationId="dict.sel.meta"/>
 				</WrapPanel>
 			</DockPanel>
 			<Thumb x:Name="bgrip" Grid.RowSpan="3" Width="16" Height="16"

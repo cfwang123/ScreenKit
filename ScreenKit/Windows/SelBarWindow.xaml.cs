@@ -174,13 +174,17 @@ public partial class SelBarWindow : Window {
 
 	internal string SearchLabel => bselsearch.Content as string ?? "";
 
+	/// <summary>「复制」右边的条数和用时。</summary>
+	internal string MetaText => lbselmeta.Text ?? "";
+
 	internal void SetSelOn(bool on) {
 		selonsync = true;
 		try { cbselon.IsChecked = on; }
 		finally { selonsync = false; }
 	}
 
-	internal void ShowRows(List<DictSelRow> rows, bool searching) {
+	/// <summary>刷新词条列表。n 为负数表示没查（如选区不是词），不显示条数和用时。</summary>
+	internal void ShowRows(List<DictSelRow> rows, bool searching, int n = -1, double ms = 0) {
 		if (trmode || readmode) return;
 		if (rows == null) rows = new List<DictSelRow>();
 		lbselwait.Visibility = searching && rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -188,6 +192,7 @@ public partial class SelBarWindow : Window {
 		lsel.ItemsSource = rows;
 		lsel.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 		if (rows.Count > 0) lsel.ScrollIntoView(rows[0]);
+		lbselmeta.Text = searching || n < 0 ? "" : Loc.T("dict.sel.count", n, DictWindow.mslabel(ms));
 	}
 
 	internal void ShowDict() {
@@ -206,6 +211,7 @@ public partial class SelBarWindow : Window {
 		gtr.Visibility = Visibility.Visible;
 		gread.Visibility = Visibility.Collapsed;
 		poprate.IsOpen = false;
+		lbselmeta.Text = "";
 		if (!setText) return;
 		trsync = true;
 		try { etrsrctext.Text = text ?? ""; }
@@ -225,6 +231,7 @@ public partial class SelBarWindow : Window {
 		gdict.Visibility = Visibility.Collapsed;
 		gtr.Visibility = Visibility.Collapsed;
 		gread.Visibility = Visibility.Visible;
+		lbselmeta.Text = "";
 		if (!readinit) fillread(langHint);
 		if (!setText) return;
 		readsync = true;

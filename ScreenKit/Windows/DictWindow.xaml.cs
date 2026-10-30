@@ -474,10 +474,10 @@ public partial class DictWindow : UserControl {
 	}
 
 	/// <summary>高精度毫秒。Environment.TickCount 只有约 15.6 ms，快查询会记成 0。</summary>
-	static double elapsedms(long t0) => (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
+	internal static double elapsedms(long t0) => (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
 
 	/// <summary>用时文字：10 ms 以内保留一位小数，再长取整。</summary>
-	static string mslabel(double ms) {
+	internal static string mslabel(double ms) {
 		if (ms < 0) ms = 0;
 		var r = Math.Round(ms, 1);
 		return r >= 10 ? ((long)Math.Round(r)).ToString(CultureInfo.InvariantCulture)
@@ -1633,12 +1633,15 @@ public partial class DictWindow : UserControl {
 		outwin.ShowRows(null, true);
 		outwin.ShowAt(outbox);
 		var g = ++ogen;
+		var t0 = Stopwatch.GetTimestamp();
 		Task.Run(() => searchsel(q, dict)).ContinueWith(t => {
+			var ms = elapsedms(t0);
 			Dispatcher.BeginInvoke(new Action(() => {
 				if (g != ogen || outwin == null || !outwin.IsVisible) return;
 				List<DictHit> hits = null;
 				try { hits = t.Result; } catch { }
-				outwin.ShowRows(selrows(hits), false);
+				var rows = selrows(hits);
+				outwin.ShowRows(rows, false, rows.Count, ms);
 				outwin.ShowAt(outbox);
 			}));
 		});
