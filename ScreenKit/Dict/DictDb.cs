@@ -94,6 +94,7 @@ sealed class DictEntry {
 // 前缀段按词序；后缀段按字符反转后的 UTF-8 序；三字以上的中缀走双字 gram 倒排。
 // meta 低 2 位是词典号（0 英 / 1 日 / 2 韩 / 3 汉），bit2 是词头。
 // rank：0 全等 / 1 前缀 / 2 后缀 / 3 中缀。韩语活用形命中很少时再按语尾剥一层。
+// 带问号的查询走通配：rank 0 每个问号正好一字，1 为问号吃多字。
 #region
 static class DictDb {
 	const int FETCHCAP = 4000;
@@ -136,6 +137,67 @@ static class DictDb {
 		public int Count;
 		/// <summary>块内所有键拼在一起，KeyAt 是各自起点。</summary>
 		public List<byte> keystore;
+	}
+
+	/// <summary>通配模式：按码位切成字面段和通配段，字面段按 UTF-8 字节比对。</summary>
+	sealed class WildPat {
+		/// <summary>字面段的 UTF-8 字节；null 表示问号通配。</summary>
+		public byte[][] Tok;
+		/// <summary>模式的码位数，一个问号记一个字。</summary>
+		public int Chars;
+		/// <summary>最长的字面段：扫键时先按它过一遍，比整条模式逐字对快。</summary>
+		public byte[] Must;
+
+		/// <summary>整条模式对一个键：问号吃一字或多字，其余段按字节对。键是有效 UTF-8。</summary>
+		public bool Match(byte[] s, int n) {
+			var pi = 0;
+			var si = 0;
+			var star = -1;
+			var mark = 0;
+			while (true) {
+				if (pi < Tok.Length) {
+					var lit = Tok[pi];
+					if (lit == null) {
+						if (si < n) {
+							star = pi;
+							si += cpstep(s, si);
+							mark = si;
+							pi++;
+							continue;
+						}
+					}
+					else if (si + lit.Length <= n && samelit(s, si, lit)) {
+						si += lit.Length;
+						pi++;
+						continue;
+					}
+				}
+				else if (si >= n) return true;
+				// 走不通就把最近一个问号再吐一个字；mark 是它当前吃到的位置。
+				if (star < 0 || mark >= n) return false;
+				mark += cpstep(s, mark);
+				si = mark;
+				pi = star + 1;
+			}
+		}
+
+		/// <summary>每个问号正好吃一个字的结果排前面。</summary>
+		public int Rank(int keychars) => keychars == Chars ? 0 : 1;
+
+		static bool samelit(byte[] s, int at, byte[] lit) {
+			for (var i = 0; i < lit.Length; i++)
+				if (s[at + i] != lit[i]) return false;
+			return true;
+		}
+
+		/// <summary>UTF-8 里一个字（码位）占几个字节。</summary>
+		static int cpstep(byte[] s, int i) {
+			var c = s[i];
+			if (c < 0x80) return 1;
+			if (c < 0xE0) return 2;
+			if (c < 0xF0) return 3;
+			return 4;
+		}
 	}
 
 	static FileStream fs;
@@ -401,19 +463,23 @@ static class DictDb {
 		var d = normdict(dict);
 		lock (dblock) {
 			if (!readyunlocked()) return hits;
-			affixkeys(q, d, hits, cap, limit);
-			var jaon = d.Length == 0 || d == "ja";
-			var moon = d.Length == 0 || d == "ko";
-			if (jaon) {
-				foreach (var hira in DictRomanize.RomajiToHiraganaVariants(q)) {
-					if (hira == q) continue;
-					affixkeys(hira, "ja", hits, cap, limit);
+			// 问号是通配符，模式查询不展开罗马字变体。
+			if (q.IndexOf('?') >= 0) wildkeys(q, d, hits, cap);
+			else {
+				affixkeys(q, d, hits, cap, limit);
+				var jaon = d.Length == 0 || d == "ja";
+				var moon = d.Length == 0 || d == "ko";
+				if (jaon) {
+					foreach (var hira in DictRomanize.RomajiToHiraganaVariants(q)) {
+						if (hira == q) continue;
+						affixkeys(hira, "ja", hits, cap, limit);
+					}
 				}
-			}
-			if (moon) {
-				foreach (var hangul in DictRomanize.RomanToHangulVariants(q)) {
-					if (hangul == q) continue;
-					affixkeysroman(hangul, "ko", hits, cap, limit);
+				if (moon) {
+					foreach (var hangul in DictRomanize.RomanToHangulVariants(q)) {
+						if (hangul == q) continue;
+						affixkeysroman(hangul, "ko", hits, cap, limit);
+					}
 				}
 			}
 		}
@@ -435,6 +501,171 @@ static class DictDb {
 	static void affixkeysroman(string q, string dict, List<DictHit> hits, int cap, int limit) {
 		prefixkeys(q, dict, hits, cap);
 		if (wantstem(q, dict, uniquecount(hits))) stemkeys(q, dict, hits, limit);
+	}
+
+	// ==================== 通配符检索 ====================
+	// 问号至少一个字（与 rustdict 一致）。有字面前缀或后缀时走前缀段、后缀段，谁长用谁；
+	// 否则取最长的中缀字面段走 gram 倒排；都没有才全表并行扫键段。三条路最后都用整条模式核对。
+	static void wildkeys(string q, string dict, List<DictHit> hits, int cap) {
+		var pat = parsewild(q);
+		if (pat == null || pat.Tok.Length == 0) return;
+		pat.Must = wildmust(pat);
+		// 模式查询封顶 4000 条：单个问号能匹配整个词表，导出时也不该把它全拉出来。
+		if (cap > FETCHCAP) cap = FETCHCAP;
+		var code = dictcode(dict);
+		var pre = pat.Tok[0];
+		var suf = pat.Tok[pat.Tok.Length - 1];
+		var pren = pre == null ? 0 : nchars_of(pre);
+		var sufn = suf == null ? 0 : nchars_of(suf);
+		if (pren >= 2 || sufn >= 2) {
+			if (pren >= sufn) wildrange(prel1, pre, false, pat, code, hits, cap);
+			else wildrange(sufl1, suf, true, pat, code, hits, cap);
+			return;
+		}
+		var mid = graml1 == null ? null : wildmid(pat);
+		if (mid != null) wildgram(mid, pat, code, hits, cap);
+		else if (pren == 1) wildrange(prel1, pre, false, pat, code, hits, cap);
+		else if (sufn == 1) wildrange(sufl1, suf, true, pat, code, hits, cap);
+		else scanwild(pat, code, hits, cap);
+	}
+
+	/// <summary>切成字面段和通配；相邻的问号合成一个。</summary>
+	static WildPat parsewild(string q) {
+		var cps = codepoints(q);
+		if (cps.Count == 0) return null;
+		var toks = new List<byte[]>();
+		var run = new List<int>();
+		foreach (var cp in cps) {
+			if (cp != '?') { run.Add(cp); continue; }
+			if (run.Count > 0) { toks.Add(encodepoints(run, 0, run.Count)); run.Clear(); }
+			if (toks.Count == 0 || toks[toks.Count - 1] != null) toks.Add(null);
+		}
+		if (run.Count > 0) toks.Add(encodepoints(run, 0, run.Count));
+		return new WildPat { Tok = toks.ToArray(), Chars = cps.Count };
+	}
+
+	/// <summary>整条模式里最长的字面段。</summary>
+	static byte[] wildmust(WildPat pat) {
+		byte[] best = null;
+		foreach (var lit in pat.Tok) {
+			if (lit == null) continue;
+			if (best != null && lit.Length <= best.Length) continue;
+			best = lit;
+		}
+		return best;
+	}
+
+	/// <summary>中间最长的字面段；够 gramchars 才值得走倒排。</summary>
+	static byte[] wildmid(WildPat pat) {
+		byte[] best = null;
+		var bestn = 0;
+		for (var i = 1; i < pat.Tok.Length - 1; i++) {
+			var lit = pat.Tok[i];
+			if (lit == null) continue;
+			var n = nchars_of(lit);
+			if (n <= bestn) continue;
+			best = lit;
+			bestn = n;
+		}
+		return bestn >= gramchars ? best : null;
+	}
+
+	/// <summary>以字面前缀或后缀为锚走一段键，再用整条模式核对。suffix 为真时键段按反转序存。</summary>
+	static void wildrange(Sec[] l1, byte[] lit, bool suffix, WildPat pat, int code, List<DictHit> hits, int cap) {
+		if (l1 == null || lit == null || lit.Length == 0) return;
+		byte[] lo, hi;
+		if (suffix) {
+			var rq = revcodepoints(Encoding.UTF8.GetString(lit));
+			lo = encodepoints(rq, 0, -1);
+			hi = prefixhi(rq);
+		}
+		else {
+			lo = lit;
+			hi = prefixhi(Encoding.UTF8.GetString(lit));
+		}
+		walk(l1, lo, hi, (key, blk, j) => {
+			var orig = suffix ? revbytes(key) : key;
+			if (!pat.Match(orig, orig.Length)) return true;
+			push(blk, j, orig, pat.Rank(nchars_of(orig)), code, hits, cap, false);
+			return hits.Count < cap;
+		}, cap);
+	}
+
+	/// <summary>中缀段走 gram 倒排：段内各 gram 取交集，再按整条模式核对。</summary>
+	static void wildgram(byte[] lit, WildPat pat, int code, List<DictHit> hits, int cap) {
+		if (graml1 == null || gramchars < 1 || lit == null) return;
+		var cps = codepoints(Encoding.UTF8.GetString(lit));
+		if (cps.Count < gramchars) return;
+		var grams = new List<byte[]>();
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+		for (var s = 0; s + gramchars <= cps.Count; s++) {
+			var g = encodepoints(cps, s, gramchars);
+			if (!seen.Add(Convert.ToBase64String(g))) continue;
+			grams.Add(g);
+		}
+		var loaded = new List<Sec>();
+		var ids = new List<int[]>();
+		foreach (var g in grams) {
+			var rec = findgram(g);
+			if (rec == null) return;
+			var list = readids(rec);
+			if (list.Length == 0) return;
+			loaded.Add(rec);
+			ids.Add(list);
+		}
+		var order = new int[loaded.Count];
+		for (var i = 0; i < order.Length; i++) order[i] = i;
+		Array.Sort(order, (a, b) => ids[a].Length.CompareTo(ids[b].Length));
+		HashSet<int> other = null;
+		for (var k = 1; k < order.Length; k++) {
+			var cur = new HashSet<int>(ids[order[k]]);
+			if (other == null) other = cur;
+			else other.IntersectWith(cur);
+			if (other.Count == 0) return;
+		}
+		var best = order[0];
+		var offs = readrecs(loaded[best], out var recb);
+		if (offs == null) return;
+		var bestids = ids[best];
+		for (var i = 0; i < bestids.Length; i++) {
+			if (hits.Count >= cap) break;
+			if (other != null && !other.Contains(bestids[i])) continue;
+			if (!recat(offs, recb, i, out var key, out var postAt, out var np)) continue;
+			if (!pat.Match(key, key.Length)) continue;
+			pushraw(recb, postAt, np, key, pat.Rank(nchars_of(key)), code, hits, cap, false);
+		}
+	}
+
+	/// <summary>没有可用锚点的通配查询：全表并行扫键段，按整条模式核对。</summary>
+	static void scanwild(WildPat pat, int code, List<DictHit> hits, int cap) {
+		var l1 = prel1;
+		if (l1 == null || l1.Length == 0) return;
+		var recs = new List<Sec>();
+		for (var g = 0; g < l1.Length; g++) {
+			var part = group(l1, g);
+			if (part != null && part.Length > 0) recs.AddRange(part);
+		}
+		if (recs.Count == 0) return;
+		var n = Environment.ProcessorCount;
+		if (n > 16) n = 16;
+		if (n > recs.Count) n = recs.Count;
+		if (n < 2) {
+			scanrange(recs, 0, recs.Count, null, pat, code, hits, cap);
+			return;
+		}
+		var bags = new List<DictHit>[n];
+		try {
+			Parallel.For(0, n, t => {
+				var mine = new List<DictHit>();
+				scanrange(recs, recs.Count * t / n, recs.Count * (t + 1) / n, null, pat, code, mine, cap);
+				bags[t] = mine;
+			});
+		}
+		catch { }
+		for (var t = 0; t < n; t++) {
+			var mine = bags[t];
+			if (mine != null && mine.Count > 0) hits.AddRange(mine);
+		}
 	}
 
 	public static DictEntry Get(long id) {
@@ -742,7 +973,7 @@ static class DictDb {
 		if (n > 16) n = 16;
 		if (n > recs.Count) n = recs.Count;
 		if (n < 2) {
-			scanrange(recs, 0, recs.Count, qb, code, hits, cap);
+			scanrange(recs, 0, recs.Count, qb, null, code, hits, cap);
 			return;
 		}
 		var bags = new List<DictHit>[n];
@@ -751,7 +982,7 @@ static class DictDb {
 				var mine = new List<DictHit>();
 				var from = recs.Count * t / n;
 				var to = recs.Count * (t + 1) / n;
-				scanrange(recs, from, to, qb, code, mine, cap);
+				scanrange(recs, from, to, qb, null, code, mine, cap);
 				bags[t] = mine;
 			});
 		}
@@ -762,7 +993,7 @@ static class DictDb {
 		}
 	}
 
-	static void scanrange(List<Sec> recs, int from, int to, byte[] qb, int code, List<DictHit> hits, int cap) {
+	static void scanrange(List<Sec> recs, int from, int to, byte[] qb, WildPat pat, int code, List<DictHit> hits, int cap) {
 		FileStream f = null;
 		try {
 			f = new FileStream(dbpath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
@@ -770,7 +1001,7 @@ static class DictDb {
 				if (hits.Count >= cap) return;
 				var raw = readraw(f, recs[i].Off, recs[i].Len);
 				if (raw == null) continue;
-				scanblock(raw, qb, code, hits, cap);
+				scanblock(raw, qb, pat, code, hits, cap);
 			}
 		}
 		catch { }
@@ -780,7 +1011,7 @@ static class DictDb {
 	}
 
 	/// <summary>扫一个键块：键是前缀压缩的，直接在重建缓冲里找，命中才复制键、取倒排。</summary>
-	static void scanblock(byte[] raw, byte[] qb, int code, List<DictHit> hits, int cap) {
+	static void scanblock(byte[] raw, byte[] qb, WildPat pat, int code, List<DictHit> hits, int cap) {
 		if (raw == null || raw.Length < 2) return;
 		var n = u16(raw, 0);
 		var p = 2;
@@ -804,12 +1035,19 @@ static class DictDb {
 			if (p + np * 5 > raw.Length) return;
 			p += np * 5;
 			if (hits.Count >= cap) return;
-			if (klen < qb.Length) continue;
-			if (startswith(kbuf, klen, qb)) continue;
-			if (indexof(kbuf, 0, klen, qb) < 0) continue;
+			if (pat != null) {
+				if (pat.Must != null && indexof(kbuf, 0, klen, pat.Must) < 0) continue;
+				if (!pat.Match(kbuf, klen)) continue;
+			}
+			else {
+				if (klen < qb.Length) continue;
+				if (startswith(kbuf, klen, qb)) continue;
+				if (indexof(kbuf, 0, klen, qb) < 0) continue;
+			}
 			var key = new byte[klen];
 			Buffer.BlockCopy(kbuf, 0, key, 0, klen);
-			pushraw(raw, postAt, np, key, endswith(kbuf, klen, qb) ? 2 : 3, code, hits, cap, false);
+			var rank = pat != null ? pat.Rank(nchars_of(key)) : (endswith(kbuf, klen, qb) ? 2 : 3);
+			pushraw(raw, postAt, np, key, rank, code, hits, cap, false);
 		}
 	}
 

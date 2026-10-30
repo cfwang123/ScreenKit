@@ -48,6 +48,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Add CLI JSON export for Japanese conjugation tables
+- Dictionary search supports ? as a wildcard for one or more characters
 
 #### Changed
 
@@ -73,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 日语词形变化支持 CLI 导出 JSON
+- 词典查词支持 ? 通配符（匹配一个或多个字）
 
 #### 变更
 

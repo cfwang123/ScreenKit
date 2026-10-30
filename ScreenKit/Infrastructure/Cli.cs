@@ -440,7 +440,8 @@ static class Cli {
 					var bq = Next();
 					var bn = 1000;
 					if (i + 1 < args.Length && int.TryParse(args[i + 1], out var bv)) { Next(); bn = bv; }
-					return testdictbench(bq, bn);
+					var bd = i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-' ? Next() : "";
+					return testdictbench(bq, bn, bd);
 				}
 				case "--test-dict-count":
 					return testdictcount(args, i);
@@ -6611,7 +6612,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return DictDb.SearchIds(q, "");
 	}
 
-	static int testdictbench(string q, int limit) {
+	static int testdictbench(string q, int limit, string dict) {
 		if (limit < 1) limit = 1;
 		if (limit > DictDb.SEARCH_MAX) limit = DictDb.SEARCH_MAX;
 		var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dict3.bin");
@@ -6619,10 +6620,17 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Out("dict open fail: " + DictDb.Error);
 			return 2;
 		}
-		var t0 = Stopwatch.GetTimestamp();
-		var hits = DictDb.Search(q, "en", limit);
-		var ms = (Stopwatch.GetTimestamp() - t0) * 1000.0 / Stopwatch.Frequency;
-		Out($"bench q={q} limit={limit} hits={hits.Count} ms={ms:0.0}");
+		// 列表先要命中、再按行取标题，所以分开计时；第二轮看缓存热起来的样子。
+		for (var round = 0; round < 2; round++) {
+			var t0 = Stopwatch.GetTimestamp();
+			var brief = DictDb.SearchBrief(q, dict ?? "", limit);
+			var t1 = Stopwatch.GetTimestamp();
+			var hits = DictDb.Search(q, dict ?? "", limit);
+			var t2 = Stopwatch.GetTimestamp();
+			var ms1 = (t1 - t0) * 1000.0 / Stopwatch.Frequency;
+			var ms2 = (t2 - t1) * 1000.0 / Stopwatch.Frequency;
+			Out($"bench q={q} limit={limit} round={round} brief={brief.Count} {ms1:0.0}ms meta={hits.Count} {ms2:0.0}ms");
+		}
 		return 0;
 	}
 
@@ -6673,7 +6681,8 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var shown = 0;
 			foreach (var h in hits) {
 				var label = h.Dict == "ja" ? DictDb.JaForms(h.Headword, h.Kanji, h.Uk) : h.Headword;
-				Out("  " + h.Dict + " " + label + " | " + h.Preview);
+				var key = h.Matched.Length > 0 && h.Matched != h.Headword ? " <" + h.Matched + ">" : "";
+				Out("  " + h.Dict + " " + label + key + " | " + h.Preview);
 				if (++shown >= 5) break;
 			}
 			if (hits.Count == 0) {
@@ -7890,7 +7899,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-ort-lazy  启动不加载 ONNX；第一次 Ensure 才映射，释放后仍可建会话
       --test-ort-release  加载 CUDA 库后释放，大库应卸掉且仍可建会话
       --test-dict-search  只读查询 exe 旁 dict3.bin（默认 学生 与 hello）；韩语词组行有发音按钮
-      --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数]，默认 1000 条
+      --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数] [语言]，默认 1000 条、全部语言
       --test-dict-count <甲.bin> <乙.bin> [词...]  比较两个词库的全部命中数（不受 4000 条限制）。不给词时用 ing、tion 等命中很多的片段
       --test-dict-install  按安装功能下载 dict3.7z，解压出 exe 旁的 dict3.bin，再查 hello
       --test-dict-conj [词] [词性]  打印变形表全部分组与结果，词性 1/2/3/ai/an/n 可指定
