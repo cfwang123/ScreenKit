@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	// 英语动词时态：输入原形，列出基本形式、十六种时态，以及否定、疑问、被动和其他形式。
 	// [原形, 过去式, 过去分词, 中文释义, 英文释义]；没有英文词典时用这一小份兜底。
 ;
@@ -439,15 +438,6 @@
 
 	if (typeof SK === "undefined" || !SK.regutil) return;
 
-	var ui = SK.verbui({
-		outId: "ev-out",
-		lang: "en",
-		tabcls: "jv-tab ev-tab",
-		nospeak: ["web.everb.nospeak", "无法发音"],
-		groupof: function(row){ return row.g || ""; },
-		cell: cellhtml
-	});
-
 	SK.regutil("u-everb", {
 		title: "英语词形变化",
 		go: "显示",
@@ -460,63 +450,52 @@
 		open: open,
 		relang: open,
 		run: run,
-		dispose: ui.dropspeak
+		dispose: dropspeak
 	});
 
-	var tx = SK.tx;
+	function tx(key, fb){
+		var s = SK.t ? SK.t(key) : "";
+		return s || fb;
+	}
 
 	function tr(pair){
 		return langcode() === "zh" ? pair[0] : pair[1];
 	}
 
-	var langcode = SK.langcode;
-
-	function body(t){
-		page = t;
-		var sel = F.CreateDOM(t, { x: "select.ev-sel", name: "evSel", c: [
-			{ x: "option", value: "auto" },
-			{ x: "option", value: "v" },
-			{ x: "option", value: "a" },
-			{ x: "option", value: "n" }
-		] });
-		var obj = F.CreateDOM(t, { x: "select.ev-on", name: "evOn", c: [
-			{ x: "option", value: "auto", selected: true },
-			{ x: "option", value: "0" },
-			{ x: "option", value: "1" },
-			{ x: "option", value: "2" }
-		] });
-		return [
-			F.CreateDOM(t, { x: "p.ev-hint.hint", name: "evHint", "data-k": "web.everb.hint", c: esc(tr(LAB.hint)) }),
-			F.CreateDOM(t, { x: "div.row.ev-row", name: "evRow", c: [
-				{ x: "label.ev-type", name: "evType", c: [
-					{ x: "span", "data-k": "web.everb.type", c: esc(tr(LAB.type)) },
-					sel
-				] },
-				{ x: "label.ev-word", name: "evWord", c: [
-					{ x: "span", "data-k": "web.everb.word", c: esc(tr(LAB.word)) },
-					SK.combo("ev-in", "walk", LAB.ph[0])
-				] },
-				{ x: "label.ev-obj", name: "evObj", hidden: true, c: [
-					{ x: "span", "data-k": "web.everb.obj", c: esc(tr(LAB.obj)) },
-					obj,
-					{ x: "span.ev-owhy", name: "evOwhy", hidden: true }
-				] },
-				{ x: "label.ev-o1", name: "evO1", hidden: true, c: [
-					{ x: "span", "data-k": "web.everb.o1", c: esc(tr(LAB.o1)) },
-					SK.combo("ev-oa", "it", "可输入，如 him")
-				] },
-				{ x: "label.ev-o2", name: "evO2", hidden: true, c: [
-					{ x: "span", "data-k": "web.everb.o2", c: esc(tr(LAB.o2)) },
-					SK.combo("ev-ob", "a book", "可输入，如 him")
-				] }
-			] }),
-			F.CreateDOM(t, { x: "div.ev-out", name: "evOut" })
-		];
+	function langcode(){
+		var sel = F.id("lang");
+		return sel && sel.value ? sel.value : "zh";
 	}
 
-	function open(t){
-		page = t;
-		var title = SK.doms.boxTitle;
+	function body(){
+		return '<p class="hint" id="ev-hint" data-k="web.everb.hint">' + esc(tr(LAB.hint)) + "</p>"
+			+ '<div class="row" id="ev-row">'
+			+ '<label id="ev-type"><span data-k="web.everb.type">' + esc(tr(LAB.type)) + "</span>"
+			+ '<select id="ev-sel">'
+			+ '<option value="auto"></option>'
+			+ '<option value="v"></option>'
+			+ '<option value="a"></option>'
+			+ '<option value="n"></option>'
+			+ "</select></label>"
+			+ '<label id="ev-word"><span data-k="web.everb.word">' + esc(tr(LAB.word)) + "</span>"
+			+ SK.combo("ev-in", "walk", LAB.ph[0]) + "</label>"
+			+ '<label id="ev-obj" hidden><span data-k="web.everb.obj">' + esc(tr(LAB.obj)) + "</span>"
+			+ '<select id="ev-on">'
+			+ '<option value="auto" selected></option>'
+			+ '<option value="0"></option>'
+			+ '<option value="1"></option>'
+			+ '<option value="2"></option>'
+			+ '</select><span id="ev-owhy" hidden></span></label>'
+			+ '<label id="ev-o1" hidden><span data-k="web.everb.o1">' + esc(tr(LAB.o1)) + "</span>"
+			+ SK.combo("ev-oa", "it", "可输入，如 him") + "</label>"
+			+ '<label id="ev-o2" hidden><span data-k="web.everb.o2">' + esc(tr(LAB.o2)) + "</span>"
+			+ SK.combo("ev-ob", "a book", "可输入，如 him") + "</label>"
+			+ "</div>"
+			+ '<div id="ev-out"></div>';
+	}
+
+	function open(){
+		var title = F.id("box-title");
 		if (title) title.textContent = tx("web.tool.everb", LAB.title[0]);
 		SK.combofill("ev-in", pickgroups());
 		setopt("auto", "web.everb.auto", LAB.t_auto[0]);
@@ -529,12 +508,12 @@
 		setobjopt("2", "web.everb.obj2", LAB.obj2);
 		fillobj("ev-oa");
 		fillobj("ev-ob");
-		var sel = page.doms.evSel;
+		var sel = F.id("ev-sel");
 		if (sel && !F.attr(sel, "data-bind")) {
 			F.seta(sel, "data-bind", "1");
 			sel.onchange = ontype;
 		}
-		var on = page.doms.evOn;
+		var on = F.id("ev-on");
 		if (on && !F.attr(on, "data-bind")) {
 			F.seta(on, "data-bind", "1");
 			on.onchange = onobj;
@@ -542,17 +521,20 @@
 		bindobj("ev-oa");
 		bindobj("ev-ob");
 		showobj();
-		var out = page.doms.evOut;
+		var out = F.id("ev-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
-			out.onclick = ui.onout;
+			out.onclick = onout;
 		}
-		ui.bind();
+		if (!bound) {
+			bound = true;
+			window.addEventListener("resize", onresize);
+		}
 		run();
 	}
 
 	function setopt(value, key, fb){
-		var sel = page.doms.evSel;
+		var sel = F.id("ev-sel");
 		if (!sel) return;
 		for (var i = 0; i < sel.options.length; i++) {
 			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, tr(fb));
@@ -567,7 +549,7 @@
 	}
 
 	function setobjopt(value, key, pair){
-		var sel = page.doms.evOn;
+		var sel = F.id("ev-on");
 		if (!sel) return;
 		for (var i = 0; i < sel.options.length; i++) {
 			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, tr(pair));
@@ -583,7 +565,7 @@
 	}
 
 	function bindobj(id){
-		var el = page.doms[SK.domkey(id)];
+		var el = F.id(id);
 		if (!el || F.attr(el, "data-bind")) return;
 		F.seta(el, "data-bind", "1");
 		el.oninput = onobjtext;
@@ -591,7 +573,7 @@
 
 	// 手改或从列表点选后，不再被「自动」写回默认宾语。
 	function onobjtext(){
-		var nsel = page.doms.evOn;
+		var nsel = F.id("ev-on");
 		if (nsel && nsel.value === "auto") {
 			var n = resolvedn();
 			nsel.value = n === "0" ? "1" : n;
@@ -607,7 +589,7 @@
 
 	// 类型选了动词，或自动识别成动词，都显示宾语。形容词和名词不显示。
 	function verbpick(){
-		var sel = page.doms.evSel;
+		var sel = F.id("ev-sel");
 		var v = sel && sel.value ? sel.value : "auto";
 		if (v === "a" || v === "n") return false;
 		if (v === "v") return true;
@@ -615,7 +597,7 @@
 	}
 
 	function objmode(){
-		var nsel = page.doms.evOn;
+		var nsel = F.id("ev-on");
 		return nsel && nsel.value ? nsel.value : "auto";
 	}
 
@@ -629,16 +611,16 @@
 	function showobj(){
 		var on = verbpick();
 		var n = resolvedn();
-		var box = page.doms.evObj;
-		var a = page.doms.evO1;
-		var b = page.doms.evO2;
+		var box = F.id("ev-obj");
+		var a = F.id("ev-o1");
+		var b = F.id("ev-o2");
 		if (box) box.hidden = !on;
 		if (a) a.hidden = !on || n === "0";
 		if (b) b.hidden = !on || n !== "2";
 	}
 
 	function setwhy(key, pair){
-		var el = page.doms.evOwhy;
+		var el = F.id("ev-owhy");
 		if (!el) return;
 		if (!key || objmode() !== "auto") {
 			el.hidden = true;
@@ -652,8 +634,8 @@
 	// mark：2 双宾语，1 及物，0 不及物，-1 词典没写宾语。
 	function applyauto(mark){
 		objn = mark > 0 ? mark : 0;
-		var a = page.doms.evOa;
-		var b = page.doms.evOb;
+		var a = F.id("ev-oa");
+		var b = F.id("ev-ob");
 		if (objn === 1 && a) a.value = "it";
 		if (objn === 2) {
 			if (a) a.value = "him";
@@ -668,11 +650,11 @@
 
 	// 从「无」或「自动」换成 1 个或 2 个时给一个常用宾语。
 	function onobj(){
-		var nsel = page.doms.evOn;
+		var nsel = F.id("ev-on");
 		var n = objmode();
 		var prev = nsel ? (F.attr(nsel, "data-prev") || "auto") : "auto";
-		var a = page.doms.evOa;
-		var b = page.doms.evOb;
+		var a = F.id("ev-oa");
+		var b = F.id("ev-ob");
 		if (n === "1" && a && (prev === "auto" || prev === "0")) a.value = "it";
 		if (n === "2") {
 			if (a && prev !== "1") a.value = "him";
@@ -692,7 +674,7 @@
 	}
 
 	function pickkind(){
-		var sel = page.doms.evSel;
+		var sel = F.id("ev-sel");
 		return sel && sel.value ? sel.value : "auto";
 	}
 
@@ -715,8 +697,38 @@
 		return groups;
 	}
 
+	function onout(ev){
+		var btn = ev.target;
+		var out = F.id("ev-out");
+		while (btn && btn !== out && btn.tagName !== "BUTTON") btn = btn.parentNode;
+		if (!btn || btn === out) return;
+		var text = F.attr(btn, "data-v") || "";
+		if (text) speak(text);
+	}
 
+	function dropspeak(){
+		if (SK.stopwav) SK.stopwav();
+		if (!clip) return;
+		try { clip.pause(); } catch (e) {}
+		clip = null;
+	}
 
+	function speak(text){
+		SK.stopwav();
+		if (clip) {
+			try { clip.pause(); } catch (e) {}
+			clip = null;
+		}
+		var audio = new Audio("/api/dict/speak?text=" + encodeURIComponent(text) + "&lang=en");
+		clip = audio;
+		audio.onerror = function(){
+			if (clip === audio) SK.msg("box-msg", tx("web.everb.nospeak", "无法发音"), true);
+		};
+		var played = audio.play();
+		if (played && played.then) played.then(function(){}, function(){
+			if (clip === audio) SK.msg("box-msg", tx("web.everb.nospeak", "无法发音"), true);
+		});
+	}
 
 	function run(){
 		if (timer) clearTimeout(timer);
@@ -726,43 +738,43 @@
 	function go(){
 		timer = 0;
 		var n = ++gen;
-		var box = page.doms.evIn;
-		var sel = page.doms.evSel;
+		var box = F.id("ev-in");
+		var sel = F.id("ev-sel");
 		var word = norm(box ? box.value : "");
 		if (!word) {
 			lastkind = "";
 			objn = 0;
 			setwhy("");
 			showobj();
-			ui.paint("", "", []);
+			paint("", "", []);
 			SK.msg("box-msg", "");
 			return;
 		}
 		lastkind = "";
-		var t0 = ui.now();
+		var t0 = now();
 		lookup(word, function(hits){
 			if (n !== gen) return;
-			var tdict = hits ? ui.now() - t0 : -1;
+			var tdict = hits ? now() - t0 : -1;
 			var miss = hits && !hits.length ? tx("web.everb.miss", "词典里没有这个词，已按词形判断。") : "";
 			resolveobj(word, hits, function(){
 			if (n !== gen) return;
-			var t1 = ui.now();
+			var t1 = now();
 			conjreq(conjparams(word, sel), function(d){
 				if (n !== gen) return;
-				var tcalc = ui.now() - t1;
+				var tcalc = now() - t1;
 				if (!d) {
-					ui.paint("", "", []);
+					paint("", "", []);
 					SK.msg("box-msg", tx("web.everb.down", "变形接口不可用"), true);
 					return;
 				}
 				if (!d.ok) {
-					ui.paint("", "", []);
+					paint("", "", []);
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
 				lastkind = d.kind || "";
 				showobj();
-				ui.paint(d.head, d.note, objrows(d.rows), ui.timestr(tdict, tcalc, miss));
+				paint(d.head, d.note, objrows(d.rows), timestr(tdict, tcalc, miss));
 				SK.msg("box-msg", "");
 			});
 			});
@@ -773,8 +785,8 @@
 		var params = { lang: "en", q: word, type: sel ? sel.value : "auto", ui: langcode() };
 		if (!verbpick()) return params;
 		var n = resolvedn();
-		var a = page.doms.evOa;
-		var b = page.doms.evOb;
+		var a = F.id("ev-oa");
+		var b = F.id("ev-ob");
 		if ((n === "1" || n === "2") && a && a.value) params.o1 = a.value;
 		if (n === "2" && b && b.value) params.o2 = b.value;
 		return params;
@@ -868,14 +880,93 @@
 		return out;
 	}
 
+	var perline = 2;
+	var maxcols = 4;
+	var tries = 0;
+	var lastpaint = null;
+	var rtimer = 0;
+	var bound = false;
 
+	function paint(head, note, rows, tm){
+		var out = F.id("ev-out");
+		if (!out) return;
+		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
+		lastpaint = { head: head, note: note, rows: rows, tm: tm };
+		render(out);
+	}
 
+	// 栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。
+	var CELLW = 200;
 
+	function tabopen(cls){
+		var n = perline;
+		var html = '<table class="' + cls + '" style="width:' + (n <= 2 ? "100%" : (n * CELLW) + "px") + '">';
+		if (n > 2) {
+			html += "<colgroup>";
+			for (var i = 0; i < n; i++) html += '<col style="width:' + CELLW + 'px">';
+			html += "</colgroup>";
+		}
+		return html;
+	}
 
+	function render(out){
+		if (!out || !lastpaint) return;
+		var cw = out.clientWidth;
+		if (cw <= 0) {
+			// 刚切到工具页时容器可能还没显示，等一帧再量。
+			if (tries < 5) { tries++; setTimeout(refit, 40); }
+			return;
+		}
+		tries = 0;
+		perline = Math.floor(cw / CELLW);
+		if (perline < 1) perline = 1;
+		if (perline > 8) perline = 8;
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows, lastpaint.tm);
+	}
 
+	function onresize(){
+		if (rtimer) clearTimeout(rtimer);
+		rtimer = setTimeout(refit, 150);
+	}
+
+	function refit(){
+		var out = F.id("ev-out");
+		if (out && lastpaint) render(out);
+	}
 
 	// 一行两组「名称 + 词形」。
+	function tablehtml(head, note, rows, tm){
+		var tip = esc(tx("dict.speak", "发音"));
+		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(note) + "</span>"
+			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div>"
+			+ tabopen("jv-tab ev-tab");
+		var g = null;
+		var buf = [];
+		var i;
+		for (i = 0; i < rows.length; i++) {
+			if (rows[i].g !== g) {
+				html += flushrows(buf, tip);
+				buf = [];
+				g = rows[i].g;
+				if (g) html += '<tr><td class="kv-g" colspan="' + perline + '">' + esc(g) + "</td></tr>";
+			}
+			buf.push(rows[i]);
+		}
+		return html + flushrows(buf, tip) + "</table>";
+	}
 
+	function flushrows(buf, tip){
+		var html = "";
+		var j, k;
+		for (j = 0; j < buf.length; j += perline) {
+			html += "<tr>";
+			for (k = 0; k < perline; k++) {
+				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="c-k"></td>';
+			}
+			html += "</tr>";
+		}
+		return html;
+	}
 
 	function cellhtml(item, tip){
 		var html = '<td class="c-k"><div class="clab">' + esc(item.name) + "</div>";
@@ -891,9 +982,25 @@
 	}
 
 	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。
+	function timestr(dictms, calcms, extra){
+		var a = "";
+		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
+		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		if (extra) a += (a ? " · " : "") + extra;
+		return a;
+	}
 
+	function fmtms(v){
+		v = Math.round(v * 10) / 10;
+		return v < 1 ? "<1 ms" : Math.round(v) + " ms";
+	}
 
+	function now(){
+		return window.performance && window.performance.now ? window.performance.now() : Date.now();
+	}
 
-	var esc = SK.esc;
+	function esc(s){
+		return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+	}
 })();
 

@@ -1474,7 +1474,7 @@
 	}
 
 	function makeset(d){
-		return SK.refset({
+		return {
 			id: d.id,
 			name: d.name,
 			cols: COLS,
@@ -1482,12 +1482,15 @@
 			groups: GROUPS,
 			rows: build(d),
 			placeholder: d.placeholder,
+			big: 0,
+			sub: 1,
+			copy: 0,
 			hl: "sh",
 			defaultPick: "ls",
 			mline: 2,
 			sample: function(r){ return r.s; },
 			sampleTitle: "多行示例"
-		});
+		};
 	}
 
 	SK.regref("u-linuxcmd", {

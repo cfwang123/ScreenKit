@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	var KEYS = [
 		["second", "2nd", "2nd", "second", ""],
 		["lp", "(", "(", "(", ""],
@@ -53,34 +52,23 @@
 		hideGo: true,
 		hideCopy: true,
 		hideOut: true,
-		body: function(t){
-			page = t;
-			return F.CreateDOM(t, { x: "div.scicalc", tabindex: "0", name: "scicalc", c: [
-				{ x: "div.scitop", c: [
-					{ x: "span.scimem" },
-					{ x: "button", type: "button", "data-act": "deg", c: "DEG" }
-				] },
-				{ x: "div.sciexpr" },
-				{ x: "div.scival", c: "0" },
-				{ x: "div.scikeys", c: keybtns() }
-			] });
+		body: function(){
+			var html = '<div class="scicalc" tabindex="0"><div class="scitop"><span class="scimem"></span><button type="button" data-act="deg">DEG</button></div>';
+			html += '<div class="sciexpr"></div><div class="scival">0</div><div class="scikeys">';
+			for (var n = 0; n < KEYS.length; n++) {
+				var row = KEYS[n];
+				var cls = row[0] === "eq" ? " eq" : (row[0] === "ac" || row[0] === "ce" ? " danger" : (row[5] ? " digit" : ""));
+				html += '<button type="button" class="scikey' + cls + '" data-i="' + n + '">' + row[1] + "</button>";
+			}
+			html += "</div></div>";
+			return html;
 		},
 		open: function(){ bind(); }
 	});
 	SK.sciTry = tryeval;
 
-	function keybtns(){
-		var out = [], n, row, cls;
-		for (n = 0; n < KEYS.length; n++) {
-			row = KEYS[n];
-			cls = "scikey" + (row[0] === "eq" ? " eq" : (row[0] === "ac" || row[0] === "ce" ? " danger" : (row[5] ? " digit" : "")));
-			out.push({ x: "button", type: "button", class: cls, "data-i": String(n), c: row[1] });
-		}
-		return out;
-	}
-
 	function bind(){
-		var root = page.doms.scicalc;
+		var root = F.q("#box-body .scicalc");
 		if (!root) return;
 		pad = { expr: "", value: "0", ok: true, deg: true, second: false, done: false, mem: 0, ans: 0 };
 		var buttons = root.querySelectorAll("button");
@@ -501,4 +489,3 @@
 		return "";
 	}
 })();
-

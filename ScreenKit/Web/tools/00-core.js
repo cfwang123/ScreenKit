@@ -81,10 +81,48 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var today = new Date();
 		var month = today.getMonth() + 1;
 		var day = today.getDate();
-		SK.doms.calDate.value = today.getFullYear()
+		F.id("cal-date").value = today.getFullYear()
 			+ "-" + (month < 10 ? "0" : "") + month
 			+ "-" + (day < 10 ? "0" : "") + day;
 		F.on(document, "click", onclick);
+		F.id("cal-go").onclick = SK.cal;
+		F.id("tr-go").onclick = function(){ if (SK.trgo) SK.trgo(); };
+		F.id("tr-swap").onclick = function(){ if (SK.trswap) SK.trswap(); };
+		F.id("tr-copy").onclick = function(){ copytext(F.id("tr-out").value, "tr-msg"); };
+		F.id("tr-paste").onclick = function(){ if (SK.trpaste) SK.trpaste(); };
+		F.id("tr-speak-src").onclick = function(){ if (SK.trspeak) SK.trspeak("src"); };
+		F.id("tr-speak-dst").onclick = function(){ if (SK.trspeak) SK.trspeak("dst"); };
+		F.id("tr-src").onchange = function(){ if (SK.trdst) SK.trdst(true); };
+		F.id("tr-dst").onchange = function(){ if (SK.trsync) SK.trsync(); };
+		F.id("tr-engine").onchange = function(){ if (SK.trfillmodel) SK.trfillmodel(); };
+		F.id("tr-model").onchange = function(){ if (SK.trmodel) SK.trmodel(); };
+		F.id("tr-in").onkeydown = function(ev){
+			if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
+				F.pd(ev);
+				if (SK.trgo) SK.trgo();
+			}
+		};
+		F.id("tx-copy").onclick = function(){ copytext(F.id("tx-out").value, "tx-msg"); };
+		F.id("qr-make").onclick = SK.qrmake;
+		F.id("qr-scan").onclick = SK.qrscan;
+		F.id("ocr-pack").onchange = SK.fillocrmodels;
+		F.id("ocr-file").onchange = SK.onocrfile;
+		F.id("ocr-go").onclick = SK.ocrgo;
+		F.on(document, "paste", SK.onocrpaste);
+		F.id("ocr-copy").onclick = function(){ copytext(F.id("ocr-out").value, "ocr-msg"); };
+		F.id("tts-eng").onchange = SK.fillttsmodels;
+		F.id("tts-lang").onchange = SK.fillttsmodels;
+		F.id("tts-gender").onchange = SK.fillttsmodels;
+		F.id("tts-model").onchange = SK.fillttsvoices;
+		F.id("tts-go").onclick = function(){ SK.ttsgo(false); };
+		F.id("tts-wav").onclick = function(){ SK.ttsgo(true); };
+		F.id("asr-eng").onchange = SK.fillasrmodels;
+		F.id("asr-filego").onclick = SK.asrfile;
+		F.id("asr-rec").onclick = SK.asrrec;
+		F.id("asr-copy").onclick = function(){ copytext(F.id("asr-out").value, "asr-msg"); };
+		F.id("tool-q").oninput = paintcats;
+		F.id("box-go").onclick = utilrun;
+		F.id("box-copy").onclick = function(){ copytext(F.id("box-out").value, "box-msg"); };
 		filllang();
 		loadfav();
 		buildgroups();
@@ -186,9 +224,9 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var i;
 		for (i = 0; i < panels.length; i++)
 			panels[i].className = panels[i].id === name ? "panel on" : "panel";
-		SK.doms.back.hidden = name === "home";
+		F.id("back").hidden = name === "home";
 		document.documentElement.classList.toggle("in-tool", SK.curtool !== "home");
-		var favbtn = SK.doms.toolFav;
+		var favbtn = F.id("tool-fav");
 		if (SK.curtool === "home") {
 			favbtn.hidden = true;
 			F.unset(favbtn, "data-fav");
@@ -234,36 +272,6 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var i = langs().indexOf("en");
 		if (i >= 0 && row[i]) return row[i];
 		return row[0] || "";
-	}
-
-	// 键查不到就用兜底文案。多个工具原来各写一份 tx，统一到这里。
-	function tx(key, fb){
-		return t(key) || fb;
-	}
-
-	// 界面当前语言代码，读左上角的下拉。
-	function langcode(){
-		var sel = SK.doms.lang;
-		return sel && sel.value ? sel.value : "zh";
-	}
-
-	// 改写 label 元素的第一个文本节点，保留里面的 input/select。
-	function setlab(id, key, fb){
-		var el = domof(id);
-		if (!el) return;
-		var text = tx(key, fb);
-		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
-		else el.insertBefore(document.createTextNode(text), el.firstChild);
-	}
-
-	// 给下拉里指定 value 的 option 换文案。
-	function setopt(selId, value, key, fb){
-		var sel = domof(selId);
-		if (!sel) return;
-		var i;
-		for (i = 0; i < sel.options.length; i++) {
-			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
-		}
 	}
 
 	function webkey(text){
@@ -418,9 +426,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function markattr(el){
-		// 输入框自己的 placeholder / title 也要换，不能因为 skipped 把 INPUT 自己算进去；
-		// 只看祖先里有没有不该动的地方（聊天记录等）。
-		if (!el || el.nodeType !== 1 || (el.parentNode && skipped(el.parentNode))) return;
+		if (!el || el.nodeType !== 1 || skipped(el)) return;
 		var ph = el.getAttribute("placeholder");
 		var key;
 		if (ph && !el.getAttribute("data-kph")) {
@@ -449,7 +455,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function filllang(){
-		var sel = SK.doms.lang;
+		var sel = F.id("lang");
 		if (!sel) return;
 		var codes = langs();
 		var names = (window.L && L._name) || [];
@@ -467,10 +473,11 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			if (use === codes[i]) { langAt = i; break; }
 		}
 		sel.value = codes[langAt] || codes[0] || "";
+		sel.onchange = onlang;
 	}
 
 	function onlang(){
-		var code = SK.doms.lang.value;
+		var code = F.id("lang").value;
 		var codes = langs();
 		var i;
 		langAt = 0;
@@ -486,10 +493,10 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	// 自绘表格的工具换语言时整个重建 body（占位、表头、提示都在 body 里），并尽量保留搜索词。
 	SK.reopenutil = function(){
 		if (!util || SK.curtool !== util) return;
-		var old = F.q(".uquery input", SK.doms.boxBody);
+		var old = F.q(".uquery input", F.id("box-body"));
 		var val = old ? old.value : "";
 		openutil(util);
-		var box = F.q(".uquery input", SK.doms.boxBody);
+		var box = F.q(".uquery input", F.id("box-body"));
 		if (box && val) {
 			box.value = val;
 			box.dispatchEvent(new Event("input"));
@@ -530,18 +537,14 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		}
 		var code = langs()[langAt] || "zh";
 		document.documentElement.lang = code === "zh" ? "zh-CN" : code;
-		// 先把页面文案换成当前语言，marktool / settitle 再去读卡片上的名字，
-		// 否则标题会拿到还没换过的中文。
-		markhtml(document.body);
 		if (SK.curtool && SK.curtool !== "home") {
 			var panel = SK.curtool.indexOf("u-") === 0 ? "box" : SK.curtool;
 			marktool(SK.curtool, panel);
 		}
 		settitle();
-		if (SK.fillttslang && SK.doms.ttsLang) SK.fillttslang();
-		if (SK.filltrlang) SK.filltrlang();
-		// 语言下拉、语音语言这些是脚本临时填的，上一步扫不到，补扫一次。
 		markhtml(document.body);
+		if (SK.fillttslang && F.id("tts-lang")) SK.fillttslang();
+		if (SK.filltrlang) SK.filltrlang();
 		paintstars();
 		if (!SK.curtool || SK.curtool === "home") paintcats();
 	}
@@ -564,7 +567,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function buildgroups(){
-		var host = SK.doms.cards;
+		var host = F.id("cards");
 		var btns = F.qa("button, a", host);
 		var nav = F.qa("#cats button");
 		var pending = [];
@@ -595,7 +598,6 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 				var empty = F.el("p");
 				empty.className = "none";
 				empty.id = "fav-none";
-			SK.doms.favNone = empty;
 				empty.hidden = true;
 				F.seta(empty, "data-k", "web.fav.none");
 				empty.textContent = t("web.fav.none") || "还没有收藏。点卡片右侧的星可以加进来。";
@@ -625,7 +627,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			copy.hidden = false;
 			F.append(grid, copy);
 		}
-		var empty = SK.doms.favNone;
+		var empty = F.id("fav-none");
 		if (empty) empty.hidden = favs.length !== 0;
 	}
 
@@ -640,12 +642,12 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		curcat = cat;
 		if (SK.curtool !== "home") show("home");
 		else paintcats();
-		var home = SK.doms.home;
+		var home = F.id("home");
 		if (home) home.scrollTop = 0;
 	}
 
 	function paintcats(){
-		var q = (SK.doms.toolQ.value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
+		var q = (F.id("tool-q").value || "").replace(/^\s+|\s+$/g, "").toLowerCase();
 		var cards = F.qa(".catsec .cards button, .catsec .cards a");
 		var n = 0;
 		var i;
@@ -672,13 +674,13 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			for (j = 0; j < buttons.length; j++) if (!buttons[j].hidden) visn++;
 			if (cat === "fav" && !q) {
 				secs[i].hidden = false;
-				var empty = SK.doms.favNone;
+				var empty = F.id("fav-none");
 				if (empty) empty.hidden = visn !== 0;
 			}
 			else secs[i].hidden = visn === 0;
 		}
-		SK.doms.toolNone.textContent = t("web.find.none") || "没有匹配的工具";
-		SK.doms.toolNone.hidden = n !== 0;
+		F.id("tool-none").textContent = t("web.find.none") || "没有匹配的工具";
+		F.id("tool-none").hidden = n !== 0;
 		paintnav();
 	}
 
@@ -765,7 +767,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			F.seta(nodes[i], "data-ktip", tipKey);
 			nodes[i].title = t(tipKey) || (on ? "取消收藏" : "收藏");
 		}
-		var btn = SK.doms.toolFav;
+		var btn = F.id("tool-fav");
 		if (!btn) return;
 		var picked = F.attr(btn, "data-fav") || "";
 		var lit = picked && isfav(picked);
@@ -775,20 +777,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		btn.title = t(favKey) || (lit ? "已收藏" : "收藏");
 	}
 
-	// 工具传进来的键（如 "h-msg"）先在 page.doms 里找，没有才退回 HTML id。
-	function domkey(id){
-		var parts = String(id == null ? "" : id).split("-");
-		var out = parts[0];
-		var i;
-		for (i = 1; i < parts.length; i++) out += parts[i].charAt(0).toUpperCase() + parts[i].substring(1);
-		return out;
-	}
-
-	// 先看当前工具的 page.doms（新写法），再看页面树的 doms（壳），最后才退回 HTML id。
 	function msg(id, text, bad){
-		var el = (SK.curpage && SK.curpage.doms && SK.curpage.doms[domkey(id)])
-			|| (SK.doms && SK.doms[domkey(id)]);
-		if (!el) el = F.id(id);
+		var el = F.id(id);
 		if (!el) return;
 		var key = webkey(text);
 		if (key) {
@@ -881,7 +871,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function chartfont(id){
-		var box = domof(id);
+		var box = F.id(id);
 		if (!box) return;
 		if (chartFont == null) {
 			chartFont = "";
@@ -1043,90 +1033,26 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		document.body.removeChild(ta);
 	}
 
-
-
-
-
-
-
-	// ── 工具骨架：统一用 DOM 拼，不再返回 HTML 字符串 ──
-	// 带 id 的控件同时登记进当前工具的 page.doms（id 转驼峰）；
-	// 旧的 SK.val / combo / combofill 仍按 id 找，迁移期间两种取法并存。
-	function domhost(){
-		return SK.curpage || SK.doms || null;
-	}
-
-	function binddom(el, id){
-		if (id) el.id = id;
-		var page = domhost();
-		if (id && page && page.doms) page.doms[domkey(id)] = el;
-		return el;
-	}
-
-	function elem(tag, cls){
-		var el = document.createElement(tag);
-		if (cls) el.className = cls;
-		return el;
-	}
-
-	function knode(text){
-		var key = webkey(text);
-		if (!key) return document.createTextNode(String(text == null ? "" : text));
-		var span = elem("span");
-		span.setAttribute("data-k", key);
-		span.textContent = t(key);
-		return span;
-	}
-
-	// 子节点可以是 DOM、DOM 数组或文本；null 直接跳过。
-	function put(parent, child){
-		var i;
-		if (child == null || child === "") return;
-		if (child instanceof Array) {
-			for (i = 0; i < child.length; i++) put(parent, child[i]);
-			return;
-		}
-		if (child instanceof Node) parent.appendChild(child);
-		else parent.appendChild(document.createTextNode(String(child)));
-	}
-
 	function lab(title, inner){
-		var el = elem("label");
-		put(el, knode(title));
-		put(el, inner);
-		return el;
+		return "<label>" + khtml(title) + inner + "</label>";
 	}
 
 	function row2(a, b){
-		var el = elem("div", "row");
-		put(el, a);
-		put(el, b);
-		return el;
+		return '<div class="row">' + a + b + "</div>";
 	}
 
 	function ta(id, rows, ph){
-		var el = elem("textarea");
-		el.rows = rows;
 		var key = webkey(ph || "");
-		if (key) {
-			F.seta(el, "data-kph", key);
-			el.placeholder = t(key);
-		}
-		else el.placeholder = ph || "";
-		return binddom(el, id);
+		var shown = key ? t(key) : ph;
+		var attr = key ? ' data-kph="' + key + '"' : "";
+		return '<textarea id="' + id + '" rows="' + rows + '" placeholder="' + shown + '"' + attr + "></textarea>";
 	}
 
 	function textin(id, value, ph){
-		var el = elem("input");
-		el.type = "text";
-		el.value = value == null ? "" : value;
 		var key = webkey(ph || "");
-		if (key) {
-			F.seta(el, "data-kph", key);
-			el.placeholder = t(key);
-		}
-		else el.placeholder = ph || "";
-		return binddom(el, id);
+		var shown = key ? t(key) : (ph || "");
+		var attr = key ? ' data-kph="' + key + '"' : "";
+		return '<input id="' + id + '" type="text" value="' + value + '" placeholder="' + shown + '"' + attr + ">";
 	}
 
 	// 可输入的下拉。combo 生成框，combofill 填分组。groups: [{ g, items: [{ v, t }] }]。
@@ -1134,86 +1060,12 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	function combo(id, value, ph){
 		var key = webkey(ph || "");
-		var box = elem("div", "combo");
-		var input = elem("input");
-		input.type = "text";
-		input.autocomplete = "off";
-		input.value = value || "";
-		input.placeholder = key ? t(key) : (ph || "");
-		if (key) F.seta(input, "data-kph", key);
-		binddom(input, id);
-		var btn = elem("button", "combo-btn");
-		btn.type = "button";
-		btn.tabIndex = -1;
-		put(btn, elem("i", "fa-solid fa-chevron-down"));
-		var pop = elem("div", "combo-pop");
-		pop.hidden = true;
-		put(box, [input, btn, pop]);
-		return box;
-	}
-
-	function numin(id, value){
-		var el = elem("input");
-		el.type = "number";
-		el.value = value == null ? "" : value;
-		return binddom(el, id);
-	}
-
-	function check(id, title, on){
-		var el = elem("label", "check");
-		var box = elem("input");
-		box.type = "checkbox";
-		box.checked = !!on;
-		binddom(box, id);
-		put(el, [box, document.createTextNode(" "), knode(title)]);
-		return el;
-	}
-
-	function radio(name, id, title, on){
-		var el = elem("label", "check");
-		var box = elem("input");
-		box.type = "radio";
-		box.name = name;
-		box.value = title;
-		box.checked = !!on;
-		binddom(box, id);
-		put(el, [box, document.createTextNode(" "), knode(title)]);
-		return el;
-	}
-
-	// 单个 option，给要在 JS 里拼下拉的地方用。
-	function mkopt(value, text){
-		var op = document.createElement("option");
-		op.value = value;
-		op.textContent = text;
-		return op;
-	}
-
-	function opts(list, sel){
-		var out = [];
-		var i, op, key;
-		for (i = 0; i < list.length; i++) {
-			op = document.createElement("option");
-			op.value = list[i][0];
-			if (list[i][0] === sel) op.selected = true;
-			key = webkey(list[i][1]);
-			if (key) {
-				op.setAttribute("data-k", key);
-				op.textContent = t(key);
-			}
-			else op.textContent = list[i][1];
-			out.push(op);
-		}
-		return out;
-	}
-
-	// 动态换下拉内容（单位、进制、日期单位之类）。
-	function setopts(sel, list, chosen){
-		if (!sel) return;
-		while (sel.firstChild) sel.removeChild(sel.firstChild);
-		var arr = opts(list, chosen);
-		var i;
-		for (i = 0; i < arr.length; i++) sel.appendChild(arr[i]);
+		var shown = key ? t(key) : (ph || "");
+		var attr = key ? ' data-kph="' + key + '"' : "";
+		return '<div class="combo">'
+			+ '<input id="' + htmlenc(id) + '" type="text" autocomplete="off" value="' + htmlenc(value || "") + '" placeholder="' + htmlenc(shown) + '"' + attr + ">"
+			+ '<button type="button" class="combo-btn" tabindex="-1"><i class="fa-solid fa-chevron-down"></i></button>'
+			+ '<div class="combo-pop" hidden></div></div>';
 	}
 
 	function combofill(id, groups){
@@ -1233,7 +1085,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function comboroot(id){
-		var box = domof(id);
+		var box = F.id(id);
 		var el = box ? box.parentNode : null;
 		if (!el || !el.className || String(el.className).indexOf("combo") < 0) return null;
 		return el;
@@ -1295,7 +1147,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var st = COMBOS[id];
 		var pop = combopop(comboroot(id));
 		if (!st || !pop) return;
-		var box = domof(id);
+		var box = F.id(id);
 		var q = st.all || !box ? "" : String(box.value || "").toLowerCase();
 		var html = "";
 		var vis = [];
@@ -1340,7 +1192,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function placecombo(id){
-		var box = domof(id);
+		var box = F.id(id);
 		var pop = combopop(comboroot(id));
 		if (!box || !pop || pop.hidden) return;
 		var r = box.getBoundingClientRect();
@@ -1360,7 +1212,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function combopick(id, value){
-		var box = domof(id);
+		var box = F.id(id);
 		if (!box) return;
 		box.value = value;
 		comboclose(id);
@@ -1445,26 +1297,39 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		closecombos();
 	}
 
+	function numin(id, value){
+		return '<input id="' + id + '" type="number" value="' + value + '">';
+	}
 
+	function check(id, title, on){
+		return '<label class="check"><input id="' + id + '" type="checkbox"' + (on ? " checked" : "") + "> " + khtml(title) + "</label>";
+	}
 
+	function radio(name, id, title, on){
+		return '<label class="check"><input id="' + id + '" name="' + name + '" type="radio" value="' + title + '"' + (on ? " checked" : "") + "> " + khtml(title) + "</label>";
+	}
 
-
-
-
-	// 工具里要拿元素时用 SK.dom("box-h")：先看当前工具的 page.doms，
-	// 没有再退回 HTML id。迁移期间两种写法都能用。
-	function domof(id){
-		var k = domkey(id);
-		return (SK.curpage && SK.curpage.doms && SK.curpage.doms[k]) || (SK.doms && SK.doms[k]) || F.id(id);
+	function opts(list, sel){
+		var html = "";
+		var i;
+		var label;
+		var key;
+		for (i = 0; i < list.length; i++) {
+			label = list[i][1];
+			key = webkey(label);
+			html += '<option value="' + list[i][0] + '"' + (list[i][0] === sel ? " selected" : "")
+				+ (key ? ' data-k="' + key + '"' : "") + ">" + (key ? esc(t(key)) : label) + "</option>";
+		}
+		return html;
 	}
 
 	function val(id){
-		var el = domof(id);
+		var el = F.id(id);
 		return el && el.value != null ? String(el.value) : "";
 	}
 
 	function onbox(id){
-		var el = domof(id);
+		var el = F.id(id);
 		return !!(el && el.checked);
 	}
 
@@ -1706,7 +1571,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		SK.icoPic = file;
 		if (SK.icoUrl) F.unurl(SK.icoUrl);
 		SK.icoUrl = F.url(file);
-		var img = domof("ico-img");
+		var img = F.id("ico-img");
 		if (img) {
 			img.onload = SK.drawicoprev;
 			img.src = SK.icoUrl;
@@ -1715,14 +1580,11 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		msg("box-msg", "已放入图片");
 	}
 
-	// 转义 HTML 文本和属性值。各工具统一用这个，别在各自文件里再写一份；
-	// 属性里必须转引号，所以双引号也一并转掉。htmlenc 在此基础上多转单引号。
 	function esc(s){
 		return String(s == null ? "" : s)
 			.replace(/&/g, "&amp;")
 			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;");
+			.replace(/>/g, "&gt;");
 	}
 
 	function openutil(name){
@@ -1730,36 +1592,30 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var spec = SK.utils[name];
 		if (!spec) return;
 		util = name;
-		SK.doms.boxTitle.textContent = spec.title;
+		F.id("box-title").textContent = spec.title;
 		var gokey = webkey(spec.go);
 		if (gokey) {
-			F.seta(SK.doms.boxGo, "data-k", gokey);
-			SK.doms.boxGo.textContent = t(gokey);
+			F.seta(F.id("box-go"), "data-k", gokey);
+			F.id("box-go").textContent = t(gokey);
 		}
 		else {
-			F.unset(SK.doms.boxGo, "data-k");
-			SK.doms.boxGo.textContent = spec.go;
+			F.unset(F.id("box-go"), "data-k");
+			F.id("box-go").textContent = spec.go;
 		}
-		SK.curpage = { doms: {} };
-		var body = spec.body ? spec.body(SK.curpage) : "";
-		if (typeof body === "string") SK.doms.boxBody.innerHTML = body;
-		else {
-			SK.doms.boxBody.innerHTML = "";
-			put(SK.doms.boxBody, body);
-		}
-		SK.doms.boxOut.value = "";
-		SK.doms.boxGo.parentElement.style.display = "";
-		SK.doms.boxGo.style.display = "";
-		SK.doms.boxCopy.style.display = "";
-		SK.doms.boxOut.parentElement.style.display = "";
+		F.id("box-body").innerHTML = spec.body();
+		F.id("box-out").value = "";
+		F.id("box-go").parentElement.style.display = "";
+		F.id("box-go").style.display = "";
+		F.id("box-copy").style.display = "";
+		F.id("box-out").parentElement.style.display = "";
 		if (SK.showreout) SK.showreout(false);
 		if (SK.showrcolor) SK.showrcolor(false);
 		msg("box-msg", "");
-		if (spec.hideGo) SK.doms.boxGo.parentElement.style.display = "none";
-		if (spec.noGo) SK.doms.boxGo.style.display = "none";
-		if (spec.hideCopy) SK.doms.boxCopy.style.display = "none";
-		if (spec.hideOut) SK.doms.boxOut.parentElement.style.display = "none";
-		if (spec.open) spec.open(SK.curpage);
+		if (spec.hideGo) F.id("box-go").parentElement.style.display = "none";
+		if (spec.noGo) F.id("box-go").style.display = "none";
+		if (spec.hideCopy) F.id("box-copy").style.display = "none";
+		if (spec.hideOut) F.id("box-out").parentElement.style.display = "none";
+		if (spec.open) spec.open();
 		if (spec.live === true || (spec.live !== false && textcard(name))) bindboxlive();
 	}
 
@@ -1769,7 +1625,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	function bindboxlive(){
-		var body = SK.doms.boxBody;
+		var body = F.id("box-body");
 		if (!body) return;
 		body.oninput = function(){ utilrun(); };
 		body.onchange = function(ev){
@@ -1784,19 +1640,19 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var spec = SK.utils[util];
 		if (!spec || !spec.run) return;
 		if (spec.own) {
-			spec.run(SK.curpage);
+			spec.run();
 			return;
 		}
 		SK.reNote = "";
 		try {
-			var out = spec.run(SK.curpage);
+			var out = spec.run();
 			out = out == null ? "" : String(out);
 			var outKey = webkey(out);
-			SK.doms.boxOut.value = outKey ? (t(outKey) || out) : out;
+			F.id("box-out").value = outKey ? (t(outKey) || out) : out;
 			msg("box-msg", SK.reNote || "完成");
 		}
 		catch (ex) {
-			SK.doms.boxOut.value = "";
+			F.id("box-out").value = "";
 			if (SK.showreout) SK.showreout(false);
 			if (SK.showrcolor) SK.showrcolor(false);
 			msg("box-msg", ex && ex.message ? ex.message : "失败", true);
@@ -1805,8 +1661,6 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	SK.boot = boot;
 	SK.onclick = onclick;
-	SK.onlang = onlang;
-	SK.domkey = domkey;
 	SK.toolhash = toolhash;
 	SK.pushhash = pushhash;
 	SK.applyhash = applyhash;
@@ -1826,7 +1680,6 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.paintstars = paintstars;
 	SK.$ = F.id;
 	SK.msg = msg;
-	SK.dom = domof;
 	SK.post = post;
 	SK.playwav = playwav;
 	SK.stopwav = stopwav;
@@ -1847,8 +1700,6 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.check = check;
 	SK.radio = radio;
 	SK.opts = opts;
-	SK.opt = mkopt;
-	SK.setopts = setopts;
 	SK.val = val;
 	SK.onbox = onbox;
 	SK.ymd = ymd;
@@ -1874,10 +1725,6 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.stoptick = stoptick;
 	SK.seticopic = seticopic;
 	SK.esc = esc;
-	SK.tx = tx;
-	SK.langcode = langcode;
-	SK.setlab = setlab;
-	SK.setopt = setopt;
 	SK.tr = tr;
 	SK.markhtml = markhtml;
 	SK.openutil = openutil;
@@ -1885,4 +1732,3 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.t = t;
 	combowatch();
 })();
-

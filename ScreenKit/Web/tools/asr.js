@@ -17,13 +17,13 @@
 			var rows = [];
 			if (hasOff) rows.push({ value: "offline", label: "离线模型" });
 			if (hasWin) rows.push({ value: "windows", label: "Windows 语音识别" });
-			SK.fillsel(SK.doms.asrEng, rows, "");
+			SK.fillsel(F.id("asr-eng"), rows, "");
 			fillasrmodels();
 		}, "asr-msg");
 	}
 
 	function fillasrmodels(){
-		var win = SK.doms.asrEng.value === "windows";
+		var win = F.id("asr-eng").value === "windows";
 		var rows = [];
 		var i;
 		for (i = 0; i < asrItems.length; i++) {
@@ -33,22 +33,22 @@
 			if (isWin !== win) continue;
 			rows.push({ value: it.name || "", label: it.name || "" });
 		}
-		SK.fillsel(SK.doms.asrModel, rows, "");
+		SK.fillsel(F.id("asr-model"), rows, "");
 	}
 
 	function postasr(b64, filename){
 		SK.post("/api/asr", {
 			base64: b64,
 			filename: filename || "",
-			model: SK.doms.asrModel.value,
-			lang: SK.doms.asrLang.value,
+			model: F.id("asr-model").value,
+			lang: F.id("asr-lang").value,
 		}, function(data){
-			SK.doms.asrOut.value = (data && data.text) || "";
+			F.id("asr-out").value = (data && data.text) || "";
 		}, "asr-msg");
 	}
 
 	function asrfile(){
-		var file = SK.doms.asrFile.files && SK.doms.asrFile.files[0];
+		var file = F.id("asr-file").files && F.id("asr-file").files[0];
 		if (!file) {
 			SK.msg("asr-msg", "请选择音频", true);
 			return;
@@ -57,7 +57,7 @@
 	}
 
 	function setasr(on){
-		var b = SK.doms.asrRec;
+		var b = F.id("asr-rec");
 		var i = F.q("i", b);
 		var s = F.q("span", b);
 		if (i) i.className = on ? "fa-solid fa-stop" : "fa-solid fa-microphone";

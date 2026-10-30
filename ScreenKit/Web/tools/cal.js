@@ -1,8 +1,8 @@
 (function(){
 	function cal(){
 		SK.post("/api/calendar", {
-			date: SK.doms.calDate.value,
-			cal: SK.doms.calId.value,
+			date: F.id("cal-date").value,
+			cal: F.id("cal-id").value,
 		}, function(data){
 			var rows = [
 				["公历", data.gregorian],
@@ -20,7 +20,7 @@
 				if (!rows[i][1] && rows[i][0] !== "闰月") continue;
 				html += "<dt>" + rows[i][0] + "</dt><dd>" + SK.esc(rows[i][1]) + "</dd>";
 			}
-			SK.doms.calOut.innerHTML = html;
+			F.id("cal-out").innerHTML = html;
 		}, "cal-msg");
 	}
 

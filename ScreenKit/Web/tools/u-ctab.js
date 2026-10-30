@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	// 每条：[中文名, 十六进制, 名字]，第 4 项可选，是备注（如 Transparent 的 A=0）。
 	// web 支：CSS 命名色 + 中文专名色，按色相分组。
 	var WEB = [
@@ -285,25 +284,20 @@
 		hideGo: true,
 		hideOut: true,
 		hideCopy: true,
-		body: function(t){
-			page = t;
-			return F.CreateDOM(t, { x: "div.ctab", c: [
-				{ x: "div.uquery", c: [
-					{ x: "input.c-q", name: "cQ", type: "text", placeholder: "名称（中/英）或十六进制" },
-					{ x: "span.box-msg.msg", name: "boxMsg" }
-				] },
-				{ x: "div.cgroups.c-groups", name: "cGroups" },
-				{ x: "div.cgrid.c-grid", name: "cGrid" }
-			] });
+		body: function(){
+			return '<div class="ctab">'
+				+ '<div class="uquery"><input id="c-q" type="text" placeholder="名称（中/英）或十六进制"><span id="box-msg" class="msg"></span></div>'
+				+ '<div class="cgroups" id="c-groups"></div>'
+				+ '<div class="cgrid" id="c-grid"></div>'
+				+ "</div>";
 		},
-		open: function(t){
-			page = t;
+		open: function(){
 			cur = { set: "web", g: "" };
 			paintgroups();
 			paint();
-			page.doms.cQ.oninput = paint;
-			page.doms.cGroups.onclick = ongroup;
-			page.doms.cGrid.onclick = onswatch;
+			F.id("c-q").oninput = paint;
+			F.id("c-groups").onclick = ongroup;
+			F.id("c-grid").onclick = onswatch;
 		}
 	});
 
@@ -407,7 +401,7 @@
 			for (j = 0; j < t.groups.length; j++)
 				html += node(1, t.id, t.groups[j].id, t.groups[j].name, t.groups[j].colors.length, false);
 		}
-		page.doms.cGroups.innerHTML = html;
+		F.id("c-groups").innerHTML = html;
 	}
 
 	function node(lv, set, g, name, n, opened){
@@ -433,26 +427,23 @@
 			for (j = 0; j < rows.length; j++) html += card(rows[j]);
 		}
 		if (!html) html = '<p class="cnone">没有这种颜色</p>';
-		page.doms.cGrid.innerHTML = html;
+		F.id("c-grid").innerHTML = html;
 	}
 
 	function card(c){
 		var en = c[2] || "";
 		var note = c[3] || "";
-		// 中文界面中文名为主、英文名做小字；其它语言直接用英文名，省得满屏中文。
-		var zh = !SK.langcode || SK.langcode() === "zh";
-		var big = zh || !en ? c[0] : en;
-		var small = zh && en ? '<span class="en">' + esc(en) + "</span>" : "";
-		var tip = zh && en ? c[0] + " " + en : big;
-		return '<button type="button" data-hex="' + c[1] + '" data-name="' + esc(c[0] + " " + en) + '"'
+		return '<button type="button" data-hex="' + c[1] + '" data-name="' + esc(c[0]) + '"'
 			+ ' data-en="' + esc(en) + '"'
-			+ ' title="' + esc(tip + "  " + c[1] + (note ? "  " + note : "")) + '">'
+			+ ' title="' + esc(c[0] + " " + en + "  " + c[1] + (note ? "  " + note : "")) + '">'
 			+ (note ? '<i class="chk"></i>' : '<i style="background:' + c[1] + '"></i>')
-			+ "<b>" + esc(big) + small + "</b>"
+			+ "<b>" + esc(c[0]) + (en ? '<span class="en">' + esc(en) + "</span>" : "") + "</b>"
 			+ "<small>" + c[1] + (note ? '<span class="note">' + esc(note) + "</span>" : "") + "</small></button>";
 	}
 
-	var esc = SK.esc;
+	function esc(s){
+		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+	}
 
 	SK.ctabgroups = TREE;
 })();

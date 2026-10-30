@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	var ALL = "all";
 	var KINDS = [
 		kind("len", "长度", "m", "ft", [
@@ -67,30 +66,26 @@
 		title: "单位换算",
 		go: "换算",
 		own: true,
-		body: function(t){
-			page = t;
+		body: function(){
 			var names = [];
 			var i;
 			for (i = 0; i < KINDS.length; i++) names.push([KINDS[i].id, KINDS[i].name]);
-			return [
-				SK.row2(
-					SK.lab("类型", F.CreateDOM(t, { x: "select.box-kind", name: "boxKind", c: SK.opts(names, "len") })),
-					SK.lab("数值", SK.textin("box-in", "1米", "例如 1米、3斤、5kg"))),
-				SK.row2(
-					SK.lab("原单位", F.CreateDOM(t, { x: "select.box-from", name: "boxFrom" })),
-					SK.lab("新单位", F.CreateDOM(t, { x: "select.box-to", name: "boxTo" }))),
-				F.CreateDOM(t, { x: "div.row.box-root-row", name: "boxRootRow", hidden: true, c: SK.lab("根字号", SK.textin("box-root", "16")) }),
-				F.CreateDOM(t, { x: "p.hint", c: "数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。外币向中国银行查询中间价，成功或失败都缓存 10 分钟。查询失败时用 2026-10-10 的牌价。" })
-			];
+			return SK.row2(
+				SK.lab("类型", '<select id="box-kind">' + SK.opts(names, "len") + "</select>"),
+				SK.lab("数值", SK.textin("box-in", "1米", "例如 1米、3斤、5kg")))
+				+ SK.row2(
+					SK.lab("原单位", '<select id="box-from"></select>'),
+					SK.lab("新单位", '<select id="box-to"></select>'))
+				+ '<div class="row" id="box-root-row" hidden>' + SK.lab("根字号", SK.textin("box-root", "16")) + "</div>"
+				+ '<p class="hint">数值里可以带单位，例如 1米、3斤、5kg。新单位选「全部」时，一次列出这一类的所有单位。外币向中国银行查询中间价，成功或失败都缓存 10 分钟。查询失败时用 2026-10-10 的牌价。</p>';
 		},
-		open: function(t){
-			page = t;
+		open: function(){
 			var ids = ["box-kind", "box-from", "box-to"];
 			var i;
 			fillunits(false);
-			for (i = 0; i < ids.length; i++) page.doms[SK.domkey(ids[i])].onchange = onpick;
-			page.doms.boxIn.oninput = live;
-			page.doms.boxRoot.oninput = live;
+			for (i = 0; i < ids.length; i++) F.id(ids[i]).onchange = onpick;
+			F.id("box-in").oninput = live;
+			F.id("box-root").oninput = live;
 			live();
 		},
 		run: function(){
@@ -119,7 +114,7 @@
 
 	function striptext(){
 		var picked = detect(SK.val("box-in"));
-		if (picked) page.doms.boxIn.value = SK.trimnum(picked.num);
+		if (picked) F.id("box-in").value = SK.trimnum(picked.num);
 	}
 
 	function live(){
@@ -132,12 +127,12 @@
 		var job;
 		try { job = readin(); }
 		catch (ex) {
-			SK.doms.boxOut.value = "";
+			F.id("box-out").value = "";
 			SK.msg("box-msg", ex && ex.message ? ex.message : "失败", true);
 			return;
 		}
 		if (job.spec.id !== "money") {
-			SK.doms.boxOut.value = render(job.spec, job.n, job.from, job.to);
+			F.id("box-out").value = render(job.spec, job.n, job.from, job.to);
 			SK.msg("box-msg", "完成");
 			return;
 		}
@@ -145,14 +140,14 @@
 		fxtimer = setTimeout(function(){
 			fxtimer = 0;
 			if (mine !== fxseq || SK.curtool !== "u-unit") return;
-			SK.doms.boxOut.value = "";
+			F.id("box-out").value = "";
 			SK.post("/api/fx", {
 				amount: job.amount,
 				from: job.from,
 				to: job.to === ALL ? "all" : job.to
 			}, function(data){
 				if (mine !== fxseq || SK.curtool !== "u-unit") return;
-				SK.doms.boxOut.value = data && data.text ? data.text : "";
+				F.id("box-out").value = data && data.text ? data.text : "";
 				SK.msg("box-msg", "完成");
 			}, "box-msg");
 		}, 200);
@@ -166,9 +161,9 @@
 		var spec = findkind(SK.val("box-kind")) || KINDS[0];
 		var from = keep ? SK.val("box-from") : spec.from;
 		var to = keep ? SK.val("box-to") : ALL;
-		SK.setopts(page.doms.boxFrom, spec.units, from);
-		SK.setopts(page.doms.boxTo, allunits(spec.units), to);
-		page.doms.boxRootRow.hidden = spec.id !== "px";
+		F.id("box-from").innerHTML = SK.opts(spec.units, from);
+		F.id("box-to").innerHTML = SK.opts(allunits(spec.units), to);
+		F.id("box-root-row").hidden = spec.id !== "px";
 	}
 
 	function readin(){
@@ -181,10 +176,10 @@
 		if (picked) {
 			spec = findkind(picked.kind);
 			if (SK.val("box-kind") !== spec.id) {
-				page.doms.boxKind.value = spec.id;
+				F.id("box-kind").value = spec.id;
 				fillunits(false);
 			}
-			page.doms.boxFrom.value = picked.unit;
+			F.id("box-from").value = picked.unit;
 			from = picked.unit;
 			n = picked.num;
 			amount = String(picked.num);

@@ -1,31 +1,20 @@
 (function(){
-	var page = null;
 	SK.regutil("u-re", {
 		title: "正则测试",
 		go: "测试",
-		body: function(t){
-			page = t;
-			return [
-				SK.lab("常用", F.CreateDOM(t, { x: "select.box-preset", name: "boxPreset", c: reopts() })),
-				F.CreateDOM(t, { x: "div.row.grow", c: [
-					SK.lab("表达式", SK.textin("box-pat", "", "例如 \\d+")),
-					SK.lab("标志", SK.textin("box-flags", "g", "g i m"))
-				]}),
-				SK.lab("方式", F.CreateDOM(t, { x: "select.box-re-mode", name: "boxReMode", c: [
-					{ x: "option", value: "find", c: "查找匹配" },
-					{ x: "option", value: "lines", c: "批量测试" }
-				]})),
-				F.CreateDOM(t, { x: "p.re-hint.hint", name: "reHint", "data-k": "web.re.find", c: "在文本里查找匹配。" }),
-				SK.lab("文本", SK.ta("box-in", 8, ""))
-			];
+		body: function(){
+			return SK.lab("常用", '<select id="box-preset">' + reopts() + "</select>")
+				+ '<div class="row grow">' + SK.lab("表达式", SK.textin("box-pat", "", "例如 \\d+")) + SK.lab("标志", SK.textin("box-flags", "g", "g i m")) + "</div>"
+				+ SK.lab("方式", '<select id="box-re-mode"><option value="find">查找匹配</option><option value="lines">批量测试</option></select>')
+				+ '<p class="hint" id="re-hint" data-k="web.re.find">在文本里查找匹配。</p>'
+				+ SK.lab("文本", SK.ta("box-in", 8, ""));
 		},
 		run: function(){
 			return retest(SK.val("box-pat"), SK.val("box-flags"), SK.val("box-in"));
 		},
-		open: function(t){
-			page = t;
-			page.doms.boxPreset.onchange = repick;
-			page.doms.boxReMode.onchange = retip;
+		open: function(){
+			F.id("box-preset").onchange = repick;
+			F.id("box-re-mode").onchange = retip;
 			retip();
 		},
 		live: false
@@ -52,33 +41,34 @@
 
 	function reopts(){
 		var list = repatterns();
-		var out = [SK.opt("", "请选择")];
+		var html = '<option value="">请选择</option>';
 		var i;
-		for (i = 0; i < list.length; i++) out.push(SK.opt(String(i), list[i][0]));
-		return out;
+		for (i = 0; i < list.length; i++)
+			html += '<option value="' + i + '">' + SK.esc(list[i][0]) + "</option>";
+		return html;
 	}
 
 	function repick(){
-		var sel = page.doms.boxPreset;
+		var sel = F.id("box-preset");
 		var list = repatterns();
 		var i = sel ? parseInt(sel.value, 10) : -1;
 		if (!(i >= 0) || !list[i]) return;
-		var box = page.doms.boxIn;
+		var box = F.id("box-in");
 		var cur = box ? box.value : "";
 		var sample = !cur;
 		var k;
 		if (!sample) {
 			for (k = 0; k < list.length; k++) if (cur === list[k][3]) sample = true;
 		}
-		page.doms.boxPat.value = list[i][1];
-		page.doms.boxFlags.value = list[i][2];
+		F.id("box-pat").value = list[i][1];
+		F.id("box-flags").value = list[i][2];
 		if (sample && box) box.value = list[i][3] || "";
 	}
 
 	function retip(){
 		var lines = SK.val("box-re-mode") === "lines";
-		var hint = page.doms.reHint;
-		var box = page.doms.boxIn;
+		var hint = F.id("re-hint");
+		var box = F.id("box-in");
 		var hk = lines ? "web.re.lines" : "web.re.find";
 		if (hint) {
 			F.seta(hint, "data-k", hk);
@@ -97,8 +87,8 @@
 	}
 
 	function showreout(batch){
-		var list = SK.doms.reList;
-		var out = SK.doms.boxOut;
+		var list = F.id("re-list");
+		var out = F.id("box-out");
 		if (!list || !out) return;
 		list.hidden = !batch;
 		out.hidden = !!batch;
@@ -142,7 +132,7 @@
 			html += '<div>' + SK.esc(rows[i]) + ' <span class="' + (ok ? "ok" : "bad") + '">[' + mark + "]</span></div>";
 			plain.push(rows[i] + " [" + mark + "]");
 		}
-		SK.doms.reList.innerHTML = html;
+		F.id("re-list").innerHTML = html;
 		showreout(true);
 		SK.reNote = "通过 " + pass + "，未通过 " + (rows.length - pass);
 		return plain.join("\n");

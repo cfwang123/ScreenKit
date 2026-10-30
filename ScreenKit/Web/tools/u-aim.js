@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	var sessions = {};
 	var aimGen = 0;
 	var rec = null;
@@ -25,60 +24,51 @@
 		dispose: aimclose
 	});
 
-	var tx = SK.tx;
-
-	function body(t){
-		page = t;
-		return [
-			F.CreateDOM(t, { x: "p.aim-hint.hint", name: "aimHint" }),
-			F.CreateDOM(t, { x: "p.aim-pages.hint", name: "aimPages", c: [
-				{ x: "a.aim-models", name: "aimModels", href: "/chrome", target: "_blank", rel: "noopener" }
-			] }),
-			F.CreateDOM(t, { x: "label.aim-tasklab", name: "aimTasklab", c: [
-				{ x: "select.aim-task", name: "aimTask", c: [
-					{ x: "option", value: "detect" },
-					{ x: "option", value: "translate" },
-					{ x: "option", value: "summarize" },
-					{ x: "option", value: "rewrite" },
-					{ x: "option", value: "proof" },
-					{ x: "option", value: "prompt" },
-					{ x: "option", value: "speak" },
-					{ x: "option", value: "listen" }
-				] }
-			] }),
-			F.CreateDOM(t, { x: "div.row.aim-speak", name: "aimSpeak", hidden: true, c: [
-				{ x: "label.aim-vlanglab", name: "aimVlanglab", c: [{ x: "select.aim-vlang", name: "aimVlang" }] },
-				{ x: "label.aim-voicelab", name: "aimVoicelab", c: [{ x: "select.aim-voice", name: "aimVoice" }] }
-			] }),
-			F.CreateDOM(t, { x: "div.row.aim-tr", name: "aimTr", hidden: true, c: [
-				{ x: "label.aim-srclab", name: "aimSrclab", c: [{ x: "select.aim-src", name: "aimSrc" }] },
-				{ x: "label.aim-dstlab", name: "aimDstlab", c: [{ x: "select.aim-dst", name: "aimDst" }] }
-			] }),
-			F.CreateDOM(t, { x: "label.aim-sumlab", name: "aimSumlab", hidden: true, c: [
-				{ x: "select.aim-sum", name: "aimSum", c: [
-					{ x: "option", value: "key-points" },
-					{ x: "option", value: "tldr" },
-					{ x: "option", value: "teaser" },
-					{ x: "option", value: "headline" }
-				] }
-			] }),
-			F.CreateDOM(t, { x: "label.aim-tonelab", name: "aimTonelab", hidden: true, c: [
-				{ x: "select.aim-tone", name: "aimTone", c: [
-					{ x: "option", value: "more-formal" },
-					{ x: "option", value: "more-casual" },
-					{ x: "option", value: "shorter" },
-					{ x: "option", value: "longer" }
-				] }
-			] }),
-			F.CreateDOM(t, { x: "label.aim-inlab", name: "aimInlab", c: [{ x: "textarea.aim-in", name: "aimIn", rows: "8" }] }),
-			F.CreateDOM(t, { x: "p.aim-msg.msg", name: "aimMsg" })
-		];
+	function tx(key, fb){
+		var s = SK.t ? SK.t(key) : "";
+		return s || fb;
 	}
 
-	function open(t){
-		page = t;
+	function body(){
+		return '<p class="hint" id="aim-hint"></p>'
+			+ '<p class="hint" id="aim-pages"><a id="aim-models" href="/chrome" target="_blank" rel="noopener"></a></p>'
+			+ '<label id="aim-tasklab"><select id="aim-task">'
+			+ '<option value="detect"></option>'
+			+ '<option value="translate"></option>'
+			+ '<option value="summarize"></option>'
+			+ '<option value="rewrite"></option>'
+			+ '<option value="proof"></option>'
+			+ '<option value="prompt"></option>'
+			+ '<option value="speak"></option>'
+			+ '<option value="listen"></option>'
+			+ "</select></label>"
+			+ '<div class="row" id="aim-speak" hidden>'
+			+ '<label id="aim-vlanglab"><select id="aim-vlang"></select></label>'
+			+ '<label id="aim-voicelab"><select id="aim-voice"></select></label>'
+			+ "</div>"
+			+ '<div class="row" id="aim-tr" hidden>'
+			+ '<label id="aim-srclab"><select id="aim-src"></select></label>'
+			+ '<label id="aim-dstlab"><select id="aim-dst"></select></label>'
+			+ "</div>"
+			+ '<label id="aim-sumlab" hidden><select id="aim-sum">'
+			+ '<option value="key-points"></option>'
+			+ '<option value="tldr"></option>'
+			+ '<option value="teaser"></option>'
+			+ '<option value="headline"></option>'
+			+ "</select></label>"
+			+ '<label id="aim-tonelab" hidden><select id="aim-tone">'
+			+ '<option value="more-formal"></option>'
+			+ '<option value="more-casual"></option>'
+			+ '<option value="shorter"></option>'
+			+ '<option value="longer"></option>'
+			+ "</select></label>"
+			+ '<label id="aim-inlab"><textarea id="aim-in" rows="8"></textarea></label>'
+			+ '<p id="aim-msg" class="msg"></p>';
+	}
+
+	function open(){
 		aimGen++;
-		var go = SK.doms.boxGo;
+		var go = F.id("box-go");
 		if (go) {
 			F.seta(go, "data-k", "web.aim.run");
 			go.textContent = tx("web.aim.run", "运行");
@@ -87,9 +77,9 @@
 		fillvoices();
 		loadpacks();
 		labels();
-		var task = page.doms.aimTask;
+		var task = F.id("aim-task");
 		if (task) task.onchange = showtask;
-		var vlang = page.doms.aimVlang;
+		var vlang = F.id("aim-vlang");
 		if (vlang) vlang.onchange = function(){ fillvoices(); };
 		var syn = window.speechSynthesis;
 		if (syn && !voicesHooked) {
@@ -102,9 +92,9 @@
 	}
 
 	function labels(){
-		var hint = page.doms.aimHint;
+		var hint = F.id("aim-hint");
 		if (hint) hint.textContent = tx("web.aim.hint", "本地小模型做检测、翻译、摘要、改写、校对和提问。朗读和语音识别用浏览器自己的语音，不下载模型。");
-		var models = page.doms.aimModels;
+		var models = F.id("aim-models");
 		if (models) models.textContent = tx("web.aim.models", "查看和安装模型");
 		setlab("aim-tasklab", "web.aim.task", "任务");
 		setlab("aim-srclab", "web.aim.src", "原文语言");
@@ -132,9 +122,23 @@
 		setopt("aim-tone", "longer", "web.aim.tone.longer", "更长");
 	}
 
-	var setlab = SK.setlab;
+	function setlab(id, key, fb){
+		var el = F.id(id);
+		if (!el) return;
+		var text = tx(key, fb);
+		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
+		else el.insertBefore(document.createTextNode(text), el.firstChild);
+	}
 
-	var setopt = SK.setopt;
+	function setopt(selId, value, key, fb){
+		var sel = F.id(selId);
+		if (!sel) return;
+		var i, o;
+		for (i = 0; i < sel.options.length; i++) {
+			o = sel.options[i];
+			if (o.value === value) o.textContent = tx(key, fb);
+		}
+	}
 
 	function fillangs(){
 		var names = null;
@@ -145,7 +149,7 @@
 	}
 
 	function fillsel(id, cur, names){
-		var sel = page.doms[SK.domkey(id)];
+		var sel = F.id(id);
 		if (!sel) return;
 		var prev = sel.value || cur;
 		sel.innerHTML = "";
@@ -163,17 +167,17 @@
 	}
 
 	function showtask(){
-		var task = page.doms.aimTask;
+		var task = F.id("aim-task");
 		var kind = task ? task.value : "detect";
-		var tr = page.doms.aimTr;
-		var sum = page.doms.aimSumlab;
-		var tone = page.doms.aimTonelab;
+		var tr = F.id("aim-tr");
+		var sum = F.id("aim-sumlab");
+		var tone = F.id("aim-tonelab");
 		if (tr) tr.hidden = kind !== "translate" && kind !== "listen";
-		var dst = page.doms.aimDstlab;
+		var dst = F.id("aim-dstlab");
 		if (dst) dst.hidden = kind !== "translate";
 		if (sum) sum.hidden = kind !== "summarize";
 		if (tone) tone.hidden = kind !== "rewrite";
-		var speak = page.doms.aimSpeak;
+		var speak = F.id("aim-speak");
 		if (speak) speak.hidden = kind !== "speak";
 		if (kind !== "listen") stophear();
 		if (kind !== "speak") {
@@ -184,8 +188,8 @@
 	}
 
 	function paintgo(){
-		var go = SK.doms.boxGo;
-		var task = page.doms.aimTask;
+		var go = F.id("box-go");
+		var task = F.id("aim-task");
 		var kind = task ? task.value : "";
 		if (!go) return;
 		if (kind === "listen" && hearing) {
@@ -208,12 +212,12 @@
 	}
 
 	function run(){
-		var task = page.doms.aimTask;
+		var task = F.id("aim-task");
 		var kind = task ? task.value : "detect";
 		if (kind === "listen") { listen(); return; }
 		if (kind === "speak") { speak(); return; }
 		var mine = ++aimGen;
-		var box = page.doms.aimIn;
+		var box = F.id("aim-in");
 		var text = box ? String(box.value || "").trim() : "";
 		if (!text) {
 			SK.msg("aim-msg", tx("web.aim.empty", "先写一段文字"), true);
@@ -229,7 +233,7 @@
 		else job = prompt(text);
 		Promise.resolve(job).then(function(out){
 			if (mine !== aimGen || SK.curtool !== "u-aim") return;
-			var el = SK.doms.boxOut;
+			var el = F.id("box-out");
 			if (el) el.value = out == null ? "" : String(out);
 			SK.msg("aim-msg", "");
 		}, function(err){
@@ -311,8 +315,8 @@
 	function translate(text){
 		var ctor = api("Translator");
 		if (!ctor) return Promise.reject(new Error(tx("web.aim.nokind", "这个浏览器没有这项")));
-		var srcEl = page.doms.aimSrc;
-		var dstEl = page.doms.aimDst;
+		var srcEl = F.id("aim-src");
+		var dstEl = F.id("aim-dst");
 		var src = srcEl ? srcEl.value : "en";
 		var dst = dstEl ? dstEl.value : "zh";
 		var opt = { sourceLanguage: src, targetLanguage: dst };
@@ -325,7 +329,7 @@
 	function summarize(text){
 		var ctor = api("Summarizer");
 		if (!ctor) return Promise.reject(new Error(tx("web.aim.nokind", "这个浏览器没有这项")));
-		var sel = page.doms.aimSum;
+		var sel = F.id("aim-sum");
 		var type = sel ? sel.value : "key-points";
 		var opt = {
 			type: type,
@@ -341,7 +345,7 @@
 	function rewrite(text){
 		var ctor = api("Rewriter");
 		if (!ctor) return Promise.reject(new Error(tx("web.aim.nokind", "这个浏览器没有这项")));
-		var sel = page.doms.aimTone;
+		var sel = F.id("aim-tone");
 		var tone = sel ? sel.value : "more-formal";
 		var opt = {};
 		if (tone === "shorter" || tone === "longer") opt.length = tone;
@@ -379,14 +383,14 @@
 	}
 
 	function speechlang(){
-		var el = page.doms.aimSrc;
+		var el = F.id("aim-src");
 		var code = el ? el.value : "zh";
 		return SPEECH[code] || code || "zh-CN";
 	}
 
 	function fillvoices(){
 		var syn = window.speechSynthesis;
-		var sel = page.doms.aimVoice;
+		var sel = F.id("aim-voice");
 		if (!syn || !sel) return;
 		var list = syn.getVoices() || [];
 		fillvlang(list);
@@ -478,12 +482,12 @@
 	}
 
 	function vlang(){
-		var el = page.doms.aimVlang;
+		var el = F.id("aim-vlang");
 		return el ? el.value : "";
 	}
 
 	function fillvlang(list){
-		var sel = page.doms.aimVlang;
+		var sel = F.id("aim-vlang");
 		if (!sel) return;
 		var prev = sel.value;
 		var seen = {};
@@ -549,7 +553,7 @@
 			SK.msg("aim-msg", tx("web.aim.novoice", "这个浏览器不能朗读"), true);
 			return;
 		}
-		var box = page.doms.aimIn;
+		var box = F.id("aim-in");
 		var text = box ? String(box.value || "").trim() : "";
 		if (!text) {
 			SK.msg("aim-msg", tx("web.aim.empty", "先写一段文字"), true);
@@ -559,9 +563,9 @@
 		syn.cancel();
 		if (SK.stopwav) SK.stopwav();
 		var mine = ++speakGen;
-		var out = SK.doms.boxOut;
+		var out = F.id("box-out");
 		if (out) out.value = text;
-		var sel = page.doms.aimVoice;
+		var sel = F.id("aim-voice");
 		var uri = sel ? sel.value : "";
 		var list = syn.getVoices() || [];
 		var picked = null;
@@ -720,8 +724,8 @@
 				if (res && res[0]) parts.push(res[0].transcript);
 			}
 			var text = parts.join("");
-			var out = SK.doms.boxOut;
-			var box = page.doms.aimIn;
+			var out = F.id("box-out");
+			var box = F.id("aim-in");
 			if (out) out.value = text;
 			if (box) box.value = text;
 		};

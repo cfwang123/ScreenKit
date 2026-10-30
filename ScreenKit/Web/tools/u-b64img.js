@@ -1,11 +1,9 @@
 (function(){
-	var page = null;
 	SK.regutil("u-b64img", {
 		title: "图片 Base64",
 		go: "转换",
-		body: function(t){
-			page = t;
-			return SK.lab("图片", F.CreateDOM(t, { x: "input.box-file", name: "boxFile", type: "file", accept: "image/*" }));
+		body: function(){
+			return SK.lab("图片", '<input id="box-file" type="file" accept="image/*">');
 		},
 		run: function(){
 			imgb64();
@@ -13,7 +11,7 @@
 		own: true
 	});
 	function imgb64(){
-		var input = page.doms.boxFile;
+		var input = F.id("box-file");
 		var file = input && input.files && input.files[0];
 		if (!file) {
 			SK.msg("box-msg", "请选择图片", true);
@@ -25,7 +23,7 @@
 		}
 		var reader = new FileReader();
 		reader.onload = function(){
-			SK.doms.boxOut.value = String(reader.result || "");
+			F.id("box-out").value = String(reader.result || "");
 			SK.msg("box-msg", "完成");
 		};
 		reader.onerror = function(){ SK.msg("box-msg", "读取失败", true); };

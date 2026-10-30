@@ -35,8 +35,8 @@
 			if (text) sessionStorage.removeItem("sk.dict.tr");
 		}
 		catch (e) {}
-		if (!text || !SK.doms.trIn) return;
-		SK.doms.trIn.value = text;
+		if (!text || !F.id("tr-in")) return;
+		F.id("tr-in").value = text;
 		trgo();
 	}
 
@@ -47,28 +47,28 @@
 	}
 
 	function filltrlang(){
-		if (!trLangs || !SK.doms.trSrc) return;
-		var prev = SK.doms.trSrc.value || "auto";
+		if (!trLangs || !F.id("tr-src")) return;
+		var prev = F.id("tr-src").value || "auto";
 		var rows = [];
 		var srcs = trLangs.src || ["auto"];
 		var i;
 		for (i = 0; i < srcs.length; i++)
 			rows.push({ value: srcs[i], label: langlabel(srcs[i]) });
-		SK.fillsel(SK.doms.trSrc, rows, prev);
+		SK.fillsel(F.id("tr-src"), rows, prev);
 		filldst(true);
 	}
 
 	function filldst(preserve){
-		if (!trLangs || !SK.doms.trDst) return;
-		var src = SK.doms.trSrc.value || "auto";
-		var prev = preserve ? (SK.doms.trDst.value || "") : "";
+		if (!trLangs || !F.id("tr-dst")) return;
+		var src = F.id("tr-src").value || "auto";
+		var prev = preserve ? (F.id("tr-dst").value || "") : "";
 		var codes = (trLangs.dst && trLangs.dst[src]) || [];
 		var rows = [];
 		var i;
 		for (i = 0; i < codes.length; i++)
 			rows.push({ value: codes[i], label: langlabel(codes[i]) });
 		if (!rows.length) rows.push({ value: "", label: SK.t("lang.none.tgt") || "没有目标语言" });
-		SK.fillsel(SK.doms.trDst, rows, prev);
+		SK.fillsel(F.id("tr-dst"), rows, prev);
 		trsync();
 	}
 
@@ -87,7 +87,7 @@
 	}
 
 	function curengine(){
-		var v = SK.doms.trEngine ? (SK.doms.trEngine.value || "auto") : "auto";
+		var v = F.id("tr-engine") ? (F.id("tr-engine").value || "auto") : "auto";
 		var i;
 		for (i = 0; i < trEngines.length; i++)
 			if (enginevalue(trEngines[i]) === v) return trEngines[i];
@@ -107,21 +107,21 @@
 	}
 
 	function fillengine(){
-		if (!SK.doms.trEngine) return;
-		var prev = SK.doms.trEngine.value || "auto";
+		if (!F.id("tr-engine")) return;
+		var prev = F.id("tr-engine").value || "auto";
 		trEngines = (trLangs && trLangs.engines) || [];
 		if (!trEngines.length) trEngines = [{ engine: "auto" }, { engine: "onnx" }, { engine: "chrome" }];
 		var rows = [];
 		var i;
 		for (i = 0; i < trEngines.length; i++)
 			rows.push({ value: enginevalue(trEngines[i]), label: enginelabel(trEngines[i]) });
-		SK.fillsel(SK.doms.trEngine, rows, prev);
+		SK.fillsel(F.id("tr-engine"), rows, prev);
 		fillmodel("");
 	}
 
 	// 模型只列本地 ONNX；引擎不是 ONNX 时只留「自动」并禁用。
 	function fillmodel(keep){
-		var sel = SK.doms.trModel;
+		var sel = F.id("tr-model");
 		if (!sel) return;
 		var onnx = curengine().engine === "onnx";
 		var rows = [{ value: "auto", label: SK.t("web.tr.model.auto") || "自动（按方向）" }];
@@ -139,7 +139,7 @@
 
 	// 选定某个本地模型：源/目标语言跟着模型方向走。
 	function trmodel(){
-		var m = findmodel(SK.doms.trModel ? (SK.doms.trModel.value || "") : "");
+		var m = findmodel(F.id("tr-model") ? (F.id("tr-model").value || "") : "");
 		if (!m) return;
 		trLock = true;
 		try {
@@ -152,17 +152,17 @@
 
 	// 语言改了以后，选中的模型方向不再匹配就退回「自动」。
 	function trsync(){
-		if (trLock || !SK.doms.trModel) return;
-		var m = findmodel(SK.doms.trModel.value || "");
+		if (trLock || !F.id("tr-model")) return;
+		var m = findmodel(F.id("tr-model").value || "");
 		if (!m) return;
-		var src = SK.doms.trSrc.value || "auto";
-		var dst = SK.doms.trDst.value || "auto";
+		var src = F.id("tr-src").value || "auto";
+		var dst = F.id("tr-dst").value || "auto";
 		if (src === m.src && dst === m.dst) return;
 		fillmodel("auto");
 	}
 
 	function setsel(id, code){
-		var sel = SK.doms[SK.domkey(id)];
+		var sel = F.id(id);
 		var i;
 		if (!sel) return false;
 		for (i = 0; i < sel.options.length; i++) {
@@ -196,7 +196,7 @@
 	}
 
 	function trgo(){
-		var text = SK.doms.trIn.value || "";
+		var text = F.id("tr-in").value || "";
 		if (!String(text).replace(/^\s+|\s+$/g, "")) {
 			SK.msg("tr-msg", SK.t("tr.popup.need_src") || "请输入原文", true);
 			return;
@@ -205,8 +205,8 @@
 			SK.msg("tr-msg", SK.t("tr.popup.too_long") || "原文过长（建议 ≤8000 字）", true);
 			return;
 		}
-		var src = SK.doms.trSrc.value || "auto";
-		var dst = SK.doms.trDst.value || "auto";
+		var src = F.id("tr-src").value || "auto";
+		var dst = F.id("tr-dst").value || "auto";
 		if (!src || !dst) {
 			SK.msg("tr-msg", SK.t("tr.popup.need_lang") || "请选择源/目标语言", true);
 			return;
@@ -215,7 +215,7 @@
 		var body = { text: text, src: src, dst: dst };
 		if (eng.engine === "onnx") {
 			body.engine = "onnx";
-			var mk = SK.doms.trModel ? (SK.doms.trModel.value || "") : "";
+			var mk = F.id("tr-model") ? (F.id("tr-model").value || "") : "";
 			if (mk && mk !== "auto") body.model = mk;
 		}
 		else if (eng.engine === "chrome") body.engine = "chrome";
@@ -226,7 +226,7 @@
 		SK.post("/api/translate", body, function(data){
 			var items = (data && data.items) || [];
 			var out = items.length ? (items[0].out || "") : "";
-			SK.doms.trOut.value = out;
+			F.id("tr-out").value = out;
 			if (!String(out).replace(/^\s+|\s+$/g, "")) {
 				SK.msg("tr-msg", SK.t("tr.dst.empty") || "译文为空", true);
 				return;
@@ -236,10 +236,10 @@
 	}
 
 	function trswap(){
-		var src = SK.doms.trSrc.value || "auto";
-		var dst = SK.doms.trDst.value || "auto";
-		var inn = SK.doms.trIn.value || "";
-		var out = SK.doms.trOut.value || "";
+		var src = F.id("tr-src").value || "auto";
+		var dst = F.id("tr-dst").value || "auto";
+		var inn = F.id("tr-in").value || "";
+		var out = F.id("tr-out").value || "";
 		if (src === "auto" || dst === "auto") {
 			var probe = String(out).replace(/^\s+|\s+$/g, "") ? out : inn;
 			var a = detectcode(probe);
@@ -256,8 +256,8 @@
 			setsel("tr-dst", src);
 		}
 		if (String(out).replace(/^\s+|\s+$/g, "")) {
-			SK.doms.trIn.value = out;
-			SK.doms.trOut.value = inn;
+			F.id("tr-in").value = out;
+			F.id("tr-out").value = inn;
 		}
 		SK.msg("tr-msg", SK.t("tr.swap.done") || "已交换语言");
 	}
@@ -268,7 +268,7 @@
 		var i;
 		for (i = 0; i < srcs.length; i++)
 			rows.push({ value: srcs[i], label: langlabel(srcs[i]) });
-		SK.fillsel(SK.doms.trSrc, rows, code);
+		SK.fillsel(F.id("tr-src"), rows, code);
 	}
 
 	function trpaste(){
@@ -282,7 +282,7 @@
 				SK.msg("tr-msg", SK.t("tr.popup.clip_empty") || "剪贴板没有文字", true);
 				return;
 			}
-			SK.doms.trIn.value = clip;
+			F.id("tr-in").value = clip;
 			SK.msg("tr-msg", SK.t("pasted") || "已粘贴");
 		}, function(){
 			SK.msg("tr-msg", SK.t("tr.popup.clip_empty") || "剪贴板没有文字", true);
@@ -290,12 +290,12 @@
 	}
 
 	function trspeak(side){
-		var text = side === "dst" ? (SK.doms.trOut.value || "") : (SK.doms.trIn.value || "");
+		var text = side === "dst" ? (F.id("tr-out").value || "") : (F.id("tr-in").value || "");
 		if (!String(text).replace(/^\s+|\s+$/g, "")) {
 			SK.msg("tr-msg", side === "dst" ? (SK.t("tr.dst.empty") || "译文为空") : (SK.t("tr.popup.need_src") || "请输入原文"), true);
 			return;
 		}
-		var code = side === "dst" ? (SK.doms.trDst.value || "auto") : (SK.doms.trSrc.value || "auto");
+		var code = side === "dst" ? (F.id("tr-dst").value || "auto") : (F.id("tr-src").value || "auto");
 		if (code === "auto" || !code) code = detectcode(text);
 		var lang = BCP[code] || code;
 		SK.stopwav();
@@ -323,4 +323,3 @@
 		}
 	});
 })();
-

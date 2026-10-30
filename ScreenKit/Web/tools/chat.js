@@ -21,21 +21,21 @@
 			gender = F.lget(GENDER) || "";
 		}
 		catch (e) {}
-		var box = SK.doms.chatNick;
-		var sel = SK.doms.chatGender;
+		var box = F.id("chat-nick");
+		var sel = F.id("chat-gender");
 		if (box) box.value = nick;
 		if (sel && (gender === "" || gender === "m" || gender === "f")) sel.value = gender;
-		SK.doms.chatJoin.onclick = join;
-		SK.doms.chatSend.onclick = send;
-		SK.doms.chatLeave.onclick = leave;
-		SK.doms.chatImgbtn.onclick = function(){ pick("image"); };
-		SK.doms.chatFilebtn.onclick = function(){ pick("file"); };
-		SK.doms.chatDirect.onclick = function(){ pick("direct"); };
-		SK.doms.chatTo.onchange = markpeer;
-		SK.doms.chatNick.onkeydown = function(ev){
+		F.id("chat-join").onclick = join;
+		F.id("chat-send").onclick = send;
+		F.id("chat-leave").onclick = leave;
+		F.id("chat-imgbtn").onclick = function(){ pick("image"); };
+		F.id("chat-filebtn").onclick = function(){ pick("file"); };
+		F.id("chat-direct").onclick = function(){ pick("direct"); };
+		F.id("chat-to").onchange = markpeer;
+		F.id("chat-nick").onkeydown = function(ev){
 			if (ev.key === "Enter") join();
 		};
-		SK.doms.chatText.onkeydown = function(ev){
+		F.id("chat-text").onkeydown = function(ev){
 			if (ev.key === "Enter") send();
 		};
 		if (!ws) showgate();
@@ -45,7 +45,7 @@
 
 	function onpaste(ev){
 		if (SK.curtool !== "chat") return;
-		var room = SK.doms.chatRoom;
+		var room = F.id("chat-room");
 		if (!room || room.hidden) return;
 		var files = clipfiles(ev.clipboardData);
 		if (!files.length) return;
@@ -157,7 +157,7 @@
 	}
 
 	function paintdrafts(){
-		var box = SK.doms.chatDrafts;
+		var box = F.id("chat-drafts");
 		if (!box) return;
 		while (box.firstChild) box.removeChild(box.firstChild);
 		if (!drafts.length) {
@@ -196,8 +196,8 @@
 
 	function join(){
 		if (ws || opening) return;
-		var nick = (SK.doms.chatNick.value || "").replace(/^\s+|\s+$/g, "");
-		var gender = SK.doms.chatGender.value || "";
+		var nick = (F.id("chat-nick").value || "").replace(/^\s+|\s+$/g, "");
+		var gender = F.id("chat-gender").value || "";
 		if (!nick) { setmsg(label("web.chat.err.nick", "请填写昵称"), true); return; }
 		if (nick.length > 16) { setmsg(label("web.chat.err.long", "昵称最多 16 个字"), true); return; }
 		try {
@@ -282,10 +282,10 @@
 	}
 
 	function targetof(need){
-		var sel = SK.doms.chatTo;
+		var sel = F.id("chat-to");
 		var to = sel && sel.value ? parseInt(sel.value, 10) : 0;
 		if (!to) to = 0;
-		var priv = !!(SK.doms.chatPriv && SK.doms.chatPriv.checked);
+		var priv = !!(F.id("chat-priv") && F.id("chat-priv").checked);
 		if ((need || priv) && !to) {
 			setmsg(label("web.chat.err.to", "请选择一个在线的人"), true);
 			return null;
@@ -303,7 +303,7 @@
 
 	function send(){
 		if (!ws || ws.readyState !== 1) return;
-		var text = (SK.doms.chatText.value || "").replace(/^\s+|\s+$/g, "");
+		var text = (F.id("chat-text").value || "").replace(/^\s+|\s+$/g, "");
 		if (text.length > 500) {
 			setmsg(label("web.chat.err.text", "最多 500 个字"), true);
 			return;
@@ -317,7 +317,7 @@
 			if (aim.priv) body.priv = true;
 			ws.send(F.json(body));
 		}
-		SK.doms.chatText.value = "";
+		F.id("chat-text").value = "";
 		setmsg("");
 		var list = drafts.slice();
 		cleardrafts();
@@ -337,7 +337,7 @@
 	function pick(kind){
 		if (!ws || ws.readyState !== 1 || opening) return;
 		if (kind === "direct" && !targetof(true)) return;
-		var input = SK.doms[SK.domkey(kind === "image" ? "chat-img" : kind === "direct" ? "chat-directfile" : "chat-file")];
+		var input = F.id(kind === "image" ? "chat-img" : kind === "direct" ? "chat-directfile" : "chat-file");
 		if (!input) return;
 		input.value = "";
 		input.onchange = function(){
@@ -509,14 +509,14 @@
 	}
 
 	function pushlog(row){
-		var log = SK.doms.chatLog;
+		var log = F.id("chat-log");
 		F.append(log, row);
 		log.scrollTop = log.scrollHeight;
 	}
 
 	function refreshdraftpics(){
 		if (!window.Viewer) return;
-		var box = SK.doms.chatDrafts;
+		var box = F.id("chat-drafts");
 		if (!box || box.hidden || !box.querySelector("img")) return;
 		if (!draftview) {
 			draftview = new Viewer(box, {
@@ -546,7 +546,7 @@
 
 	function refreshpics(){
 		if (!window.Viewer) return;
-		var log = SK.doms.chatLog;
+		var log = F.id("chat-log");
 		if (!log) return;
 		if (!picview) {
 			picview = new Viewer(log, {
@@ -575,8 +575,8 @@
 	}
 
 	function paintpeers(list){
-		var box = SK.doms.chatPeers;
-		var sel = SK.doms.chatTo;
+		var box = F.id("chat-peers");
+		var sel = F.id("chat-to");
 		var cur = sel ? sel.value : "";
 		while (box.firstChild) box.removeChild(box.firstChild);
 		if (sel) {
@@ -616,9 +616,9 @@
 	}
 
 	function markpeer(){
-		var sel = SK.doms.chatTo;
+		var sel = F.id("chat-to");
 		var cur = sel ? sel.value : "";
-		var box = SK.doms.chatPeers;
+		var box = F.id("chat-peers");
 		if (!box) return;
 		var i;
 		for (i = 0; i < box.children.length; i++) {
@@ -634,7 +634,7 @@
 	}
 
 	function paintoffers(){
-		var box = SK.doms.chatOffers;
+		var box = F.id("chat-offers");
 		if (!box) return;
 		while (box.firstChild) box.removeChild(box.firstChild);
 		var i;
@@ -746,26 +746,26 @@
 	}
 
 	function clearlog(){
-		var log = SK.doms.chatLog;
+		var log = F.id("chat-log");
 		while (log.firstChild) log.removeChild(log.firstChild);
 		if (picview) picview.update();
-		var peers = SK.doms.chatPeers;
+		var peers = F.id("chat-peers");
 		while (peers.firstChild) peers.removeChild(peers.firstChild);
 		offers = [];
 		paintoffers();
-		var sel = SK.doms.chatTo;
+		var sel = F.id("chat-to");
 		if (sel) sel.value = "";
 	}
 
 	function showgate(){
-		SK.doms.chatGate.hidden = false;
-		SK.doms.chatRoom.hidden = true;
+		F.id("chat-gate").hidden = false;
+		F.id("chat-room").hidden = true;
 	}
 
 	function showroom(){
-		SK.doms.chatGate.hidden = true;
-		SK.doms.chatRoom.hidden = false;
-		var text = SK.doms.chatText;
+		F.id("chat-gate").hidden = true;
+		F.id("chat-room").hidden = false;
+		var text = F.id("chat-text");
 		if (text) text.focus();
 	}
 
@@ -777,4 +777,3 @@
 	SK.chatclose = leave;
 	SK.regutil("chat", { dispose: leave });
 })();
-

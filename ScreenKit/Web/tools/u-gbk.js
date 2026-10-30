@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	var gbkPages = null;
 	var gbkOf = null;
 	var gbkLead = null;
@@ -8,30 +7,16 @@
 	SK.regutil("u-gbk", {
 		title: "GBK码表",
 		go: "显示",
-		body: function(t){
-			page = t;
-			return [
-				F.CreateDOM(t, { x: "div.uquery", c: [
-					{ x: "input.gbk-q", name: "gbkQ", type: "text", "data-kph": "web.gbk.ph", placeholder: SK.t("web.gbk.ph") || "字、B0A1 或 U+4E00" },
-					{ x: "select.gbk-font.ufont", name: "gbkFont", title: "字体" },
-					{ x: "span.gbk-msg.msg", name: "gbkMsg" }
-				] }),
-				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边每个首字节写出字数和起止码。每页 16 列。空位没有字符。" }),
-				F.CreateDOM(t, { x: "div.unitab", c: [
-					{ x: "div.ugroups.gbk-groups", name: "gbkGroups" },
-					{ x: "div.ugrid.g16.gbk-grid", name: "gbkGrid" },
-					{ x: "aside.uprev", c: [
-						{ x: "div.uprev-ch.gbk-ch", name: "gbkCh" },
-						{ x: "dl.uprev-meta.gbk-meta", name: "gbkMeta" }
-					] }
-				] })
-			];
+		body: function(){
+			return '<div class="uquery"><input id="gbk-q" type="text" data-kph="web.gbk.ph" placeholder="' + SK.esc(SK.t("web.gbk.ph") || "字、B0A1 或 U+4E00") + '"><select id="gbk-font" class="ufont" title="字体"></select><span id="gbk-msg" class="msg"></span></div>'
+				+ '<p class="hint">点一下选中并复制。左边每个首字节写出字数和起止码。每页 16 列。空位没有字符。</p>'
+				+ '<div class="unitab"><div class="ugroups" id="gbk-groups"></div><div class="ugrid g16" id="gbk-grid"></div>'
+				+ '<aside class="uprev"><div class="uprev-ch" id="gbk-ch"></div><dl class="uprev-meta" id="gbk-meta"></dl></aside></div>';
 		},
 		run: function(){
 			throw new Error("没有这个工具");
 		},
-		open: function(t){
-			page = t;
+		open: function(){
 			SK.onchartfont = null;
 			gbkbuild();
 			SK.chartfont("gbk-font");
@@ -43,8 +28,8 @@
 	function gbkbuild(){
 		var pages = gbkpages();
 		if (!pages) {
-			page.doms.gbkGroups.innerHTML = "";
-			page.doms.gbkGrid.innerHTML = "";
+			F.id("gbk-groups").innerHTML = "";
+			F.id("gbk-grid").innerHTML = "";
 			SK.msg("gbk-msg", "这个浏览器不能解码 GBK", true);
 			return;
 		}
@@ -55,8 +40,8 @@
 		for (i = 0; i < pages.length; i++)
 			html.push('<button type="button" data-i="' + i + '" title="' + gbkesc(gbkrange(pages[i])) + '"><b>'
 				+ gbkesc(pages[i].name) + '</b><small>' + gbkesc(gbkrange(pages[i])) + '</small></button>');
-		page.doms.gbkGroups.innerHTML = html.join("");
-		page.doms.gbkGroups.onclick = function(ev){
+		F.id("gbk-groups").innerHTML = html.join("");
+		F.id("gbk-groups").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "gbk-groups") {
 				if (el.getAttribute && F.attr(el, "data-i") != null) {
@@ -66,7 +51,7 @@
 				el = el.parentNode;
 			}
 		};
-		page.doms.gbkGrid.onclick = function(ev){
+		F.id("gbk-grid").onclick = function(ev){
 			var el = ev.target;
 			while (el && el.id !== "gbk-grid") {
 				if (el.getAttribute && F.attr(el, "data-j") != null) {
@@ -76,12 +61,12 @@
 				el = el.parentNode;
 			}
 		};
-		page.doms.gbkQ.oninput = gbkquery;
+		F.id("gbk-q").oninput = gbkquery;
 		gbkshow(0, -1);
 	}
 
 	function gbkquery(){
-		var hit = gbkparse(page.doms.gbkQ.value);
+		var hit = gbkparse(F.id("gbk-q").value);
 		if (!hit) {
 			SK.msg("gbk-msg", "");
 			return;
@@ -95,30 +80,31 @@
 	}
 
 	function gbkshow(index, focus){
-		var blk = gbkpages()[index];
-		var groups = F.qa(".gbk-groups button");
+		var page = gbkpages()[index];
+		var groups = F.qa("#gbk-groups button");
 		var i;
 		for (i = 0; i < groups.length; i++)
 			groups[i].className = i === index ? "on" : "";
 		if (groups[index]) F.into(groups[index], { block: "nearest" });
-		var pick = focus >= 0 ? focus : gbkfirst(blk);
+		var pick = focus >= 0 ? focus : gbkfirst(page);
 		var html = [];
-		for (i = 0; i < blk.cells.length; i++) {
-			var cell = blk.cells[i];
+		for (i = 0; i < page.cells.length; i++) {
+			var cell = page.cells[i];
 			var glyph = gbkglyph(cell);
 			var cls = glyph.ctrl ? "ctrl" : (glyph.empty ? "gap" : "");
 			html.push('<button type="button" data-j="' + i + '" title="' + gbkesc(gbktitle(cell)) + '"'
-				+ (cls ? ' class="' + cls + '"' : '') + '>'
+				+ (cls ? ' class="' + cls + '"' : '') + (i === pick ? ' id="gbk-on"' : '') + '>'
 				+ glyph.t + '</button>');
 		}
-		page.doms.gbkGrid.innerHTML = html.join("");
-		var on = F.q('[data-j="' + pick + '"]', page.doms.gbkGrid);
+		F.id("gbk-grid").innerHTML = html.join("");
+		var on = F.id("gbk-on");
 		if (on) {
 			on.className = (on.className ? on.className + " " : "") + "on";
+			F.unset(on, "id");
 			if (focus >= 0) F.into(on, { block: "center" });
 		}
 		gbkcur = index;
-		gbkpreview(blk.cells[pick]);
+		gbkpreview(page.cells[pick]);
 	}
 
 	var gbkcur = 0;
@@ -136,7 +122,7 @@
 	}
 
 	function gbkmark(j){
-		var buttons = F.qa(".gbk-grid button");
+		var buttons = F.qa("#gbk-grid button");
 		var i, cls;
 		for (i = 0; i < buttons.length; i++) {
 			cls = buttons[i].className.replace(/\bon\b/g, "").replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
@@ -148,7 +134,7 @@
 
 	function gbkpreview(cell){
 		var glyph = gbkglyph(cell);
-		var box = page.doms.gbkCh;
+		var box = F.id("gbk-ch");
 		if (glyph.empty) {
 			box.textContent = "";
 			box.className = "uprev-ch gap";
@@ -174,7 +160,7 @@
 		var i;
 		for (i = 0; i < rows.length; i++)
 			html.push("<dt>" + rows[i][0] + "</dt><dd>" + gbkesc(rows[i][1]) + "</dd>");
-		page.doms.gbkMeta.innerHTML = html.join("");
+		F.id("gbk-meta").innerHTML = html.join("");
 	}
 
 	function gbkpages(){

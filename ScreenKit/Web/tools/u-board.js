@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	var HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 	var items = [];
 	var undo = [];
@@ -42,38 +41,35 @@
 		open: open
 	});
 
-	function body(t){
-		page = t;
+	function body(){
 		tool = "pen";
 		color = "#000000";
 		width = 2;
-		return F.CreateDOM(t, { x: "div.board", c: [
-			{ x: "div.board-bar", c: [
-				{ x: "div.board-tools", c: [
-					tbtn("select", "web.board.select", "选择", false),
-					tbtn("rect", "web.board.rect", "矩形", false),
-					tbtn("ellipse", "web.board.ellipse", "椭圆", false),
-					tbtn("arrow", "web.board.arrow", "箭头", false),
-					tbtn("pen", "web.board.pen", "画笔", true),
-					tbtn("lasso", "web.board.lasso", "圈选", false),
-					tbtn("text", "web.board.text", "文字", false),
-					{ x: "span.sep" },
-					wbtn(2), wbtn(4), wbtn(8),
-					{ x: "span.sep" },
-					abtn("paste", "web.board.paste", "粘贴"),
-					abtn("undo", "web.board.undo", "撤销"),
-					abtn("clear", "web.board.clear", "清空"),
-					abtn("copy", "web.board.copy", "复制图片"),
-					abtn("save", "web.board.save", "保存")
-				] },
-				colors()
-			] },
-			{ x: "div.board-stage", c: [
-				{ x: "canvas.board-cv", name: "boardCv" },
-				{ x: "input.board-txt.board-text", name: "boardTxt", type: "text", hidden: true, spellcheck: "false" },
-				{ x: "p.board-msg.board-msg", name: "boardMsg" }
-			] }
-		] });
+		return '<div class="board">'
+			+ '<div class="board-bar">'
+			+ '<div class="board-tools">'
+			+ tbtn("select", "web.board.select", "选择", false)
+			+ tbtn("rect", "web.board.rect", "矩形", false)
+			+ tbtn("ellipse", "web.board.ellipse", "椭圆", false)
+			+ tbtn("arrow", "web.board.arrow", "箭头", false)
+			+ tbtn("pen", "web.board.pen", "画笔", true)
+			+ tbtn("lasso", "web.board.lasso", "圈选", false)
+			+ tbtn("text", "web.board.text", "文字", false)
+			+ '<span class="sep"></span>'
+			+ wbtn(2) + wbtn(4) + wbtn(8)
+			+ '<span class="sep"></span>'
+			+ abtn("paste", "web.board.paste", "粘贴")
+			+ abtn("undo", "web.board.undo", "撤销")
+			+ abtn("clear", "web.board.clear", "清空")
+			+ abtn("copy", "web.board.copy", "复制图片")
+			+ abtn("save", "web.board.save", "保存")
+			+ "</div>"
+			+ colors()
+			+ "</div>"
+			+ '<div class="board-stage"><canvas id="board-cv"></canvas>'
+			+ '<input id="board-txt" class="board-text" type="text" hidden spellcheck="false">'
+			+ '<p class="board-msg" id="board-msg"></p>'
+			+ "</div></div>";
 	}
 
 	function tip(key, fb){
@@ -81,41 +77,30 @@
 	}
 
 	function tbtn(name, key, fb, on){
-		return F.CreateDOM(null, { x: "button", type: "button", "data-board": name, "data-ktip": key,
-			title: tip(key, fb), class: on ? "on" : "", c: [icon(name)] });
+		return '<button type="button" data-board="' + name + '"' + (on ? ' class="on"' : "") + ' data-ktip="' + key + '" title="' + tip(key, fb) + '">'
+			+ icon(name) + "</button>";
 	}
 
 	function abtn(name, key, fb){
-		return F.CreateDOM(null, { x: "button", type: "button", "data-act": name,
-			"data-ktip": key, title: tip(key, fb), c: [
-				{ x: "span", "data-k": key, c: tip(key, fb) }
-			] });
+		return '<button type="button" data-act="' + name + '" data-ktip="' + key + '" title="' + tip(key, fb) + '">'
+			+ '<span data-k="' + key + '">' + tip(key, fb) + "</span></button>";
 	}
 
 	function wbtn(n){
-		return F.CreateDOM(null, { x: "button", type: "button", "data-w": n,
-			"data-ktip": "web.board.wide", title: tip("web.board.wide", "线宽"),
-			class: width === n ? "on" : "", c: String(n) });
+		return '<button type="button" data-w="' + n + '"' + (width === n ? ' class="on"' : "") + ' data-ktip="web.board.wide" title="' + tip("web.board.wide", "线宽") + '">' + n + "</button>";
 	}
 
 	function colors(){
-		var top = [], bot = [], i, hex, btn;
+		var top = "", bot = "", i, hex, btn;
 		for (i = 0; i < PALETTE.length; i++) {
 			hex = PALETTE[i];
-			btn = F.CreateDOM(null, { x: "button", type: "button", "data-color": hex,
-				class: hex.toLowerCase() === String(color).toLowerCase() ? "on" : "",
-				title: hex, s: { background: hex } });
-			if (i < 14) top.push(btn);
-			else bot.push(btn);
+			btn = '<button type="button" data-color="' + hex + '"' + (hex.toLowerCase() === String(color).toLowerCase() ? ' class="on"' : "") + ' title="' + hex + '" style="background:' + hex + '"></button>';
+			if (i < 14) top += btn;
+			else bot += btn;
 		}
-		return F.CreateDOM(page, { x: "div.board-colors", c: [
-			{ x: "input.board-color", name: "boardColor", type: "color", value: color,
-				"data-ktip": "web.board.color", title: tip("web.board.color", "颜色") },
-			{ x: "span.board-swatches", c: [
-				{ x: "span", c: top },
-				{ x: "span", c: bot }
-			] }
-		] });
+		return '<div class="board-colors">'
+			+ '<input type="color" id="board-color" value="' + color + '" data-ktip="web.board.color" title="' + tip("web.board.color", "颜色") + '">'
+			+ '<span class="board-swatches"><span>' + top + "</span><span>" + bot + "</span></span></div>";
 	}
 
 	function icon(name){
@@ -128,16 +113,12 @@
 			lasso: '<path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2.2 1.4" d="M8.1 2.5a4.3 3.6 0 1 0 .5 6.9"/><path fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M8.4 9.2l2.3 3.3"/>',
 			text: '<path fill="currentColor" d="M2.2 2.2h11.6v2.2H9.2v9.2H6.8V4.4H2.2V2.2z"/>'
 		};
-		var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-		svg.setAttribute("viewBox", "0 0 16 16");
-		svg.setAttribute("aria-hidden", "true");
-		svg.innerHTML = d[name] || "";
-		return svg;
+		return '<svg viewBox="0 0 16 16" aria-hidden="true">' + (d[name] || "") + "</svg>";
 	}
-	function open(t){
-		page = t;
+
+	function open(){
 		hook();
-		canvas = page.doms.boardCv;
+		canvas = F.id("board-cv");
 		if (!canvas) return;
 		canvas.onpointerdown = down;
 		canvas.onpointermove = move;
@@ -150,12 +131,12 @@
 		canvas.ondblclick = dbl;
 		var bar = F.q(".board-bar");
 		if (bar) bar.onclick = onbar;
-		var col = page.doms.boardColor;
+		var col = F.id("board-color");
 		if (col) {
 			col.value = color;
 			col.oninput = function(){ setcolor(col.value); };
 		}
-		var txt = page.doms.boardTxt;
+		var txt = F.id("board-txt");
 		if (txt) {
 			txt.onkeydown = function(ev){
 				if (ev.key === "Enter") { F.pd(ev); committext(true); }
@@ -229,7 +210,7 @@
 
 	function setcolor(hex){
 		color = hex;
-		var col = page.doms.boardColor;
+		var col = F.id("board-color");
 		if (col && col.value !== hex) col.value = hex;
 		var nodes = F.qa(".board-colors [data-color]");
 		var i, want = String(hex).toLowerCase();
@@ -343,7 +324,7 @@
 	}
 
 	function say(key){
-		var el = page.doms.boardMsg;
+		var el = F.id("board-msg");
 		if (el) el.textContent = SK.t(key) || FB[key] || "";
 	}
 
@@ -492,7 +473,7 @@
 
 	function up(){
 		if (tool === "text" && edit && !textarmed) {
-			var txt = page.doms.boardTxt;
+			var txt = F.id("board-txt");
 			if (txt) setTimeout(function(){
 				if (!edit || textarmed) return;
 				txt.focus();
@@ -655,7 +636,7 @@
 		texttok++;
 		textarmed = false;
 		if (edit) committext(true);
-		var txt = page.doms.boardTxt;
+		var txt = F.id("board-txt");
 		if (!txt || !canvas) return;
 		var it = i >= 0 ? items[i] : null;
 		edit = { i: i, x: it ? it.x : x, y: it ? it.y : y };
@@ -686,7 +667,7 @@
 	function committext(keep){
 		if (!edit) return;
 		var ed = edit;
-		var txt = page.doms.boardTxt;
+		var txt = F.id("board-txt");
 		var val = txt ? String(txt.value || "").replace(/^\s+|\s+$/g, "") : "";
 		edit = null;
 		if (txt) txt.hidden = true;

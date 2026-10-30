@@ -1,37 +1,27 @@
 (function(){
-	var page = null;
 	var nexts = ["#2563eb", "#16a34a", "#eab308", "#db2777", "#7c3aed", "#0f766e"];
 	SK.regutil("u-grad", {
 		title: "CSS 渐变",
 		go: "生成",
 		noGo: true,
 		hideOut: true,
-		body: function(t){
-			page = t;
-			return [
-				SK.lab("类型", F.CreateDOM(t, { x: "select.box-type", name: "boxType", c: [
-					{ x: "option", value: "linear", c: "线性" },
-					{ x: "option", value: "radial", c: "径向" },
-					{ x: "option", value: "conic", c: "锥形" }
-				] })),
-				F.CreateDOM(t, { x: "div.grad-lab", c: "颜色" }),
-				F.CreateDOM(t, { x: "div.grad-stops.grad-stops", name: "gradStops" }),
-				F.CreateDOM(t, { x: "button.grad-add.ghost", name: "gradAdd", type: "button", c: "加一个颜色", onclick: function(){
-					addstop(nexts[(stopcount() - 2) % nexts.length]);
-					gradlive();
-				} }),
-				SK.lab("角度", SK.numin("box-n", "90")),
-				F.CreateDOM(t, { x: "div.grad-row", c: [
-					{ x: "div.grad-view.grad-view", name: "gradView" },
-					{ x: "textarea.grad-out", name: "gradOut", readonly: true }
-				] })
-			];
+		body: function(){
+			return SK.lab("类型", '<select id="box-type"><option value="linear">线性</option><option value="radial">径向</option><option value="conic">锥形</option></select>')
+				+ '<div class="grad-lab">颜色</div>'
+				+ '<div id="grad-stops" class="grad-stops"></div>'
+				+ '<button type="button" id="grad-add" class="ghost">加一个颜色</button>'
+				+ SK.lab("角度", SK.numin("box-n", "90"))
+				+ '<div class="grad-row"><div id="grad-view" class="grad-view"></div><textarea id="grad-out" readonly></textarea></div>';
 		},
-		open: function(t){
-			page = t;
+		open: function(){
 			addstop("#f97316");
 			addstop("#111827");
-			var body = SK.doms.boxBody;
+			var add = F.id("grad-add");
+			if (add) add.onclick = function(){
+				addstop(nexts[(stopcount() - 2) % nexts.length]);
+				gradlive();
+			};
+			var body = F.id("box-body");
 			body.oninput = gradlive;
 			body.onchange = gradlive;
 			gradlive();
@@ -41,7 +31,7 @@
 		}
 	});
 	function addstop(hex){
-		var box = page.doms.gradStops;
+		var box = F.id("grad-stops");
 		if (!box || stopcount() >= 8) return;
 		var row = F.el("div");
 		row.className = "grad-stop";
@@ -57,14 +47,14 @@
 	}
 
 	function stopcount(){
-		var box = page.doms.gradStops;
+		var box = F.id("grad-stops");
 		return box ? F.qa("input[type=color]", box).length : 0;
 	}
 
 	function syncstops(){
 		var n = stopcount();
-		var box = page.doms.gradStops;
-		var add = page.doms.gradAdd;
+		var box = F.id("grad-stops");
+		var add = F.id("grad-add");
 		if (add) add.hidden = n >= 8;
 		if (!box) return;
 		var btns = F.qa("button", box);
@@ -73,7 +63,7 @@
 	}
 
 	function stopcolors(){
-		var box = page.doms.gradStops;
+		var box = F.id("grad-stops");
 		var out = [];
 		if (!box) return out;
 		var inputs = F.qa("input[type=color]", box);
@@ -86,12 +76,12 @@
 	}
 
 	function gradlive(){
-		var n = page.doms.boxN;
+		var n = F.id("box-n");
 		if (n) n.disabled = SK.val("box-type") === "radial";
 		syncstops();
 		SK.utilrun();
-		var shown = page.doms.gradOut;
-		var box = SK.doms.boxOut;
+		var shown = F.id("grad-out");
+		var box = F.id("box-out");
 		if (shown && box) shown.value = box.value;
 	}
 	function gradcss(type, colors, angle){
@@ -106,7 +96,7 @@
 		if (type === "radial") fn = "radial-gradient(circle, " + list + ")";
 		else if (type === "conic") fn = "conic-gradient(from " + deg + "deg, " + list + ")";
 		else fn = "linear-gradient(" + deg + "deg, " + list + ")";
-		var view = page.doms.gradView;
+		var view = F.id("grad-view");
 		if (view) view.style.background = fn;
 		return "background: " + fn + ";";
 	}

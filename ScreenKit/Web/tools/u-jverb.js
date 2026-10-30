@@ -1,16 +1,13 @@
 (function(){
-	var page = null;
 	var exp = null;
 	if (typeof module !== "undefined" && module.exports) exp = module.exports;
 
-
-	var ui = SK.verbui({
-		outId: "jv-out",
-		lang: "ja",
-		nospeak: ["web.jverb.nospeak", "无法发音"],
-		groupof: function(row){ return row[2] || ""; },
-		cell: cellhtml
-	});
+	var rtimer = null;
+	var lastpaint = null;
+	var perline = 2;
+	var maxcols = 4;
+	var tries = 0;
+	var bound = false;
 
 	var COL = {
 		"う": ["わ", "い", "う", "え", "お", "って", "った"],
@@ -147,41 +144,39 @@
 		open: open,
 		relang: open,
 		run: run,
-		dispose: ui.dropspeak
+		dispose: dropspeak
 	});
 
-	var tx = SK.tx;
-
-	function body(t){
-		page = t;
-		var sel = F.CreateDOM(t, { x: "select.jv-sel", name: "jvSel", c: [
-			{ x: "option", value: "auto" },
-			{ x: "option", value: "1" },
-			{ x: "option", value: "2" },
-			{ x: "option", value: "3" },
-			{ x: "option", value: "ai" },
-			{ x: "option", value: "an" },
-			{ x: "option", value: "n" }
-		] });
-		return [
-			F.CreateDOM(t, { x: "p.jv-hint.hint", name: "jvHint" }),
-			F.CreateDOM(t, { x: "div.row.jv-row", name: "jvRow", c: [
-				{ x: "label.jv-type", name: "jvType", c: sel },
-				{ x: "label.jv-word", name: "jvWord", c: SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") }
-			] }),
-			F.CreateDOM(t, { x: "div.jv-out", name: "jvOut" })
-		];
+	function tx(key, fb){
+		var s = SK.t ? SK.t(key) : "";
+		return s || fb;
 	}
 
-	function open(t){
-		page = t;
+	function body(){
+		return '<p class="hint" id="jv-hint"></p>'
+			+ '<div class="row" id="jv-row">'
+			+ '<label id="jv-type"><select id="jv-sel">'
+			+ '<option value="auto"></option>'
+			+ '<option value="1"></option>'
+			+ '<option value="2"></option>'
+			+ '<option value="3"></option>'
+			+ '<option value="ai"></option>'
+			+ '<option value="an"></option>'
+			+ '<option value="n"></option>'
+			+ "</select></label>"
+			+ '<label id="jv-word">' + SK.combo("jv-in", "食べる", "辞书形，如 食べる、行く") + "</label>"
+			+ "</div>"
+			+ '<div id="jv-out"></div>';
+	}
+
+	function open(){
 		var ens = langcode() !== "zh";
-		var go = SK.doms.boxGo;
+		var go = F.id("box-go");
 		if (go) {
 			F.seta(go, "data-k", "web.jverb.go");
 			go.textContent = tx("web.jverb.go", ens ? "Conjugate" : "变形");
 		}
-		var hint = page.doms.jvHint;
+		var hint = F.id("jv-hint");
 		if (hint) {
 			F.seta(hint, "data-k", "web.jverb.hint");
 			hint.textContent = tx("web.jverb.hint", "输入辞书形，或点输入框右侧选择常见词和特殊变化。自动先查日语词典，判断是动词、い形容词、な形容词还是名词；查不到时按词尾猜：る＝2类，する・くる・ずる＝3类，い＝い形容词，其余按名词；也可在右侧指定类型。动词表的后部是补助动词（ながら、ておく、やがる 等）、敬体（ましょう、ませんか）、尊敬、谦让、丁重，以及关西、九州、东北、广岛和标准语不同的说法。");
@@ -196,25 +191,36 @@
 		setopt("ai", "web.jverb.tai", ens ? "i-adjective" : "い形容词");
 		setopt("an", "web.jverb.tan", ens ? "na-adjective" : "な形容词");
 		setopt("n", "web.jverb.tn", ens ? "Noun" : "名词");
-		var sel = page.doms.jvSel;
+		var sel = F.id("jv-sel");
 		if (sel && !F.attr(sel, "data-bind")) {
 			F.seta(sel, "data-bind", "1");
 			sel.onchange = ontype;
 		}
-		var box = page.doms.jvIn;
+		var box = F.id("jv-in");
 		if (box) {
 			F.seta(box, "data-kph", "web.jverb.ph");
 			box.placeholder = tx("web.jverb.ph", ens ? "Dictionary form, e.g. 食べる、高い、学生" : "辞书形，如 食べる、高い、学生");
 		}
-		var out = page.doms.jvOut;
+		var out = F.id("jv-out");
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
-			out.onclick = ui.onout;
+			out.onclick = onout;
 		}
-		ui.bind();
+		if (!bound) {
+			bound = true;
+			window.addEventListener("resize", onresize);
+		}
 		run();
 	}
 
+	function onout(ev){
+		var btn = ev.target;
+		var out = F.id("jv-out");
+		while (btn && btn !== out && btn.tagName !== "BUTTON") btn = btn.parentNode;
+		if (!btn || btn === out) return;
+		var text = F.attr(btn, "data-v") || "";
+		if (text) speak(text);
+	}
 
 	// 选了类型就把下拉换成这个类型的示例；回到自动再列全部。
 	function ontype(){
@@ -222,20 +228,115 @@
 		run();
 	}
 
+	function dropspeak(){
+		if (SK.stopwav) SK.stopwav();
+		if (!clip) return;
+		try { clip.pause(); } catch (e) {}
+		clip = null;
+	}
 
+	function speak(text){
+		SK.stopwav();
+		if (clip) {
+			try { clip.pause(); } catch (e) {}
+			clip = null;
+		}
+		var audio = new Audio("/api/dict/speak?text=" + encodeURIComponent(text) + "&lang=ja");
+		clip = audio;
+		audio.onerror = function(){
+			if (clip === audio) SK.msg("box-msg", tx("web.jverb.nospeak", "无法发音"), true);
+		};
+		var played = audio.play();
+		if (played && played.then) played.then(function(){}, function(){
+			if (clip === audio) SK.msg("box-msg", tx("web.jverb.nospeak", "无法发音"), true);
+		});
+	}
 
+	function paint(head, name, rows, tm){
+		var out = F.id("jv-out");
+		if (!out) return;
+		if (!rows || !rows.length) { out.innerHTML = ""; lastpaint = null; return; }
+		lastpaint = { head: head, name: name, rows: rows, tm: tm };
+		render(out);
+	}
 
+	// 栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。
+	var CELLW = 200;
 
+	function tabopen(cls){
+		var n = perline;
+		var html = '<table class="' + cls + '" style="width:' + (n <= 2 ? "100%" : (n * CELLW) + "px") + '">';
+		if (n > 2) {
+			html += "<colgroup>";
+			for (var i = 0; i < n; i++) html += '<col style="width:' + CELLW + 'px">';
+			html += "</colgroup>";
+		}
+		return html;
+	}
 
+	function render(out){
+		if (!out || !lastpaint) return;
+		var cw = out.clientWidth;
+		if (cw <= 0) {
+			// 刚切到工具页时容器可能还没显示，等一帧再量。
+			if (tries < 5) { tries++; setTimeout(refit, 40); }
+			return;
+		}
+		tries = 0;
+		perline = Math.floor(cw / CELLW);
+		if (perline < 1) perline = 1;
+		if (perline > 8) perline = 8;
+		out.innerHTML = tablehtml(lastpaint.head, lastpaint.name, lastpaint.rows, lastpaint.tm);
+	}
 
+	function onresize(){
+		if (rtimer) clearTimeout(rtimer);
+		rtimer = setTimeout(refit, 150);
+	}
 
+	function refit(){
+		var out = F.id("jv-out");
+		if (out && lastpaint) render(out);
+	}
 
+	function tablehtml(head, name, rows, tm){
+		var tip = esc(tx("dict.speak", "发音"));
+		var html = '<div class="jv-head"><b>' + esc(head) + "</b><span>" + esc(name) + "</span>"
+			+ (tm ? '<span class="jv-time">' + esc(tm) + "</span>" : "") + "</div>" + tabopen("jv-tab");
+		var g = null;
+		var buf = [];
+		var i, rg;
+		for (i = 0; i < rows.length; i++) {
+			rg = rows[i][2] || "";
+			if (g === null || rg !== g) {
+				html += flushrows(buf, tip);
+				buf = [];
+				g = rg;
+				if (g) html += '<tr><td class="kv-g" colspan="' + perline + '">' + esc(g) + "</td></tr>";
+			}
+			buf.push(rows[i]);
+		}
+		return html + flushrows(buf, tip) + "</table>";
+	}
+
+	function flushrows(buf, tip){
+		var html = "";
+		var j, k;
+		for (j = 0; j < buf.length; j += perline) {
+			html += "<tr>";
+			for (k = 0; k < perline; k++) {
+				html += j + k < buf.length ? cellhtml(buf[j + k], tip) : '<td class="c-k"></td>';
+			}
+			html += "</tr>";
+		}
+		return html;
+	}
 
 	// 下拉按词性分组：1/2/3 类动词在前，然后特殊（不规则的）、い形容词、な形容词、名词。
 	// 选了类型就只列这一类的示例（不规则的词也按它实际的类归进去）。
 	function pickgroups(){
 		var lang = langcode();
-		var sel = page.doms.jvSel;
+		var sel = F.id("jv-sel");
 		var pick = sel ? sel.value : "auto";
 		var groups = [];
 		var i, j, p, key, items, gloss, show;
@@ -275,11 +376,26 @@
 		return html + "</td>";
 	}
 
-	var esc = SK.esc;
+	function esc(s){
+		return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+	}
 
-	var setlab = SK.setlab;
+	function setlab(id, key, fb){
+		var el = F.id(id);
+		if (!el) return;
+		var text = tx(key, fb);
+		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
+		else el.insertBefore(document.createTextNode(text), el.firstChild);
+	}
 
-	function setopt(value, key, fb){ SK.setopt("jv-sel", value, key, fb); }
+	function setopt(value, key, fb){
+		var sel = F.id("jv-sel");
+		if (!sel) return;
+		var i;
+		for (i = 0; i < sel.options.length; i++) {
+			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
+		}
+	}
 
 	function run(){
 		if (timer) clearTimeout(timer);
@@ -289,18 +405,18 @@
 	function go(){
 		timer = 0;
 		var n = ++gen;
-		var box = page.doms.jvIn;
-		var sel = page.doms.jvSel;
+		var box = F.id("jv-in");
+		var sel = F.id("jv-sel");
 		var word = norm(box ? box.value : "");
 		var pick = sel ? sel.value : "auto";
 		if (!word) {
-			ui.paint("", "", []);
+			paint("", "", []);
 			SK.msg("box-msg", "");
 			return;
 		}
-		var t0 = ui.now();
+		var t0 = now();
 		lookup(word, function(res){
-			var tdict = ui.now() - t0;
+			var tdict = now() - t0;
 			if (n !== gen) return;
 			var use = pick === "auto" ? null : { kind: pick, flag: "", sub: "" };
 			var note = "";
@@ -359,30 +475,33 @@
 				if (!note) note = tx("web.jverb.forced", "按所选类型");
 			}
 			if (!use) {
-				ui.paint("", "", []);
+				paint("", "", []);
 				SK.msg("box-msg", tx("web.jverb.bad", "看不出是动词的辞书形"), true);
 				return;
 			}
-			var t1 = ui.now();
+			var t1 = now();
 			conjreq({ lang: "ja", q: word, kind: use.kind, flag: use.flag, sub: use.sub, ui: langcode() }, function(d){
-				var tcalc = ui.now() - t1;
+				var tcalc = now() - t1;
 				if (!d) {
-					ui.paint("", "", []);
+					paint("", "", []);
 					SK.msg("box-msg", tx("web.jverb.down", "网络错误。"), true);
 					return;
 				}
 				if (!d.ok) {
-					ui.paint("", "", []);
+					paint("", "", []);
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
-				ui.paint(d.head, d.name, rowsarr(d.rows), ui.timestr(tdict, tcalc, bad ? "" : note));
+				paint(d.head, d.name, rowsarr(d.rows), timestr(tdict, tcalc, bad ? "" : note));
 				SK.msg("box-msg", bad ? note : "", bad);
 			});
 		});
 	}
 
-	var langcode = SK.langcode;
+	function langcode(){
+		var sel = F.id("lang");
+		return sel && sel.value ? sel.value : "zh";
+	}
 
 	function lookup(word, done){
 		getjson("/api/dict?dict=ja&limit=8&q=" + encodeURIComponent(word), function(jo){
@@ -660,8 +779,22 @@
 	}
 
 	// 查词、计算各计一段；不足 1 毫秒显示 <1 ms。extra 是词条提示，并进同一行。
+	function timestr(dictms, calcms, extra){
+		var a = "";
+		if (dictms >= 0) a = tx("web.verb.tdict", "查词") + " " + fmtms(dictms);
+		if (calcms >= 0) a += (a ? " · " : "") + tx("web.verb.tcalc", "计算") + " " + fmtms(calcms);
+		if (extra) a += (a ? " · " : "") + extra;
+		return a;
+	}
 
+	function fmtms(v){
+		v = Math.round(v * 10) / 10;
+		return v < 1 ? "<1 ms" : Math.round(v) + " ms";
+	}
 
+	function now(){
+		return window.performance && window.performance.now ? window.performance.now() : Date.now();
+	}
 
 	function last(s){ return s.charAt(s.length - 1); }
 })();

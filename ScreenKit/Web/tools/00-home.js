@@ -52,8 +52,6 @@
 		return dom;
 	};
 
-	// 整页骨架在这里建一次。page.doms 收下所有带 name 的节点，后面代码直接用
-	// SK.doms.boxBody 这样取，不再靠 HTML id。id 仍保留，给还在用 F.id 的工具兜底。
 	SK.buildpage = function(){
 		var page = { doms: {} };
 		var nodes = F.CreateDOM(page, tree);
@@ -61,9 +59,6 @@
 		if (!(nodes instanceof Array)) nodes = [nodes];
 		first = document.body.firstChild;
 		for (i = 0; i < nodes.length; i++) document.body.insertBefore(nodes[i], first);
-		SK.page = page;
-		SK.doms = page.doms;
-		return page;
 	};
 
 	function addkids(page, dom, list){
@@ -89,7 +84,6 @@
 		c:[
 		{
 			x:"button#back.back",
-			name:"back",
 			"type":"button",
 			"data-tool":"home",
 			"hidden":true,
@@ -110,12 +104,11 @@
 			x:"label.lang",
 			c:[
 			{x:"span","data-k":"web.f.lang",c:"语言"},
-			{x:"select#lang",name:"lang",onchange:function(){ SK.onlang(); },}
+			{x:"select#lang"}
 		]
 		},
 		{
 			x:"button#tool-fav.back",
-			name:"toolFav",
 			"type":"button",
 			"data-ktip":"web.fav",
 			"title":"收藏",
@@ -134,7 +127,6 @@
 			c:[
 			{
 				x:"section#home.panel.on",
-				name:"home",
 				c:[
 				{
 					x:"div.head",
@@ -142,14 +134,13 @@
 					{
 						x:"label.find",
 						c:[
-						{x:"input#tool-q",name:"toolQ","type":"search","data-kph":"web.find","placeholder":"搜索工具","autocomplete":"off",oninput:function(){ SK.paintcats(); },}
+						{x:"input#tool-q","type":"search","data-kph":"web.find","placeholder":"搜索工具","autocomplete":"off"}
 					]
 					}
 				]
 				},
 				{
 					x:"div#cards.cards",
-					name:"cards",
 					c:[
 					{
 						x:"button",
@@ -1039,10 +1030,9 @@
 					}
 				]
 				},
-				{x:"p#tool-none.none",name:"toolNone","hidden":true,"data-k":"web.find.none",c:"没有匹配的工具"},
+				{x:"p#tool-none.none","hidden":true,"data-k":"web.find.none",c:"没有匹配的工具"},
 				{
 					x:"nav#cats",
-					name:"cats",
 					"hidden":true,
 					c:[
 					{
@@ -1161,12 +1151,10 @@
 			},
 			{
 				x:"section#chat.panel",
-				name:"chat",
 				c:[
 				{x:"h1",c:"聊天室"},
 				{
 					x:"div#chat-gate",
-					name:"chatGate",
 					c:[
 					{
 						x:"div.row",
@@ -1175,7 +1163,7 @@
 							x:"label",
 							c:[
 							{x:"span","data-k":"web.chat.nick",c:"昵称"},
-							{x:"input#chat-nick",name:"chatNick","type":"text","maxlength":"16","autocomplete":"nickname"}
+							{x:"input#chat-nick","type":"text","maxlength":"16","autocomplete":"nickname"}
 						]
 						},
 						{
@@ -1184,7 +1172,6 @@
 							{x:"span","data-k":"web.chat.gender",c:"性别"},
 							{
 								x:"select#chat-gender",
-								name:"chatGender",
 								c:[
 								{x:"option","value":"","data-k":"web.chat.secret",c:"保密"},
 								{x:"option","value":"m","data-k":"web.chat.m",c:"男"},
@@ -1193,36 +1180,33 @@
 							}
 						]
 						},
-						{x:"button#chat-join.primary",name:"chatJoin","type":"button","data-k":"web.chat.join",c:"进入"},
-						{x:"span#chat-msg.msg",name:"chatMsg"}
+						{x:"button#chat-join.primary","type":"button","data-k":"web.chat.join",c:"进入"},
+						{x:"span#chat-msg.msg"}
 					]
 					}
 				]
 				},
 				{
 					x:"div#chat-room",
-					name:"chatRoom",
 					"hidden":true,
 					c:[
 					{
 						x:"div.chatmain",
 						c:[
-						{x:"div#chat-log",name:"chatLog"},
-						{x:"aside#chat-peers",name:"chatPeers"}
+						{x:"div#chat-log"},
+						{x:"aside#chat-peers"}
 					]
 					},
-					{x:"div#chat-offers",name:"chatOffers"},
+					{x:"div#chat-offers"},
 					{
 						x:"div.chatdock",
 						c:[
 						{
 							x:"div#chat-torow.row",
-							name:"chatTorow",
 							c:[
 							{x:"span.chatlab","data-k":"web.chat.to",c:"发给"},
 							{
 								x:"select#chat-to",
-								name:"chatTo",
 								c:[
 								{x:"option","value":"","data-k":"web.chat.all",c:"所有人"}
 							]
@@ -1230,13 +1214,12 @@
 							{
 								x:"label.chatpriv",
 								c:[
-								{x:"input#chat-priv",name:"chatPriv","type":"checkbox"},
+								{x:"input#chat-priv","type":"checkbox"},
 								{x:"span","data-k":"web.chat.priv",c:"私密"}
 							]
 							},
 							{
 								x:"button#chat-direct.ghost",
-								name:"chatDirect",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-file-export"},
@@ -1245,15 +1228,13 @@
 							}
 						]
 						},
-						{x:"div#chat-drafts",name:"chatDrafts", hidden:true},
+						{x:"div#chat-drafts", hidden:true},
 						{
 							x:"div#chat-sendrow.row",
-							name:"chatSendrow",
 							c:[
-							{x:"input#chat-text",name:"chatText","type":"text","maxlength":"500","data-kph":"web.chat.ph","placeholder":"说点什么"},
+							{x:"input#chat-text","type":"text","maxlength":"500","data-kph":"web.chat.ph","placeholder":"说点什么"},
 							{
 								x:"button#chat-send.primary",
-								name:"chatSend",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-paper-plane"},
@@ -1262,7 +1243,6 @@
 							},
 							{
 								x:"button#chat-imgbtn.ghost",
-								name:"chatImgbtn",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-image"},
@@ -1271,7 +1251,6 @@
 							},
 							{
 								x:"button#chat-filebtn.ghost",
-								name:"chatFilebtn",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-paperclip"},
@@ -1280,7 +1259,6 @@
 							},
 							{
 								x:"button#chat-leave.ghost",
-								name:"chatLeave",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-right-from-bracket"},
@@ -1288,9 +1266,9 @@
 							]
 							},
 							{x:"span.hint","data-k":"web.chat.paste",c:"Ctrl+V 粘贴图片或文件"},
-							{x:"input#chat-img",name:"chatImg","type":"file","accept":"image/png,image/jpeg,image/gif,image/webp,image/bmp","hidden":true},
-							{x:"input#chat-file",name:"chatFile","type":"file","hidden":true},
-							{x:"input#chat-directfile",name:"chatDirectfile","type":"file","hidden":true}
+							{x:"input#chat-img","type":"file","accept":"image/png,image/jpeg,image/gif,image/webp,image/bmp","hidden":true},
+							{x:"input#chat-file","type":"file","hidden":true},
+							{x:"input#chat-directfile","type":"file","hidden":true}
 						]
 						}
 					]
@@ -1301,7 +1279,6 @@
 			},
 			{
 				x:"section#tr.panel",
-				name:"tr",
 				c:[
 				{x:"h1",c:"翻译"},
 				{
@@ -1311,14 +1288,14 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.eng",c:"引擎"},
-						{x:"select#tr-engine",name:"trEngine","data-ktip":"tr.engine.tip","title":"本地 ONNX、Chrome 或所选 LLM。LLM 提示词在「参数设置 → 翻译」。",onchange:function(){ if (SK.trfillmodel) SK.trfillmodel(); },}
+						{x:"select#tr-engine","data-ktip":"tr.engine.tip","title":"本地 ONNX、Chrome 或所选 LLM。LLM 提示词在「参数设置 → 翻译」。"}
 					]
 					},
 					{
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.model",c:"模型"},
-						{x:"select#tr-model",name:"trModel","data-ktip":"web.tr.model.tip","title":"只列本地 ONNX 模型；选定后源/目标语言切到该模型的方向",onchange:function(){ if (SK.trmodel) SK.trmodel(); },}
+						{x:"select#tr-model","data-ktip":"web.tr.model.tip","title":"只列本地 ONNX 模型；选定后源/目标语言切到该模型的方向"}
 					]
 					}
 				]
@@ -1330,13 +1307,11 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"tr.src",c:"源语言"},
-						{x:"select#tr-src",name:"trSrc","data-ktip":"tr.src.tip","title":"先选源语言；「自动」在母语与学习语言之间互译（参数设置 → 翻译）",onchange:function(){ if (SK.trdst) SK.trdst(true); },}
+						{x:"select#tr-src","data-ktip":"tr.src.tip","title":"先选源语言；「自动」在母语与学习语言之间互译（参数设置 → 翻译）"}
 					]
 					},
 					{
 						x:"button#tr-swap.ghost",
-						onclick:function(){ if (SK.trswap) SK.trswap(); },
-						name:"trSwap",
 						"type":"button",
 						"data-ktip":"tr.swap.tip",
 						"title":"交换源/目标语言；若有译文则与原文对调",
@@ -1349,13 +1324,11 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"tr.dst",c:"目标语言"},
-						{x:"select#tr-dst",name:"trDst","data-ktip":"tr.dst.tip","title":"根据已安装模型与源语言列出可选目标；自动=母语/学习语言互译",onchange:function(){ if (SK.trsync) SK.trsync(); },}
+						{x:"select#tr-dst","data-ktip":"tr.dst.tip","title":"根据已安装模型与源语言列出可选目标；自动=母语/学习语言互译"}
 					]
 					},
 					{
 						x:"button#tr-go.primary",
-						onclick:function(){ if (SK.trgo) SK.trgo(); },
-						name:"trGo",
 						"type":"button",
 						"data-ktip":"tr.go.tip",
 						"title":"按所选方向翻译原文",
@@ -1364,7 +1337,7 @@
 						{x:"span","data-k":"tr.go",c:"翻译"}
 					]
 					},
-					{x:"span#tr-msg.msg",name:"trMsg"}
+					{x:"span#tr-msg.msg"}
 				]
 				},
 				{
@@ -1379,8 +1352,6 @@
 							{x:"span","data-k":"tr.src.text",c:"原文"},
 							{
 								x:"button#tr-speak-src.ghost",
-								onclick:function(){ if (SK.trspeak) SK.trspeak("src"); },
-								name:"trSpeakSrc",
 								"type":"button",
 								"data-ktip":"dict.speak",
 								"title":"发音",
@@ -1391,8 +1362,6 @@
 							},
 							{
 								x:"button#tr-paste.ghost",
-								onclick:function(){ if (SK.trpaste) SK.trpaste(); },
-								name:"trPaste",
 								"type":"button",
 								"data-ktip":"tr.paste.tip",
 								"title":"从剪贴板粘贴到原文",
@@ -1403,7 +1372,7 @@
 							}
 						]
 						},
-						{x:"textarea#tr-in",name:"trIn","rows":"14","data-kph":"web.ph.src","placeholder":"要处理的文字",onkeydown:function(ev){ if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); if (SK.trgo) SK.trgo(); } },}
+						{x:"textarea#tr-in","rows":"14","data-kph":"web.ph.src","placeholder":"要处理的文字"}
 					]
 					},
 					{
@@ -1415,8 +1384,6 @@
 							{x:"span","data-k":"tr.dst.text",c:"译文"},
 							{
 								x:"button#tr-speak-dst.ghost",
-								onclick:function(){ if (SK.trspeak) SK.trspeak("dst"); },
-								name:"trSpeakDst",
 								"type":"button",
 								"data-ktip":"dict.speak",
 								"title":"发音",
@@ -1427,8 +1394,6 @@
 							},
 							{
 								x:"button#tr-copy.ghost",
-								onclick:function(){ SK.copytext(SK.doms.trOut.value, "tr-msg"); },
-								name:"trCopy",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-copy"},
@@ -1437,7 +1402,7 @@
 							}
 						]
 						},
-						{x:"textarea#tr-out",name:"trOut","rows":"14","readonly":true}
+						{x:"textarea#tr-out","rows":"14","readonly":true}
 					]
 					}
 				]
@@ -1447,32 +1412,30 @@
 			},
 			{
 				x:"section#box.panel",
-				name:"box",
 				c:[
-				{x:"h1#box-title",name:"boxTitle",c:"工具"},
-				{x:"div#box-body",name:"boxBody"},
+				{x:"h1#box-title",c:"工具"},
+				{x:"div#box-body"},
 				{
 					x:"div.row",
 					c:[
-					{x:"button#box-go.primary",name:"boxGo","type":"button","data-k":"web.go.calc",c:"计算",onclick:function(){ SK.utilrun(); },},
-					{x:"button#box-copy.ghost",name:"boxCopy","type":"button","data-k":"web.copy.out",c:"复制结果",onclick:function(){ SK.copytext(SK.doms.boxOut.value, "box-msg"); },},
-					{x:"span#box-msg.msg",name:"boxMsg"}
+					{x:"button#box-go.primary","type":"button","data-k":"web.go.calc",c:"计算"},
+					{x:"button#box-copy.ghost","type":"button","data-k":"web.copy.out",c:"复制结果"},
+					{x:"span#box-msg.msg"}
 				]
 				},
 				{
 					x:"label",
 					c:[
 					{x:"span","data-k":"web.result",c:"结果"},
-					{x:"textarea#box-out",name:"boxOut","rows":"10","readonly":true},
-					{x:"div#re-list",name:"reList","hidden":true},
-					{x:"ul#rcolor-list",name:"rcolorList","hidden":true}
+					{x:"textarea#box-out","rows":"10","readonly":true},
+					{x:"div#re-list","hidden":true},
+					{x:"ul#rcolor-list","hidden":true}
 				]
 				}
 			]
 			},
 			{
 				x:"section#cal.panel",
-				name:"cal",
 				c:[
 				{x:"p.kicker",c:"Windows.Globalization.Calendar"},
 				{x:"h1",c:"历法"},
@@ -1483,7 +1446,7 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.greg",c:"公历"},
-						{x:"input#cal-date",name:"calDate","type":"date"}
+						{x:"input#cal-date","type":"date"}
 					]
 					},
 					{
@@ -1492,7 +1455,6 @@
 						{x:"span","data-k":"web.cat.time",c:"历法"},
 						{
 							x:"select#cal-id",
-							name:"calId",
 							c:[
 							{x:"option","value":"lunar",c:"农历"},
 							{x:"option","value":"gregorian",c:"公历"},
@@ -1513,23 +1475,20 @@
 					},
 					{
 						x:"button#cal-go.primary",
-						onclick:function(){ if (SK.cal) SK.cal(); },
-						name:"calGo",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-calendar-check"},
 						{x:"span","data-k":"web.go.unit",c:"换算"}
 					]
 					},
-					{x:"span#cal-msg.msg",name:"calMsg"}
+					{x:"span#cal-msg.msg"}
 				]
 				},
-				{x:"dl#cal-out.facts",name:"calOut"}
+				{x:"dl#cal-out.facts"}
 			]
 			},
 			{
 				x:"section#text.panel",
-				name:"text",
 				c:[
 				{x:"p.kicker",c:"文本"},
 				{x:"h1",c:"文本转换"},
@@ -1545,7 +1504,7 @@
 							{x:"span","data-k":"web.src",c:"原文"}
 						]
 						},
-						{x:"textarea#tx-in",name:"txIn","rows":"14","data-kph":"web.ph.src","placeholder":"要处理的文字"}
+						{x:"textarea#tx-in","rows":"14","data-kph":"web.ph.src","placeholder":"要处理的文字"}
 					]
 					},
 					{
@@ -1557,7 +1516,6 @@
 							{x:"span","data-k":"web.result",c:"结果"},
 							{
 								x:"button#tx-swap.ghost",
-								name:"txSwap",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-right-left"},
@@ -1566,25 +1524,22 @@
 							},
 							{
 								x:"button#tx-copy.ghost",
-								onclick:function(){ SK.copytext(SK.doms.txOut.value, "tx-msg"); },
-								name:"txCopy",
 								"type":"button",
 								c:[
 								{x:"i.fa-solid.fa-copy"},
 								{x:"span","data-k":"web.copy",c:"复制"}
 							]
 							},
-							{x:"span#tx-msg.msg",name:"txMsg"}
+							{x:"span#tx-msg.msg"}
 						]
 						},
-						{x:"textarea#tx-out",name:"txOut","rows":"14","readonly":true}
+						{x:"textarea#tx-out","rows":"14","readonly":true}
 					]
 					}
 				]
 				},
 				{
 					x:"div#tx-ops.ops",
-					name:"txOps",
 					c:[
 					{
 						x:"div.opgrp",
@@ -1599,7 +1554,7 @@
 								"data-op":"b64enc",
 								c:[
 								{x:"i.fa-solid.fa-lock"},
-								{x:"span","data-k":"web.op.enc",c:"编码"}
+								"编码"
 							]
 							},
 							{
@@ -1608,7 +1563,7 @@
 								"data-op":"b64dec",
 								c:[
 								{x:"i.fa-solid.fa-lock-open"},
-								{x:"span","data-k":"web.op.dec",c:"解码"}
+								"解码"
 							]
 							}
 						]
@@ -1628,7 +1583,7 @@
 								"data-op":"urlenc",
 								c:[
 								{x:"i.fa-solid.fa-link"},
-								{x:"span","data-k":"web.op.enc",c:"编码"}
+								"编码"
 							]
 							},
 							{
@@ -1637,7 +1592,7 @@
 								"data-op":"urldec",
 								c:[
 								{x:"i.fa-solid.fa-link-slash"},
-								{x:"span","data-k":"web.op.dec",c:"解码"}
+								"解码"
 							]
 							}
 						]
@@ -1925,7 +1880,7 @@
 								"data-op":"htmlenc",
 								c:[
 								{x:"i.fa-solid.fa-code"},
-								{x:"span","data-k":"web.op.enc",c:"编码"}
+								"编码"
 							]
 							},
 							{
@@ -1934,7 +1889,7 @@
 								"data-op":"htmldec",
 								c:[
 								{x:"i.fa-solid.fa-rotate-left"},
-								{x:"span","data-k":"web.op.dec",c:"解码"}
+								"解码"
 							]
 							},
 							{
@@ -2097,7 +2052,6 @@
 			},
 			{
 				x:"section#ocr.panel",
-				name:"ocr",
 				c:[
 				{x:"p.kicker",c:"OCR"},
 				{x:"h1",c:"文字识别"},
@@ -2108,25 +2062,22 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.eng",c:"引擎"},
-						{x:"select#ocr-pack",name:"ocrPack",onchange:function(){ if (SK.fillocrmodels) SK.fillocrmodels(); },}
+						{x:"select#ocr-pack"}
 					]
 					},
 					{
 						x:"label#ocr-model-lab",
-						name:"ocrModelLab",
 						c:[
 						{x:"span","data-k":"web.f.packlang",c:"语言 / 模型"},
-						{x:"select#ocr-model",name:"ocrModel"}
+						{x:"select#ocr-model"}
 					]
 					},
 					{
 						x:"label#ocr-dev-lab",
-						name:"ocrDevLab",
 						c:[
 						{x:"span","data-k":"web.f.dev",c:"设备"},
 						{
 							x:"select#ocr-dev",
-							name:"ocrDev",
 							c:[
 							{x:"option","value":"cpu",c:"CPU"},
 							{x:"option","value":"gpu",c:"GPU (CUDA)"},
@@ -2144,13 +2095,11 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.img",c:"图片"},
-						{x:"input#ocr-file",name:"ocrFile","type":"file","accept":"image/*",onchange:function(){ if (SK.onocrfile) SK.onocrfile(); },}
+						{x:"input#ocr-file","type":"file","accept":"image/*"}
 					]
 					},
 					{
 						x:"button#ocr-go.primary",
-						onclick:function(){ if (SK.ocrgo) SK.ocrgo(); },
-						name:"ocrGo",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-eye"},
@@ -2159,32 +2108,29 @@
 					},
 					{
 						x:"button#ocr-copy.ghost",
-						onclick:function(){ SK.copytext(SK.doms.ocrOut.value, "ocr-msg"); },
-						name:"ocrCopy",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-copy"},
 						{x:"span","data-k":"web.copy.out",c:"复制结果"}
 					]
 					},
-					{x:"span#ocr-msg.msg",name:"ocrMsg"}
+					{x:"span#ocr-msg.msg"}
 				]
 				},
 				{x:"p.hint","data-k":"web.f.paste",c:"在此页按 Ctrl+V 可粘贴剪贴板里的图片。"},
-				{x:"img#ocr-img",name:"ocrImg","alt":"预览","hidden":true},
-				{x:"p#ocr-meta.ocr-meta",name:"ocrMeta","hidden":true},
+				{x:"img#ocr-img","alt":"预览","hidden":true},
+				{x:"p#ocr-meta.ocr-meta","hidden":true},
 				{
 					x:"label",
 					c:[
 					{x:"span","data-k":"web.result",c:"结果"},
-					{x:"textarea#ocr-out",name:"ocrOut","rows":"8","readonly":true}
+					{x:"textarea#ocr-out","rows":"8","readonly":true}
 				]
 				}
 			]
 			},
 			{
 				x:"section#tts.panel",
-				name:"tts",
 				c:[
 				{x:"p.kicker",c:"TTS"},
 				{x:"h1",c:"语音合成"},
@@ -2195,14 +2141,14 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.eng",c:"引擎"},
-						{x:"select#tts-eng",name:"ttsEng",onchange:function(){ if (SK.fillttsmodels) SK.fillttsmodels(); },}
+						{x:"select#tts-eng"}
 					]
 					},
 					{
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.lang",c:"语言"},
-						{x:"select#tts-lang",name:"ttsLang",onchange:function(){ if (SK.fillttsmodels) SK.fillttsmodels(); },}
+						{x:"select#tts-lang"}
 					]
 					},
 					{
@@ -2211,8 +2157,6 @@
 						{x:"span","data-k":"web.f.gender",c:"性别"},
 						{
 							x:"select#tts-gender",
-							onchange:function(){ if (SK.fillttsmodels) SK.fillttsmodels(); },
-							name:"ttsGender",
 							c:[
 							{x:"option","value":"",c:"全部性别"},
 							{x:"option","value":"female",c:"女声"},
@@ -2225,21 +2169,21 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.model",c:"模型"},
-						{x:"select#tts-model",name:"ttsModel",onchange:function(){ if (SK.fillttsvoices) SK.fillttsvoices(); },}
+						{x:"select#tts-model"}
 					]
 					},
 					{
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.voice",c:"发音人"},
-						{x:"select#tts-voice",name:"ttsVoice"}
+						{x:"select#tts-voice"}
 					]
 					},
 					{
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.speed",c:"语速"},
-						{x:"input#tts-speed",name:"ttsSpeed","type":"number","min":"0.5","max":"2","step":"0.1","value":"1"}
+						{x:"input#tts-speed","type":"number","min":"0.5","max":"2","step":"0.1","value":"1"}
 					]
 					}
 				]
@@ -2248,7 +2192,7 @@
 					x:"label",
 					c:[
 					{x:"span","data-k":"web.src",c:"原文"},
-					{x:"textarea#tts-in",name:"ttsIn","rows":"6","data-kph":"web.ph.speak","placeholder":"要朗读的文字"}
+					{x:"textarea#tts-in","rows":"6","data-kph":"web.ph.speak","placeholder":"要朗读的文字"}
 				]
 				},
 				{
@@ -2256,8 +2200,6 @@
 					c:[
 					{
 						x:"button#tts-go.primary",
-						onclick:function(){ if (SK.ttsgo) SK.ttsgo(false); },
-						name:"ttsGo",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-volume-high"},
@@ -2266,23 +2208,20 @@
 					},
 					{
 						x:"button#tts-wav",
-						onclick:function(){ if (SK.ttsgo) SK.ttsgo(true); },
-						name:"ttsWav",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-file-audio"},
 						{x:"span","data-k":"web.f.wav",c:"生成 WAV"}
 					]
 					},
-					{x:"span#tts-msg.msg",name:"ttsMsg"}
+					{x:"span#tts-msg.msg"}
 				]
 				},
-				{x:"audio#tts-audio",name:"ttsAudio","controls":"","hidden":true}
+				{x:"audio#tts-audio","controls":"","hidden":true}
 			]
 			},
 			{
 				x:"section#asr.panel",
-				name:"asr",
 				c:[
 				{x:"p.kicker",c:"ASR"},
 				{x:"h1",c:"语音识别"},
@@ -2295,8 +2234,6 @@
 						{x:"span","data-k":"web.f.eng",c:"引擎"},
 						{
 							x:"select#asr-eng",
-							onchange:function(){ if (SK.fillasrmodels) SK.fillasrmodels(); },
-							name:"asrEng",
 							c:[
 							{x:"option","value":"offline",c:"离线模型"},
 							{x:"option","value":"windows",c:"Windows 语音识别"}
@@ -2308,7 +2245,7 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.model",c:"模型"},
-						{x:"select#asr-model",name:"asrModel"}
+						{x:"select#asr-model"}
 					]
 					},
 					{
@@ -2317,7 +2254,6 @@
 						{x:"span","data-k":"web.f.lang",c:"语言"},
 						{
 							x:"select#asr-lang",
-							name:"asrLang",
 							c:[
 							{x:"option","value":"auto",c:"自动"},
 							{x:"option","value":"zh",c:"中文"},
@@ -2338,13 +2274,11 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.audio",c:"音频文件"},
-						{x:"input#asr-file",name:"asrFile","type":"file","accept":"audio/*,video/webm"}
+						{x:"input#asr-file","type":"file","accept":"audio/*,video/webm"}
 					]
 					},
 					{
 						x:"button#asr-filego.primary",
-						onclick:function(){ if (SK.asrfile) SK.asrfile(); },
-						name:"asrFilego",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-file-audio"},
@@ -2353,8 +2287,6 @@
 					},
 					{
 						x:"button#asr-rec",
-						onclick:function(){ if (SK.asrrec) SK.asrrec(); },
-						name:"asrRec",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-microphone"},
@@ -2363,29 +2295,26 @@
 					},
 					{
 						x:"button#asr-copy.ghost",
-						onclick:function(){ SK.copytext(SK.doms.asrOut.value, "asr-msg"); },
-						name:"asrCopy",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-copy"},
 						{x:"span","data-k":"web.copy.out",c:"复制结果"}
 					]
 					},
-					{x:"span#asr-msg.msg",name:"asrMsg"}
+					{x:"span#asr-msg.msg"}
 				]
 				},
 				{
 					x:"label",
 					c:[
 					{x:"span","data-k":"web.result",c:"结果"},
-					{x:"textarea#asr-out",name:"asrOut","rows":"8","readonly":true}
+					{x:"textarea#asr-out","rows":"8","readonly":true}
 				]
 				}
 			]
 			},
 			{
 				x:"section#qr.panel",
-				name:"qr",
 				c:[
 				{x:"p.kicker",c:"ZXing"},
 				{x:"h1",c:"二维码生成"},
@@ -2398,7 +2327,6 @@
 						{x:"span","data-k":"web.f.kind",c:"类型"},
 						{
 							x:"select#qr-fmt",
-							name:"qrFmt",
 							c:[
 							{x:"option","value":"qr",c:"QR Code"},
 							{x:"option","value":"datamatrix",c:"Data Matrix"},
@@ -2417,7 +2345,6 @@
 						{x:"span","data-k":"web.f.enc",c:"编码"},
 						{
 							x:"select#qr-enc",
-							name:"qrEnc",
 							c:[
 							{x:"option","value":"utf8",c:"UTF-8"},
 							{x:"option","value":"gbk",c:"GBK"},
@@ -2432,7 +2359,7 @@
 					x:"label",
 					c:[
 					{x:"span","data-k":"web.f.content",c:"内容"},
-					{x:"textarea#qr-in",name:"qrIn","rows":"4","data-kph":"web.ph.qr","placeholder":"要写进码里的文字"}
+					{x:"textarea#qr-in","rows":"4","data-kph":"web.ph.qr","placeholder":"要写进码里的文字"}
 				]
 				},
 				{
@@ -2440,8 +2367,6 @@
 					c:[
 					{
 						x:"button#qr-make.primary",
-						onclick:function(){ if (SK.qrmake) SK.qrmake(); },
-						name:"qrMake",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-qrcode"},
@@ -2451,25 +2376,24 @@
 					{
 						x:"label.check",
 						c:[
-						{x:"input#qr-capon",name:"qrCapon","type":"checkbox","checked":true},
+						{x:"input#qr-capon","type":"checkbox","checked":true},
 						"带文字"
 					]
 					},
-					{x:"span#qr-msg.msg",name:"qrMsg"}
+					{x:"span#qr-msg.msg"}
 				]
 				},
 				{
 					x:"div.qrbox",
 					c:[
-					{x:"img#qr-img",name:"qrImg","alt":"","hidden":true},
-					{x:"p#qr-cap.qrcap",name:"qrCap","hidden":true}
+					{x:"img#qr-img","alt":"","hidden":true},
+					{x:"p#qr-cap.qrcap","hidden":true}
 				]
 				}
 			]
 			},
 			{
 				x:"section#qrs.panel",
-				name:"qrs",
 				c:[
 				{x:"p.kicker",c:"ZXing"},
 				{x:"h1",c:"二维码识别"},
@@ -2480,29 +2404,27 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.img",c:"图片"},
-						{x:"input#qrs-file",name:"qrsFile","type":"file","accept":"image/*"}
+						{x:"input#qrs-file","type":"file","accept":"image/*"}
 					]
 					},
 					{
 						x:"button#qr-scan.primary",
-						onclick:function(){ if (SK.qrscan) SK.qrscan(); },
-						name:"qrScan",
 						"type":"button",
 						c:[
 						{x:"i.fa-solid.fa-barcode"},
 						{x:"span","data-k":"web.f.scan",c:"识别"}
 					]
 					},
-					{x:"span#qrs-msg.msg",name:"qrsMsg"}
+					{x:"span#qrs-msg.msg"}
 				]
 				},
 				{x:"p.hint","data-k":"web.f.paste",c:"在此页按 Ctrl+V 可粘贴剪贴板里的图片。"},
-				{x:"img#qrs-img",name:"qrsImg","alt":"预览","hidden":true},
+				{x:"img#qrs-img","alt":"预览","hidden":true},
 				{
 					x:"label",
 					c:[
 					{x:"span","data-k":"web.result",c:"结果"},
-					{x:"textarea#qrs-out",name:"qrsOut","rows":"6","readonly":true}
+					{x:"textarea#qrs-out","rows":"6","readonly":true}
 				]
 				}
 			]

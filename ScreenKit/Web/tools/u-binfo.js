@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	var info = {};
 	var po = null;
 	var idleAbort = null;
@@ -15,26 +14,25 @@
 		open: open
 	});
 
-	var tx = SK.tx;
-
-	function body(t){
-		page = t;
-		return [
-			F.CreateDOM(t, { x: "p.binfo-hint.hint", name: "binfoHint" }),
-			F.CreateDOM(t, { x: "div.ops", c: [
-				{ x: "button.binfo-refresh", name: "binfoRefresh", type: "button" },
-				{ x: "button.binfo-screens", name: "binfoScreens", type: "button" },
-				{ x: "button.binfo-idle", name: "binfoIdle", type: "button" }
-			] })
-		];
+	function tx(key, fb){
+		var s = SK.t ? SK.t(key) : "";
+		return s || fb;
 	}
 
-	function open(t){
-		page = t;
+	function body(){
+		return '<p class="hint" id="binfo-hint"></p>'
+			+ '<div class="ops">'
+			+ '<button type="button" id="binfo-refresh"></button>'
+			+ '<button type="button" id="binfo-screens"></button>'
+			+ '<button type="button" id="binfo-idle"></button>'
+			+ "</div>";
+	}
+
+	function open(){
 		info = {};
-		var refresh = page.doms.binfoRefresh;
-		var scr = page.doms.binfoScreens;
-		var idle = page.doms.binfoIdle;
+		var refresh = F.id("binfo-refresh");
+		var scr = F.id("binfo-screens");
+		var idle = F.id("binfo-idle");
 		if (refresh) refresh.onclick = function(){ collect(); };
 		if (scr) scr.onclick = readscreens;
 		if (idle) idle.onclick = startidle;
@@ -44,13 +42,13 @@
 	}
 
 	function labels(){
-		var hint = page.doms.binfoHint;
+		var hint = F.id("binfo-hint");
 		if (hint) hint.textContent = tx("web.binfo.hint", "这个浏览器能读到的本机信息。屏幕和离开检测要点一下才会询问权限。");
-		var refresh = page.doms.binfoRefresh;
+		var refresh = F.id("binfo-refresh");
 		if (refresh) refresh.textContent = tx("web.binfo.refresh", "刷新");
-		var scr = page.doms.binfoScreens;
+		var scr = F.id("binfo-screens");
 		if (scr) scr.textContent = tx("web.binfo.screens", "读取屏幕");
-		var idle = page.doms.binfoIdle;
+		var idle = F.id("binfo-idle");
 		if (idle) idle.textContent = tx("web.binfo.idle", "离开检测");
 	}
 
@@ -69,7 +67,7 @@
 	}
 
 	function render(){
-		var el = SK.doms.boxOut;
+		var el = F.id("box-out");
 		if (!el || SK.curtool !== "u-binfo") return;
 		var lines = [], i, key;
 		for (i = 0; i < ORDER.length; i++) {

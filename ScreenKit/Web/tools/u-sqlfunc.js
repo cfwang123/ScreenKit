@@ -603,17 +603,23 @@
 	];
 
 	function makeset(d){
-		return SK.refset({
+		var out = [];
+		var i;
+		for (i = 0; i < d.rows.length; i++) out.push(R(d.rows[i]));
+		return {
 			id: d.id,
 			name: d.name,
 			cols: COLS,
 			widths: WIDTHS,
 			groups: GROUPS,
-			rows: d.rows.map(R),
+			rows: out,
 			placeholder: d.placeholder,
+			big: 0,
+			sub: 1,
+			copy: 0,
 			hl: "sql",
 			defaultPick: "COUNT(*)"
-		});
+		};
 	}
 
 	SK.regref("u-sqlfunc", {

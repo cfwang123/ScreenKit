@@ -4,7 +4,7 @@
 	}
 
 	function setqrcap(text){
-		var cap = SK.doms.qrCap;
+		var cap = F.id("qr-cap");
 		if (!cap) return;
 		var line = qrcaptext(text);
 		cap.textContent = line;
@@ -14,20 +14,20 @@
 	}
 
 	function qrcapon(){
-		var box = SK.doms.qrCapon;
+		var box = F.id("qr-capon");
 		return !box || box.checked;
 	}
 
 	function onqrcap(){
-		var img = SK.doms.qrImg;
+		var img = F.id("qr-img");
 		if (!img || img.hidden) return;
-		setqrcap(SK.doms.qrIn.value);
-		if (!SK.doms.qrCap.hidden) F.raf(qrgap);
+		setqrcap(F.id("qr-in").value);
+		if (!F.id("qr-cap").hidden) F.raf(qrgap);
 	}
 
 	function qrgap(){
-		var img = SK.doms.qrImg;
-		var cap = SK.doms.qrCap;
+		var img = F.id("qr-img");
+		var cap = F.id("qr-cap");
 		if (!img || !cap || cap.hidden || !img.naturalWidth) return;
 		var w = img.naturalWidth;
 		var h = img.naturalHeight;
@@ -62,13 +62,13 @@
 	}
 
 	function qrmake(){
-		var text = SK.doms.qrIn.value;
+		var text = F.id("qr-in").value;
 		SK.post("/api/qrmake", {
 			text: text,
-			format: SK.doms.qrFmt.value,
-			encoding: SK.doms.qrEnc.value,
+			format: F.id("qr-fmt").value,
+			encoding: F.id("qr-enc").value,
 		}, function(data){
-			var img = SK.doms.qrImg;
+			var img = F.id("qr-img");
 			if (!data || !data.png) {
 				F.unset(img, "src");
 				img.hidden = true;
@@ -88,7 +88,7 @@
 	var qrsUrl = "";
 
 	function onqrsfile(){
-		var file = SK.doms.qrsFile.files && SK.doms.qrsFile.files[0];
+		var file = F.id("qrs-file").files && F.id("qrs-file").files[0];
 		if (file) setqrspic(file);
 	}
 
@@ -118,15 +118,15 @@
 		qrsPic = file;
 		if (qrsUrl) F.unurl(qrsUrl);
 		qrsUrl = F.url(file);
-		var img = SK.doms.qrsImg;
+		var img = F.id("qrs-img");
 		img.src = qrsUrl;
 		img.hidden = false;
-		SK.doms.qrsOut.value = "";
+		F.id("qrs-out").value = "";
 		qrscan();
 	}
 
 	function qrscan(){
-		var file = qrsPic || (SK.doms.qrsFile.files && SK.doms.qrsFile.files[0]);
+		var file = qrsPic || (F.id("qrs-file").files && F.id("qrs-file").files[0]);
 		if (!file) {
 			SK.msg("qrs-msg", "请选择或粘贴图片", true);
 			return;
@@ -137,7 +137,7 @@
 				var lines = [];
 				var i;
 				if (typeof data === "string") {
-					SK.doms.qrsOut.value = data;
+					F.id("qrs-out").value = data;
 					SK.msg("qrs-msg", "");
 					return;
 				}
@@ -147,15 +147,15 @@
 					var item = arr[i] || {};
 					lines.push((item.type || "") + "  " + (item.text || ""));
 				}
-				SK.doms.qrsOut.value = lines.join("\n");
+				F.id("qrs-out").value = lines.join("\n");
 				if (!lines.length) SK.msg("qrs-msg", "未检测到条码或二维码", true);
 				else SK.msg("qrs-msg", "");
 			}, "qrs-msg");
 		}, "qrs-msg");
 	}
 
-	SK.doms.qrsFile.onchange = onqrsfile;
-	SK.doms.qrCapon.onchange = onqrcap;
+	F.id("qrs-file").onchange = onqrsfile;
+	F.id("qr-capon").onchange = onqrcap;
 	F.on(document, "paste", onqrpaste);
 
 	SK.qrcaptext = qrcaptext;

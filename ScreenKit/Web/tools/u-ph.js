@@ -1,27 +1,22 @@
 (function(){
-	var page = null;
 	var last = null;
 	SK.regutil("u-ph", {
 		title: "占位图",
 		go: "生成",
 		noGo: true,
 		hideOut: true,
-		body: function(t){
-			page = t;
-			return [
-				SK.row2(SK.lab("宽", SK.numin("box-w", "320")), SK.lab("高", SK.numin("box-h", "180"))),
-				SK.row2(SK.lab("底色", SK.textin("box-bg", "#eef1f4")), SK.lab("字色", SK.textin("box-fg", "#333333"))),
-				SK.lab("文字", SK.textin("box-in", "", "留空则写宽高")),
-				F.CreateDOM(t, { x: "img.box-img", name: "boxImg", alt: "", hidden: true })
-			];
+		body: function(){
+			return SK.row2(SK.lab("宽", SK.numin("box-w", "320")), SK.lab("高", SK.numin("box-h", "180")))
+				+ SK.row2(SK.lab("底色", SK.textin("box-bg", "#eef1f4")), SK.lab("字色", SK.textin("box-fg", "#333333")))
+				+ SK.lab("文字", SK.textin("box-in", "", "留空则写宽高"))
+				+ '<img id="box-img" alt="" hidden>';
 		},
 		run: function(){
 			return placeholder(SK.val("box-w"), SK.val("box-h"), SK.val("box-in"), SK.val("box-bg"), SK.val("box-fg"));
 		},
-		open: function(t){
-			page = t;
+		open: function(){
 			hookcopy();
-			var body = SK.doms.boxBody;
+			var body = F.id("box-body");
 			if (body) {
 				body.oninput = draw;
 				body.onchange = draw;
@@ -36,7 +31,7 @@
 		}
 		catch (ex) {
 			last = null;
-			var img = page.doms.boxImg;
+			var img = F.id("box-img");
 			if (img) {
 				img.hidden = true;
 				F.unset(img, "src");
@@ -70,7 +65,7 @@
 		g.textBaseline = "middle";
 		g.fillText(String(label || "").trim() || (wh[0] + "×" + wh[1]), wh[0] / 2, wh[1] / 2);
 		last = canvas;
-		var img = page.doms.boxImg;
+		var img = F.id("box-img");
 		if (img) {
 			img.src = canvas.toDataURL("image/png");
 			img.hidden = false;
@@ -79,12 +74,12 @@
 	}
 
 	function hookcopy(){
-		var btn = SK.doms.boxCopy;
+		var btn = F.id("box-copy");
 		if (btn && !F.attr(btn, "data-ph")) {
 			F.seta(btn, "data-ph", "1");
 			var orig = btn.onclick;
 			btn.onclick = function(){
-				var img = page.doms.boxImg;
+				var img = F.id("box-img");
 				if (img && !img.hidden && last) copyph();
 				else if (orig) orig.call(btn);
 			};
@@ -97,7 +92,7 @@
 
 	function onkey(ev){
 		if ((ev.key !== "c" && ev.key !== "C") || !ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) return;
-		var img = page.doms.boxImg;
+		var img = F.id("box-img");
 		if (!img || img.hidden || !last) return;
 		var el = document.activeElement;
 		if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {

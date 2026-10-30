@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	SK.regutil("u-seg", {
 		title: "中文分词",
 		go: "分词",
@@ -9,33 +8,28 @@
 		run: run
 	});
 
-	var tx = SK.tx;
-
-	function body(t){
-		page = t;
-		return [
-			F.CreateDOM(t, { x: "p.seg-hint.hint", name: "segHint" }),
-			F.CreateDOM(t, { x: "label.seg-glab", name: "segGlab", c: [
-				{ x: "select.seg-g", name: "segG", c: [
-					{ x: "option", value: "word" },
-					{ x: "option", value: "sentence" },
-					{ x: "option", value: "grapheme" }
-				] }
-			] }),
-			F.CreateDOM(t, { x: "label.seg-inlab", name: "segInlab", c: [
-				{ x: "textarea.seg-in", name: "segIn", rows: "8" }
-			] })
-		];
+	function tx(key, fb){
+		var s = SK.t ? SK.t(key) : "";
+		return s || fb;
 	}
 
-	function open(t){
-		page = t;
-		var go = SK.doms.boxGo;
+	function body(){
+		return '<p class="hint" id="seg-hint"></p>'
+			+ '<label id="seg-glab"><select id="seg-g">'
+			+ '<option value="word"></option>'
+			+ '<option value="sentence"></option>'
+			+ '<option value="grapheme"></option>'
+			+ "</select></label>"
+			+ '<label id="seg-inlab"><textarea id="seg-in" rows="8"></textarea></label>';
+	}
+
+	function open(){
+		var go = F.id("box-go");
 		if (go) {
 			F.seta(go, "data-k", "web.seg.go");
 			go.textContent = tx("web.seg.go", "分词");
 		}
-		var hint = page.doms.segHint;
+		var hint = F.id("seg-hint");
 		if (hint) hint.textContent = tx("web.seg.hint", "用浏览器自带的分词，把中文按词、句或字素切开。");
 		setlab("seg-glab", "web.seg.grain", "粒度");
 		setlab("seg-inlab", "web.seg.in", "原文");
@@ -44,14 +38,27 @@
 		setopt("grapheme", "web.seg.grapheme", "字素");
 	}
 
-	var setlab = SK.setlab;
+	function setlab(id, key, fb){
+		var el = F.id(id);
+		if (!el) return;
+		var text = tx(key, fb);
+		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
+		else el.insertBefore(document.createTextNode(text), el.firstChild);
+	}
 
-	function setopt(value, key, fb){ SK.setopt("seg-g", value, key, fb); }
+	function setopt(value, key, fb){
+		var sel = F.id("seg-g");
+		if (!sel) return;
+		var i;
+		for (i = 0; i < sel.options.length; i++) {
+			if (sel.options[i].value === value) sel.options[i].textContent = tx(key, fb);
+		}
+	}
 
 	function run(){
 		if (typeof Intl === "undefined" || !Intl.Segmenter) throw new Error(tx("web.seg.none", "这个浏览器没有分词"));
-		var sel = page.doms.segG;
-		var box = page.doms.segIn;
+		var sel = F.id("seg-g");
+		var box = F.id("seg-in");
 		var grain = sel ? sel.value : "word";
 		var text = box ? String(box.value || "") : "";
 		if (!text) return "";

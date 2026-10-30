@@ -1,5 +1,4 @@
 (function(){
-	var page = null;
 	var ZHS = "零一二三四五六七八九";
 	var ZHB = "零壹贰叁肆伍陆柒捌玖";
 	var ZU = ["千", "百", "十", ""];
@@ -104,21 +103,17 @@
 		noGo: true,
 		hideOut: true,
 		live: false,
-		body: function(t){
-			page = t;
-			return [
-				SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9")),
-				F.CreateDOM(t, { x: "span.num-msg.msg", name: "numMsg" }),
-				F.CreateDOM(t, { x: "p.hint", c: "小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示，结果超过 400 字符的行也不显示。超过一万位、大数还能读时，只列出大数和科学计数。大数可重复「无量大数」，指数最多九位。能转成有限浮点数时，另给 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制与 a * 2^x。" }),
-				F.CreateDOM(t, { x: "div.num-list.num-list", name: "numList" })
-			];
+		body: function(){
+			return SK.lab("数字", SK.textin("box-in", "", "例如 12345.67 或 1e9、1e-9"))
+				+ '<span class="msg" id="num-msg"></span>'
+				+ '<p class="hint">小数逢十进，中数逢万进，大数自乘。小数点后依次是分、厘、毫、丝。另有韩文固有、韩文汉字、日语，以及德、法、西、葡、俄。SI 每千进一位，如 kilo、mega、zepto、yocto。正整数另给英语多边形名，如 pentagon、chiliagon、myriagon，超过 1 亿边继续按 myriad 叠乘。人民币大写精确到分。没有值的行不显示，结果超过 400 字符的行也不显示。超过一万位、大数还能读时，只列出大数和科学计数。大数可重复「无量大数」，指数最多九位。能转成有限浮点数时，另给 FP64、FP32、FP16、BF16 和 FP8（E4M3、E5M2）的十六进制与 a * 2^x。</p>'
+				+ '<div class="num-list" id="num-list"></div>';
 		},
-		open: function(t){
-			page = t;
-			var box = page.doms.boxIn;
-			var list = page.doms.numList;
+		open: function(){
+			var box = F.id("box-in");
+			var list = F.id("num-list");
 			// 每一行都自带复制和发音，底部那行「复制结果」整条不要，消息改到 num-msg。
-			var bar = SK.doms.boxCopy && SK.doms.boxCopy.parentElement;
+			var bar = F.id("box-copy") && F.id("box-copy").parentElement;
 			if (bar) bar.style.display = "none";
 			if (box) box.oninput = rerun;
 			if (list && !F.attr(list, "data-bind")) {
@@ -137,7 +132,7 @@
 	function rerun(){
 		if (!String(SK.val("box-in")).trim()) {
 			paint([]);
-			if (SK.doms.boxOut) SK.doms.boxOut.value = "";
+			if (F.id("box-out")) F.id("box-out").value = "";
 			SK.msg("num-msg", "");
 			return;
 		}
@@ -146,7 +141,7 @@
 
 	function onlist(ev){
 		var btn = ev.target;
-		var list = page.doms.numList;
+		var list = F.id("num-list");
 		while (btn && btn !== list && btn.tagName !== "BUTTON") btn = btn.parentNode;
 		if (!btn || btn === list) return;
 		var text = F.attr(btn, "data-v") || "";
@@ -1564,7 +1559,7 @@
 	}
 
 	function paint(rows){
-		var list = page.doms.numList;
+		var list = F.id("num-list");
 		if (!list) return;
 		if (!rows.length) {
 			list.innerHTML = "";
@@ -1589,7 +1584,9 @@
 		list.innerHTML = html;
 	}
 
-	var esc = SK.esc;
+	function esc(s){
+		return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+	}
 
 	SK.numread = numread;
 })();
