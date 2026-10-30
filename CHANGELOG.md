@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The password generator regenerates automatically after changing the length, count or character options
 - The password generator now defaults to 10 passwords
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
+- Screenshot history in the tray and main menus now opens the history window instead of the screenshots folder.
 
 #### Fixed
 
@@ -87,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 密码生成器修改长度、数量或字符选项后自动重新生成
 - 密码生成器条数默认改为 10
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
+- 托盘和主菜单的「截图历史」改为打开截图历史窗口，不再只是打开 screenshots 文件夹。
 
 #### 修复
 

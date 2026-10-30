@@ -57,7 +57,7 @@
 				<MenuItem x:Name="mnsnapshots" Header="截图历史(_H)"
 				          AutomationProperties.AutomationId="menu.snapshots"
 				          AutomationProperties.Name="截图历史"
-				          ToolTip="打开 screenshots 截图历史文件夹"/>
+				          ToolTip="打开截图历史窗口，可浏览、标注和复制截图"/>
 				<Separator/>
 				<MenuItem x:Name="mncopyimg" Header="复制图片(_I)"
 				          ToolTip="复制当前图片为位图到剪贴板"/>

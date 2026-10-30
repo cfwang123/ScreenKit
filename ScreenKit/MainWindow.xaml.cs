@@ -698,8 +698,8 @@ public partial class MainWindow : Window {
 				saveimage();
 			}));
 			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench()));
-			// 截图历史：打开 screenshots 文件夹，不唤起主窗
-			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(opensnapshotsfolder));
+			// 截图历史：打开截图历史窗口，不唤起主窗
+			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(() => openhistory()));
 			// 录屏 / 录屏参数 / 系统参数：不唤起主窗，只打开对应功能窗
 			tray.RecordRequested += () => Dispatcher.BeginInvoke(new Action(startrecord));
 			tray.RecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => openrecordoptions(fromTray: true)));
@@ -1796,7 +1796,7 @@ public partial class MainWindow : Window {
 		mnboard.Click += async (_, _) => await screenboardasync(restoreUi: false);
 		mnvoice.Click += (_, _) => toggleasrvoice();
 		mnlongshot.Click += async (_, _) => await longshotasync();
-		mnsnapshots.Click += (_, _) => opensnapshotsfolder();
+		mnsnapshots.Click += (_, _) => openhistory();
 		mnsnapcopyimg.Click += onmenusnapcopy;
 		mnsnapcopyfile.Click += onmenusnapcopy;
 		mnsnapcopypath.Click += onmenusnapcopy;
@@ -3746,17 +3746,6 @@ public partial class MainWindow : Window {
 		if (w == null) return;
 		try { w.Close(); }
 		catch { histwin = null; }
-	}
-
-	void opensnapshotsfolder() {
-		try {
-			ImageUtil.OpenScreenshotsFolder();
-			setstatus("已打开截图历史 · " + ImageUtil.ScreenshotsDir);
-		}
-		catch (Exception ex) {
-			setstatus("打开截图历史失败: " + ex.Message);
-			MessageBox.Show(this, ex.Message, "截图历史", MessageBoxButton.OK, MessageBoxImage.Warning);
-		}
 	}
 
 	/// <summary>

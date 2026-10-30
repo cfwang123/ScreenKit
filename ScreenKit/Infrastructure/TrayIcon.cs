@@ -198,8 +198,9 @@ sealed class TrayIcon : IDisposable {
 			PdfRequested?.Invoke();
 		});
 		miPdf.ToolTipText = Loc.T("menu.pdf.tip");
-		// 截图历史：打开 screenshots 文件夹，不唤起主窗
+		// 截图历史：打开截图历史窗口，不唤起主窗
 		miSnapshots = item("tray.snapshots", () => SnapshotsRequested?.Invoke());
+		miSnapshots.ToolTipText = Loc.T("menu.snapshots.tip");
 		// 录屏 / GIF 录屏 / 参数 / 系统参数：只开功能窗，不唤起主窗
 		miRecord = item("tray.record", () => RecordRequested?.Invoke());
 		miRecordOpt = item("tray.recordopt", () => RecordOptionsRequested?.Invoke());
@@ -562,6 +563,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miPdf, "tray.pdf");
 			if (miPdf != null) miPdf.ToolTipText = Loc.T("menu.pdf.tip");
 			settext(miSnapshots, "tray.snapshots");
+			if (miSnapshots != null) miSnapshots.ToolTipText = Loc.T("menu.snapshots.tip");
 			settext(miSnapCopyImg, "tray.snapcopyimg");
 			settext(miSnapCopyFile, "tray.snapcopyfile");
 			settext(miSnapCopyPath, "tray.snapcopypath");
