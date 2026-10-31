@@ -68,6 +68,20 @@ sealed class JsonList<T> : IEnumerable<T> {
 		arr[count++] = value;
 	}
 
+	public void Insert(int index, T value) {
+		if (index < 0 || index > count) throw new ArgumentOutOfRangeException(nameof(index));
+		if (count == arr.Length) Capacity = arr.Length * 2;
+		for (var i = count; i > index; i--) arr[i] = arr[i - 1];
+		arr[index] = value;
+		count++;
+	}
+
+	public void RemoveAt(int index) {
+		if (index < 0 || index >= count) throw new ArgumentOutOfRangeException(nameof(index));
+		for (var i = index; i < count - 1; i++) arr[i] = arr[i + 1];
+		arr[--count] = default;
+	}
+
 	public void Clear() {
 		Array.Clear(arr, 0, count);
 		count = 0;
@@ -127,6 +141,14 @@ sealed class JsonMap<K, V> : IEnumerable<(K, V)> {
 		}
 		posmap[key] = items.Count;
 		items.Add(ref value);
+	}
+
+	public bool Remove(K key) {
+		if (!posmap.TryGetValue(key, out var pos)) return false;
+		items[pos] = default;
+		emptypos.Add(pos);
+		posmap.Remove(key);
+		return true;
 	}
 
 	public void Clear() {
@@ -421,6 +443,19 @@ public struct JSONF : IEnumerable<JSONF> {
 	public void Add(JSONF value) {
 		if (Type != NodeType.Array || value.Type == NodeType.NotExist) return;
 		if (Oval is JsonList<JSONF> arr) arr.Add(value);
+	}
+
+	public bool Remove(string key) {
+		if (Oval is JsonMap<string, JSONF> map) return map.Remove(key);
+		return false;
+	}
+
+	public void Insert(int index, JSONF value) {
+		if (Oval is JsonList<JSONF> arr) arr.Insert(index, value);
+	}
+
+	public void RemoveAt(int index) {
+		if (Oval is JsonList<JSONF> arr) arr.RemoveAt(index);
 	}
 
 	public void Clear() {

@@ -83,6 +83,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The 3D sampling plane now takes the canvas aspect ratio, so surfaces are drawn across the width instead of only in the middle; a single world scale is used, so x/y/z stay in proportion and the mesh cells stay square.
 - Database query: a datetime whose time part is zero is shown as a date only.
 - Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments
+- All JSON parsing, writing and the JSON DOM now run on the built-in JSONF parser; the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
 
 #### Fixed
 
@@ -135,6 +136,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维采样平面改成跟画布同宽高比：曲面不再只画在中间一小块，左右空白明显收窄；xyz 用同一把尺，比例不变，网格格子也是方的。
 - 数据库查询：日期时间的时间部分为 0 时只显示日期。
 - 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释
+- JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
 
 #### 修复
 
