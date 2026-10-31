@@ -21,12 +21,14 @@ public partial class SysInfoWindow : Window {
 	List<UsbDev> prnall = new();
 	List<UsbDev> audall = new();
 	List<FontRow> fontall = new();
+	List<UsbDescDev> descall = new();
 	int sysgen;
 	int usbgen;
 	int comgen;
 	int prngen;
 	int audgen;
 	int fontgen;
+	int descgen;
 	bool dead;
 	readonly HashSet<TabItem> loadedtabs = new();
 	readonly Dictionary<TabItem, Action> tabloads = new();
@@ -54,6 +56,10 @@ public partial class SysInfoWindow : Window {
 		eaudall.Click += (_, _) => showaud(keep(lvaud));
 		bfontrefresh.Click += (_, _) => reloadfont();
 		bfontcopy.Click += (_, _) => copyfont();
+		busbdescrefresh.Click += (_, _) => reloaddesc();
+		busbdesccopy.Click += (_, _) => copydesc();
+		eusbdescfilter.TextChanged += (_, _) => showdesc(keepdesc());
+		lvusbdesc.SelectionChanged += (_, _) => showdesctext();
 		eusbfilter.TextChanged += (_, _) => showusb(keep(lvusb));
 		ecomfilter.TextChanged += (_, _) => showcom(keep(lvcom));
 		eprnfilter.TextChanged += (_, _) => showprn(keep(lvprn));
@@ -69,6 +75,7 @@ public partial class SysInfoWindow : Window {
 		tabloads[tabprn] = reloadprn;
 		tabloads[tabaud] = reloadaud;
 		tabloads[tabfont] = reloadfont;
+		tabloads[tabusbdesc] = reloaddesc;
 		addpage(tabdisplay, pdisplay, "display", SysDevices.ScanDisplays);
 		addpage(tabcamera, pcamera, "camera", SysDevices.ScanCameras);
 		addpage(tabbt, pbt, "bt", SysDevices.ScanBluetooth);
@@ -101,6 +108,7 @@ public partial class SysInfoWindow : Window {
 		tabpci.Header = Loc.T("sys.tab.pci");
 		tabproblem.Header = Loc.T("sys.tab.problem");
 		tabfont.Header = Loc.T("sys.tab.font");
+		tabusbdesc.Header = Loc.T("sys.tab.usbdesc");
 		lbsyshint.Text = Loc.T("sys.hint");
 		ToolBtnUi.Set(bsysrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(bsyscopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
@@ -166,6 +174,13 @@ public partial class SysInfoWindow : Window {
 		colfontfile.Header = Loc.T("font.col.file");
 		ToolBtnUi.Set(bfontrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
 		ToolBtnUi.Set(bfontcopy, ToolBtnUi.Copy, Loc.T("font.copy"));
+		lbusbdeschint.Text = Loc.T("usbdesc.hint");
+		lbusbdescfilter.Text = Loc.T("usb.filter");
+		eusbdescfilter.ToolTip = Loc.T("usb.filter.tip");
+		colusbdescname.Header = Loc.T("usb.col.name");
+		colusbdescvid.Header = Loc.T("usb.col.vid");
+		ToolBtnUi.Set(busbdescrefresh, ToolBtnUi.Swap, Loc.T("usb.refresh"));
+		ToolBtnUi.Set(busbdesccopy, ToolBtnUi.Copy, Loc.T("usb.copy"));
 	}
 
 	void addpage(TabItem tab, SysDevicePage page, string kind, Func<List<UsbDev>> scan) {
@@ -338,6 +353,29 @@ public partial class SysInfoWindow : Window {
 		});
 	}
 
+	void reloaddesc() {
+		var id = keepdesc();
+		var gen = ++descgen;
+		lbusbdescstat.Text = Loc.T("sys.loading");
+		Task.Run(() => {
+			List<UsbDescDev> rows = null;
+			string err = null;
+			try { rows = UsbDesc.Scan(); }
+			catch (Exception ex) { err = ex.Message; }
+			apply(gen, () => descgen, () => {
+				if (err != null) {
+					descall = new List<UsbDescDev>();
+					lvusbdesc.ItemsSource = descall;
+					eusbdesctext.Text = "";
+					lbusbdescstat.Text = Loc.T("usb.fail", err);
+					return;
+				}
+				descall = rows;
+				showdesc(id);
+			});
+		});
+	}
+
 	void apply(int gen, Func<int> current, Action fill) {
 		Dispatcher.BeginInvoke(new Action(() => {
 			if (dead || gen != current()) return;
@@ -405,6 +443,49 @@ public partial class SysInfoWindow : Window {
 
 	static void showprops(ListView list, ListView props) {
 		props.ItemsSource = (list.SelectedItem as UsbDev)?.Props;
+	}
+	void showdesc(string keepId) {
+		var q = (eusbdescfilter.Text ?? "").Trim().ToLowerInvariant();
+		var view = new List<UsbDescDev>();
+		foreach (var row in descall) {
+			if (q.Length == 0 || (row.Filter != null && row.Filter.IndexOf(q, StringComparison.Ordinal) >= 0))
+				view.Add(row);
+		}
+		lvusbdesc.ItemsSource = view;
+		UsbDescDev sel = null;
+		if (!string.IsNullOrEmpty(keepId)) {
+			foreach (var row in view) {
+				if (string.Equals(row.InstanceId, keepId, StringComparison.OrdinalIgnoreCase)) { sel = row; break; }
+			}
+		}
+		if (sel == null && view.Count > 0) sel = view[0];
+		if (sel != null) {
+			lvusbdesc.SelectedItem = sel;
+			lvusbdesc.ScrollIntoView(sel);
+		}
+		else eusbdesctext.Text = "";
+		showdesctext();
+		lbusbdescstat.Text = view.Count == 0 ? Loc.T("usbdesc.none") : Loc.T("usbdesc.count", view.Count);
+	}
+
+	void showdesctext() {
+		var row = lvusbdesc.SelectedItem as UsbDescDev;
+		eusbdesctext.Text = row?.Text ?? "";
+		eusbdesctext.ScrollToHome();
+	}
+
+	string keepdesc() => (lvusbdesc.SelectedItem as UsbDescDev)?.InstanceId;
+
+	void copydesc() {
+		var row = lvusbdesc.SelectedItem as UsbDescDev;
+		if (row == null || string.IsNullOrEmpty(row.Text)) return;
+		try {
+			Clipboard.SetText(row.Text);
+			lbusbdescstat.Text = Loc.T("usb.copied");
+		}
+		catch (Exception ex) {
+			lbusbdescstat.Text = Loc.T("usb.fail", ex.Message);
+		}
 	}
 
 	static string keep(ListView list) => (list.SelectedItem as UsbDev)?.InstanceId;
