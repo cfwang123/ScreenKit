@@ -88,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - PdfSharp and PDFtoImage now install on demand; the slim package no longer ships them and they come with the PDF runtime.
 - The WeText ITN runtime (speech text normalization) now installs on demand and is no longer part of the slim package.
 - SkiaSharp (managed binding) now installs with the Skia runtime instead of shipping in the slim package; stale ZstdSharp and System.Text.Encodings.Web DLLs are dropped from the package.
+- Publish script now strips on-demand components and user-data files from the release package; 7z -x! excludes are auto-generated from the same junk lists to avoid drift.
 
 #### Fixed
 
@@ -145,6 +146,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - PdfSharp 与 PDFtoImage 改为按需安装，精简包不再附带，随 PDF 运行库一起安装和卸载。
 - WeText ITN（语音文本归一化）改为按需安装，精简包不再附带。
 - SkiaSharp 托管绑定改为随 Skia 运行库安装，不再放进精简包；精简包里 ZstdSharp、System.Text.Encodings.Web 的残留 DLL 一并去掉。
+- 发布脚本现在从发布包中剔除按需安装的组件（ocrmodels/asrmodels/ttsmodels/facemodels/translatemodels/onnx*/ffmpeg64/wetext）与用户数据（config.toml、sql-conns.json、dict*.db、ime*.db、*.log 等）；7z 的 -x! 排除项改为由同一份 junk 列表自动生成，避免两份规则漂移。
 
 #### 修复
 

@@ -23,11 +23,34 @@ const skipBuild = process.argv.includes('--skip-build');
 const cleanOnly = process.argv.includes('--clean-only');
 
 // 运行精简包时落在目录里、不应打进发布包的内容
-const junkDirs = ['log', 'screenshots', 'sendfile', 'tmp', 'apk'];
+const junkDirs = [
+	// 使用痕迹 / 用户数据
+	'log', 'screenshots', 'sendfile', 'tmp', 'apk',
+	// 「安装功能」按需装进来的组件
+	'ocrmodels', 'asrmodels', 'ttsmodels', 'facemodels', 'translatemodels', 'translate',
+	'onnxcpu64', 'onnxgpu64', 'onnxdml64', 'ffmpeg64', 'wetext',
+	// 原生库的旁路目录（安装时 copybeside 生成）
+	'x64', 'dll', 'runtimes',
+];
+// 支持 * 通配；只匹配精简目录顶层
 const junkFiles = [
-	'config.toml',
+	// 配置与用户数据（可能含密钥 / 本机路径）
+	'config.toml', 'sql-conns.json', 'note.json', 'perf.json', 'cli_last.log',
 	'dict.db', 'dict.db-wal', 'dict.db-shm',
 	'dict2.db', 'dict2.db-wal', 'dict2.db-shm',
+	'dict3.bin', 'ime.db', 'ime_user.db',
+	// 按需组件：原生库与托管绑定
+	'OpenCvSharpExtern.dll', 'opencv_videoio_ffmpeg*.dll',
+	'libSkiaSharp.dll', 'SkiaSharp.dll',
+	'pdfium.dll', 'PdfSharp*.dll', 'PDFtoImage.dll',
+	// 注意：sherpa-onnx-c-api.dll 由 csproj 的 KeepSherpaNative 刻意保留在根目录，不可在此排除
+	'ZXing.dll', 'SharpCompress.dll', 'SharpSevenZip.dll',
+	'e_sqlite3.dll', 'Bogus.dll', 'NPinyin.dll',
+	'MySqlConnector.dll', 'Oracle.ManagedDataAccess.dll',
+	'System.Formats.Asn1.dll', 'Microsoft.Data.Sqlite.dll', 'SQLitePCLRaw.*.dll',
+	// 历史构建残留（当前构建已不生成）
+	'ZstdSharp.dll', 'System.Text.Encodings.Web.dll', 'jsonarr.exe',
+	'WpfOCR.exe', 'WpfOCR.exe.config', 'WpfOCR.x86.exe', 'WpfOCR.x86.exe.config',
 ];
 
 function readVersion() {
@@ -47,6 +70,35 @@ function removePath(p) {
 	console.log(`已删除 ${path.relative(root, p)}`);
 }
 
+/** 把 junkFiles 里的名字（可含 *）展开成精简目录顶层实际存在的文件名。 */
+function expandPattern(dir, pattern) {
+	if (!pattern.includes('*')) return fs.existsSync(path.join(dir, pattern)) ? [pattern] : [];
+	let names;
+	try {
+		names = fs.readdirSync(dir);
+	} catch {
+		return [];
+	}
+	const re = new RegExp('^' + pattern.split('*')
+		.map(s => s.replace(/[.+^$${}()|[\]\\]/g, '\\$&'))
+		.join('.*') + '$', 'i');
+	return names.filter(n => re.test(n));
+}
+
+/** 生成 7z 的 -x! 排除参数，与 cleanSlimDir 共用 junkDirs / junkFiles，避免两份列表漂移。 */
+function buildExcludes(slimName) {
+	const ex = [];
+	for (const d of junkDirs) {
+		ex.push(`-x!${slimName}\\D:/VS_Projects/AIPrototype/PC/OCR/ScreenKit/Infrastructure/DbConnStore.cs`);
+		ex.push(`-x!${slimName}\\D:/VS_Projects/AIPrototype/PC/OCR/ScreenKit/Infrastructure/DbConnStore.cs\\*`);
+	}
+	for (const f of junkFiles) {
+		ex.push(`-x!${slimName}\\d:/VS_Projects/AIPrototype/PC/OCR/ScreenKit/SendFile/SendFileServer.cs`);
+	}
+	ex.push(`-x!${slimName}\\*.log`);
+	return ex;
+}
+
 /** 删掉精简发布目录里的截图、日志和其它本机运行残留。 */
 function cleanSlimDir(dir) {
 	for (const name of junkDirs) {
@@ -58,13 +110,14 @@ function cleanSlimDir(dir) {
 			console.warn(`未能删除 ${path.relative(root, p)}: ${e.message || e}`);
 		}
 	}
-	for (const name of junkFiles) {
-		const p = path.join(dir, name);
-		if (!fs.existsSync(p)) continue;
-		try {
-			removePath(p);
-		} catch (e) {
-			console.warn(`未能删除 ${path.relative(root, p)}: ${e.message || e}`);
+	for (const pattern of junkFiles) {
+		for (const name of expandPattern(dir, pattern)) {
+			const p = path.join(dir, name);
+			try {
+				removePath(p);
+			} catch (e) {
+				console.warn(`未能删除 ${path.relative(root, p)}: ${e.message || e}`);
+			}
 		}
 	}
 	let names;
@@ -131,19 +184,10 @@ function main() {
 	const zip7 = find7z();
 	const slimParent = path.dirname(slimDir);
 	const slimName = path.basename(slimDir);
-	// 排除本机配置与日志（可能含 API key / 路径）
-	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}" ` +
-		`"-x!${slimName}\\log" "-x!${slimName}\\log\\*" ` +
-		`"-x!${slimName}\\screenshots" "-x!${slimName}\\screenshots\\*" ` +
-		`"-x!${slimName}\\sendfile" "-x!${slimName}\\sendfile\\*" ` +
-		`"-x!${slimName}\\tmp" "-x!${slimName}\\tmp\\*" ` +
-		`"-x!${slimName}\\apk" "-x!${slimName}\\apk\\*" ` +
-		`"-x!${slimName}\\config.toml" "-x!${slimName}\\cli_last.log" "-x!${slimName}\\*.log" ` +
-		`"-x!${slimName}\\dict.db" "-x!${slimName}\\dict.db-wal" "-x!${slimName}\\dict.db-shm" ` +
-		`"-x!${slimName}\\dict2.db" "-x!${slimName}\\dict2.db-wal" "-x!${slimName}\\dict2.db-shm" ` +
-		`"-x!${slimName}\\opencv_videoio_ffmpeg*.dll" ` +
-		`"-x!${slimName}\\ZXing.dll" "-x!${slimName}\\SharpCompress.dll" "-x!${slimName}\\SharpSevenZip.dll" ` +
-		`"-x!${slimName}\\e_sqlite3.dll"`;
+	// 与 cleanSlimDir 共用同一份 junkDirs / junkFiles，避免两份排除列表漂移
+	const excludes = buildExcludes(slimName);
+	const cmd = `"${zip7}" a -t7z -mx=9 "${archive}" "${slimName}"` +
+		excludes.map(e => ` "${e}"`).join('');
 	console.log(`> ${cmd}`);
 	execSync(cmd, { cwd: slimParent, stdio: 'inherit', shell: true });
 
