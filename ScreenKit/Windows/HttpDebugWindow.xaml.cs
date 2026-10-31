@@ -183,6 +183,7 @@ public partial class HttpDebugWindow : Window {
 		emime.Text = string.IsNullOrWhiteSpace(item.Mime) ? "text/plain" : item.Mime;
 		setbody(item.Body);
 		initsynctype();
+		setheaders(HttpDebug.EnsureUserAgent(eheaders.Text));
 		fillitemgroups(item.Group);
 		loading = false;
 		syncmethod();
@@ -211,6 +212,7 @@ public partial class HttpDebugWindow : Window {
 		emime.Text = "text/plain";
 		setbody("params");
 		initsynctype();
+		setheaders(HttpDebug.EnsureUserAgent(eheaders.Text));
 		fillitemgroups(group);
 		loading = false;
 		syncmethod();
@@ -496,9 +498,10 @@ public partial class HttpDebugWindow : Window {
 	}
 
 	void setheaders(string text) {
+		var keep = loading;
 		loading = true;
 		eheaders.Text = text;
-		loading = false;
+		loading = keep;
 	}
 
 	static string ctypevalue(string text) {

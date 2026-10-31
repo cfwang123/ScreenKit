@@ -67,6 +67,7 @@ static class HttpDebug {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 	};
+	static string uacache;
 
 	public static string StorePath() =>
 		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILE_NAME);
@@ -230,9 +231,47 @@ static class HttpDebug {
 		return "application/x-www-form-urlencoded";
 	}
 
+	/// <summary>默认模仿 Chrome 的 User-Agent；本机装了 Chrome 就用它的主版本。</summary>
+	public static string DefaultUserAgent() {
+		if (uacache != null) return uacache;
+		var major = "131";
+		try {
+			var exe = ChromeTts.FindExe(null);
+			if (!string.IsNullOrEmpty(exe)) {
+				var v = System.Diagnostics.FileVersionInfo.GetVersionInfo(exe).FileVersion;
+				var head = (v ?? "").Split('.')[0].Trim();
+				if (int.TryParse(head, out var n) && n >= 40 && n <= 999) major = head;
+			}
+		}
+		catch { }
+		uacache = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+			+ "(KHTML, like Gecko) Chrome/" + major + ".0.0.0 Safari/537.36";
+		return uacache;
+	}
+
+	/// <summary>请求头文字里是否已有这一项（名称不区分大小写）。</summary>
+	public static bool HasHeader(string headers, string name) {
+		if (string.IsNullOrEmpty(headers) || string.IsNullOrEmpty(name)) return false;
+		foreach (var raw in headers.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
+			var line = raw.Trim();
+			if (line.Length == 0 || line[0] == '#') continue;
+			var at = line.IndexOf(':');
+			if (at <= 0) continue;
+			if (line.Substring(0, at).Trim().Equals(name, StringComparison.OrdinalIgnoreCase)) return true;
+		}
+		return false;
+	}
+
+	/// <summary>没有 User-Agent 时补一行默认的 Chrome UA；用户写了就不动。</summary>
+	public static string EnsureUserAgent(string headers) {
+		var text = (headers ?? "").Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
+		if (HasHeader(text, "User-Agent")) return headers ?? "";
+		if (text.Length > 0) text += "\r\n";
+		return text + "User-Agent: " + DefaultUserAgent();
+	}
+
 	/// <summary>类型部分（分号前）小写；带 charset 的同类算相同。</summary>
-	public static string MediaTypeOf(string ct) {
-		var s = (ct ?? "").Trim();
+	public static string MediaTypeOf(string ct) {		var s = (ct ?? "").Trim();
 		var i = s.IndexOf(';');
 		if (i >= 0) s = s.Substring(0, i);
 		return s.Trim().ToLowerInvariant();
@@ -424,6 +463,19 @@ static class HttpDebug {
 		if (!SameMediaType("application/json; charset=utf-8", "application/json")
 			|| SameMediaType("application/vnd.api+json", "application/json"))
 			fail("same media type");
+		var ua = DefaultUserAgent();
+		if (!ua.StartsWith("Mozilla/5.0", StringComparison.Ordinal)
+			|| ua.IndexOf("Chrome/", StringComparison.Ordinal) < 0
+			|| ua.IndexOf(" Safari/537.36", StringComparison.Ordinal) < 0)
+			fail("user agent " + ua);
+		if (!HasHeader("x-a: 1\r\nuser-agent: mine", "User-Agent")) fail("has header");
+		if (HasHeader("# User-Agent: c\nX-A: 1", "User-Agent")) fail("has header comment");
+		if (EnsureUserAgent("").IndexOf("User-Agent: Mozilla/5.0", StringComparison.Ordinal) < 0)
+			fail("ensure ua empty");
+		if (EnsureUserAgent("X-A: 1\r\nUser-Agent: mine") != "X-A: 1\r\nUser-Agent: mine")
+			fail("ensure ua keep");
+		if (!EnsureUserAgent("X-A: 1").StartsWith("X-A: 1\r\nUser-Agent: ", StringComparison.Ordinal))
+			fail("ensure ua append");
 		if (!TryBuildUrl("ex.com/p", "", out var noscheme, out _) || noscheme != "http://ex.com/p")
 			fail("scheme " + noscheme);
 		if (TryBuildUrl("", "", out _, out var empty) || empty != "empty") fail("empty url");

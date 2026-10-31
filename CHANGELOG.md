@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary search supports ? as a wildcard for one or more characters
 - Show hit count and elapsed time next to Copy in the selection popup
 - HTTP request debugger can edit request headers, one name: value per line.
+- HTTP request debugger fills a Chrome User-Agent when the request has none.
 
 #### Changed
 
@@ -81,6 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典查词支持 ? 通配符（匹配一个或多个字）
 - 划词浮窗查词后，在「复制」右边显示结果条数和用时
 - HTTP 请求调试可以编辑请求头，一行一个 名称: 值。
+- HTTP 请求调试在请求没有 User-Agent 时自动补一个 Chrome 的 UA。
 
 #### 变更
 
