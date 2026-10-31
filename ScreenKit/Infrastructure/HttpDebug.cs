@@ -179,6 +179,70 @@ static class HttpDebug {
 		return true;
 	}
 
+	/// <summary>地址里的查询串转成一行一个 key=value（已解码）。没有查询串时为空。</summary>
+	public static string QueryOfUrl(string url) {
+		url ??= "";
+		var hash = url.IndexOf('#');
+		var head = hash >= 0 ? url.Substring(0, hash) : url;
+		var q = head.IndexOf('?');
+		if (q < 0) return "";
+		var sb = new StringBuilder();
+		foreach (var seg in head.Substring(q + 1).Split('&')) {
+			if (seg.Length == 0) continue;
+			var eq = seg.IndexOf('=');
+			var key = eq >= 0 ? seg.Substring(0, eq) : seg;
+			var val = eq >= 0 ? seg.Substring(eq + 1) : "";
+			key = Uri.UnescapeDataString(key.Replace('+', ' '));
+			val = Uri.UnescapeDataString(val.Replace('+', ' '));
+			if (sb.Length > 0) sb.Append('\n');
+			sb.Append(key).Append('=').Append(val);
+		}
+		return sb.ToString();
+	}
+
+	/// <summary>把 key=value 行编码后写进地址的查询串，原有查询串被替换，锚点保留。</summary>
+	public static string UrlWithQuery(string url, string query) {
+		url ??= "";
+		var hash = url.IndexOf('#');
+		var frag = hash >= 0 ? url.Substring(hash) : "";
+		var head = hash >= 0 ? url.Substring(0, hash) : url;
+		var q = head.IndexOf('?');
+		var basePart = q >= 0 ? head.Substring(0, q) : head;
+		var sb = new StringBuilder();
+		foreach (var pair in ParseLines(query)) {
+			if (sb.Length > 0) sb.Append('&');
+			sb.Append(Uri.EscapeDataString(pair.Key));
+			sb.Append('=');
+			sb.Append(Uri.EscapeDataString(pair.Value));
+		}
+		return basePart + (sb.Length > 0 ? "?" + sb : "") + frag;
+	}
+
+	/// <summary>POST 正文类型对应的默认 Content-Type；自定义类型用填写的 MIME。</summary>
+	public static string DefaultContentType(string bodykind, string mime) {
+		var kind = (bodykind ?? "").Trim().ToLowerInvariant();
+		if (kind == "json") return "application/json";
+		if (kind == "xml") return "application/xml";
+		if (kind == "mime") {
+			var m = (mime ?? "").Trim();
+			return m.Length > 0 ? m : "text/plain";
+		}
+		return "application/x-www-form-urlencoded";
+	}
+
+	/// <summary>类型部分（分号前）小写；带 charset 的同类算相同。</summary>
+	public static string MediaTypeOf(string ct) {
+		var s = (ct ?? "").Trim();
+		var i = s.IndexOf(';');
+		if (i >= 0) s = s.Substring(0, i);
+		return s.Trim().ToLowerInvariant();
+	}
+
+	public static bool SameMediaType(string a, string b) {
+		var ma = MediaTypeOf(a);
+		return ma.Length > 0 && ma == MediaTypeOf(b);
+	}
+
 	public static bool TryBuildUrl(string url, string query, out string built, out string error) {
 		built = "";
 		error = "";
@@ -199,12 +263,15 @@ static class HttpDebug {
 		if (q.StartsWith("?", StringComparison.Ordinal)) q = q.Substring(1);
 		var has = q.Length > 0;
 		if (has) sb.Append('?').Append(q);
-		foreach (var pair in ParseLines(query)) {
-			sb.Append(has ? '&' : '?');
-			has = true;
-			sb.Append(Uri.EscapeDataString(pair.Key));
-			sb.Append('=');
-			sb.Append(Uri.EscapeDataString(pair.Value));
+		// 地址里已经有查询串就以它为准，参数行只在没有时补，避免两处重复。
+		if (!has) {
+			foreach (var pair in ParseLines(query)) {
+				sb.Append(has ? '&' : '?');
+				has = true;
+				sb.Append(Uri.EscapeDataString(pair.Key));
+				sb.Append('=');
+				sb.Append(Uri.EscapeDataString(pair.Value));
+			}
 		}
 		if (!string.IsNullOrEmpty(uri.Fragment)) sb.Append(uri.Fragment);
 		built = sb.ToString();
@@ -337,8 +404,26 @@ static class HttpDebug {
 		if (pairs.Count != 2 || pairs[0].Key != "a" || pairs[0].Value != "1" || pairs[1].Key != "b" || pairs[1].Value != "")
 			fail("parse lines");
 		if (!TryBuildUrl("http://127.0.0.1/p?x=1#f", "a=2\n#c\n\nb=", out var built, out _)
-			|| built != "http://127.0.0.1/p?x=1&a=2&b=#f")
-			fail("build url " + built);
+			|| built != "http://127.0.0.1/p?x=1#f")
+			fail("build url keep " + built);
+		if (!TryBuildUrl("http://127.0.0.1/p#f", "a=2\n#c\n\nb=", out var builtq, out _)
+			|| builtq != "http://127.0.0.1/p?a=2&b=#f")
+			fail("build url add " + builtq);
+		if (QueryOfUrl("http://a/p?x=1&y=%E4%BD%A0&z=a+b#f") != "x=1\ny=你\nz=a b")
+			fail("query of url");
+		if (QueryOfUrl("http://a/p") != "") fail("query empty");
+		if (UrlWithQuery("http://a/p?x=1#f", "a=2\nb=你") != "http://a/p?a=2&b=%E4%BD%A0#f")
+			fail("url with query " + UrlWithQuery("http://a/p?x=1#f", "a=2\nb=你"));
+		if (UrlWithQuery("http://a/p?x=1#f", "") != "http://a/p#f") fail("url no query");
+		if (DefaultContentType("params", "") != "application/x-www-form-urlencoded"
+			|| DefaultContentType("json", "") != "application/json"
+			|| DefaultContentType("xml", "application/atom+xml") != "application/xml"
+			|| DefaultContentType("mime", "text/x-test") != "text/x-test"
+			|| DefaultContentType("mime", "") != "text/plain")
+			fail("default content type");
+		if (!SameMediaType("application/json; charset=utf-8", "application/json")
+			|| SameMediaType("application/vnd.api+json", "application/json"))
+			fail("same media type");
 		if (!TryBuildUrl("ex.com/p", "", out var noscheme, out _) || noscheme != "http://ex.com/p")
 			fail("scheme " + noscheme);
 		if (TryBuildUrl("", "", out _, out var empty) || empty != "empty") fail("empty url");
@@ -393,12 +478,19 @@ static class HttpDebug {
 			lis.Start();
 			var serve = Task.Run(() => serveloop(lis));
 			var get = SendAsync(new HttpDbgItem {
-				Method = "GET", Url = $"http://127.0.0.1:{port}/echo?x=1", Query = "a=2",
+				Method = "GET", Url = $"http://127.0.0.1:{port}/echo", Query = "a=2",
 			}, CancellationToken.None).GetAwaiter().GetResult();
 			log(get.Head);
 			log(get.Body);
-			if (!get.Ok || get.Status != 200 || get.Body.IndexOf("GET /echo?x=1&a=2", StringComparison.Ordinal) < 0)
+			if (!get.Ok || get.Status != 200 || get.Body.IndexOf("GET /echo?a=2", StringComparison.Ordinal) < 0)
 				fail("GET " + get.Error + " " + get.Body);
+			var getq = SendAsync(new HttpDbgItem {
+				Method = "GET", Url = $"http://127.0.0.1:{port}/echo?x=1", Query = "a=2",
+			}, CancellationToken.None).GetAwaiter().GetResult();
+			log(getq.Body);
+			if (!getq.Ok || getq.Body.IndexOf("GET /echo?x=1", StringComparison.Ordinal) < 0
+				|| getq.Body.IndexOf("a=2", StringComparison.Ordinal) >= 0)
+				fail("GET url query wins " + getq.Error + " " + getq.Body);
 			var post = SendAsync(new HttpDbgItem {
 				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "params", Form = "n=你好 1",
 			}, CancellationToken.None).GetAwaiter().GetResult();

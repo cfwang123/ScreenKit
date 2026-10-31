@@ -17,8 +17,11 @@ public partial class HttpDebugWindow : Window {
 	string draftxml = "";
 	string draw = "";
 	string bodykind = "params";
+	/// <summary>自动补充的 Content-Type 值；为空表示用户改过，不再自动覆盖。</summary>
+	string autoctype;
 	bool loading;
 	bool filling;
+	bool syncing;
 	bool busy;
 	CancellationTokenSource cts;
 
@@ -65,6 +68,10 @@ public partial class HttpDebugWindow : Window {
 		bcopy.Click += (_, _) => copyout();
 		bclose.Click += (_, _) => Close();
 		emethod.SelectionChanged += (_, _) => { if (!loading) syncmethod(); };
+		eurl.TextChanged += (_, _) => { if (loading || syncing) return; syncqueryfromurl(); };
+		equery.TextChanged += (_, _) => { if (loading || syncing) return; syncurlfromquery(); };
+		eheaders.TextChanged += (_, _) => { if (loading || syncing) return; onheadersedited(); };
+		emime.TextChanged += (_, _) => { if (loading || syncing || bodykind != "mime") return; synccontenttype(); };
 		rparams.Checked += (_, _) => onbody("params");
 		rjson.Checked += (_, _) => onbody("json");
 		rxml.Checked += (_, _) => onbody("xml");
@@ -166,7 +173,7 @@ public partial class HttpDebugWindow : Window {
 		loading = true;
 		ename.Text = item.Name ?? "";
 		eurl.Text = item.Url ?? "";
-		equery.Text = item.Query ?? "";
+		equery.Text = (item.Url ?? "").IndexOf('?') >= 0 ? HttpDebug.QueryOfUrl(item.Url) : (item.Query ?? "");
 		eheaders.Text = item.Headers ?? "";
 		emethod.SelectedItem = item.Method == "POST" ? "POST" : "GET";
 		draftform = item.Form ?? "";
@@ -175,6 +182,7 @@ public partial class HttpDebugWindow : Window {
 		draw = item.Raw ?? "";
 		emime.Text = string.IsNullOrWhiteSpace(item.Mime) ? "text/plain" : item.Mime;
 		setbody(item.Body);
+		initsynctype();
 		fillitemgroups(item.Group);
 		loading = false;
 		syncmethod();
@@ -202,6 +210,7 @@ public partial class HttpDebugWindow : Window {
 		draw = "";
 		emime.Text = "text/plain";
 		setbody("params");
+		initsynctype();
 		fillitemgroups(group);
 		loading = false;
 		syncmethod();
@@ -370,6 +379,7 @@ public partial class HttpDebugWindow : Window {
 		ebody.Text = textforkind(kind);
 		showmime();
 		loading = false;
+		synccontenttype();
 	}
 
 	void setbody(string kind) {
@@ -414,6 +424,94 @@ public partial class HttpDebugWindow : Window {
 		rmime.IsEnabled = post;
 		emime.IsEnabled = post;
 		ebody.IsEnabled = post;
+		synccontenttype();
+	}
+
+	/// <summary>地址里的查询串变化时，把查询参数框重写为解析结果。</summary>
+	void syncqueryfromurl() {
+		var url = eurl.Text ?? "";
+		setquery(url.IndexOf('?') >= 0 ? HttpDebug.QueryOfUrl(url) : "");
+	}
+
+	/// <summary>查询参数框变化时，把地址的查询串改写为编码后的参数。</summary>
+	void syncurlfromquery() {
+		var url = eurl.Text ?? "";
+		if (url.Trim().Length == 0) return;
+		var want = HttpDebug.UrlWithQuery(url, equery.Text ?? "");
+		if (string.Equals(want, url, StringComparison.Ordinal)) return;
+		syncing = true;
+		eurl.Text = want;
+		syncing = false;
+	}
+
+	void setquery(string text) {
+		syncing = true;
+		equery.Text = text ?? "";
+		syncing = false;
+	}
+
+	/// <summary>按 POST 正文类型补上 Content-Type。用户手改过（autoctype 为空）就不再覆盖。</summary>
+	void synccontenttype() {
+		if (loading || methodof() != "POST") return;
+		var want = HttpDebug.DefaultContentType(bodykind, emime.Text);
+		var text = (eheaders.Text ?? "").Replace("\r\n", "\n").Replace('\r', '\n');
+		var lines = text.Split('\n');
+		var at = -1;
+		var cur = "";
+		for (var i = 0; i < lines.Length; i++) {
+			var line = lines[i].Trim();
+			if (line.Length == 0 || line[0] == '#') continue;
+			var c = line.IndexOf(':');
+			if (c <= 0) continue;
+			if (!line.Substring(0, c).Trim().Equals("Content-Type", StringComparison.OrdinalIgnoreCase)) continue;
+			at = i;
+			cur = line.Substring(c + 1).Trim();
+			break;
+		}
+		if (at < 0) {
+			var head = text.TrimEnd('\n');
+			if (head.Length > 0) head += "\r\n";
+			setheaders(head + "Content-Type: " + want);
+			autoctype = want;
+			return;
+		}
+		if (autoctype == null || !HttpDebug.SameMediaType(cur, autoctype)) return;
+		if (string.Equals(cur, want, StringComparison.Ordinal)) { autoctype = want; return; }
+		var list = new List<string>(lines);
+		list[at] = "Content-Type: " + want;
+		setheaders(string.Join("\r\n", list));
+		autoctype = want;
+	}
+
+	/// <summary>加载请求时判断已有的 Content-Type 是不是自动值；与正文类型一致才继续自动同步。</summary>
+	void initsynctype() {
+		var cur = ctypevalue(eheaders.Text);
+		var def = HttpDebug.DefaultContentType(bodykind, emime.Text);
+		autoctype = cur != null && HttpDebug.SameMediaType(cur, def) ? cur : null;
+	}
+
+	void onheadersedited() {
+		var cur = ctypevalue(eheaders.Text);
+		if (cur == null || (autoctype != null && !HttpDebug.SameMediaType(cur, autoctype))) autoctype = null;
+	}
+
+	void setheaders(string text) {
+		loading = true;
+		eheaders.Text = text;
+		loading = false;
+	}
+
+	static string ctypevalue(string text) {
+		if (string.IsNullOrEmpty(text)) return null;
+		foreach (var raw in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
+			var line = raw.Trim();
+			if (line.Length == 0 || line[0] == '#') continue;
+			var at = line.IndexOf(':');
+			if (at <= 0) continue;
+			if (!line.Substring(0, at).Trim().Equals("Content-Type", StringComparison.OrdinalIgnoreCase)) continue;
+			return line.Substring(at + 1).Trim();
+		}
+		return null;
 	}
 
 	async Task sendasync() {
