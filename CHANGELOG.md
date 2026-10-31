@@ -50,6 +50,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Add CLI JSON export for Japanese conjugation tables
 - Dictionary search supports ? as a wildcard for one or more characters
 - Show hit count and elapsed time next to Copy in the selection popup
+- HTTP request debugger can edit request headers, one name: value per line.
 
 #### Changed
 
@@ -78,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语词形变化支持 CLI 导出 JSON
 - 词典查词支持 ? 通配符（匹配一个或多个字）
 - 划词浮窗查词后，在「复制」右边显示结果条数和用时
+- HTTP 请求调试可以编辑请求头，一行一个 名称: 值。
 
 #### 变更
 

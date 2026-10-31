@@ -42,6 +42,7 @@
 		{ g: "eq3", mode: "3", fn: "(x^2+9/4*y^2+z^2-1)^3-x^2*z^3-9/80*y^2*z^3=0" }
 	];
 	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
+	var view3 = { s: 1, ox: 0, oy: 0 };
 	var canvas = null;
 	var watch = null;
 	var drag = null;
@@ -767,6 +768,36 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
+	// 三维按内容实际投影范围等比铺满画布，左右和上下都尽量用满。
+	function fit3(w, h, box){
+		var pad = 14;
+		var bw = box.x1 - box.x0, bh = box.y1 - box.y0;
+		if (!(bw > 1e-9) || !(bh > 1e-9)) {
+			var s0 = Math.min(w, h) * 0.42 / Math.max(0.001, Math.max(cam.xspan, cam.yspan));
+			view3.s = s0;
+			view3.ox = w / 2;
+			view3.oy = h / 2;
+			return;
+		}
+		var s = Math.min((w - pad * 2) / bw, (h - pad * 2) / bh);
+		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / Math.max(0.001, bw);
+		view3.s = s;
+		view3.ox = w / 2 - (box.x0 + box.x1) / 2 * s;
+		view3.oy = h / 2 + (box.y0 + box.y1) / 2 * s;
+	}
+
+	function boxone(box, u, v){
+		if (!isFinite(u) || !isFinite(v)) return;
+		if (u < box.x0) box.x0 = u;
+		if (u > box.x1) box.x1 = u;
+		if (v < box.y0) box.y0 = v;
+		if (v > box.y1) box.y1 = v;
+	}
+
+	function newbox(){
+		return { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+	}
+
 	function draw3(ctx, w, h){
 		if (implicit) {
 			draw3implicit(ctx, w, h);
@@ -797,8 +828,8 @@
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
 		var zfit = fit / (hi - lo);
-		var scale = Math.min(w, h) * 0.42 / fit;
 		var pts = new Array(grid * grid);
+		var box = newbox();
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		for (j = 0; j < grid; j++) {
@@ -816,18 +847,21 @@
 				var Z = ok ? (z - zmid) * zfit : 0;
 				var x1 = X * cyaw - Y * syaw;
 				var y1 = X * syaw + Y * cyaw;
-				var y2 = y1 * cp - Z * sp;
-				var z2 = y1 * sp + Z * cp;
 				pts[j * grid + i] = {
-					x: w / 2 + x1 * scale,
-					y: h / 2 - z2 * scale,
-					d: y2,
+					ux: x1,
+					uz: y1 * sp + Z * cp,
+					d: y1 * cp - Z * sp,
 					ok: ok,
 					t: ok ? (z - lo) / (hi - lo) : 0
 				};
+				if (ok) boxone(box, x1, y1 * sp + Z * cp);
 			}
 		}
-		ctx.save();
+		fit3(w, h, box);
+		for (i = 0; i < pts.length; i++) {
+			pts[i].x = view3.ox + pts[i].ux * view3.s;
+			pts[i].y = view3.oy - pts[i].uz * view3.s;
+		}		ctx.save();
 		ctx.beginPath();
 		ctx.rect(0, 0, w, h);
 		ctx.clip();
@@ -835,7 +869,7 @@
 		else if (style === "dots") drawDots(ctx, pts);
 		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
 		else drawFill(ctx, pts, n, grid);
-		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
+		drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
 		ctx.restore();
 	}
 

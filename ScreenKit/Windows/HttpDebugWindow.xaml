@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="HTTP 请求调试"
-        Width="980" Height="700"
-        MinWidth="900" MinHeight="520"
+        Width="980" Height="780"
+        MinWidth="900" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{StaticResource BgApp}"
@@ -54,10 +54,12 @@
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="2*"/>
 				<RowDefinition Height="Auto"/>
-				<RowDefinition Height="2*"/>
-				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="3*"/>
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="3*"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="4*"/>
 				<RowDefinition Height="Auto"/>
 			</Grid.RowDefinitions>
 			<Grid Margin="0,0,0,8">
@@ -98,7 +100,13 @@
 			         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
 			         Padding="8" BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
 			         AutomationProperties.AutomationId="httpdbg.query"/>
-			<DockPanel Grid.Row="4" Margin="0,8,0,4">
+			<TextBlock x:Name="lbheaders" Grid.Row="4" Margin="0,8,0,4" Foreground="{StaticResource TextMuted}"/>
+			<TextBox x:Name="eheaders" Grid.Row="5" AcceptsReturn="True" AcceptsTab="True"
+			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+			         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
+			         Padding="8" BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
+			         AutomationProperties.AutomationId="httpdbg.headers"/>
+			<DockPanel Grid.Row="6" Margin="0,8,0,4">
 				<TextBlock x:Name="lbbody" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
 				<TextBox x:Name="emime" DockPanel.Dock="Right" Width="168" Height="28" Margin="12,0,0,0"
 				         Padding="8,2" VerticalContentAlignment="Center" Visibility="Collapsed"
@@ -115,25 +123,25 @@
 					             AutomationProperties.AutomationId="httpdbg.mime"/>
 				</StackPanel>
 			</DockPanel>
-			<TextBox x:Name="ebody" Grid.Row="5" AcceptsReturn="True" AcceptsTab="True"
+			<TextBox x:Name="ebody" Grid.Row="7" AcceptsReturn="True" AcceptsTab="True"
 			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
 			         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
 			         Padding="8" BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
 			         AutomationProperties.AutomationId="httpdbg.body"/>
-			<StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,8,0,0">
+			<StackPanel Grid.Row="8" Orientation="Horizontal" Margin="0,8,0,0">
 				<Button x:Name="bsend" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
 				        AutomationProperties.AutomationId="httpdbg.send"/>
 				<Button x:Name="bstop" Style="{StaticResource ToolBtn}" IsEnabled="False"
 				        AutomationProperties.AutomationId="httpdbg.stop"/>
 			</StackPanel>
-			<TextBlock x:Name="lbstat" Grid.Row="7" Margin="0,8,0,4" Foreground="{StaticResource TextMuted}"
+			<TextBlock x:Name="lbstat" Grid.Row="9" Margin="0,8,0,4" Foreground="{StaticResource TextMuted}"
 			           TextWrapping="Wrap"/>
-			<TextBox x:Name="eout" Grid.Row="8" IsReadOnly="True" AcceptsReturn="True"
+			<TextBox x:Name="eout" Grid.Row="10" IsReadOnly="True" AcceptsReturn="True"
 			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
 			         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="13"
 			         Padding="8" BorderBrush="{StaticResource BorderSoft}" SpellCheck.IsEnabled="False"
 			         AutomationProperties.AutomationId="httpdbg.out"/>
-			<DockPanel Grid.Row="9" Margin="0,8,0,0">
+			<DockPanel Grid.Row="11" Margin="0,8,0,0">
 				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
 					<Button x:Name="bcopy" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"/>
 					<Button x:Name="bclose" Style="{StaticResource ToolBtn}"/>

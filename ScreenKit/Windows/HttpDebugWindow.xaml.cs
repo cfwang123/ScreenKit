@@ -84,6 +84,7 @@ public partial class HttpDebugWindow : Window {
 		lbmethod.Text = Loc.T("httpdbg.method");
 		lburl.Text = Loc.T("httpdbg.url");
 		lbquery.Text = Loc.T("httpdbg.query");
+		lbheaders.Text = Loc.T("httpdbg.headers");
 		lbbody.Text = Loc.T("httpdbg.body");
 		rparams.Content = Loc.T("httpdbg.params");
 		rjson.Content = Loc.T("httpdbg.json");
@@ -166,6 +167,7 @@ public partial class HttpDebugWindow : Window {
 		ename.Text = item.Name ?? "";
 		eurl.Text = item.Url ?? "";
 		equery.Text = item.Query ?? "";
+		eheaders.Text = item.Headers ?? "";
 		emethod.SelectedItem = item.Method == "POST" ? "POST" : "GET";
 		draftform = item.Form ?? "";
 		draftjson = item.Json ?? "";
@@ -192,6 +194,7 @@ public partial class HttpDebugWindow : Window {
 		ename.Text = "";
 		eurl.Text = "";
 		equery.Text = "";
+		eheaders.Text = "";
 		emethod.SelectedItem = "GET";
 		draftform = "";
 		draftjson = "";
@@ -293,6 +296,7 @@ public partial class HttpDebugWindow : Window {
 		item.Method = methodof();
 		item.Url = eurl.Text ?? "";
 		item.Query = equery.Text ?? "";
+		item.Headers = eheaders.Text ?? "";
 		item.Body = bodykind;
 		item.Form = draftform;
 		item.Json = draftjson;
@@ -335,7 +339,7 @@ public partial class HttpDebugWindow : Window {
 		var xml = bodykind == "xml" ? (ebody.Text ?? "") : draftxml;
 		var raw = bodykind == "mime" ? (ebody.Text ?? "") : draw;
 		return string.Join("\u0001", itemgroupid(), ename.Text ?? "", methodof(), eurl.Text ?? "",
-			equery.Text ?? "", bodykind, form, js, xml, raw, emime.Text ?? "");
+			equery.Text ?? "", eheaders.Text ?? "", bodykind, form, js, xml, raw, emime.Text ?? "");
 	}
 
 	string groupid() {
@@ -436,15 +440,18 @@ public partial class HttpDebugWindow : Window {
 		if (r == null) return;
 		if (!r.Ok) {
 			eout.Text = "";
-			lbstat.Text = r.Error switch {
-				"empty" => Loc.T("httpdbg.needurl"),
-				"bad" => Loc.T("httpdbg.badurl"),
-				"emptyjson" => Loc.T("httpdbg.emptyjson"),
-				"badmime" => Loc.T("httpdbg.badmime"),
-				"cancel" => Loc.T("httpdbg.cancelled"),
-				"timeout" => Loc.T("httpdbg.timeout"),
-				_ => Loc.T("httpdbg.fail", r.Error ?? ""),
-			};
+			var err = r.Error ?? "";
+			lbstat.Text = err.StartsWith("badheader:", StringComparison.Ordinal)
+				? Loc.T("httpdbg.badheader", err.Substring(10))
+				: err switch {
+					"empty" => Loc.T("httpdbg.needurl"),
+					"bad" => Loc.T("httpdbg.badurl"),
+					"emptyjson" => Loc.T("httpdbg.emptyjson"),
+					"badmime" => Loc.T("httpdbg.badmime"),
+					"cancel" => Loc.T("httpdbg.cancelled"),
+					"timeout" => Loc.T("httpdbg.timeout"),
+					_ => Loc.T("httpdbg.fail", err),
+				};
 			return;
 		}
 		lbstat.Text = Loc.T("httpdbg.done", r.Status, r.Ms);

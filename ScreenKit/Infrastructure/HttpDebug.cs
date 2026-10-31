@@ -20,6 +20,8 @@ sealed class HttpDbgItem {
 	public string Method { get; set; } = "GET";
 	public string Url { get; set; } = "";
 	public string Query { get; set; } = "";
+	/// <summary>请求头：一行一个 Name: Value，# 开头为注释。</summary>
+	public string Headers { get; set; } = "";
 	public string Form { get; set; } = "";
 	public string Json { get; set; } = "";
 	public string Xml { get; set; } = "";
@@ -48,7 +50,7 @@ sealed class HttpDbgResult {
 }
 
 /// <summary>
-/// HTTP 请求调试：一行一个参数。POST 可为表单、JSON、XML，或自定义 MIME 的原文。
+/// HTTP 请求调试：一行一个参数，请求头一行一个 Name: Value。POST 可为表单、JSON、XML，或自定义 MIME 的原文。
 /// 请求存在程序目录 httpdbg.json，不写入 config.toml。
 /// 还没有示例时补上分组「测试」和本程序 1224 端口的几条接口。
 /// </summary>
@@ -124,6 +126,57 @@ static class HttpDebug {
 			list.Add((key, val));
 		}
 		return list;
+	}
+
+	/// <summary>请求头：一行一个 Name: Value，# 开头为注释。格式错时 badline 为出错的行号（从 1 起）。</summary>
+	public static List<(string Key, string Value)> ParseHeaders(string text, out int badline) {
+		badline = 0;
+		var list = new List<(string, string)>();
+		if (string.IsNullOrEmpty(text)) return list;
+		var lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+		for (var i = 0; i < lines.Length; i++) {
+			var line = lines[i].Trim();
+			if (line.Length == 0 || line[0] == '#') continue;
+			var at = line.IndexOf(':');
+			var key = at > 0 ? line.Substring(0, at).Trim() : "";
+			if (key.Length == 0 || key.IndexOfAny(new[] { ' ', '\t', '?' }) >= 0) {
+				badline = i + 1;
+				return list;
+			}
+			list.Add((key, line.Substring(at + 1).Trim()));
+		}
+		return list;
+	}
+
+	static bool iscontentheader(string name) =>
+		name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Content-Encoding", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Content-Language", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Content-Location", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Content-Range", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Content-MD5", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Content-Disposition", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Allow", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Expires", StringComparison.OrdinalIgnoreCase)
+		|| name.Equals("Last-Modified", StringComparison.OrdinalIgnoreCase);
+
+	/// <summary>把请求头文本框里的行加到请求上。Content-* 走正文头并覆盖默认类型，其余走请求头。</summary>
+	public static bool ApplyHeaders(HttpRequestMessage req, string text, out int badline) {
+		var list = ParseHeaders(text, out badline);
+		if (badline > 0) return false;
+		foreach (var pair in list) {
+			if (iscontentheader(pair.Key)) {
+				if (req.Content == null) continue;
+				req.Content.Headers.Remove(pair.Key);
+				req.Content.Headers.TryAddWithoutValidation(pair.Key, pair.Value);
+			}
+			else {
+				try { req.Headers.TryAddWithoutValidation(pair.Key, pair.Value); }
+				catch { }
+			}
+		}
+		return true;
 	}
 
 	public static bool TryBuildUrl(string url, string query, out string built, out string error) {
@@ -251,6 +304,10 @@ static class HttpDebug {
 			using var http = new HttpClient(handler, true) { Timeout = TimeSpan.FromMilliseconds(TIMEOUT_MS) };
 			using var req = new HttpRequestMessage(method == "POST" ? HttpMethod.Post : HttpMethod.Get, url);
 			if (content != null) req.Content = content;
+			if (!ApplyHeaders(req, item.Headers, out var badline)) {
+				r.Error = "badheader:" + badline;
+				return r;
+			}
 			using var resp = await http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
 			r.Status = (int)resp.StatusCode;
 			r.Reason = resp.ReasonPhrase ?? "";
@@ -301,7 +358,7 @@ static class HttpDebug {
 			book.Groups.Add(new HttpDbgGroup { Id = "g1", Name = "接口" });
 			book.Items.Add(new HttpDbgItem {
 				Id = "r1", Group = "g1", Name = "示例", Method = "POST", Url = "http://ex.com",
-				Query = "q=1", Form = "a=1", Json = "{\"a\":1}", Xml = "<a/>", Raw = "hi",
+				Query = "q=1", Headers = "X-Test: 1", Form = "a=1", Json = "{\"a\":1}", Xml = "<a/>", Raw = "hi",
 				Mime = "text/plain", Body = "mime",
 			});
 			Save(path, book);
@@ -309,6 +366,7 @@ static class HttpDebug {
 			if (lerr != null) fail("load " + lerr);
 			if (back.Groups.Count != 2 || back.Items.Count != 1 || back.Items[0].Json != "{\"a\":1}"
 				|| back.Items[0].Xml != "<a/>" || back.Items[0].Raw != "hi" || back.Items[0].Mime != "text/plain"
+				|| back.Items[0].Headers != "X-Test: 1"
 				|| back.Items[0].Body != "mime" || back.Groups[1].Name != "接口" || !back.Seeded)
 				fail("roundtrip");
 			var freshPath = Path.Combine(dir, "fresh.json");
@@ -348,6 +406,28 @@ static class HttpDebug {
 			if (!post.Ok || post.Body.IndexOf("application/x-www-form-urlencoded", StringComparison.Ordinal) < 0
 				|| post.Body.IndexOf("n=%E4%BD%A0%E5%A5%BD%201", StringComparison.Ordinal) < 0)
 				fail("POST form " + post.Error + " " + post.Body);
+			var hd = SendAsync(new HttpDbgItem {
+				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "params", Form = "a=1",
+				Headers = "# 注释\nX-Test: hello\nX-Other: 1\n",
+			}, CancellationToken.None).GetAwaiter().GetResult();
+			log(hd.Body);
+			if (!hd.Ok || hd.Body.IndexOf("\nhello\n", StringComparison.Ordinal) < 0)
+				fail("POST headers " + hd.Error + " " + hd.Body);
+			var ct = SendAsync(new HttpDbgItem {
+				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "mime",
+				Mime = "text/plain; charset=utf-8", Raw = "hi", Headers = "Content-Type: application/xml\nX-Test: 2",
+			}, CancellationToken.None).GetAwaiter().GetResult();
+			log(ct.Body);
+			if (!ct.Ok || ct.Body.IndexOf("application/xml", StringComparison.Ordinal) < 0)
+				fail("content-type header " + ct.Error + " " + ct.Body);
+			var bhd = SendAsync(new HttpDbgItem {
+				Method = "GET", Url = $"http://127.0.0.1:{port}/echo", Headers = "oops\nX-Test: 1",
+			}, CancellationToken.None).GetAwaiter().GetResult();
+			if (bhd.Ok || bhd.Error != "badheader:1") fail("bad header " + bhd.Error);
+			var hp = ParseHeaders("A: 1\n# c\n\nB:2:3\n", out var hbline);
+			if (hbline != 0 || hp.Count != 2 || hp[0].Value != "1" || hp[1].Value != "2:3") fail("parse headers");
+			ParseHeaders("A: 1\n nope\n", out var hbline2);
+			if (hbline2 != 2) fail("header line " + hbline2);
 			var js = SendAsync(new HttpDbgItem {
 				Method = "POST", Url = $"http://127.0.0.1:{port}/echo", Body = "json", Json = "{\"a\":1}",
 			}, CancellationToken.None).GetAwaiter().GetResult();
@@ -401,7 +481,7 @@ static class HttpDebug {
 				using (var sr = new StreamReader(ctx.Request.InputStream, Encoding.UTF8))
 					body = sr.ReadToEnd();
 				var text = ctx.Request.HttpMethod + " " + ctx.Request.RawUrl + "\n"
-					+ (ctx.Request.ContentType ?? "") + "\n" + body;
+					+ (ctx.Request.ContentType ?? "") + "\n" + (ctx.Request.Headers["X-Test"] ?? "") + "\n" + body;
 				var bytes = Encoding.UTF8.GetBytes(text);
 				ctx.Response.StatusCode = 200;
 				ctx.Response.ContentType = "text/plain; charset=utf-8";
@@ -526,6 +606,7 @@ static class HttpDebug {
 			it.Method = string.Equals(it.Method, "POST", StringComparison.OrdinalIgnoreCase) ? "POST" : "GET";
 			it.Url = it.Url ?? "";
 			it.Query = it.Query ?? "";
+			it.Headers = it.Headers ?? "";
 			it.Form = it.Form ?? "";
 			it.Json = it.Json ?? "";
 			it.Xml = it.Xml ?? "";
