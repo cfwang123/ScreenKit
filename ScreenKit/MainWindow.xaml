@@ -238,6 +238,9 @@
 					<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
 					          AutomationProperties.AutomationId="menu.httpdbg"
 					          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>
+					<MenuItem x:Name="mnmqtt" Header="MQTT 调试(_Q)…"
+					          AutomationProperties.AutomationId="menu.mqtt"
+					          ToolTip="连 MQTT 服务器收发消息，也能在本机起一个服务端"/>
 					<MenuItem x:Name="mnsoapdbg" Header="SOAP 接口调试(_S)…"
 					          AutomationProperties.AutomationId="menu.soapdbg"
 					          ToolTip="读取 WSDL，调试 SOAP 接口并启动本地模拟服务"/>

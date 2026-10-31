@@ -1,0 +1,241 @@
+<Window x:Class="ScreenKit.MqttWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MQTT 调试"
+        Width="1000" Height="720"
+        MinWidth="820" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        FontSize="13"
+        AutomationProperties.AutomationId="mqtt.window">
+	<Window.Resources>
+		<Style x:Key="FieldLabel" TargetType="TextBlock">
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Margin" Value="0,0,6,0"/>
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+		</Style>
+		<Style x:Key="FieldBox" TargetType="TextBox">
+			<Setter Property="Height" Value="30"/>
+			<Setter Property="Padding" Value="8,4"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
+			<Setter Property="SpellCheck.IsEnabled" Value="False"/>
+		</Style>
+		<Style x:Key="FieldCombo" TargetType="ComboBox">
+			<Setter Property="Height" Value="30"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+		</Style>
+	</Window.Resources>
+
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<TextBlock x:Name="lbhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+
+		<TabControl x:Name="tabs" Grid.Row="1" BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="mqtt.tabs">
+
+			<!-- ==================== 客户端 ==================== -->
+			<TabItem x:Name="tabclient" AutomationProperties.AutomationId="mqtt.tab.client">
+				<Grid Margin="10">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<!-- 连接参数 -->
+					<Border Grid.Row="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
+					        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+						<WrapPanel VerticalAlignment="Center">
+							<TextBlock x:Name="lbchost" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="echost" Style="{StaticResource FieldBox}" Width="200" Margin="0,0,10,0"
+							         ToolTip="默认连本机；填局域网或公网地址也行"
+							         AutomationProperties.AutomationId="mqtt.client.host"/>
+							<TextBlock x:Name="lbcport" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="ecport" Style="{StaticResource FieldBox}" Width="72" Margin="0,0,10,0"
+							         AutomationProperties.AutomationId="mqtt.client.port"/>
+							<TextBlock x:Name="lbcuser" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="ecuser" Style="{StaticResource FieldBox}" Width="100" Margin="0,0,10,0"
+							         AutomationProperties.AutomationId="mqtt.client.user"/>
+							<TextBlock x:Name="lbcpw" Style="{StaticResource FieldLabel}"/>
+							<PasswordBox x:Name="ecpw" Width="100" Height="30" Padding="8,4" Margin="0,0,10,0"
+							             BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+							             AutomationProperties.AutomationId="mqtt.client.pw"/>
+							<Button x:Name="bcconn" Style="{StaticResource ToolBtn}"
+							        AutomationProperties.AutomationId="mqtt.client.connect"/>
+						</WrapPanel>
+					</Border>
+
+					<!-- 订阅 / 发布 -->
+					<Grid Grid.Row="1" Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock x:Name="lbctopic" Grid.Column="0" Style="{StaticResource FieldLabel}"/>
+						<TextBox x:Name="ectopic" Grid.Column="1" Style="{StaticResource FieldBox}" Margin="0,0,6,0"
+						         AutomationProperties.AutomationId="mqtt.client.topic"/>
+						<Button x:Name="bcsub" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,4,0"
+						        AutomationProperties.AutomationId="mqtt.client.subscribe"/>
+						<Button x:Name="bcunsub" Grid.Column="3" Style="{StaticResource ToolBtn}" Margin="0"
+						        AutomationProperties.AutomationId="mqtt.client.unsubscribe"/>
+					</Grid>
+
+					<Grid Grid.Row="2" Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock x:Name="lbpubtopic" Grid.Column="0" Style="{StaticResource FieldLabel}"/>
+						<TextBox x:Name="epubtopic" Grid.Column="1" Style="{StaticResource FieldBox}" Margin="0,0,8,0"
+						         AutomationProperties.AutomationId="mqtt.client.pubtopic"/>
+						<TextBlock x:Name="lbqos" Grid.Column="2" Style="{StaticResource FieldLabel}" Margin="0,0,6,0"/>
+						<ComboBox x:Name="eqos" Grid.Column="3" Style="{StaticResource FieldCombo}" Width="80" Margin="0,0,8,0"
+						          AutomationProperties.AutomationId="mqtt.client.qos"/>
+						<CheckBox x:Name="cretain" Grid.Column="4" VerticalAlignment="Center"
+						          AutomationProperties.AutomationId="mqtt.client.retain"/>
+					</Grid>
+
+					<!-- 消息正文 -->
+					<DockPanel Grid.Row="3" Margin="0,0,0,4">
+						<TextBlock x:Name="lbpayload" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+						<CheckBox x:Name="chexsend" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+						          AutomationProperties.AutomationId="mqtt.client.hexsend"/>
+					</DockPanel>
+					<TextBox x:Name="epayload" Grid.Row="4" Height="72" AcceptsReturn="True" AcceptsTab="True"
+					         VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+					         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+					         Padding="8" Margin="0,0,0,8" BorderBrush="{StaticResource BorderSoft}"
+					         SpellCheck.IsEnabled="False"
+					         AutomationProperties.AutomationId="mqtt.client.payload"/>
+
+					<!-- 收发日志 -->
+					<DockPanel Grid.Row="5">
+						<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
+							<Button x:Name="bcclear" Style="{StaticResource ToolBtnSm}"/>
+							<Button x:Name="bccopy" Style="{StaticResource ToolBtnSm}"/>
+							<CheckBox x:Name="cautoscroll" IsChecked="True" VerticalAlignment="Center" Margin="8,0,0,0"
+							          AutomationProperties.AutomationId="mqtt.client.autoscroll"/>
+						</StackPanel>
+						<TextBox x:Name="elog" IsReadOnly="True" AcceptsReturn="True"
+						         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+						         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+						         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+						         AutomationProperties.AutomationId="mqtt.client.log"/>
+					</DockPanel>
+
+					<StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,8,0,0">
+						<Button x:Name="bcpub" Style="{StaticResource ToolBtn}"
+						        AutomationProperties.AutomationId="mqtt.client.publish"/>
+						<Button x:Name="bcclose" Style="{StaticResource ToolBtn}"
+						        AutomationProperties.AutomationId="mqtt.client.close"/>
+					</StackPanel>
+				</Grid>
+			</TabItem>
+
+			<!-- ==================== 服务端 ==================== -->
+			<TabItem x:Name="tabserver" AutomationProperties.AutomationId="mqtt.tab.server">
+				<Grid Margin="10">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<Border Grid.Row="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
+					        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+						<WrapPanel VerticalAlignment="Center">
+							<TextBlock x:Name="lbsport" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="esport" Style="{StaticResource FieldBox}" Width="80" Margin="0,0,12,0"
+							         AutomationProperties.AutomationId="mqtt.server.port"/>
+							<Button x:Name="bstoggle" Style="{StaticResource ToolBtn}" Margin="0,0,12,0"
+							        AutomationProperties.AutomationId="mqtt.server.toggle"/>
+							<TextBlock x:Name="lbsstat" VerticalAlignment="Center"
+							           Foreground="{StaticResource TextMuted}"/>
+						</WrapPanel>
+					</Border>
+
+					<!-- 左：在线客户端；右：服务端日志 -->
+					<Grid Grid.Row="1">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="260"/>
+							<ColumnDefinition Width="8"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+						<DockPanel Grid.Column="0">
+							<TextBlock x:Name="lbclients" DockPanel.Dock="Top" Margin="0,0,0,4"
+							           Foreground="{StaticResource TextMuted}"/>
+							<ListBox x:Name="lclients" BorderBrush="{StaticResource BorderSoft}"
+							         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+							         AutomationProperties.AutomationId="mqtt.server.clients"/>
+						</DockPanel>
+						<DockPanel Grid.Column="2">
+							<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
+								<TextBlock x:Name="lbslog" VerticalAlignment="Center"
+								           Foreground="{StaticResource TextMuted}"/>
+								<Button x:Name="bsclear" Style="{StaticResource ToolBtnSm}" Margin="10,0,0,0"/>
+							</StackPanel>
+							<TextBox x:Name="eslog" IsReadOnly="True" AcceptsReturn="True"
+							         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI"
+							         FontSize="12" Padding="8" BorderBrush="{StaticResource BorderSoft}"
+							         AutomationProperties.AutomationId="mqtt.server.log"/>
+						</DockPanel>
+					</Grid>
+
+					<Grid Grid.Row="2" Margin="0,8,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock x:Name="lbptopic" Grid.Column="0" Style="{StaticResource FieldLabel}"/>
+						<TextBox x:Name="eptopic" Grid.Column="1" Style="{StaticResource FieldBox}" Margin="0,0,8,0"
+						         AutomationProperties.AutomationId="mqtt.server.topic"/>
+						<TextBlock x:Name="lbpqos" Grid.Column="2" Style="{StaticResource FieldLabel}" Margin="0,0,6,0"/>
+						<ComboBox x:Name="epqos" Grid.Column="3" Style="{StaticResource FieldCombo}" Width="80" Margin="0,0,8,0"
+						          AutomationProperties.AutomationId="mqtt.server.qos"/>
+						<Button x:Name="bspub" Grid.Column="4" Style="{StaticResource ToolBtn}" Margin="0"
+						        AutomationProperties.AutomationId="mqtt.server.publish"/>
+					</Grid>
+
+					<TextBlock x:Name="lbppayload" Grid.Row="3" Margin="0,0,0,4"
+					           Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="eppayload" Grid.Row="4" Height="80" AcceptsReturn="True" AcceptsTab="True"
+					         VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+					         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+					         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+					         SpellCheck.IsEnabled="False"
+					         AutomationProperties.AutomationId="mqtt.server.payload"/>
+				</Grid>
+			</TabItem>
+		</TabControl>
+
+		<!-- 底部：服务端日志 / 状态 -->
+		<DockPanel Grid.Row="2" Margin="0,8,0,0">
+			<TextBlock x:Name="lbstat" Foreground="{StaticResource TextMuted}" FontSize="12"
+			           VerticalAlignment="Center" TextWrapping="Wrap"/>
+		</DockPanel>
+	</Grid>
+</Window>

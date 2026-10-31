@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: save frequently used connections and apply one with a click.
 - Database query: show row numbers in the data grid
 - System info: new USB descriptors page reads device/configuration/string descriptors, interfaces and pipes through the USB hub read-only IOCTL, plus HID usage and report layout
+- MQTT debugger: hand-written TCP client and broker, no third-party library
 
 #### Changed
 
@@ -122,6 +123,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：常用连接可保存，选中即套用。
 - 数据库查询：数据表格增加行号列
 - 系统信息：新增 USB 描述符页，经 USB 集线器只读 IOCTL 读取设备/配置/字符串描述符、接口与管道，并列出 HID 用途和报文结构
+- MQTT 调试：纯 TCP 自实现的客户端和服务端，不依赖第三方库
 
 #### 变更
 
