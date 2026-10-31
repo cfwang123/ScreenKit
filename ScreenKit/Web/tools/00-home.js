@@ -440,6 +440,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-bytes",
+						"data-cat":"calc",
+						"data-name":"字节 十六进制 hex 二进制 解读 int8 uint8 int16 uint16 int32 uint32 int64 uint64 浮点 fp16 fp32 fp64 bf16 ascii unicode utf8 端序 小端 大端 大小端 内存",
+						"title":"把连续字节按各种整数、浮点和文本格式解读，大小端可选",
+						c:[
+						{x:"i.fa-solid.fa-microchip"},
+						{x:"span","data-k":"web.tool.bytes",c:"字节解读"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-bytes","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-unit",
 						"data-cat":"calc",
 						"data-name":"单位换算 长度 重量 货币 温度换算 面积 体积 存储 时间 压力 功率 px rem 米 英尺 摄氏 全部",

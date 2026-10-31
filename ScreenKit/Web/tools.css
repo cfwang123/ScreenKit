@@ -1361,3 +1361,26 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .jnnone { color: var(--muted); }
 
 
+
+/* 字节解读：十六进制输入和两种结果表 */
+.by-hex {
+	width: 100%; height: 84px; margin-top: 4px;
+	font: 13px/1.5 Consolas, "Cascadia Mono", "Microsoft YaHei UI", monospace;
+}
+.byopts { display: flex; align-items: center; gap: 16px; margin: 10px 0 14px; flex-wrap: wrap; }
+.byopts label { display: flex; align-items: center; gap: 8px; width: auto; margin: 0; }
+.byopts select, .byopts input { width: auto; min-width: 96px; }
+.byopts .msg { min-height: 0; }
+.bytab { width: 100%; border-collapse: collapse; margin: 0 0 14px; }
+.bytab th, .bytab td {
+	padding: 6px 10px; border-bottom: 1px solid var(--line);
+	text-align: left; font-size: 13px; vertical-align: top;
+}
+.bytab th { color: var(--muted); font-weight: 600; }
+.bytab th:first-child, .bytab td:first-child { width: 88px; white-space: nowrap; }
+.bytab tbody tr { cursor: pointer; }
+.bytab tbody tr:hover { background: #f4f4f5; }
+.by-type { white-space: nowrap; font-family: Consolas, "Cascadia Mono", monospace; }
+.by-dim { color: var(--muted); font-family: Consolas, "Cascadia Mono", monospace; font-size: 12px; }
+.by-text { font-family: Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; word-break: break-all; }
+.by-none { color: var(--muted); }

@@ -121,6 +121,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Math**
   - **Scientific calculator**: Scientific calculation
   - **Radix conversion**: Convert among base 2, 8, 10, and 16
+  - **Byte decoder**: Read consecutive bytes as int8 through fp64, fp16/bf16, ASCII, and UTF-8, with a choice of byte order and a grouped list by type
   - **Unit conversion**: Length, weight, currency, and more
   - **Random number**: A number inside a chosen range
   - **Function graph**: Plot 2D curves, 3D surfaces, and implicit equations such as x^2+y^2+z^2=9 for a sphere, with built-in examples
