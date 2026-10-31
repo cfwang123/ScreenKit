@@ -124,7 +124,10 @@
 		}
 		if (watch) watch.disconnect();
 		if (window.ResizeObserver && canvas.parentElement) {
-			watch = new ResizeObserver(function(){ paint(); });
+			watch = new ResizeObserver(function(){
+				if (mode === "3") cam.xspan = cam.yspan * stageaspect();
+				paint();
+			});
 			watch.observe(canvas.parentElement);
 		}
 		markmode();
@@ -781,28 +784,25 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
-	// 三维采样窗口贴着屏幕取：u 沿屏幕横向、v 沿屏幕纵深，范围按画布宽高比算，
-	// 所以任何视角下曲面都能铺到画布边缘，转动时换的是采样位置而不是画面大小。
-	function samplewin(sp, cp, zc){
-		var spc = sp < 0.6 ? 0.6 : sp;
-		var v = YSPAN / spc;
-		var half = v * sp + zc * cp;
-		if (!(half > 1e-6)) half = YSPAN;
-		return { u: stageaspect() * half, v: v };
-	}
-
-	// 画面大小按当前采样内容的投影范围定。窗口跟着屏幕转，投影范围基本恒定，
-	// 所以转动视角时不会忽大忽小；隐式曲面这类有界内容仍然按自己的大小铺满。
-	function fit3(w, h, list){
+	// 三维画面大小按内容在初始视角下的投影范围定：换任何视角都只转不缩放，
+	// 外接球留的余量也一起去掉，采样平面有多宽就尽量画多宽。
+	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
+		var cx = (box.x0 + box.x1) / 2;
+		var cy = (box.y0 + box.y1) / 2;
+		var cz = (box.z0 + box.z1) / 2;
+		var hy = Math.cos(HOME.yaw), hx = Math.sin(HOME.yaw);
+		var hp = Math.cos(HOME.pitch), hs = Math.sin(HOME.pitch);
 		var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-		var i, p;
+		var i, p, u, v;
 		for (i = 0; i < list.length; i++) {
 			p = list[i];
 			if (!p || !p.ok) continue;
-			if (p.ux < x0) x0 = p.ux;
-			if (p.ux > x1) x1 = p.ux;
-			if (p.uz < y0) y0 = p.uz;
-			if (p.uz > y1) y1 = p.uz;
+			u = p.wx * hy - p.wy * hx;
+			v = (p.wx * hx + p.wy * hy) * hs + p.wz * hp;
+			if (u < x0) x0 = u;
+			if (u > x1) x1 = u;
+			if (v < y0) y0 = v;
+			if (v > y1) y1 = v;
 		}
 		var pad = 14;
 		var s;
@@ -811,8 +811,8 @@
 		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / Math.max(0.001, Math.max(cam.xspan, cam.yspan));
 		s *= cam.zoom;
 		view3.s = s;
-		view3.ox = w / 2 - (x0 + x1) / 2 * s;
-		view3.oy = h / 2 + (y0 + y1) / 2 * s;
+		view3.ox = w / 2 - (cx * cyaw - cy * syaw) * s;
+		view3.oy = h / 2 + ((cx * syaw + cy * cyaw) * sp + cz * cp) * s;
 	}
 
 	function boxone(box, x, y, z){
@@ -846,9 +846,9 @@
 		return p;
 	}
 
-	// 网格列数按窗口的宽高比来取，格子才接近正方形。
-	function gridcount(rows, ratio){
-		var nx = Math.round(rows * (ratio > 0 ? ratio : 1));
+	// 网格列数按采样平面的宽高比来取，格子才接近正方形。
+	function gridcount(rows){
+		var nx = Math.round(rows * cam.xspan / cam.yspan);
 		if (!(nx >= rows)) nx = rows;
 		if (nx > rows * 4) nx = rows * 4;
 		return nx;
@@ -859,22 +859,15 @@
 			draw3implicit(ctx, w, h);
 			return;
 		}
-		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
-		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		var win = samplewin(sp, cp, 2);
-		cam.xspan = win.u;
-		cam.yspan = win.v;
 		var ny = 46;
-		var nx = gridcount(ny, win.u / win.v);
+		var nx = gridcount(ny);
 		var gw = nx + 1, gh = ny + 1;
 		var zraw = new Array(gw * gh);
-		var i, j, u, v, x, y, z, finite = [];
+		var i, j, x, y, z, finite = [];
 		for (j = 0; j < gh; j++) {
-			v = -win.v + win.v * 2 * j / ny;
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / ny;
 			for (i = 0; i < gw; i++) {
-				u = -win.u + win.u * 2 * i / nx;
-				x = cam.cx + u * cyaw + v * syaw;
-				y = cam.cy - u * syaw + v * cyaw;
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / nx;
 				z = fn ? ev(fn, x, y) : NaN;
 				zraw[j * gw + i] = z;
 				if (isFinite(z)) finite.push(z);
@@ -890,26 +883,30 @@
 		}
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
-		var zfit = YSPAN / (hi - lo);
+		var zfit = cam.yspan / (hi - lo);
 		var pts = new Array(gw * gh);
 		var box = newbox();
+		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
+		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		for (j = 0; j < gh; j++) {
-			v = -win.v + win.v * 2 * j / ny;
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / ny;
 			for (i = 0; i < gw; i++) {
-				u = -win.u + win.u * 2 * i / nx;
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / nx;
 				z = zraw[j * gw + i];
 				var ok = isFinite(z);
 				if (ok) {
 					if (z < lo - pad) z = lo - pad;
 					else if (z > hi + pad) z = hi + pad;
 				}
-				var X = u * cyaw + v * syaw;
-				var Y = -u * syaw + v * cyaw;
+				var X = x - cam.cx;
+				var Y = y - cam.cy;
 				var Z = ok ? (z - zmid) * zfit : 0;
+				var x1 = X * cyaw - Y * syaw;
+				var y1 = X * syaw + Y * cyaw;
 				pts[j * gw + i] = {
-					ux: u,
-					uz: v * sp + Z * cp,
-					d: v * cp - Z * sp,
+					ux: x1,
+					uz: y1 * sp + Z * cp,
+					d: y1 * cp - Z * sp,
 					ok: ok,
 					t: ok ? (z - lo) / (hi - lo) : 0,
 					wx: X,
@@ -919,7 +916,7 @@
 				if (ok) boxone(box, X, Y, Z);
 			}
 		}
-		fit3(w, h, pts);
+		fit3(w, h, box, pts, cyaw, syaw, cp, sp);
 		for (i = 0; i < pts.length; i++) {
 			pts[i].x = view3.ox + pts[i].ux * view3.s;
 			pts[i].y = view3.oy - pts[i].uz * view3.s;
@@ -943,22 +940,17 @@
 		var m = drag ? 46 : 80;
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		var win = samplewin(sp, cp, YSPAN);
-		cam.xspan = win.u;
-		cam.yspan = win.v;
-		var nx = gridcount(n, win.u / win.v);
+		var nx = gridcount(n);
 		var cw = nx + 1;
 		var cols = new Array(cw * (n + 1));
 		var box = newbox();
 		var all = [];
-		var z0 = -YSPAN, z1 = YSPAN, dz = (z1 - z0) / m;
-		var i, j, k, u, v, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, gap;
+		var z0 = -cam.yspan, z1 = cam.yspan, dz = (z1 - z0) / m;
+		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, gap;
 		for (j = 0; j <= n; j++) {
-			v = -win.v + win.v * 2 * j / n;
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
 			for (i = 0; i <= nx; i++) {
-				u = -win.u + win.u * 2 * i / nx;
-				x = cam.cx + u * cyaw + v * syaw;
-				y = cam.cy - u * syaw + v * cyaw;
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / nx;
 				var list = [];
 				f0 = ev(fn, x, y, z0);
 				for (k = 1; k <= m; k++) {
@@ -989,14 +981,7 @@
 							}
 						}
 						zz = (lo + hi) / 2;
-						p = {
-							ux: u,
-							uz: v * sp + zz * cp,
-							d: v * cp - zz * sp,
-							wx: u * cyaw + v * syaw,
-							wy: -u * syaw + v * cyaw,
-							wz: zz
-						};
+						p = proj3(x, y, zz, cyaw, syaw, cp, sp, 0, 1);
 						p.t = (zz - z0) / (z1 - z0);
 						p.z = zz;
 						p.ok = true;
@@ -1009,8 +994,8 @@
 				cols[j * cw + i] = list;
 			}
 		}
-		fit3(w, h, all);
-		gap = 2 * win.v * view3.s / n;
+		fit3(w, h, box, all, cyaw, syaw, cp, sp);
+		gap = 2 * cam.yspan * view3.s / n;
 		var row;
 		for (i = 0; i < cols.length; i++) {
 			row = cols[i];
@@ -1133,22 +1118,19 @@
 
 	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
 	function implevelzero(ctx, cyaw, syaw, cp, sp){
-		var win = samplewin(sp, cp, YSPAN);
 		var gy = drag ? 30 : 52;
-		var gx = gridcount(gy, win.u / win.v);
+		var gx = gridcount(gy);
 		var gw = gx + 1;
 		var vals = new Float64Array(gw * (gy + 1));
-		var i, j, u, v, v00, v10, v11, v01, ps, k;
-		function proj0(u, v){
-			return scr3({ ux: u, uz: v * sp, d: v * cp });
+		var i, j, x, y, v00, v10, v11, v01, ps, k;
+		function proj0(x, y){
+			return scr3(proj3(x, y, 0, cyaw, syaw, cp, sp, 0, 1));
 		}
-		function wx(u, v){ return cam.cx + u * cyaw + v * syaw; }
-		function wy(u, v){ return cam.cy - u * syaw + v * cyaw; }
 		for (j = 0; j <= gy; j++) {
-			v = -win.v + win.v * 2 * j / gy;
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
 			for (i = 0; i <= gx; i++) {
-				u = -win.u + win.u * 2 * i / gx;
-				vals[j * gw + i] = ev(fn, wx(u, v), wy(u, v), 0);
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+				vals[j * gw + i] = ev(fn, x, y, 0);
 			}
 		}
 		ctx.strokeStyle = zcolor(0.5);
@@ -1157,33 +1139,33 @@
 		ctx.lineCap = "round";
 		ctx.beginPath();
 		for (j = 0; j < gy; j++) {
-			var v0 = -win.v + win.v * 2 * j / gy;
-			var v1 = -win.v + win.v * 2 * (j + 1) / gy;
+			var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+			var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gy;
 			for (i = 0; i < gx; i++) {
-				var u0 = -win.u + win.u * 2 * i / gx;
-				var u1 = -win.u + win.u * 2 * (i + 1) / gx;
+				var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+				var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gx;
 				v00 = vals[j * gw + i];
 				v10 = vals[j * gw + i + 1];
 				v11 = vals[(j + 1) * gw + i + 1];
 				v01 = vals[(j + 1) * gw + i];
 				if (!isFinite(v00) || !isFinite(v10) || !isFinite(v11) || !isFinite(v01)) continue;
 				ps = [];
-				if ((v00 > 0) !== (v10 > 0)) ps.push({ u: u0 + (u1 - u0) * (v00 / (v00 - v10)), v: v0 });
-				if ((v10 > 0) !== (v11 > 0)) ps.push({ u: u1, v: v0 + (v1 - v0) * (v10 / (v10 - v11)) });
-				if ((v11 > 0) !== (v01 > 0)) ps.push({ u: u1 + (u0 - u1) * (v11 / (v11 - v01)), v: v1 });
-				if ((v01 > 0) !== (v00 > 0)) ps.push({ u: u0, v: v1 + (v0 - v1) * (v01 / (v01 - v00)) });
+				if ((v00 > 0) !== (v10 > 0)) ps.push({ x: x0 + (x1 - x0) * (v00 / (v00 - v10)), y: y0 });
+				if ((v10 > 0) !== (v11 > 0)) ps.push({ x: x1, y: y0 + (y1 - y0) * (v10 / (v10 - v11)) });
+				if ((v11 > 0) !== (v01 > 0)) ps.push({ x: x1 + (x0 - x1) * (v11 / (v11 - v01)), y: y1 });
+				if ((v01 > 0) !== (v00 > 0)) ps.push({ x: x0, y: y1 + (y0 - y1) * (v01 / (v01 - v00)) });
 				if (ps.length === 2) {
-					var a0 = proj0(ps[0].u, ps[0].v), b0 = proj0(ps[1].u, ps[1].v);
+					var a0 = proj0(ps[0].x, ps[0].y), b0 = proj0(ps[1].x, ps[1].y);
 					ctx.moveTo(a0.x, a0.y);
 					ctx.lineTo(b0.x, b0.y);
 				}
 				else if (ps.length === 4) {
-					var vc = ev(fn, wx((u0 + u1) / 2, (v0 + v1) / 2), wy((u0 + u1) / 2, (v0 + v1) / 2), 0);
+					var vc = ev(fn, (x0 + x1) / 2, (y0 + y1) / 2, 0);
 					if (!isFinite(vc)) continue;
 					var pairs = (vc > 0) === (v00 > 0) ? [[0, 1], [2, 3]] : [[0, 3], [1, 2]];
 					for (k = 0; k < 2; k++) {
-						var a1 = proj0(ps[pairs[k][0]].u, ps[pairs[k][0]].v);
-						var b1 = proj0(ps[pairs[k][1]].u, ps[pairs[k][1]].v);
+						var a1 = proj0(ps[pairs[k][0]].x, ps[pairs[k][0]].y);
+						var b1 = proj0(ps[pairs[k][1]].x, ps[pairs[k][1]].y);
 						ctx.moveTo(a1.x, a1.y);
 						ctx.lineTo(b1.x, b1.y);
 					}
@@ -1216,66 +1198,63 @@
 
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
 	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp){
-		var win = samplewin(sp, cp, YSPAN);
 		var levels = drag ? 6 : 12;
 		var gy = drag ? 30 : 52;
-		var gx = gridcount(gy, win.u / win.v);
+		var gx = gridcount(gy);
 		var segs = [];
-		function proj(u, v, z){
-			return scr3({ ux: u, uz: v * sp + z * cp, d: v * cp - z * sp });
+		function proj(x, y, z){
+			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, 0, 1));
 		}
-		function add(ua, va, ub, vb, z, t){
-			var p = proj(ua, va, z);
-			var q = proj(ub, vb, z);
+		function add(xa, ya, xb, yb, z, t){
+			var p = proj(xa, ya, z);
+			var q = proj(xb, yb, z);
 			segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: t });
 		}
-		function wx(u, v){ return cam.cx + u * cyaw + v * syaw; }
-		function wy(u, v){ return cam.cy - u * syaw + v * cyaw; }
 		var L, i, j, zc, t, gw = gx + 1, vals, v00, v10, v11, v01, ps, vc;
 		for (L = 1; L < levels; L++) {
 			zc = z0 + (z1 - z0) * L / levels;
 			t = (zc - z0) / (z1 - z0);
 			vals = new Float64Array(gw * (gy + 1));
 			for (j = 0; j <= gy; j++) {
-				var vv = -win.v + win.v * 2 * j / gy;
+				var yv = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
 				for (i = 0; i <= gx; i++) {
-					var uu = -win.u + win.u * 2 * i / gx;
-					vals[j * gw + i] = ev(fn, wx(uu, vv), wy(uu, vv), zc);
+					var xv = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+					vals[j * gw + i] = ev(fn, xv, yv, zc);
 				}
 			}
 			for (j = 0; j < gy; j++) {
-				var v0 = -win.v + win.v * 2 * j / gy;
-				var v1 = -win.v + win.v * 2 * (j + 1) / gy;
+				var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+				var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gy;
 				for (i = 0; i < gx; i++) {
-					var u0 = -win.u + win.u * 2 * i / gx;
-					var u1 = -win.u + win.u * 2 * (i + 1) / gx;
+					var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+					var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gx;
 					v00 = vals[j * gw + i];
 					v10 = vals[j * gw + i + 1];
 					v11 = vals[(j + 1) * gw + i + 1];
 					v01 = vals[(j + 1) * gw + i];
 					if (!isFinite(v00) || !isFinite(v10) || !isFinite(v11) || !isFinite(v01)) continue;
 					ps = [];
-					if ((v00 > 0) !== (v10 > 0)) ps.push({ u: u0 + (u1 - u0) * (v00 / (v00 - v10)), v: v0 });
-					if ((v10 > 0) !== (v11 > 0)) ps.push({ u: u1, v: v0 + (v1 - v0) * (v10 / (v10 - v11)) });
-					if ((v11 > 0) !== (v01 > 0)) ps.push({ u: u1 + (u0 - u1) * (v11 / (v11 - v01)), v: v1 });
-					if ((v01 > 0) !== (v00 > 0)) ps.push({ u: u0, v: v1 + (v0 - v1) * (v01 / (v01 - v00)) });
-					if (ps.length === 2) add(ps[0].u, ps[0].v, ps[1].u, ps[1].v, zc, t);
+					if ((v00 > 0) !== (v10 > 0)) ps.push({ x: x0 + (x1 - x0) * (v00 / (v00 - v10)), y: y0 });
+					if ((v10 > 0) !== (v11 > 0)) ps.push({ x: x1, y: y0 + (y1 - y0) * (v10 / (v10 - v11)) });
+					if ((v11 > 0) !== (v01 > 0)) ps.push({ x: x1 + (x0 - x1) * (v11 / (v11 - v01)), y: y1 });
+					if ((v01 > 0) !== (v00 > 0)) ps.push({ x: x0, y: y1 + (y0 - y1) * (v01 / (v01 - v00)) });
+					if (ps.length === 2) add(ps[0].x, ps[0].y, ps[1].x, ps[1].y, zc, t);
 					else if (ps.length === 4) {
-						vc = ev(fn, wx((u0 + u1) / 2, (v0 + v1) / 2), wy((u0 + u1) / 2, (v0 + v1) / 2), zc);
+						vc = ev(fn, (x0 + x1) / 2, (y0 + y1) / 2, zc);
 						if (!isFinite(vc)) continue;
 						if ((vc > 0) === (v00 > 0)) {
-							add(ps[0].u, ps[0].v, ps[1].u, ps[1].v, zc, t);
-							add(ps[2].u, ps[2].v, ps[3].u, ps[3].v, zc, t);
+							add(ps[0].x, ps[0].y, ps[1].x, ps[1].y, zc, t);
+							add(ps[2].x, ps[2].y, ps[3].x, ps[3].y, zc, t);
 						}
 						else {
-							add(ps[0].u, ps[0].v, ps[3].u, ps[3].v, zc, t);
-							add(ps[1].u, ps[1].v, ps[2].u, ps[2].v, zc, t);
+							add(ps[0].x, ps[0].y, ps[3].x, ps[3].y, zc, t);
+							add(ps[1].x, ps[1].y, ps[2].x, ps[2].y, zc, t);
 						}
 					}
 				}
 			}
 		}
-		segs.sort(function(a, b){ return b.d - a.d; });
+		segs.sort(function(u, v){ return v.d - u.d; });
 		ctx.lineWidth = 1.5;
 		ctx.lineJoin = "round";
 		ctx.lineCap = "round";
@@ -1739,7 +1718,6 @@
 	function isletter(c){ return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"); }
 	function isdigit(c){ return c >= "0" && c <= "9"; }
 })();
-
 
 
 
