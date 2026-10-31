@@ -131,6 +131,7 @@ public partial class SoapDebugWindow : Window {
 		eSoapVersion.SelectionChanged += (_, _) => refreshPreview();
 		cTrust.Checked += (_, _) => Net.TrustAllCerts = true;
 		cTrust.Unchecked += (_, _) => Net.TrustAllCerts = false;
+		Net.TrustAllCerts = cTrust.IsChecked == true;
 		InputBindings.Add(new KeyBinding(new SoapRelayCommand(invoke), Key.F5, ModifierKeys.None));
 	}
 
