@@ -9,6 +9,7 @@
 		fp8e4m3: 1, fp8e5m2: 1, fp16: 2, bf16: 2, fp32: 4, fp64: 8 };
 	var MAXBYTES = 65536;
 	var MAXROWS = 400;
+	var DEFHEX = "01 00 00 00";
 
 	SK.regutil("u-bytes", {
 		title: "字节解读",
@@ -21,7 +22,7 @@
 				F.CreateDOM(t, { x: "p.hint", "data-k": "web.bytes.hint", c: "输入或粘贴十六进制字节，空格、逗号、0x 都行；下面按整数、浮点和文本实时解读，可直接选中文字。" }),
 				F.CreateDOM(t, { x: "label", c: [
 					{ x: "span", "data-k": "web.bytes.hex", c: "十六进制字节" },
-					{ x: "textarea#by-hex.by-hex", name: "byHex", rows: "3", spellcheck: "false", placeholder: "DE AD BE EF" }
+					{ x: "textarea#by-hex.by-hex", name: "byHex", rows: "3", spellcheck: "false", value: DEFHEX, placeholder: "DE AD BE EF" }
 				] }),
 				F.CreateDOM(t, { x: "div.byopts", c: [
 					{ x: "label", c: [
@@ -62,7 +63,9 @@
 		},
 		open: function(t){
 			page = t;
-			page.doms.byHex.oninput = refresh;
+			page.doms.byHex.onkeydown = hexkeydown;
+			page.doms.byHex.onpaste = hexpaste;
+			page.doms.byHex.oninput = hexinput;
 			page.doms.byEndian.onchange = refresh;
 			page.doms.byStart.oninput = refresh;
 			page.doms.byType.onchange = refresh;
@@ -116,6 +119,191 @@
 		if (list.cut) note += " · " + tx("web.bytes.trunc", "只显示前 {0} 项").replace("{0}", String(MAXROWS));
 		if (cut) note += " · " + tx("web.bytes.cut", "字节过多，只解读前 {0} 字节").replace("{0}", String(MAXBYTES));
 		setmsg(note, false);
+	}
+
+	// ---- 十六进制输入框 ----
+	// 值始终按字节显示成 "XX XX XX"，输入覆盖光标处的半字节，删除一次去掉一个字节。
+	// 光标落在空格或末尾时，输入从下一个字节的高半字节开始；在末尾则新增字节。
+
+	function hexdigits(s){
+		return String(s == null ? "" : s).replace(/[^0-9a-fA-F]/g, "").toUpperCase();
+	}
+
+	function hexformat(d){
+		var out = [];
+		var i;
+		for (i = 0; i < d.length; i += 2) out.push(d.substr(i, 2));
+		return out.join(" ");
+	}
+
+	// 字符位置 -> 第几个半字节。空格算后一个字节的开头，末尾算总位数。
+	function hexdigitpos(pos){
+		var k = Math.floor(pos / 3);
+		var off = pos % 3;
+		return k * 2 + (off === 2 ? 2 : off);
+	}
+
+	// 第几个半字节 -> 字符位置。
+	function hexcharpos(d){
+		var k = Math.floor(d / 2);
+		return k * 3 + (d % 2);
+	}
+
+	// 选中的字符对应哪些完整字节。
+	function hexsel(el){
+		var a = el.selectionStart;
+		var b = el.selectionEnd;
+		if (a === b) return null;
+		var s = Math.floor(hexdigitpos(a) / 2);
+		var e = Math.ceil(hexdigitpos(b) / 2);
+		if (e <= s) return null;
+		return { s: s, e: e };
+	}
+
+	function hexapply(el, digits, d){
+		var text = hexformat(digits);
+		el.value = text;
+		var pos = Math.min(hexcharpos(d), text.length);
+		el.selectionStart = pos;
+		el.selectionEnd = pos;
+	}
+
+	function hextype(el, ch){
+		var digits = hexdigits(el.value);
+		var sel = hexsel(el);
+		var c;
+		if (sel) {
+			digits = digits.slice(0, sel.s * 2) + digits.slice(sel.e * 2);
+			c = sel.s * 2;
+		}
+		else c = Math.min(hexdigitpos(el.selectionStart), digits.length);
+		if (c >= digits.length) {
+			if (digits.length >= MAXBYTES * 2) return;
+			digits += ch + "0";
+			c = digits.length - 1;
+		}
+		else {
+			digits = digits.slice(0, c) + ch + digits.slice(c + 1);
+			c++;
+		}
+		hexapply(el, digits, c);
+		refresh();
+	}
+
+	// dir < 0 退格删光标前的字节，dir > 0 删除光标处的字节。
+	function hexdel(el, dir){
+		var digits = hexdigits(el.value);
+		var sel = hexsel(el);
+		var c;
+		var k;
+		if (sel) {
+			digits = digits.slice(0, sel.s * 2) + digits.slice(sel.e * 2);
+			c = sel.s * 2;
+		}
+		else {
+			c = Math.min(hexdigitpos(el.selectionStart), digits.length);
+			if (dir < 0) {
+				if (c <= 0) return;
+				k = (c % 2) ? Math.floor(c / 2) : c / 2 - 1;
+			}
+			else {
+				if (c >= digits.length) return;
+				k = Math.floor(c / 2);
+			}
+			if (k < 0 || k * 2 >= digits.length) return;
+			digits = digits.slice(0, k * 2) + digits.slice(k * 2 + 2);
+			c = k * 2;
+		}
+		hexapply(el, digits, c);
+		refresh();
+	}
+
+	function hexinsert(el, bytes){
+		if (!bytes || !bytes.length) return;
+		var digits = hexdigits(el.value);
+		var sel = hexsel(el);
+		var room;
+		var at;
+		var add = [];
+		var i;
+		if (sel) {
+			digits = digits.slice(0, sel.s * 2) + digits.slice(sel.e * 2);
+			at = sel.s;
+		}
+		else at = Math.floor(Math.min(hexdigitpos(el.selectionStart), digits.length) / 2);
+		room = MAXBYTES - digits.length / 2;
+		if (room <= 0) return;
+		for (i = 0; i < bytes.length && add.length < room; i++) {
+			add.push((bytes[i] < 16 ? "0" : "") + bytes[i].toString(16).toUpperCase());
+		}
+		digits = digits.slice(0, at * 2) + add.join("") + digits.slice(at * 2);
+		hexapply(el, digits, (at + add.length) * 2);
+		refresh();
+	}
+
+	function hexkeydown(ev){
+		var el = page.doms.byHex;
+		if (ev.isComposing || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+		var key = ev.key;
+		if (key === "Backspace") {
+			ev.preventDefault();
+			hexdel(el, -1);
+			return;
+		}
+		if (key === "Delete") {
+			ev.preventDefault();
+			hexdel(el, 1);
+			return;
+		}
+		if (key === "Enter" || key === " ") {
+			ev.preventDefault();
+			return;
+		}
+		if (key.length !== 1) return;
+		if (!/^[0-9a-fA-F]$/.test(key)) {
+			ev.preventDefault();
+			return;
+		}
+		ev.preventDefault();
+		hextype(el, key.toUpperCase());
+	}
+
+	function hexpaste(ev){
+		var data = ev.clipboardData || window.clipboardData;
+		var text = data ? data.getData("text") : "";
+		var bytes;
+		ev.preventDefault();
+		if (!text) return;
+		try { bytes = parsehex(text); }
+		catch (e) {
+			setmsg(e.message, true);
+			return;
+		}
+		hexinsert(page.doms.byHex, bytes);
+	}
+
+	// 拖放、输入法、撤销等绕过按键的改动，统一收回成 "XX XX" 的形式。
+	function hexinput(){
+		var el = page.doms.byHex;
+		var raw = el.value;
+		var pos = el.selectionStart;
+		var digits = hexdigits(raw);
+		var text;
+		var c = 0;
+		var i;
+		if (digits.length > MAXBYTES * 2) digits = digits.slice(0, MAXBYTES * 2);
+		if (digits.length % 2) digits = digits.slice(0, -1);
+		text = hexformat(digits);
+		if (text !== raw) {
+			for (i = 0; i < pos && i < raw.length; i++) {
+				if (/[0-9a-fA-F]/.test(raw.charAt(i))) c++;
+			}
+			if (c > digits.length) c = digits.length;
+			el.value = text;
+			el.selectionStart = Math.min(hexcharpos(c), text.length);
+			el.selectionEnd = el.selectionStart;
+		}
+		refresh();
 	}
 
 	function singlerow(name, bytes, at, little){

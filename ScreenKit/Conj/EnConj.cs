@@ -429,10 +429,10 @@ static class EnConj {
 		["ar_more"] = new[] { "前面加 more / most", "more / most" },
 		["ar_irr"] = new[] { "不规则比较级", "irregular" },
 		["g_a_cmp"] = new[] { "比较句型", "Comparison" },
-		["a_as"] = new[] { "原级比较（as ... as）", "as ... as" },
-		["a_notas"] = new[] { "否定比较（not as / so ... as）", "not as / so ... as" },
+		["a_as"] = new[] { "原级比较（as + 形容词 + as）", "as + adjective + as" },
+		["a_notas"] = new[] { "否定比较（not as / so + 形容词 + as）", "not as / so + adjective + as" },
 		["a_than"] = new[] { "比较级 + than", "comparative + than" },
-		["a_most"] = new[] { "最高级（the ... in / of）", "the ... in / of" },
+		["a_most"] = new[] { "最高级（the + 最高级 + in / of）", "the + superlative + in / of" },
 		["a_less"] = new[] { "降级比较（less / least）", "less / least" },
 		["a_deg"] = new[] { "程度修饰（much / far / even）", "much / far / even" },
 		["a_and"] = new[] { "越来越（比较级 + and + 比较级）", "comparative and comparative" },
@@ -1130,15 +1130,15 @@ static class EnConj {
 		R(g, L("x_used"), "I used to " + b + " · I am used to " + ingF + " · I would " + b);
 		R(g, L("x_going"), "I am going to " + b + " · I am about to " + b + " · I am to " + b + " · I am supposed to " + b);
 		R(g, L("x_ought"), "I ought to " + b + " · I had better " + b + " · I would rather " + b);
-		R(g, L("x_tagx"), "Let's " + b + ", shall we? · " + b + ", will you? · " + (isBe ? "I am ..., aren't I?" : "I do ..., don't I?"));
+		R(g, L("x_tagx"), "Let's " + b + ", shall we? · " + b + ", will you? · " + (isBe ? "I am ready, aren't I?" : "I do it, don't I?"));
 		R(g, L("x_contract"), "I'm " + ingF + " · he's " + ppF + " · I won't " + b + " · I hadn't " + ppF);
 		// 句型
 		g = L("g_sent");
 		R(g, L("x_rep"), "He said (that) he " + pastF + " · He told me (that) he had " + ppF);
 		R(g, L("x_rel"), "the man who " + s3F + " · the thing that he " + pastF);
 		R(g, L("x_embed"), "I don't know whether he " + s3F + " · Do you know if he " + s3F + "?");
-		R(g, L("x_cond"), "Unless he " + s3F + ", ... · Provided he " + s3F + ", ... · Should he " + b + ", ...");
-		R(g, L("x_adv"), "When he " + s3F + ", ... · While " + ingF + ", ... · Although he " + s3F + ", ...");
+		R(g, L("x_cond"), "Unless he " + s3F + ", we will wait. · Provided he " + s3F + ", we will go. · Should he " + b + ", we will help.");
+		R(g, L("x_adv"), "When he " + s3F + ", he is careful. · While " + ingF + ", he is careful. · Although he " + s3F + ", he is tired.");
 		if (!isBe) {
 			R(g, L("x_inv"), "Never did I " + b + " · Only then did I " + b + " · So did I · Neither did I");
 			R(g, L("x_there"), "There is nothing to " + b + " · There was nothing to " + b);
@@ -1270,7 +1270,7 @@ static class EnConj {
 		R(g, L("a_as"), "as " + baseword + " as");
 		R(g, L("a_notas"), "not as / so " + baseword + " as");
 		R(g, L("a_than"), c1 + " than");
-		R(g, L("a_most"), "the " + s1 + " (in / of ...)");
+		R(g, L("a_most"), "the " + s1 + " (in the class / of all)");
 		R(g, L("a_less"), "less " + baseword + " than · the least " + baseword);
 		R(g, L("a_deg"), "much / far / even " + c1);
 		R(g, L("a_and"), c1.StartsWith("more ") ? "more and more " + baseword : c1 + " and " + c1);
@@ -1308,7 +1308,7 @@ static class EnConj {
 		R(g, L("a_order"), L("a_order_t"));
 		R(g, L("a_eding"), L("a_eding_t"));
 		R(g, L("a_the"), zh ? "the rich / the poor / the young（一类人）" : "the rich / the poor / the young (a group of people)");
-		R(g, L("a_mult"), "three times as " + baseword + " as · the more ..., the " + c1);
+		R(g, L("a_mult"), "three times as " + baseword + " as · the more we try, the " + c1 + " it gets");
 		var note = irr != null ? L("irr_a") : L("reg_a");
 		if (irr != null) note += " · " + c + " · " + s + (zh ? " · " + irr[2] : "");
 		if (from.Length > 0) note = fmt(L("from"), from) + " · " + note;
