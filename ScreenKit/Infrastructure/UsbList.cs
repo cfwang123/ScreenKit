@@ -8,6 +8,10 @@ namespace ScreenKit;
 /// <summary>一个已连接的 USB 设备，以及右侧要显示的参数。</summary>
 public sealed class UsbDev {
 	public string Name { get; set; }
+	public string DescName { get; set; }
+	public string Friendly { get; set; }
+	public string DriverKey { get; set; }
+	public string Service { get; set; }
 	public string VidPid { get; set; }
 	public string Com { get; set; }
 	public string ClassName { get; set; }
@@ -270,6 +274,10 @@ static class UsbList {
 		addparams(props, id);
 		var dev = new UsbDev {
 			Name = name,
+			DescName = desc,
+			Friendly = friendly,
+			DriverKey = str(h, data, pk(GDev, 11)).Trim(),
+			Service = str(h, data, pk(GDev, 6)).Trim(),
 			VidPid = vidpid,
 			ClassName = cls,
 			Status = status,
@@ -402,7 +410,7 @@ static class UsbList {
 		return -1;
 	}
 
-	static string usbclsname(int code) {
+	internal static string usbclsname(int code) {
 		string zh, en;
 		switch (code) {
 		case 0x00: zh = "设备"; en = "Device"; break;
