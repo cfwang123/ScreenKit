@@ -1390,3 +1390,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 /* 二维码生成的编码单选 */
 .qrencs { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .qrencs label.check { margin: 0; }
+
+/* 二维码识别：识别按钮与文件框底部对齐 */
+.qrsrow { align-items: flex-end; }
+.qrsrow .msg { align-self: center; }
