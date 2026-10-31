@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -58,18 +58,12 @@ sealed partial class HttpOcrServer {
 			if (ms < 0) ms = 0;
 			// 10 ms 以内保留一位小数，避免快查询显示成 0；再长取整。
 			ms = ms >= 10 ? Math.Round(ms) : Math.Round(ms, 1);
-			var arr = new JsonArray();
+			var arr = JSONF.newArray();
 			foreach (var h in hits) {
 				if (h.Id == 0) continue;
 				arr.Add(DictWeb.HitNode(h));
 			}
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["ms"] = ms,
-					["hits"] = arr,
-				},
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("ms", ms), ("hits", arr)))));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
@@ -97,10 +91,7 @@ sealed partial class HttpOcrServer {
 				writejson(ctx, 200, err(802, "没有这条词"));
 				return;
 			}
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = DictWeb.EntryNode(e, query(ctx.Request, "only") == "1", DictWeb.NormLang(query(ctx.Request, "ui"))),
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", DictWeb.EntryNode(e, query(ctx.Request, "only") == "1", DictWeb.NormLang(query(ctx.Request, "ui"))))));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
@@ -116,7 +107,7 @@ sealed partial class HttpOcrServer {
 		var text = query(ctx.Request, "text") ?? "";
 		var lang = DictWeb.NormLang(query(ctx.Request, "lang"));
 		if (string.IsNullOrWhiteSpace(text)) {
-			writejson(ctx, 200, new JsonObject { ["code"] = 802, ["error"] = "noword", ["data"] = "noword" });
+			writejson(ctx, 200, JSONF.newObject(("code", 802), ("error", "noword"), ("data", "noword")));
 			return;
 		}
 		// Chrome 发音是这台机器在说话，局域网请求不接；其它引擎照常返回 WAV。
@@ -140,7 +131,7 @@ sealed partial class HttpOcrServer {
 		catch (Exception ex) {
 			var key = ex.Message == "novoice" ? "novoice" : "";
 			if (key.Length > 0)
-				writejson(ctx, 200, new JsonObject { ["code"] = 802, ["error"] = key, ["data"] = key });
+				writejson(ctx, 200, JSONF.newObject(("code", 802), ("error", key), ("data", key)));
 			else
 				writejson(ctx, 200, err(802, ex.Message));
 		}
@@ -190,9 +181,9 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	static JsonObject dicterr() {
+	static JSONF dicterr() {
 		var key = DictDb.Error == "missing" ? "missing" : "fail";
 		var msg = key == "missing" ? Loc.T("dict.missing") : DictDb.Error;
-		return new JsonObject { ["code"] = 802, ["error"] = key, ["data"] = msg ?? "" };
+		return JSONF.newObject(("code", 802), ("error", key), ("data", msg ?? ""));
 	}
 }

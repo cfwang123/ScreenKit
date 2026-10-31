@@ -1,5 +1,5 @@
 using System.Text;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -34,16 +34,7 @@ sealed partial class HttpOcrServer {
 			var list = ChromePack.Catalog(probe, HttpProxy.Mode, HttpProxy.Addr,
 				line => { if (!string.IsNullOrWhiteSpace(line)) log.AppendLine(line); },
 				CancellationToken.None);
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["probe"] = probe,
-					["log"] = log.ToString().Trim(),
-					["profile"] = ChromeTts.ProfileDir(),
-					["profileKind"] = "app",
-					["items"] = packjson(list, probe),
-				},
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("probe", probe), ("log", log.ToString().Trim()), ("profile", ChromeTts.ProfileDir()), ("profileKind", "app"), ("items", packjson(list, probe))))));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(924, ex.Message));
@@ -53,13 +44,12 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	static List<ChromePackItem> packitems(JsonObject jo) {
+	static List<ChromePackItem> packitems(JSONF jo) {
 		var items = new List<ChromePackItem>();
-		if (jo?["ids"] is not JsonArray arr) return items;
+		var arr = jo.get("ids");
+		if (!arr.IsArray) return items;
 		foreach (var n in arr) {
-			string id;
-			try { id = n?.GetValue<string>() ?? ""; }
-			catch { continue; }
+			var id = n.Value ?? "";
 			id = id.Trim();
 			if (id.StartsWith("tr:", StringComparison.OrdinalIgnoreCase)) {
 				var pair = id.Substring(3).Trim();
@@ -75,25 +65,16 @@ sealed partial class HttpOcrServer {
 		return items;
 	}
 
-	static JsonArray packjson(List<ChromePackItem> list, bool probe) {
-		var arr = new JsonArray();
+	static JSONF packjson(List<ChromePackItem> list, bool probe) {
+		var arr = JSONF.newArray();
 		if (list == null) return arr;
 		foreach (var it in list) {
 			if (it == null) continue;
-			var langs = new JsonArray();
+			var langs = JSONF.newArray();
 			if (it.Langs != null)
 				foreach (var c in it.Langs)
 					if (!string.IsNullOrEmpty(c)) langs.Add(c);
-			arr.Add(new JsonObject {
-				["id"] = it.Id ?? "",
-				["kind"] = it.Kind ?? "",
-				["title"] = it.Title ?? "",
-				["detail"] = it.Detail ?? "",
-				["size"] = it.Size,
-				["sizeText"] = it.SizeText ?? "",
-				["state"] = packstate(it, probe),
-				["langs"] = langs,
-			});
+			arr.Add(JSONF.newObject(("id", it.Id ?? ""), ("kind", it.Kind ?? ""), ("title", it.Title ?? ""), ("detail", it.Detail ?? ""), ("size", it.Size), ("sizeText", it.SizeText ?? ""), ("state", packstate(it, probe)), ("langs", langs)));
 		}
 		return arr;
 	}
@@ -128,7 +109,7 @@ sealed partial class HttpOcrServer {
 		}
 		var op = (field(ctx, jo, "op") ?? "start").Trim().ToLowerInvariant();
 		if (op is "cancel" or "stop") {
-			cancelvoice(asint(jo?["id"], 0));
+			cancelvoice(asint(jo.get("id"), 0));
 			writejson(ctx, 200, okvoice());
 			return;
 		}
@@ -234,21 +215,9 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	static JsonObject okvoice() {
+	static JSONF okvoice() {
 		lock (voiceGate) {
-			return new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["id"] = voiceJobId,
-					["state"] = voiceState,
-					["lang"] = voiceLang,
-					["note"] = voiceNote ?? "",
-					["frac"] = voiceFrac,
-					["done"] = voiceDone,
-					["total"] = voiceTotal,
-					["error"] = voiceError ?? "",
-				},
-			};
+			return JSONF.newObject(("code", 100), ("data", JSONF.newObject(("id", voiceJobId), ("state", voiceState), ("lang", voiceLang), ("note", voiceNote ?? ""), ("frac", voiceFrac), ("done", voiceDone), ("total", voiceTotal), ("error", voiceError ?? ""))));
 		}
 	}
 }

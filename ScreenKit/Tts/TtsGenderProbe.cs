@@ -1,7 +1,6 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -175,13 +174,14 @@ static class TtsGenderProbe {
 
 	/// <summary>合并探测结果到 tts_config.json（保留 volume/name/lang 等）。</summary>
 	static void writeconfig(string path, List<TtsModelInfo> models, List<SpeakerProbe> items) {
-		JsonObject root;
+		JSONF root;
 		if (File.Exists(path)) {
 			var text = File.ReadAllText(path, Encoding.UTF8);
-			root = JsonNode.Parse(text) as JsonObject ?? new JsonObject();
+			root = JSONF.Parse(text);
+			if (!root.IsObject) root = JSONF.newObject();
 		}
 		else {
-			root = new JsonObject();
+			root = JSONF.newObject();
 		}
 
 		// 按模型聚合探测结果
@@ -194,19 +194,21 @@ static class TtsGenderProbe {
 			if (!byModel.TryGetValue(m.DisplayName, out var list) || list.Count == 0)
 				continue;
 
-			if (root[m.DisplayName] is not JsonObject entry) {
-				entry = new JsonObject();
+			var entry = root[m.DisplayName];
+			if (!entry.IsObject) {
+				entry = JSONF.newObject();
 				root[m.DisplayName] = entry;
 			}
 
 			// volume / lang 从模型回填（若配置缺）
-			if (entry["volume"] == null && m.Volume > 0)
+			if (entry.get("volume").IsNull && m.Volume > 0)
 				entry["volume"] = m.Volume;
-			if (entry["lang"] == null && !string.IsNullOrEmpty(m.Lang))
+			if (entry.get("lang").IsNull && !string.IsNullOrEmpty(m.Lang))
 				entry["lang"] = m.Lang;
 
-			if (entry["speakers"] is not JsonObject spkObj) {
-				spkObj = new JsonObject();
+			var spkObj = entry.get("speakers");
+			if (!spkObj.IsObject) {
+				spkObj = JSONF.newObject();
 				entry["speakers"] = spkObj;
 			}
 
@@ -217,27 +219,20 @@ static class TtsGenderProbe {
 
 			foreach (var it in list) {
 				var key = configspeakerkey(it);
-				JsonObject spEntry;
-				if (spkObj[key] is JsonObject existing) {
-					spEntry = existing;
-				}
-				else if (spkObj[key] is JsonValue jv && jv.TryGetValue<string>(out var oldName)) {
+				var spEntry = spkObj.get(key);
+				if (!spEntry.IsObject) {
 					// 旧字符串格式 → 对象
-					spEntry = new JsonObject { ["name"] = oldName };
-					spkObj[key] = spEntry;
-				}
-				else {
-					spEntry = new JsonObject();
+					spEntry = JSONF.newObject(("name", spEntry.IsString ? spEntry.Value : ""));
 					spkObj[key] = spEntry;
 				}
 
 				// 中文名：优先已有 name，否则探测前的 ChineseName
-				if (spEntry["name"] == null && !string.IsNullOrEmpty(it.ChineseName))
+				if (spEntry.get("name").IsNull && !string.IsNullOrEmpty(it.ChineseName))
 					spEntry["name"] = it.ChineseName;
 				spEntry["gender"] = it.Gender;
 				// 诊断：基频保留一位小数，便于复查
 				spEntry["f0"] = Math.Round(it.F0, 1);
-				if (spEntry["lang"] == null) {
+				if (spEntry.get("lang").IsNull) {
 					var sp = m.Speakers.FirstOrDefault(s => s.Id == it.Sid || s.Name == it.SpeakerKey);
 					if (sp != null && !string.IsNullOrEmpty(sp.Lang))
 						spEntry["lang"] = sp.Lang;
@@ -250,19 +245,14 @@ static class TtsGenderProbe {
 			}
 
 			// 去掉「默认」等临时键（已合并到 speakerN）
-			var drop = spkObj
-				.Select(kv => kv.Key)
+			var drop = spkObj.Keys
 				.Where(k => k == "默认" || k.StartsWith("DataBaker", StringComparison.OrdinalIgnoreCase))
 				.ToList();
 			foreach (var k in drop)
 				spkObj.Remove(k);
 		}
 
-		var opts = new JsonSerializerOptions(JsonSerializerOptions.Default) {
-			WriteIndented = true,
-			Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-		};
-		var json = root.ToJsonString(opts);
+		var json = root.ToJSONString(0);
 		// 统一换行
 		json = json.Replace("\r\n", "\n");
 		if (!json.EndsWith("\n")) json += "\n";

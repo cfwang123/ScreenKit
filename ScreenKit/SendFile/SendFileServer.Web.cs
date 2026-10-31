@@ -1,7 +1,7 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -81,15 +81,12 @@ public sealed partial class SendFileServer {
 			if (keep && token.Length > 0)
 				ctx.Response.Headers["Set-Cookie"] = SendFileWeb.SetCookie(token, true);
 			var o = getOpts() ?? new OcrOptions();
-			writejson(ctx, 200, ok(new JsonObject {
-				["ok"] = true,
-				["name"] = string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName,
-			}));
+			writejson(ctx, 200, ok(JSONF.newObject(("ok", true), ("name", string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName))));
 			return;
 		}
 		if (path is "/api/web/photo") {
 			if (!isget(method)) { writejson(ctx, 405, err(805, "photo 仅支持 GET")); return; }
-			var photo = new JsonObject();
+			var photo = JSONF.newObject();
 			photojson(getOpts(), photo);
 			writejson(ctx, 200, ok(photo));
 			return;
@@ -148,7 +145,7 @@ public sealed partial class SendFileServer {
 
 	void handlewebtext(SfCtx ctx, string method) {
 		if (isget(method)) {
-			writejson(ctx, 200, ok(new JsonObject { ["text"] = Text.Draft ?? "" }));
+			writejson(ctx, 200, ok(JSONF.newObject(("text", Text.Draft ?? ""))));
 			return;
 		}
 		if (!ispost(method)) {
@@ -159,7 +156,7 @@ public sealed partial class SendFileServer {
 		var text = str(body, "text");
 		if (text.Length > MAXTEXT) text = text.Substring(0, MAXTEXT);
 		Text.SetDraft(text, notify: true);
-		writejson(ctx, 200, ok(new JsonObject { ["text"] = text }));
+		writejson(ctx, 200, ok(JSONF.newObject(("text", text))));
 	}
 
 	void handlewebapkupdate(SfCtx ctx) {
@@ -176,27 +173,10 @@ public sealed partial class SendFileServer {
 			var hasUpdate = !string.IsNullOrEmpty(latest) && !string.IsNullOrEmpty(cur)
 				&& AppUpdater.IsNewerVersion(latest, cur);
 			var size = info?.SizeBytes ?? 0;
-			writejson(ctx, 200, ok(new JsonObject {
-				["ok"] = true,
-				["current"] = cur ?? "",
-				["latest"] = latest,
-				["tag"] = info?.TagName ?? "",
-				["hasUpdate"] = hasUpdate,
-				["hasApk"] = info != null && info.HasApk,
-				["downloadUrl"] = info?.DisplayUrl ?? info?.DownloadUrl ?? "",
-				["htmlUrl"] = info?.HtmlUrl ?? "",
-				["assetName"] = info?.AssetName ?? "",
-				["sizeBytes"] = size,
-				["sizeText"] = size > 0 ? FeatureInstaller.FormatBytes(size) : "",
-				["localApkVersion"] = localApkVer ?? "",
-				["localApkUrl"] = apkPath != null ? ApkHost.HttpPath : "",
-			}));
+			writejson(ctx, 200, ok(JSONF.newObject(("ok", true), ("current", cur ?? ""), ("latest", latest), ("tag", info?.TagName ?? ""), ("hasUpdate", hasUpdate), ("hasApk", info != null && info.HasApk), ("downloadUrl", info?.DisplayUrl ?? info?.DownloadUrl ?? ""), ("htmlUrl", info?.HtmlUrl ?? ""), ("assetName", info?.AssetName ?? ""), ("sizeBytes", size), ("sizeText", size > 0 ? FeatureInstaller.FormatBytes(size) : ""), ("localApkVersion", localApkVer ?? ""), ("localApkUrl", apkPath != null ? ApkHost.HttpPath : ""))));
 		}
 		catch (Exception ex) {
-			writejson(ctx, 200, ok(new JsonObject {
-				["ok"] = false,
-				["error"] = ex.Message ?? "检查失败",
-			}));
+			writejson(ctx, 200, ok(JSONF.newObject(("ok", false), ("error", ex.Message ?? "检查失败"))));
 		}
 	}
 
@@ -213,11 +193,7 @@ public sealed partial class SendFileServer {
 		}
 		var res = ctx.Response;
 		res.Headers["Set-Cookie"] = SendFileWeb.SetCookie(token, keep);
-		writejson(ctx, 200, ok(new JsonObject {
-			["ok"] = true,
-			["token"] = token,
-			["keep"] = keep,
-		}));
+		writejson(ctx, 200, ok(JSONF.newObject(("ok", true), ("token", token), ("keep", keep))));
 	}
 
 	void handlewebzip(SfCtx ctx, bool head) {
@@ -258,10 +234,11 @@ public sealed partial class SendFileServer {
 
 	static List<string> zippaths(SfCtx ctx) {
 		var list = new List<string>();
-		var body = ispost(ctx.Request.HttpMethod) ? readjson(ctx.Request) : null;
-		if (body != null && body["paths"] is JsonArray arr) {
+		var body = ispost(ctx.Request.HttpMethod) ? readjson(ctx.Request) : default;
+		var arr = body.get("paths");
+		if (arr.IsArray) {
 			foreach (var n in arr) {
-				var s = n?.ToString() ?? "";
+				var s = n.ToString();
 				if (s.Length > 0) list.Add(s);
 			}
 		}
@@ -279,7 +256,7 @@ public sealed partial class SendFileServer {
 	void handleweblogout(SfCtx ctx) {
 		Web.Logout(ctx.Request);
 		ctx.Response.Headers["Set-Cookie"] = SendFileWeb.ClearCookie();
-		writejson(ctx, 200, ok(new JsonObject { ["ok"] = true }));
+		writejson(ctx, 200, ok(JSONF.newObject(("ok", true))));
 	}
 
 	void handlewebrename(SfCtx ctx) {
@@ -292,10 +269,7 @@ public sealed partial class SendFileServer {
 			to = ctx.Request.QueryString["to"] ?? "";
 		try {
 			SendFileOps.Rename(from, to);
-			writejson(ctx, 200, ok(new JsonObject {
-				["from"] = from ?? "",
-				["to"] = to ?? "",
-			}));
+			writejson(ctx, 200, ok(JSONF.newObject(("from", from ?? ""), ("to", to ?? ""))));
 		}
 		catch (InvalidOperationException ex) {
 			writejson(ctx, 200, err(410, ex.Message));

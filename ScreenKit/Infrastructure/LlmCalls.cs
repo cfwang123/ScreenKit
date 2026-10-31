@@ -1,7 +1,6 @@
 using System.IO;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -9,10 +8,6 @@ namespace ScreenKit;
 static class LlmCalls {
 	public const int CAP = 1000;
 	const int BODYCAP = 200_000;
-	static readonly JsonSerializerOptions PrettyOpt = new() {
-		WriteIndented = true,
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-	};
 
 	static readonly object gate = new();
 	static readonly List<LlmCall> rows = new();
@@ -64,8 +59,8 @@ static class LlmCalls {
 	internal static string Pretty(string s) {
 		if (string.IsNullOrWhiteSpace(s)) return "";
 		try {
-			using var doc = JsonDocument.Parse(s);
-			return JsonSerializer.Serialize(doc.RootElement, PrettyOpt);
+			var doc = JSONF.Parse(s);
+			return doc.ToJSONString(0);
 		}
 		catch {
 			return s;
@@ -96,7 +91,7 @@ static class LlmCalls {
 		foreach (var line in File.ReadLines(path)) {
 			if (line.Length == 0) continue;
 			try {
-				var row = JsonSerializer.Deserialize<LlmCall>(line);
+				var row = JSONF.Parse(line).ToObject<LlmCall>();
 				if (row == null) continue;
 				rows.Add(row);
 				if (row.Id > seq) seq = row.Id;
@@ -115,7 +110,7 @@ static class LlmCalls {
 
 	static void append(LlmCall row) {
 		ensurepath();
-		File.AppendAllText(path, JsonSerializer.Serialize(row) + "\n", new UTF8Encoding(false));
+		File.AppendAllText(path, JSONF.FromObject(row).ToJSONString(-1) + "\n", new UTF8Encoding(false));
 	}
 
 	static void rewrite() {
@@ -123,7 +118,7 @@ static class LlmCalls {
 		var tmp = path + ".tmp";
 		using (var w = new StreamWriter(tmp, false, new UTF8Encoding(false))) {
 			foreach (var row in rows)
-				w.WriteLine(JsonSerializer.Serialize(row));
+				w.WriteLine(JSONF.FromObject(row).ToJSONString(-1));
 		}
 		if (File.Exists(path)) File.Delete(path);
 		File.Move(tmp, path);
@@ -132,9 +127,9 @@ static class LlmCalls {
 	static string readmodel(string json) {
 		if (string.IsNullOrEmpty(json)) return "";
 		try {
-			using var doc = JsonDocument.Parse(json);
-			if (doc.RootElement.TryGetProperty("model", out var m) && m.ValueKind == JsonValueKind.String)
-				return m.GetString() ?? "";
+			var doc = JSONF.Parse(json);
+			if (doc.tryget("model", out var m) && m.IsString)
+				return m.Value ?? "";
 		}
 		catch { }
 		return "";
@@ -146,8 +141,8 @@ static class LlmCalls {
 		total = -1;
 		if (string.IsNullOrEmpty(json)) return;
 		try {
-			using var doc = JsonDocument.Parse(json);
-			if (!doc.RootElement.TryGetProperty("usage", out var u) || u.ValueKind != JsonValueKind.Object)
+			var doc = JSONF.Parse(json);
+			if (!doc.tryget("usage", out var u) || !u.IsObject)
 				return;
 			prompt = num(u, "prompt_tokens");
 			if (prompt < 0) prompt = num(u, "input_tokens");
@@ -159,9 +154,9 @@ static class LlmCalls {
 		catch { }
 	}
 
-	static int num(JsonElement o, string name) {
-		if (!o.TryGetProperty(name, out var v)) return -1;
-		if (v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n)) return n;
+	static int num(JSONF o, string name) {
+		if (!o.tryget(name, out var v)) return -1;
+		if (v.IsNumber && v.tryint(out var n)) return n;
 		return -1;
 	}
 

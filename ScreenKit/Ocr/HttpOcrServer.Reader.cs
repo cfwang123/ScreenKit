@@ -1,6 +1,6 @@
 using System.IO;
 using System.Text;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -74,13 +74,7 @@ sealed partial class HttpOcrServer {
 					writejson(ctx, 405, err(805, "reader/list 仅支持 GET"));
 					return;
 				}
-				writejson(ctx, 200, new JsonObject {
-					["code"] = 100,
-					["data"] = new JsonObject {
-						["dir"] = "web/up/reader",
-						["items"] = readerlist(),
-					},
-				});
+				writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("dir", "web/up/reader"), ("items", readerlist())))));
 				return;
 			}
 			if (path is "/api/reader/file") {
@@ -122,7 +116,7 @@ sealed partial class HttpOcrServer {
 				}
 				ChromeTts.StopSpeak();
 				TtsRoute.Release();
-				writejson(ctx, 200, new JsonObject { ["code"] = 100, ["data"] = new JsonObject() });
+				writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject())));
 				return;
 			}
 			writejson(ctx, 404, err(404, "未知路径"));
@@ -132,8 +126,8 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	static JsonArray readerlist() {
-		var arr = new JsonArray();
+	static JSONF readerlist() {
+		var arr = JSONF.newArray();
 		var rows = new List<FileInfo>();
 		try {
 			foreach (var f in Directory.GetFiles(readerdir())) {
@@ -145,11 +139,7 @@ sealed partial class HttpOcrServer {
 		catch { }
 		rows.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase));
 		foreach (var f in rows) {
-			arr.Add(new JsonObject {
-				["name"] = f.Name,
-				["bytes"] = f.Length,
-				["mtime"] = new DateTimeOffset(f.LastWriteTimeUtc).ToUnixTimeMilliseconds(),
-			});
+			arr.Add(JSONF.newObject(("name", f.Name), ("bytes", f.Length), ("mtime", new DateTimeOffset(f.LastWriteTimeUtc).ToUnixTimeMilliseconds())));
 		}
 		return arr;
 	}
@@ -185,16 +175,7 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, err(924, "解码失败：" + ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["name"] = name,
-				["ext"] = Path.GetExtension(name).ToLowerInvariant(),
-				["enc"] = used,
-				["bytes"] = bytes.Length,
-				["text"] = text,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("name", name), ("ext", Path.GetExtension(name).ToLowerInvariant()), ("enc", used), ("bytes", bytes.Length), ("text", text)))));
 	}
 
 	static string readerdecode(byte[] bytes, string enc, out string used) {
@@ -280,18 +261,11 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, err(803, ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["name"] = name,
-				["bytes"] = total,
-				["overwrite"] = overwrite,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("name", name), ("bytes", total), ("overwrite", overwrite)))));
 	}
 
 	void readerrename(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
@@ -311,7 +285,7 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		if (string.Equals(from, to, StringComparison.Ordinal)) {
-			writejson(ctx, 200, new JsonObject { ["code"] = 100, ["data"] = new JsonObject { ["name"] = to } });
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("name", to)))));
 			return;
 		}
 		if (File.Exists(dest)) {
@@ -319,11 +293,11 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		lock (readerlock) File.Move(src, dest);
-		writejson(ctx, 200, new JsonObject { ["code"] = 100, ["data"] = new JsonObject { ["name"] = to } });
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("name", to)))));
 	}
 
 	void readerdelete(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
@@ -340,6 +314,6 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		lock (readerlock) File.Delete(full);
-		writejson(ctx, 200, new JsonObject { ["code"] = 100, ["data"] = new JsonObject { ["name"] = name } });
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("name", name)))));
 	}
 }

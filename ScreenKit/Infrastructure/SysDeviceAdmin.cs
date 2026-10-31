@@ -4,7 +4,7 @@ using System.Management;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -96,7 +96,7 @@ static class SysDeviceAdmin {
 				result.Error = Loc.T("dev.admin.noresult", process.ExitCode);
 				return result;
 			}
-			var parsed = JsonSerializer.Deserialize<SysDeviceScanResult>(File.ReadAllText(output));
+			var parsed = JSONF.Parse(File.ReadAllText(output)).ToObject<SysDeviceScanResult>();
 			if (parsed == null) result.Error = Loc.T("dev.admin.badresult");
 			else {
 				result.Rows = parsed.Rows ?? new List<UsbDev>();
@@ -124,7 +124,7 @@ static class SysDeviceAdmin {
 		try {
 			var dir = Path.GetDirectoryName(output);
 			if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-			File.WriteAllText(output, JsonSerializer.Serialize(result), new UTF8Encoding(false));
+			File.WriteAllText(output, JSONF.FromObject(result).ToJSONString(-1), new UTF8Encoding(false));
 		}
 		catch { return 2; }
 		return code;

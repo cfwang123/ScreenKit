@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Threading;
 using NAudio.Wave;
 
@@ -107,22 +107,22 @@ static class SapiX86Client {
 	public static IReadOnlyList<SapiVoiceItem> ListVoices() {
 		var url = EnsureServer() + "/api/sapi/voices";
 		var json = Http.GetStringAsync(url).GetAwaiter().GetResult();
-		using var doc = JsonDocument.Parse(json);
-		var root = doc.RootElement;
-		if (root.TryGetProperty("ok", out var okEl) && okEl.ValueKind == JsonValueKind.False)
-			throw new InvalidOperationException(root.TryGetProperty("error", out var e) ? e.GetString() : "list failed");
+		var doc = JSONF.Parse(json);
+		var root = doc;
+		if (root.tryget("ok", out var okEl) && okEl.IsFalse)
+			throw new InvalidOperationException(root.tryget("error", out var e) ? e.Value : "list failed");
 
 		var list = new List<SapiVoiceItem>();
-		if (!root.TryGetProperty("voices", out var arr) || arr.ValueKind != JsonValueKind.Array)
+		if (!root.tryget("voices", out var arr) || !arr.IsArray)
 			return list;
-		foreach (var v in arr.EnumerateArray()) {
-			var name = v.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+		foreach (var v in arr) {
+			var name = v.tryget("name", out var n) ? n.Value ?? "" : "";
 			if (string.IsNullOrWhiteSpace(name)) continue;
-			var culture = v.TryGetProperty("culture", out var c) ? c.GetString() ?? "" : "";
-			var lang = v.TryGetProperty("lang", out var lg) ? lg.GetString() ?? "" : "";
+			var culture = v.tryget("culture", out var c) ? c.Value ?? "" : "";
+			var lang = v.tryget("lang", out var lg) ? lg.Value ?? "" : "";
 			if (string.IsNullOrEmpty(lang))
 				lang = SapiVoiceItem.LangOf(culture);
-			var gender = v.TryGetProperty("gender", out var g) ? g.GetString() ?? "" : "";
+			var gender = v.tryget("gender", out var g) ? g.Value ?? "" : "";
 			var gLabel = TtsGender.Label(gender);
 			var tail = string.IsNullOrEmpty(culture) ? "" : " · " + culture;
 			if (!string.IsNullOrEmpty(gLabel)) tail += " · " + gLabel;
@@ -144,12 +144,12 @@ static class SapiX86Client {
 		if (string.IsNullOrWhiteSpace(text))
 			throw new ArgumentException("文本为空");
 		var url = EnsureServer() + "/api/sapi/synth";
-		var payload = JsonSerializer.Serialize(new {
+		var payload = JSONF.FromObject(new {
 			text,
 			voice = voiceName ?? "",
 			rate,
 			volume,
-		});
+		}).ToJSONString(-1);
 		using var content = new StringContent(payload, Encoding.UTF8, "application/json");
 		using var resp = Http.PostAsync(url, content).GetAwaiter().GetResult();
 		var bytes = resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult();
@@ -201,8 +201,8 @@ static class SapiX86Client {
 		try {
 			if (File.Exists(StatePath)) {
 				var json = File.ReadAllText(StatePath, Encoding.UTF8);
-				using var doc = JsonDocument.Parse(json);
-				if (doc.RootElement.TryGetProperty("port", out var p) && p.TryGetInt32(out var sp) && sp > 0) {
+				var doc = JSONF.Parse(json);
+				if (doc.tryget("port", out var p) && p.tryint(out var sp) && sp > 0) {
 					if (ping(sp)) {
 						port = sp;
 						return true;

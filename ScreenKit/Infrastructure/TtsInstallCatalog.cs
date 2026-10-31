@@ -1,6 +1,6 @@
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -401,20 +401,20 @@ static class TtsInstallCatalog {
 
 	static List<TtsInstallItem> parseassets(string json) {
 		var list = new List<TtsInstallItem>();
-		using var doc = JsonDocument.Parse(json);
-		if (!doc.RootElement.TryGetProperty("assets", out var assets))
+		var doc = JSONF.Parse(json);
+		if (!doc.tryget("assets", out var assets))
 			return list;
-		foreach (var a in assets.EnumerateArray()) {
-			var name = a.TryGetProperty("name", out var n) ? n.GetString() : null;
+		foreach (var a in assets) {
+			var name = a.tryget("name", out var n) ? n.Value : null;
 			if (string.IsNullOrEmpty(name)) continue;
 			// 只收 tar.bz2 模型包；跳过 espeak 依赖（安装 piper 时自动拉）
 			if (!name.EndsWith(".tar.bz2", StringComparison.OrdinalIgnoreCase)) continue;
 			if (name.Equals("espeak-ng-data.tar.bz2", StringComparison.OrdinalIgnoreCase)) continue;
 
 			long size = 0;
-			if (a.TryGetProperty("size", out var sz) && sz.ValueKind == JsonValueKind.Number)
-				size = sz.GetInt64();
-			var url = a.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
+			if (a.tryget("size", out var sz) && sz.IsNumber)
+				size = sz.AsLong;
+			var url = a.tryget("browser_download_url", out var u) ? u.Value : null;
 			if (string.IsNullOrEmpty(url))
 				url = $"{ReleaseDl}/{name}";
 
@@ -565,7 +565,7 @@ static class TtsInstallCatalog {
 			var arr = list.Select(x => new {
 				x.Id, x.Title, x.ArchiveName, x.DownloadUrl, x.Lang, x.Engine, x.SizeBytes, x.AppSupported,
 			}).ToList();
-			var json = JsonSerializer.Serialize(arr, new JsonSerializerOptions { WriteIndented = false });
+			var json = JSONF.FromObject(arr).ToJSONString(-1);
 			File.WriteAllText(cachepath(), json, Encoding.UTF8);
 		}
 		catch { }
@@ -579,20 +579,20 @@ static class TtsInstallCatalog {
 			if (age.TotalHours > CacheHours * 7) // 过期一周仍可读
 				{ /* still use */ }
 			var json = File.ReadAllText(path, Encoding.UTF8);
-			using var doc = JsonDocument.Parse(json);
+			var doc = JSONF.Parse(json);
 			var list = new List<TtsInstallItem>();
-			foreach (var el in doc.RootElement.EnumerateArray()) {
-				var id = el.GetProperty("Id").GetString();
-				var arch = el.GetProperty("ArchiveName").GetString();
-				var size = el.TryGetProperty("SizeBytes", out var s) ? s.GetInt64() : 0;
+			foreach (var el in doc) {
+				var id = el.get("Id").Value;
+				var arch = el.get("ArchiveName").Value;
+				var size = el.tryget("SizeBytes", out var s) ? s.AsLong : 0;
 				var lang = inferlang(id);
 				var eng = inferengine(id);
 				list.Add(new TtsInstallItem {
 					Id = id,
-					Title = el.TryGetProperty("Title", out var t) ? t.GetString() : id,
+					Title = el.tryget("Title", out var t) ? t.Value : id,
 					ArchiveName = arch,
-					DownloadUrl = el.TryGetProperty("DownloadUrl", out var u)
-						? u.GetString()
+					DownloadUrl = el.tryget("DownloadUrl", out var u)
+						? u.Value
 						: $"{ReleaseDl}/{arch}",
 					Lang = lang,
 					LangLabel = langdisplay(lang),

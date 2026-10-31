@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -25,29 +25,21 @@ static class HttpApiCatalog {
 		return Loc.Normalize(raw);
 	}
 
-	public static JsonArray Langs() {
-		var a = new JsonArray();
+	public static JSONF Langs() {
+		var a = JSONF.newArray();
 		foreach (var one in Loc.Languages)
-			a.Add(new JsonObject { ["code"] = one.Code, ["name"] = one.Name });
+			a.Add(JSONF.newObject(("code", one.Code), ("name", one.Name)));
 		return a;
 	}
 
-	public static JsonArray Apis(OcrOptions o, string lang) {
-		var a = new JsonArray();
+	public static JSONF Apis(OcrOptions o, string lang) {
+		var a = JSONF.newArray();
 		foreach (var it in Items) {
 			if (!open(it.Gate, o)) continue;
 			var doc = Loc.TFor(lang, it.Doc);
 			splitdoc(doc, out var summary, out var note, out var parms);
 			var method = string.IsNullOrEmpty(it.Accept) ? it.Method : it.Accept;
-			var one = new JsonObject {
-				["method"] = method ?? "",
-				["path"] = pathof(it.Path),
-				["example"] = it.Path ?? "",
-				["title"] = it.Title ?? "",
-				["summary"] = summary,
-				["doc"] = doc ?? "",
-				["params"] = parms,
-			};
+			var one = JSONF.newObject(("method", method ?? ""), ("path", pathof(it.Path)), ("example", it.Path ?? ""), ("title", it.Title ?? ""), ("summary", summary), ("doc", doc ?? ""), ("params", parms));
 			if (!string.IsNullOrEmpty(note)) one["note"] = note;
 			if (!string.IsNullOrEmpty(it.Body)) one["body"] = it.Body;
 			var aliases = aliasof(it.Aliases);
@@ -162,20 +154,20 @@ static class HttpApiCatalog {
 		return i < 0 ? path : path.Substring(0, i);
 	}
 
-	static JsonArray aliasof(string raw) {
-		if (string.IsNullOrWhiteSpace(raw)) return null;
-		var a = new JsonArray();
+	static JSONF aliasof(string raw) {
+		if (string.IsNullOrWhiteSpace(raw)) return default;
+		var a = JSONF.newArray();
 		foreach (var part in raw.Split(',')) {
 			var s = part.Trim();
 			if (s.Length > 0) a.Add(s);
 		}
-		return a.Count == 0 ? null : a;
+		return a.Count == 0 ? default : a;
 	}
 
-	static void splitdoc(string doc, out string summary, out string note, out JsonArray parms) {
+	static void splitdoc(string doc, out string summary, out string note, out JSONF parms) {
 		summary = "";
 		note = "";
-		parms = new JsonArray();
+		parms = JSONF.newArray();
 		if (string.IsNullOrEmpty(doc)) return;
 		var head = new List<string>();
 		var tail = new List<string>();
@@ -185,7 +177,7 @@ static class HttpApiCatalog {
 			if (line.Length == 0) continue;
 			if (splitparam(line, out var name, out var desc)) {
 				seen = true;
-				parms.Add(new JsonObject { ["name"] = name, ["desc"] = desc });
+				parms.Add(JSONF.newObject(("name", name), ("desc", desc)));
 			}
 			else if (!seen) head.Add(line);
 			else tail.Add(line);

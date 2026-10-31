@@ -1,5 +1,5 @@
 using System.Text;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -39,91 +39,53 @@ static class DictWeb {
 		return DictDb.Search(q ?? "", NormDict(dict), limit);
 	}
 
-	public static JsonObject HitNode(DictHit h) {
+	public static JSONF HitNode(DictHit h) {
 		var word = h.Headword.Length > 0 ? h.Headword : h.Matched;
 		var shown = h.Dict == "ja" ? DictDb.JaForms(word, h.Kanji, h.Uk) : word;
 		if (string.IsNullOrEmpty(shown)) shown = word ?? "";
 		var code = h.Dict == "zh" || h.Dict == "ja" || h.Dict == "ko" || h.Dict == "en" ? h.Dict : "";
 		var title = code.Length > 0 ? "[" + code + "] " + shown : shown;
 		var speak = h.Dict == "ja" ? DictDb.JaSpeak(word, h.Kanji, h.Reading) : DictWindow.SpeakHead(word, h.Dict);
-		return new JsonObject {
-			["id"] = h.Id,
-			["dict"] = h.Dict ?? "",
-			["word"] = word ?? "",
-			["title"] = title,
-			["preview"] = h.Preview ?? "",
-			["via"] = h.Via ?? "",
-			["speak"] = speak ?? "",
-		};
+		return JSONF.newObject(("id", h.Id), ("dict", h.Dict ?? ""), ("word", word ?? ""), ("title", title), ("preview", h.Preview ?? ""), ("via", h.Via ?? ""), ("speak", speak ?? ""));
 	}
 
-	public static JsonObject EntryNode(DictEntry e, bool only = false, string ui = "zh") {
-		if (e == null) return null;
+	public static JSONF EntryNode(DictEntry e, bool only = false, string ui = "zh") {
+		if (e == null) return default;
 		var word = e.Word.Length > 0 ? e.Word : e.Headword;
-		var usage = new JsonArray();
+		var usage = JSONF.newArray();
 		foreach (var u in e.Usage) {
 			if (string.IsNullOrEmpty(u) || u == e.Pos) continue;
 			usage.Add(u);
 		}
-		var see = new JsonArray();
+		var see = JSONF.newArray();
 		foreach (var s in e.See)
 			if (!string.IsNullOrEmpty(s)) see.Add(s);
-		var conj = new JsonArray();
+		var conj = JSONF.newArray();
 		foreach (var c in e.Conjugations)
 			if (!string.IsNullOrEmpty(c)) conj.Add(c);
-		var senses = new JsonArray();
+		var senses = JSONF.newArray();
 		foreach (var s in e.Senses) senses.Add(sense(s));
 		var speak = e.Dict == "ja" ? DictDb.JaSpeak(word, e.Kanji, e.Pron) : DictWindow.SpeakHead(word, e.Dict);
 		// 日语表记按顺序给全，通常只写假名的词条假名在前；其它语言就一个词。
-		var forms = new JsonArray();
+		var forms = JSONF.newArray();
 		foreach (var f in e.Dict == "ja" ? DictDb.JaOrder(word, e.Kanji, e.Uk) : new List<string> { word }) forms.Add(f);
-		return new JsonObject {
-			["id"] = e.Id,
-			["dict"] = e.Dict ?? "",
-			["word"] = word ?? "",
-			["kanji"] = e.Kanji ?? "",
-			["forms"] = forms,
-			["pron"] = e.Pron ?? "",
-			["reading"] = e.Reading ?? "",
-			["pos"] = e.Pos ?? "",
-			["extra"] = e.Extra ?? "",
-			["etymology"] = e.Etymology ?? "",
-			["usage"] = usage,
-			["see"] = see,
-			["conjugations"] = conj,
-			["senses"] = senses,
-			["doc"] = DictDoc.Build(e, only, ui),
-			["speak"] = speak ?? "",
-		};
+		return JSONF.newObject(("id", e.Id), ("dict", e.Dict ?? ""), ("word", word ?? ""), ("kanji", e.Kanji ?? ""), ("forms", forms), ("pron", e.Pron ?? ""), ("reading", e.Reading ?? ""), ("pos", e.Pos ?? ""), ("extra", e.Extra ?? ""), ("etymology", e.Etymology ?? ""), ("usage", usage), ("see", see), ("conjugations", conj), ("senses", senses), ("doc", DictDoc.Build(e, only, ui)), ("speak", speak ?? ""));
 	}
 
-	static JsonObject sense(DictSense s) {
-		var phrases = new JsonArray();
+	static JSONF sense(DictSense s) {
+		var phrases = JSONF.newArray();
 		foreach (var ph in s.Phrases) {
 			if (ph == null) continue;
 			if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
-			phrases.Add(new JsonObject { ["text"] = ph.Text ?? "", ["zh"] = ph.Zh ?? "" });
+			phrases.Add(JSONF.newObject(("text", ph.Text ?? ""), ("zh", ph.Zh ?? "")));
 		}
-		var sentences = new JsonArray();
+		var sentences = JSONF.newArray();
 		foreach (var ex in s.Sentences) {
 			if (ex == null) continue;
 			if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
-			sentences.Add(new JsonObject { ["text"] = ex.Text ?? "", ["zh"] = ex.Zh ?? "" });
+			sentences.Add(JSONF.newObject(("text", ex.Text ?? ""), ("zh", ex.Zh ?? "")));
 		}
-		return new JsonObject {
-			["pos"] = s.Pos ?? "",
-			["ko"] = s.Ko ?? "",
-			["zh"] = s.Zh ?? "",
-			["zhDef"] = s.ZhDef ?? "",
-			["en"] = s.En ?? "",
-			["enDef"] = s.EnDef ?? "",
-			["ja"] = s.Ja ?? "",
-			["jaDef"] = s.JaDef ?? "",
-			["idiom"] = s.Idiom ?? "",
-			["sub"] = s.Sub,
-			["phrases"] = phrases,
-			["sentences"] = sentences,
-		};
+		return JSONF.newObject(("pos", s.Pos ?? ""), ("ko", s.Ko ?? ""), ("zh", s.Zh ?? ""), ("zhDef", s.ZhDef ?? ""), ("en", s.En ?? ""), ("enDef", s.EnDef ?? ""), ("ja", s.Ja ?? ""), ("jaDef", s.JaDef ?? ""), ("idiom", s.Idiom ?? ""), ("sub", s.Sub), ("phrases", phrases), ("sentences", sentences));
 	}
 
 	/// <summary>这个语言的发音会不会落在本机 Chrome 上：只在这台机器出声，不返回真实的音频。</summary>

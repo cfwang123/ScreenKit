@@ -1,6 +1,5 @@
-using System.Net;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Net;
+using ScreenKit.Json;
 using OpenCvSharp;
 
 namespace ScreenKit;
@@ -21,24 +20,13 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		onnx ??= new List<string>();
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["root"] = FaceModels.ModelsRoot(),
-				["ready"] = FaceModels.IsReady(),
-				["det"] = strarr(onnx.Where(FaceModels.IsDetFile)),
-				["rec"] = strarr(onnx.Where(FaceModels.IsRegFile)),
-				["landmark"] = strarr(FaceModels.LmkModels(onnx)),
-				["attr"] = strarr(FaceModels.AttrModels(onnx)),
-			},
-			["count"] = onnx.Count,
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("root", FaceModels.ModelsRoot()), ("ready", FaceModels.IsReady()), ("det", strarr(onnx.Where(FaceModels.IsDetFile))), ("rec", strarr(onnx.Where(FaceModels.IsRegFile))), ("landmark", strarr(FaceModels.LmkModels(onnx))), ("attr", strarr(FaceModels.AttrModels(onnx))))), ("count", onnx.Count)));
 	}
 
 	void handleface(SockCtx ctx) {
 		byte[] imgA;
 		byte[] imgB;
-		JsonObject jo;
+		JSONF jo;
 		try {
 			(imgA, imgB, jo) = readfaceimages(ctx.Request);
 		}
@@ -46,7 +34,7 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, err(800, ex.Message));
 			return;
 		}
-		jo ??= new JsonObject();
+		if (!jo.IsObject) jo = JSONF.newObject();
 		if (imgA == null || imgA.Length == 0) {
 			writejson(ctx, 200, err(802, "请提供 base64 / path 或 multipart 图片（比对再加 base64_b / path_b）"));
 			return;
@@ -72,12 +60,12 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 
-		var thresh = Compat.Clamp(asfloat(jo["threshold"], (float)opt.FaceThreshold), 0.1f, 0.95f);
+		var thresh = Compat.Clamp(asfloat(jo.get("threshold"), (float)opt.FaceThreshold), 0.1f, 0.95f);
 		var compute = parsecompute(jostr(jo, "device") ?? jostr(jo, "compute") ?? opt.FaceCompute ?? "auto");
-		var wantFeat = asbool(jo["include_feature"], false) || asbool(jo["feature"], false);
-		var wantAttr = jo["attr"] == null && jo["genderage"] == null
+		var wantFeat = asbool(jo.get("include_feature"), false) || asbool(jo.get("feature"), false);
+		var wantAttr = jo.get("attr").IsNull && jo.get("genderage").IsNull
 			? FaceModels.AttrModels(onnx).Count > 0
-			: asbool(jo["attr"], true) || asbool(jo["genderage"], false);
+			: asbool(jo.get("attr"), true) || asbool(jo.get("genderage"), false);
 		var attrName = pickface(FaceModels.AttrModels(onnx),
 			jostr(jo, "attr_model"),
 			opt.FaceAttrModel);
@@ -115,58 +103,23 @@ sealed partial class HttpOcrServer {
 			var ms = Math.Max(0, Environment.TickCount - t0);
 			if (matB == null) {
 				if (ra?.Face == null || ra.Feature == null) {
-					writejson(ctx, 200, new JsonObject {
-						["code"] = 101,
-						["data"] = "未检测到人脸",
-						["time"] = ms,
-						["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-					});
+					writejson(ctx, 200, JSONF.newObject(("code", 101), ("data", "未检测到人脸"), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 					return;
 				}
-				var data = new JsonObject {
-					["faces"] = ra.FaceCount,
-					["det"] = detName,
-					["reg"] = regName,
-					["provider"] = ep,
-					["face"] = facejson(ra, gaA, wantFeat),
-				};
-				writejson(ctx, 200, new JsonObject {
-					["code"] = 100,
-					["data"] = data,
-					["time"] = ms,
-					["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-				});
+				var data = JSONF.newObject(("faces", ra.FaceCount), ("det", detName), ("reg", regName), ("provider", ep), ("face", facejson(ra, gaA, wantFeat)));
+				writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", data), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 				return;
 			}
 
 			if (ra?.Face == null || ra.Feature == null || rb?.Face == null || rb.Feature == null) {
 				var miss = ra?.Face == null ? "左侧" : "右侧";
-				writejson(ctx, 200, new JsonObject {
-					["code"] = 101,
-					["data"] = miss + "未检测到人脸",
-					["time"] = ms,
-					["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-				});
+				writejson(ctx, 200, JSONF.newObject(("code", 101), ("data", miss + "未检测到人脸"), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 				return;
 			}
 
 			var sim = FaceSimilarity.Cosine(ra.Feature, rb.Feature);
 			bool match = sim >= thresh;
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["similarity"] = Math.Round(sim, 6),
-					["match"] = match,
-					["threshold"] = Math.Round(thresh, 4),
-					["det"] = detName,
-					["reg"] = regName,
-					["provider"] = ep,
-					["left"] = facejson(ra, gaA, wantFeat),
-					["right"] = facejson(rb, gaB, wantFeat),
-				},
-				["time"] = ms,
-				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("similarity", Math.Round(sim, 6)), ("match", match), ("threshold", Math.Round(thresh, 4)), ("det", detName), ("reg", regName), ("provider", ep), ("left", facejson(ra, gaA, wantFeat)), ("right", facejson(rb, gaB, wantFeat)))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(931, "人脸识别失败: " + ex.Message));
@@ -286,35 +239,23 @@ sealed partial class HttpOcrServer {
 		return mat;
 	}
 
-	static JsonObject facejson(FaceExtractResult r, GenderAgeResult? ga, bool includeFeat) {
+	static JSONF facejson(FaceExtractResult r, GenderAgeResult? ga, bool includeFeat) {
 		var face = r.Face;
-		var box = new JsonArray {
-			Math.Round(face.X1, 1), Math.Round(face.Y1, 1),
-			Math.Round(face.X2, 1), Math.Round(face.Y2, 1),
-		};
-		JsonArray lmk = null;
+		var box = JSONF.newArray(Math.Round(face.X1, 1), Math.Round(face.Y1, 1), Math.Round(face.X2, 1), Math.Round(face.Y2, 1));
+		JSONF lmk = default;
 		if (face.Landmarks != null && face.Landmarks.Length >= 10) {
-			lmk = new JsonArray();
+			lmk = JSONF.newArray();
 			for (int i = 0; i < 5; i++)
-				lmk.Add(new JsonArray {
-					Math.Round(face.Landmarks[i * 2], 1),
-					Math.Round(face.Landmarks[i * 2 + 1], 1),
-				});
+				lmk.Add(JSONF.newArray(Math.Round(face.Landmarks[i * 2], 1), Math.Round(face.Landmarks[i * 2 + 1], 1)));
 		}
-		var o = new JsonObject {
-			["faces"] = r.FaceCount,
-			["score"] = Math.Round(face.Score, 4),
-			["box"] = box,
-			["detect_ms"] = Math.Round(r.DetectMs, 1),
-			["extract_ms"] = Math.Round(r.ExtractMs, 1),
-		};
-		if (lmk != null) o["landmarks5"] = lmk;
+		var o = JSONF.newObject(("faces", r.FaceCount), ("score", Math.Round(face.Score, 4)), ("box", box), ("detect_ms", Math.Round(r.DetectMs, 1)), ("extract_ms", Math.Round(r.ExtractMs, 1)));
+		if (lmk.IsArray) o["landmarks5"] = lmk;
 		if (ga.HasValue) {
 			o["gender"] = ga.Value.GenderText;
 			o["age"] = ga.Value.Age;
 		}
 		if (includeFeat && r.Feature != null) {
-			var arr = new JsonArray();
+			var arr = JSONF.newArray();
 			foreach (var v in r.Feature)
 				arr.Add(Math.Round(v, 6));
 			o["feature"] = arr;
@@ -323,7 +264,7 @@ sealed partial class HttpOcrServer {
 		return o;
 	}
 
-	(byte[] a, byte[] b, JsonObject jo) readfaceimages(SockReq req) {
+	(byte[] a, byte[] b, JSONF jo) readfaceimages(SockReq req) {
 		var ctype = req.ContentType ?? "";
 		if (ctype.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase))
 			return readfaceparts(req);
@@ -336,7 +277,7 @@ sealed partial class HttpOcrServer {
 		return (a, b, jo);
 	}
 
-	(byte[] a, byte[] b, JsonObject jo) readfaceparts(SockReq req) {
+	(byte[] a, byte[] b, JSONF jo) readfaceparts(SockReq req) {
 		var boundary = extractboundary(req.ContentType ?? "");
 		if (string.IsNullOrEmpty(boundary))
 			throw new InvalidOperationException("multipart 缺少 boundary");
@@ -344,7 +285,7 @@ sealed partial class HttpOcrServer {
 		req.InputStream.CopyTo(ms);
 		var parts = parseparts(ms.ToArray(), boundary);
 		byte[] a = null, b = null;
-		JsonObject jo = null;
+		JSONF jo = default;
 		var extras = new List<byte[]>();
 		foreach (var p in parts) {
 			var name = (p.Name ?? "").ToLowerInvariant();
@@ -382,7 +323,7 @@ sealed partial class HttpOcrServer {
 				continue;
 			}
 			if (!string.IsNullOrWhiteSpace(text) && !string.IsNullOrEmpty(p.Name)) {
-				jo ??= new JsonObject();
+				if (!jo.IsObject) jo = JSONF.newObject();
 				jo[p.Name] = tryparsescalar(text);
 			}
 		}
@@ -393,32 +334,31 @@ sealed partial class HttpOcrServer {
 		return (a, b, jo);
 	}
 
-	static byte[] faceb64(JsonObject jo, params string[] keys) {
+	static byte[] faceb64(JSONF jo, params string[] keys) {
 		foreach (var k in keys) {
-			if (jo[k] == null || jo[k].GetValueKind() != JsonValueKind.String) continue;
-			var s = jo[k].GetValue<string>();
+			if (jo[k] == null || !jo[k].IsString) continue;
+			var s = jo[k].Value;
 			if (string.IsNullOrWhiteSpace(s)) continue;
 			return decodebase64(s);
 		}
 		return null;
 	}
 
-	static byte[] facefile(JsonObject jo, params string[] keys) {
+	static byte[] facefile(JSONF jo, params string[] keys) {
 		foreach (var k in keys) {
-			if (jo[k] == null || jo[k].GetValueKind() != JsonValueKind.String) continue;
-			var p = jo[k].GetValue<string>();
+			if (jo[k] == null || !jo[k].IsString) continue;
+			var p = jo[k].Value;
 			if (string.IsNullOrWhiteSpace(p) || !File.Exists(p)) continue;
 			return File.ReadAllBytes(p);
 		}
 		return null;
 	}
 
-	static string jostr(JsonObject jo, string key) {
-		if (jo == null || jo[key] == null || jo[key].GetValueKind() == JsonValueKind.Null)
-			return null;
-		if (jo[key].GetValueKind() == JsonValueKind.String)
-			return jo[key].GetValue<string>();
-		return jo[key].ToString();
+	static string jostr(JSONF jo, string key) {
+		var el = jo.get(key);
+		if (el.IsNull) return null;
+		if (el.IsString) return el.Value;
+		return el.ToString();
 	}
 
 	static string pickface(List<string> list, string want, string cfg) {
@@ -438,8 +378,8 @@ sealed partial class HttpOcrServer {
 		return list[0];
 	}
 
-	static JsonArray strarr(IEnumerable<string> items) {
-		var arr = new JsonArray();
+	static JSONF strarr(IEnumerable<string> items) {
+		var arr = JSONF.newArray();
 		if (items == null) return arr;
 		foreach (var s in items) arr.Add(s ?? "");
 		return arr;

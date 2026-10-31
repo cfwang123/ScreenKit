@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -48,20 +48,20 @@ static class LlmAgentTools {
 			var json = m.Groups[1].Value.Trim();
 			var call = new LlmToolCall { Raw = m.Value, ArgsJson = "{}" };
 			try {
-				using var doc = JsonDocument.Parse(json);
-				var root = doc.RootElement;
-				if (root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String)
-					call.Name = (n.GetString() ?? "").Trim();
-				else if (root.TryGetProperty("tool", out var t) && t.ValueKind == JsonValueKind.String)
-					call.Name = (t.GetString() ?? "").Trim();
-				if (root.TryGetProperty("arguments", out var a))
-					call.ArgsJson = a.ValueKind == JsonValueKind.String
-						? (a.GetString() ?? "{}")
-						: a.GetRawText();
-				else if (root.TryGetProperty("args", out var a2))
-					call.ArgsJson = a2.ValueKind == JsonValueKind.String
-						? (a2.GetString() ?? "{}")
-						: a2.GetRawText();
+				var doc = JSONF.Parse(json);
+				var root = doc;
+				if (root.tryget("name", out var n) && n.IsString)
+					call.Name = (n.Value ?? "").Trim();
+				else if (root.tryget("tool", out var t) && t.IsString)
+					call.Name = (t.Value ?? "").Trim();
+				if (root.tryget("arguments", out var a))
+					call.ArgsJson = a.IsString
+						? (a.Value ?? "{}")
+						: a.ToJSONString(-1);
+				else if (root.tryget("args", out var a2))
+					call.ArgsJson = a2.IsString
+						? (a2.Value ?? "{}")
+						: a2.ToJSONString(-1);
 				else
 					call.ArgsJson = "{}";
 			}
@@ -88,8 +88,8 @@ static class LlmAgentTools {
 		var name = (call.Name ?? "").Trim().ToLowerInvariant();
 		LlmLog.Info($"agent tool={name}");
 		try {
-			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(call.ArgsJson) ? "{}" : call.ArgsJson);
-			var args = doc.RootElement;
+			var doc = JSONF.Parse(string.IsNullOrWhiteSpace(call.ArgsJson) ? "{}" : call.ArgsJson);
+			var args = doc;
 			return name switch {
 				"web_search" => websearch(args, ct),
 				"web_fetch" => webfetch(args, ct),
@@ -111,8 +111,8 @@ static class LlmAgentTools {
 		if (call == null) return "tool";
 		var name = (call.Name ?? "tool").Trim();
 		try {
-			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(call.ArgsJson) ? "{}" : call.ArgsJson);
-			var a = doc.RootElement;
+			var doc = JSONF.Parse(string.IsNullOrWhiteSpace(call.ArgsJson) ? "{}" : call.ArgsJson);
+			var a = doc;
 			if (name.Equals("web_search", StringComparison.OrdinalIgnoreCase))
 				return name + ": " + clip(str(a, "query"), 40);
 			if (name.Equals("web_fetch", StringComparison.OrdinalIgnoreCase))
@@ -127,7 +127,7 @@ static class LlmAgentTools {
 		return name;
 	}
 
-	static string websearch(JsonElement args, CancellationToken ct) {
+	static string websearch(JSONF args, CancellationToken ct) {
 		var q = str(args, "query");
 		if (q.Length == 0) return "error: query required";
 		var count = intval(args, "count", 5);
@@ -206,24 +206,24 @@ static class LlmAgentTools {
 	static string formatwttr(string json) {
 		if (string.IsNullOrWhiteSpace(json) || json[0] != '{') return "";
 		try {
-			using var doc = JsonDocument.Parse(json);
-			var root = doc.RootElement;
-			if (!root.TryGetProperty("current_condition", out var arr)
-				|| arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0)
+			var doc = JSONF.Parse(json);
+			var root = doc;
+			if (!root.tryget("current_condition", out var arr)
+				|| !arr.IsArray || arr.Count == 0)
 				return "";
 			var c = arr[0];
 			string desc = "";
-			if (c.TryGetProperty("lang_zh", out var zh) && zh.ValueKind == JsonValueKind.Array
-				&& zh.GetArrayLength() > 0 && zh[0].TryGetProperty("value", out var zv))
-				desc = zv.GetString() ?? "";
-			if (desc.Length == 0 && c.TryGetProperty("weatherDesc", out var wd)
-				&& wd.ValueKind == JsonValueKind.Array && wd.GetArrayLength() > 0
-				&& wd[0].TryGetProperty("value", out var wv))
-				desc = wv.GetString() ?? "";
-			var temp = c.TryGetProperty("temp_C", out var t) ? t.GetString() : "";
-			var feel = c.TryGetProperty("FeelsLikeC", out var f) ? f.GetString() : "";
-			var hum = c.TryGetProperty("humidity", out var h) ? h.GetString() : "";
-			var wind = c.TryGetProperty("windspeedKmph", out var w) ? w.GetString() : "";
+			if (c.tryget("lang_zh", out var zh) && zh.IsArray
+				&& zh.Count > 0 && zh[0].tryget("value", out var zv))
+				desc = zv.Value ?? "";
+			if (desc.Length == 0 && c.tryget("weatherDesc", out var wd)
+				&& wd.IsArray && wd.Count > 0
+				&& wd[0].tryget("value", out var wv))
+				desc = wv.Value ?? "";
+			var temp = c.tryget("temp_C", out var t) ? t.Value : "";
+			var feel = c.tryget("FeelsLikeC", out var f) ? f.Value : "";
+			var hum = c.tryget("humidity", out var h) ? h.Value : "";
+			var wind = c.tryget("windspeedKmph", out var w) ? w.Value : "";
 			return $"detail: {desc}, {temp}°C (feels {feel}°C), humidity {hum}%, wind {wind} km/h";
 		}
 		catch { return ""; }
@@ -273,7 +273,7 @@ static class LlmAgentTools {
 		return href;
 	}
 
-	static string webfetch(JsonElement args, CancellationToken ct) {
+	static string webfetch(JSONF args, CancellationToken ct) {
 		var url = str(args, "url");
 		if (url.Length == 0) return "error: url required";
 		if (!Uri.TryCreate(url, UriKind.Absolute, out var u)
@@ -298,7 +298,7 @@ static class LlmAgentTools {
 		return text.Length == 0 ? "(empty)" : text;
 	}
 
-	static string listdir(JsonElement args) {
+	static string listdir(JSONF args) {
 		var path = str(args, "path", ".");
 		if (!LlmAgentPaths.TryResolve(path, out var full, out var rel, out var err))
 			return "error: " + err;
@@ -322,7 +322,7 @@ static class LlmAgentTools {
 		return sb.ToString().TrimEnd();
 	}
 
-	static string readfile(JsonElement args) {
+	static string readfile(JSONF args) {
 		var path = str(args, "path");
 		if (path.Length == 0) return "error: path required";
 		if (!LlmAgentPaths.TryResolve(path, out var full, out var rel, out var err))
@@ -347,12 +347,12 @@ static class LlmAgentTools {
 		return text;
 	}
 
-	static string writefile(JsonElement args) {
+	static string writefile(JSONF args) {
 		var path = str(args, "path");
 		if (path.Length == 0) return "error: path required";
-		if (!args.TryGetProperty("content", out var cEl))
+		if (!args.tryget("content", out var cEl))
 			return "error: content required";
-		var content = cEl.ValueKind == JsonValueKind.String ? (cEl.GetString() ?? "") : cEl.GetRawText();
+		var content = cEl.IsString ? (cEl.Value ?? "") : cEl.ToJSONString(-1);
 		var bytes = Encoding.UTF8.GetBytes(content);
 		if (bytes.Length > MaxFileBytes)
 			return $"error: content too large ({bytes.Length} > {MaxFileBytes})";
@@ -369,7 +369,7 @@ static class LlmAgentTools {
 		return $"ok wrote {rel} ({bytes.Length} bytes)";
 	}
 
-	static string runscript(JsonElement args, CancellationToken ct) {
+	static string runscript(JSONF args, CancellationToken ct) {
 		var path = str(args, "path");
 		if (path.Length == 0) return "error: path required";
 		if (!LlmAgentPaths.TryResolve(path, out var full, out var rel, out var err))
@@ -462,18 +462,18 @@ static class LlmAgentTools {
 		}
 	}
 
-	static List<string> parseargs(JsonElement args) {
+	static List<string> parseargs(JSONF args) {
 		var list = new List<string>();
-		if (!args.TryGetProperty("args", out var a)) return list;
-		if (a.ValueKind == JsonValueKind.Array) {
-			foreach (var x in a.EnumerateArray()) {
-				if (x.ValueKind == JsonValueKind.String) list.Add(x.GetString() ?? "");
-				else list.Add(x.GetRawText());
+		if (!args.tryget("args", out var a)) return list;
+		if (a.IsArray) {
+			foreach (var x in a) {
+				if (x.IsString) list.Add(x.Value ?? "");
+				else list.Add(x.ToJSONString(-1));
 			}
 			return list;
 		}
-		if (a.ValueKind == JsonValueKind.String) {
-			var s = (a.GetString() ?? "").Trim();
+		if (a.IsString) {
+			var s = (a.Value ?? "").Trim();
 			if (s.Length == 0) return list;
 			foreach (Match m in Regex.Matches(s, @"[^\s""]+|""[^""]*""")) {
 				var t = m.Value;
@@ -521,17 +521,21 @@ static class LlmAgentTools {
 		return body;
 	}
 
-	static string str(JsonElement args, string name, string fallback = "") {
-		if (!args.TryGetProperty(name, out var el)) return fallback;
-		if (el.ValueKind == JsonValueKind.String) return (el.GetString() ?? "").Trim();
-		if (el.ValueKind == JsonValueKind.Number) return el.GetRawText();
+	static string str(JSONF args, string name, string fallback = "") {
+		var el = args.get(name);
+		if (el.IsNull) return fallback;
+		if (el.Type == JSONF.NodeType.String) return el.Value.Trim();
+		if (el.Type is JSONF.NodeType.Int or JSONF.NodeType.Long or JSONF.NodeType.Float
+			or JSONF.NodeType.Double or JSONF.NodeType.Decimal) return el.ToJSONString(-1);
 		return fallback;
 	}
 
-	static int intval(JsonElement args, string name, int fallback) {
-		if (!args.TryGetProperty(name, out var el)) return fallback;
-		if (el.ValueKind == JsonValueKind.Number && el.TryGetInt32(out var n)) return n;
-		if (el.ValueKind == JsonValueKind.String && int.TryParse(el.GetString(), out n)) return n;
+	static int intval(JSONF args, string name, int fallback) {
+		var el = args.get(name);
+		if (el.IsNull) return fallback;
+		if (el.Type is JSONF.NodeType.Int or JSONF.NodeType.Long or JSONF.NodeType.Float
+			or JSONF.NodeType.Double or JSONF.NodeType.Decimal) return el.AsInt;
+		if (el.Type == JSONF.NodeType.String && int.TryParse(el.Value, out var n)) return n;
 		return fallback;
 	}
 

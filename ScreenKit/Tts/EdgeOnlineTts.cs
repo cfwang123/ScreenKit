@@ -8,7 +8,7 @@ using System.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using NAudio.Wave;
 
 namespace ScreenKit;
@@ -119,9 +119,9 @@ sealed class EdgeOnlineTts : IDisposable {
 				continue;
 			resp.EnsureSuccessStatusCode();
 			var json = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
-			using var doc = JsonDocument.Parse(json);
+			var doc = JSONF.Parse(json);
 			var list = new List<SapiVoiceItem>();
-			foreach (var item in doc.RootElement.EnumerateArray()) {
+			foreach (var item in doc) {
 				var name = jsonstr(item, "ShortName");
 				var locale = jsonstr(item, "Locale");
 				if (string.IsNullOrEmpty(name)) continue;
@@ -488,8 +488,8 @@ sealed class EdgeOnlineTts : IDisposable {
 		return "";
 	}
 
-	static string jsonstr(JsonElement item, string name) =>
-		item.TryGetProperty(name, out var value) ? value.GetString() ?? "" : "";
+	static string jsonstr(JSONF item, string name) =>
+		item.tryget(name, out var value) ? value.Value ?? "" : "";
 
 	sealed class EdgeWebSocket : IDisposable {
 		TcpClient tcp;

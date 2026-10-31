@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -14,24 +14,14 @@ sealed partial class HttpOcrServer {
 				writejson(ctx, 200, err(802, msg));
 				return;
 			}
-			var data = new JsonObject {
-				["ip"] = info.Ip,
-				["country"] = info.Country,
-				["region"] = info.Region,
-				["city"] = info.City,
-				["isp"] = info.Isp,
-				["text"] = info.Text,
-			};
+			var data = JSONF.newObject(("ip", info.Ip), ("country", info.Country), ("region", info.Region), ("city", info.City), ("isp", info.Isp), ("text", info.Text));
 			if (info.HasPos) {
 				var lat = info.Lat.ToString("0.######", CultureInfo.InvariantCulture);
 				var lon = info.Lon.ToString("0.######", CultureInfo.InvariantCulture);
 				data["lat"] = decimal.Parse(lat, CultureInfo.InvariantCulture);
 				data["lon"] = decimal.Parse(lon, CultureInfo.InvariantCulture);
 			}
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = data,
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", data)));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(802, ex.InnerException?.Message ?? ex.Message));

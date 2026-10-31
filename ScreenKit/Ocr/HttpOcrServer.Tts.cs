@@ -1,7 +1,7 @@
-using System.Net;
+﻿using System.Net;
 using System.Speech.Synthesis;
-using System.Text.Json.Nodes;
 using System.Windows.Threading;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -22,27 +22,14 @@ sealed partial class HttpOcrServer {
 	int lastVoiceScan;
 	int lastEdgeVoices;
 	readonly object ttsModelsGate = new();
-	JsonArray cachedTtsModels;
+	JSONF cachedTtsModels;
 
 	void handlettsengines(SockCtx ctx) {
-		var arr = new JsonArray {
-			ttsengine("sherpa", "Sherpa"),
-			ttsengine("sapi", "SAPI"),
-			ttsengine("winrt", "Windows"),
-			ttsengine("edge", "Edge Online"),
-			ttsengine("chrome", "Chrome"),
-		};
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-		});
+		var arr = JSONF.newArray(ttsengine("sherpa", "Sherpa"), ttsengine("sapi", "SAPI"), ttsengine("winrt", "Windows"), ttsengine("edge", "Edge Online"), ttsengine("chrome", "Chrome"));
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count)));
 	}
 
-	static JsonObject ttsengine(string id, string name) => new() {
-		["engine"] = id,
-		["name"] = name,
-	};
+	static JSONF ttsengine(string id, string name) => JSONF.newObject(("engine", id), ("name", name));
 
 	void handlettsmodels(SockCtx ctx) {
 		var engineRaw = query(ctx.Request, "engine");
@@ -55,22 +42,17 @@ sealed partial class HttpOcrServer {
 			engine = engineid(kind.Value);
 		}
 		var refresh = parseboolstr(query(ctx.Request, "refresh"), false);
-		JsonArray arr;
+		JSONF arr;
 		var fromCache = false;
 		try { arr = ttsmodels(engine, refresh, out fromCache); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(920, "扫描 TTS 失败: " + ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-			["cached"] = fromCache,
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count), ("cached", fromCache)));
 	}
 
-	JsonArray ttsmodels(string engine, bool refresh, out bool fromCache) {
+	JSONF ttsmodels(string engine, bool refresh, out bool fromCache) {
 		if (!refresh) {
 			var cat = svc?.TtsCatalog?.Invoke();
 			if (cat != null) {
@@ -78,7 +60,7 @@ sealed partial class HttpOcrServer {
 				return buildfromcatalog(cat, engine);
 			}
 			lock (ttsModelsGate) {
-				if (cachedTtsModels != null) {
+				if (cachedTtsModels.IsArray) {
 					fromCache = true;
 					return engine == null ? clonejson(cachedTtsModels) : filterengine(cachedTtsModels, engine);
 				}
@@ -93,17 +75,14 @@ sealed partial class HttpOcrServer {
 		return built;
 	}
 
-	static JsonArray clonejson(JsonArray arr) {
-		return JsonNode.Parse(arr.ToJsonString()) as JsonArray ?? new JsonArray();
-	}
+	static JSONF clonejson(JSONF arr) => arr.Clone;
 
-	static JsonArray filterengine(JsonArray src, string engine) {
-		var arr = new JsonArray();
-		foreach (var n in src) {
-			if (n is not JsonObject o) continue;
-			var id = o["engine"]?.GetValue<string>() ?? "";
+	static JSONF filterengine(JSONF src, string engine) {
+		var arr = JSONF.newArray();
+		foreach (var o in src) {
+			var id = o.Str("engine") ?? "";
 			if (!string.Equals(id, engine, StringComparison.OrdinalIgnoreCase)) continue;
-			arr.Add(JsonNode.Parse(o.ToJsonString()));
+			arr.Add(o.Clone);
 		}
 		return arr;
 	}
@@ -120,35 +99,22 @@ sealed partial class HttpOcrServer {
 		var hold = false;
 		try {
 			var jo = readjsonbody(ctx.Request);
-			var n = jo["hold"];
-			if (n is JsonValue v) {
-				if (v.TryGetValue<bool>(out var b)) hold = b;
-				else if (v.TryGetValue<int>(out var i)) hold = i != 0;
-			}
+			var v = jo.get("hold");
+			if (v.IsNotNull) hold = v.AsBool;
 		}
 		catch { }
 		var name = "";
 		if (hold) name = TtsRoute.Hold();
 		else TtsRoute.Release();
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["hold"] = hold,
-				["name"] = name ?? "",
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("hold", hold), ("name", name ?? "")))));
 	}
 
 	void handlettsdevices(SockCtx ctx) {
 		try {
 			var list = TtsSpeak.Devices();
-			var arr = new JsonArray();
+			var arr = JSONF.newArray();
 			foreach (var d in list) arr.Add(outdevjson(d));
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = arr,
-				["count"] = arr.Count,
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count)));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(924, "枚举播放设备失败: " + ex.Message));
@@ -156,13 +122,13 @@ sealed partial class HttpOcrServer {
 	}
 
 	void handlettsspeak(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
 			return;
 		}
-		var text = jo["text"]?.GetValue<string>() ?? "";
+		var text = jo.Str("text") ?? "";
 		if (string.IsNullOrWhiteSpace(text)) {
 			writejson(ctx, 200, err(802, "缺少 text"));
 			return;
@@ -189,47 +155,24 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		var ids = new List<string>();
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		foreach (var d in devs) {
 			ids.Add(d.Id);
 			arr.Add(outdevjson(d));
 		}
 		var ahead = TtsSpeak.Enqueue(made.Samples, made.Sr, ids, immediate);
 		var ms = Math.Max(0, Environment.TickCount - t0);
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["play"] = immediate ? "now" : "queue",
-				["ahead"] = ahead,
-				["devices"] = arr,
-				["sample_rate"] = made.Sr,
-				["samples"] = made.Samples.Length,
-				["engine"] = made.Engine,
-				["model"] = made.Model,
-				["voice"] = made.Voice,
-				["speaker_id"] = made.Sid,
-				["provider"] = made.Provider,
-			},
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("play", immediate ? "now" : "queue"), ("ahead", ahead), ("devices", arr), ("sample_rate", made.Sr), ("samples", made.Samples.Length), ("engine", made.Engine), ("model", made.Model), ("voice", made.Voice), ("speaker_id", made.Sid), ("provider", made.Provider))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
-	static JsonObject outdevjson(TtsOutDev d) => new() {
-		["id"] = d.Id ?? "",
-		["name"] = d.Name ?? "",
-		["index"] = d.Index,
-		["default"] = d.Default,
-	};
+	static JSONF outdevjson(TtsOutDev d) => JSONF.newObject(("id", d.Id ?? ""), ("name", d.Name ?? ""), ("index", d.Index), ("default", d.Default));
 
-	static bool tryplaymode(JsonObject jo, out bool immediate, out string err) {
+	static bool tryplaymode(JSONF jo, out bool immediate, out string err) {
 		immediate = false;
 		err = "";
-		JsonNode n = null;
-		if (jo.ContainsKey("play")) n = jo["play"];
-		else if (jo.ContainsKey("mode")) n = jo["mode"];
-		var s = "";
-		if (n is JsonValue v && v.TryGetValue<string>(out var str)) s = str ?? "";
+		var v = jo.get("play");
+		if (v.IsNull) v = jo.get("mode");
+		var s = v.IsNull ? "" : v.Value;
 		s = s.Trim().ToLowerInvariant();
 		if (s.Length == 0 || s is "queue" or "wait" or "排队") return true;
 		if (s is "now" or "immediate" or "cut" or "立即" or "立即播放") {
@@ -240,39 +183,36 @@ sealed partial class HttpOcrServer {
 		return false;
 	}
 
-	static List<string> readoutdevs(JsonObject jo) {
+	static List<string> readoutdevs(JSONF jo) {
 		var want = new List<string>();
-		JsonNode n = null;
-		if (jo.ContainsKey("devices")) n = jo["devices"];
-		else if (jo.ContainsKey("outputs")) n = jo["outputs"];
-		if (n is JsonArray arr) {
-			foreach (var one in arr) adddevtoken(want, one);
+		var n = jo.get("devices");
+		if (n.IsNull) n = jo.get("outputs");
+		if (n.IsArray) {
+			foreach (var one in n) adddevtoken(want, one);
 		}
 		else adddevtoken(want, n);
 		return want;
 	}
 
-	static void adddevtoken(List<string> want, JsonNode n) {
-		if (n is not JsonValue v) return;
-		if (v.TryGetValue<string>(out var s)) {
-			if (string.IsNullOrWhiteSpace(s)) return;
-			foreach (var part in s.Split(new[] { ',', '，', ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-				var t = part.Trim();
-				if (t.Length > 0) want.Add(t);
-			}
-			return;
+	static void adddevtoken(List<string> want, JSONF n) {
+		if (n.IsNull) return;
+		if (n.IsNumber) { want.Add(n.AsLong.ToString()); return; }
+		var s = n.Value;
+		if (string.IsNullOrWhiteSpace(s)) return;
+		foreach (var part in s.Split(new[] { ',', '，', ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+			var t = part.Trim();
+			if (t.Length > 0) want.Add(t);
 		}
-		if (v.TryGetValue<int>(out var i)) want.Add(i.ToString());
 	}
 
 	void handletts(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
 			return;
 		}
-		var text = jo["text"]?.GetValue<string>() ?? "";
+		var text = jo.Str("text") ?? "";
 		if (string.IsNullOrWhiteSpace(text)) {
 			writejson(ctx, 200, err(802, "缺少 text"));
 			return;
@@ -283,7 +223,7 @@ sealed partial class HttpOcrServer {
 		}
 		// 网页工具的发音按钮一般只给 text 和 lang：按「参数设置 → 语音合成 → 词典发音」里
 		// 该语言的引擎、发音人、语速来，跟词典弹窗发音同一个声音、同一份缓存。
-		var dictlang = DictTts.NormLang(jo["lang"]?.GetValue<string>() ?? "");
+		var dictlang = DictTts.NormLang(jo.Str("lang") ?? "");
 		var dictpref = dictprefpinned(jo) ? null : dictprefof(dictlang);
 		if (dictpref != null) {
 			var dicteng = DictTts.ResolveEngine(dictpref.Engine, dictlang);
@@ -325,22 +265,7 @@ sealed partial class HttpOcrServer {
 		}
 		var wav = floatstowav(made.Samples, made.Sr);
 		var ms = Math.Max(0, Environment.TickCount - t0);
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["format"] = "wav",
-				["sample_rate"] = made.Sr,
-				["samples"] = made.Samples.Length,
-				["wav_base64"] = Convert.ToBase64String(wav),
-				["engine"] = made.Engine,
-				["model"] = made.Model,
-				["voice"] = made.Voice,
-				["speaker_id"] = made.Sid,
-				["provider"] = made.Provider,
-			},
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("format", "wav"), ("sample_rate", made.Sr), ("samples", made.Samples.Length), ("wav_base64", Convert.ToBase64String(wav)), ("engine", made.Engine), ("model", made.Model), ("voice", made.Voice), ("speaker_id", made.Sid), ("provider", made.Provider))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
 	/// <summary>请求没指定引擎/模型/发音人时，按词典发音表取这个语言的配置；表里没这个语言（且非中日韩英）返回 null。</summary>
@@ -353,9 +278,9 @@ sealed partial class HttpOcrServer {
 	}
 
 	/// <summary>请求里有没有点名引擎、模型或发音人。</summary>
-	static bool dictprefpinned(JsonObject jo) {
+	static bool dictprefpinned(JSONF jo) {
 		foreach (var key in new[] { "engine", "model", "voice", "speaker" }) {
-			if (!string.IsNullOrWhiteSpace(jo[key]?.GetValue<string>() ?? "")) return true;
+			if (!string.IsNullOrWhiteSpace(jo.get(key).Value)) return true;
 		}
 		return false;
 	}
@@ -369,47 +294,32 @@ sealed partial class HttpOcrServer {
 			sr = BitConverter.ToInt32(bytes, 24);
 			samples = (bytes.Length - 44) / 2;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["format"] = "wav",
-				["sample_rate"] = sr,
-				["samples"] = samples,
-				["wav_base64"] = Convert.ToBase64String(bytes),
-				["engine"] = engine,
-				["model"] = "",
-				["voice"] = voice,
-				["speaker_id"] = 0,
-				["provider"] = "dict",
-			},
-			["time"] = 0,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("format", "wav"), ("sample_rate", sr), ("samples", samples), ("wav_base64", Convert.ToBase64String(bytes)), ("engine", engine), ("model", ""), ("voice", voice), ("speaker_id", 0), ("provider", "dict"))), ("time", 0), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
-	static bool ischromereq(JsonObject jo) {
-		var engine = jo["engine"]?.GetValue<string>() ?? "";
+	static bool ischromereq(JSONF jo) {
+		var engine = jo.Str("engine") ?? "";
 		if (tryparseengine(engine, out var kind) && kind == TtsEngineKind.Chrome) return true;
-		var voice = jo["voice"]?.GetValue<string>() ?? jo["speaker"]?.GetValue<string>() ?? "";
+		var voice = jo.Str("voice") ?? jo.Str("speaker") ?? "";
 		if (voice.StartsWith("chrome:", StringComparison.OrdinalIgnoreCase)) return true;
-		var model = jo["model"]?.GetValue<string>() ?? "";
+		var model = jo.Str("model") ?? "";
 		return model.Equals("Chrome", StringComparison.OrdinalIgnoreCase)
 			|| model.Equals("Google", StringComparison.OrdinalIgnoreCase);
 	}
 
-	void writechrome(SockCtx ctx, JsonObject jo, string text) {
+	void writechrome(SockCtx ctx, JSONF jo, string text) {
 		try {
 			var saved = new OcrOptions();
 			try { AppConfig.LoadInto(saved); } catch { }
-			var exe = jo["chrome_exe"]?.GetValue<string>() ?? "";
+			var exe = jo.Str("chrome_exe") ?? "";
 			if (string.IsNullOrWhiteSpace(exe)) exe = saved.ChromeExe;
 			var found = ChromeTts.FindExe(exe);
 			if (string.IsNullOrEmpty(found)) throw new InvalidOperationException(Loc.T("tts.chrome.missing"));
 			exe = found;
 			var idle = saved.ChromeIdleSec;
-			if (jo["chrome_idle"] != null) idle = asint(jo["chrome_idle"], idle);
-			var voice = jo["voice"]?.GetValue<string>() ?? jo["speaker"]?.GetValue<string>() ?? "";
-			var lang = jo["lang"]?.GetValue<string>() ?? "";
+			if (jo.get("chrome_idle").IsNotNull) idle = asint(jo.get("chrome_idle"), idle);
+			var voice = jo.Str("voice") ?? jo.Str("speaker") ?? "";
+			var lang = jo.Str("lang") ?? "";
 			var name = voice.StartsWith("chrome:", StringComparison.OrdinalIgnoreCase) ? voice.Substring(7) : voice;
 			SapiVoiceItem pick = null;
 			foreach (var v in ChromeTts.Voices) {
@@ -432,24 +342,15 @@ sealed partial class HttpOcrServer {
 				throw new ChromeVoiceMissingException(lang.Length > 0 ? lang : name);
 			pick ??= ChromeTts.Voices.Count > 0 ? ChromeTts.Voices[0] : null;
 			var speed = 1.0;
-			if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
+			if (jo.get("speed").IsNotNull) speed = Compat.Clamp(asfloat(jo.get("speed"), 1f), 0.5f, 2f);
 			var volume = 100;
-			if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
+			if (jo.get("volume").IsNotNull) volume = Compat.Clamp(asint(jo.get("volume"), 100), 0, 100);
 			var spoken = pick?.Name ?? name;
 			var culture = pick?.Culture ?? lang;
 			// 接口不装语音包：缺失直接报 927，安装留给桌面朗读或安装功能页
 			ChromePack.RequireVoice(culture, exe, HttpProxy.Mode, HttpProxy.Addr, CancellationToken.None);
 			ChromeTts.Speak(text, spoken, culture, speed, volume / 100.0, exe, idle, CancellationToken.None);
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["engine"] = "chrome",
-					["played"] = true,
-					["format"] = "",
-					["voice"] = pick?.Key ?? "",
-					["model"] = "Chrome",
-				},
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("engine", "chrome"), ("played", true), ("format", ""), ("voice", pick?.Key ?? ""), ("model", "Chrome")))));
 		}
 		catch (ChromeVoiceMissingException ex) {
 			writejson(ctx, 200, err(927, ex.Message));
@@ -462,23 +363,23 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	bool maketts(JsonObject jo, string text, out TtsMade made, out JsonObject bad) {
+	bool maketts(JSONF jo, string text, out TtsMade made, out JSONF bad) {
 		made = null;
-		bad = null;
-		var engineRaw = jo["engine"]?.GetValue<string>() ?? "";
-		var modelName = jo["model"]?.GetValue<string>() ?? "";
-		var lang = jo["lang"]?.GetValue<string>() ?? "";
-		var voice = jo["voice"]?.GetValue<string>()
-			?? jo["speaker"]?.GetValue<string>() ?? "";
+		bad = default;
+		var engineRaw = jo.Str("engine") ?? "";
+		var modelName = jo.Str("model") ?? "";
+		var lang = jo.Str("lang") ?? "";
+		var voice = jo.Str("voice")
+			?? jo.Str("speaker") ?? "";
 		int? sid = null;
-		if (jo["speaker_id"] != null) sid = asint(jo["speaker_id"], 0);
-		else if (jo["sid"] != null) sid = asint(jo["sid"], 0);
+		if (jo.get("speaker_id").IsNotNull) sid = asint(jo.get("speaker_id"), 0);
+		else if (jo.get("sid").IsNotNull) sid = asint(jo.get("sid"), 0);
 		var sidVal = sid ?? 0;
 		var speed = 1f;
-		if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
+		if (jo.get("speed").IsNotNull) speed = Compat.Clamp(asfloat(jo.get("speed"), 1f), 0.5f, 2f);
 		var volume = 100;
-		if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
-		var compute = parsecompute(jo["device"]?.GetValue<string>() ?? jo["compute"]?.GetValue<string>() ?? "auto");
+		if (jo.get("volume").IsNotNull) volume = Compat.Clamp(asint(jo.get("volume"), 100), 0, 100);
+		var compute = parsecompute(jo.Str("device") ?? jo.Str("compute") ?? "auto");
 
 		if (!tryparseengine(engineRaw, out var kind)) {
 			bad = err(925, "未知 engine（sherpa / sapi / winrt / edge / chrome）");
@@ -556,8 +457,8 @@ sealed partial class HttpOcrServer {
 		public string Engine;
 	}
 
-	JsonArray buildttsmodels(string only, bool refresh = false) {
-		var arr = new JsonArray();
+	JSONF buildttsmodels(string only, bool refresh = false) {
+		var arr = JSONF.newArray();
 		var all = string.IsNullOrEmpty(only);
 		if (all || only == "sherpa") {
 			List<TtsModelInfo> list = null;
@@ -576,8 +477,8 @@ sealed partial class HttpOcrServer {
 		return arr;
 	}
 
-	JsonArray buildfromcatalog(TtsUiCatalog cat, string only) {
-		var arr = new JsonArray();
+	JSONF buildfromcatalog(TtsUiCatalog cat, string only) {
+		var arr = JSONF.newArray();
 		var all = string.IsNullOrEmpty(only);
 		if (all || only == "sherpa")
 			addsherpa(arr, cat?.Sherpa);
@@ -592,52 +493,28 @@ sealed partial class HttpOcrServer {
 		return arr;
 	}
 
-	static void addsherpa(JsonArray arr, List<TtsModelInfo> list) {
+	static void addsherpa(JSONF arr, List<TtsModelInfo> list) {
 		if (list == null) return;
 		foreach (var m in list) {
-			var speakers = new JsonArray();
+			var speakers = JSONF.newArray();
 			if (m.Speakers != null) {
 				foreach (var s in m.Speakers) {
-					speakers.Add(new JsonObject {
-						["id"] = s.Id,
-						["name"] = s.Name ?? "",
-						["label"] = s.DisplayName ?? "",
-						["lang"] = s.Lang ?? "",
-						["gender"] = s.Gender ?? "",
-					});
+					speakers.Add(JSONF.newObject(("id", s.Id), ("name", s.Name ?? ""), ("label", s.DisplayName ?? ""), ("lang", s.Lang ?? ""), ("gender", s.Gender ?? "")));
 				}
 			}
-			arr.Add(new JsonObject {
-				["name"] = m.DisplayName ?? "",
-				["engine"] = "sherpa",
-				["type"] = m.Type.ToString(),
-				["speakers"] = speakers,
-			});
+			arr.Add(JSONF.newObject(("name", m.DisplayName ?? ""), ("engine", "sherpa"), ("type", m.Type.ToString()), ("speakers", speakers)));
 		}
 	}
 
-	static void addsysmodel(JsonArray arr, string name, string engine, string type,
+	static void addsysmodel(JSONF arr, string name, string engine, string type,
 		List<SapiVoiceItem> voices) {
 		if (voices == null || voices.Count == 0) return;
-		var speakers = new JsonArray();
+		var speakers = JSONF.newArray();
 		for (var i = 0; i < voices.Count; i++) {
 			var v = voices[i];
-			speakers.Add(new JsonObject {
-				["id"] = i,
-				["name"] = v.Name ?? "",
-				["label"] = string.IsNullOrEmpty(v.DisplayName) ? (v.Name ?? "") : v.DisplayName,
-				["lang"] = v.Lang ?? "",
-				["gender"] = v.Gender ?? "",
-				["key"] = v.Key ?? "",
-				["culture"] = v.Culture ?? "",
-			});
+			speakers.Add(JSONF.newObject(("id", i), ("name", v.Name ?? ""), ("label", string.IsNullOrEmpty(v.DisplayName) ? (v.Name ?? "") : v.DisplayName), ("lang", v.Lang ?? ""), ("gender", v.Gender ?? ""), ("key", v.Key ?? ""), ("culture", v.Culture ?? "")));
 		}
-		arr.Add(new JsonObject {
-			["name"] = name,
-			["engine"] = engine,
-			["type"] = type,
-			["speakers"] = speakers,
-		});
+		arr.Add(JSONF.newObject(("name", name), ("engine", engine), ("type", type), ("speakers", speakers)));
 	}
 
 	(float[] samples, int sr, string provider, string model, string voice, int sid, string engine)

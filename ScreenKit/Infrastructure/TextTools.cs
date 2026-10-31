@@ -1,6 +1,5 @@
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -158,32 +157,25 @@ static class TextTools {
 	public static string JsonPretty(string text) {
 		text = (text ?? "").Trim();
 		if (text.Length == 0) return "";
-		using var doc = JsonDocument.Parse(text, new JsonDocumentOptions {
-			AllowTrailingCommas = true,
-			CommentHandling = JsonCommentHandling.Skip,
-		});
+		var doc = JSONF.Parse(text);
 		var sb = new StringBuilder(text.Length + 64);
-		writejson(sb, doc.RootElement, 0);
+		writejson(sb, doc, 0);
 		return sb.ToString();
 	}
 
 	const int JsonCompactMax = 100;
 
-	static readonly JsonSerializerOptions JsonCompactOpt = new() {
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-	};
-
-	static bool jsonleaf(JsonElement el) {
-		if (el.ValueKind == JsonValueKind.Array) {
-			foreach (var x in el.EnumerateArray()) {
-				if (x.ValueKind == JsonValueKind.Object || x.ValueKind == JsonValueKind.Array)
+	static bool jsonleaf(JSONF el) {
+		if (el.IsArray) {
+			foreach (var x in el) {
+				if (x.IsObject || x.IsArray)
 					return false;
 			}
 			return true;
 		}
-		if (el.ValueKind == JsonValueKind.Object) {
-			foreach (var p in el.EnumerateObject()) {
-				if (p.Value.ValueKind == JsonValueKind.Object || p.Value.ValueKind == JsonValueKind.Array)
+		if (el.IsObject) {
+			foreach (var p in el.KeyVals) {
+				if (p.Value.IsObject || p.Value.IsArray)
 					return false;
 			}
 			return true;
@@ -191,11 +183,11 @@ static class TextTools {
 		return true;
 	}
 
-	static string jsoncompact(JsonElement el) =>
-		JsonSerializer.Serialize(el, JsonCompactOpt);
+	static string jsoncompact(JSONF el) =>
+		el.ToJSONString(-1);
 
-	static void writejson(StringBuilder sb, JsonElement el, int depth) {
-		if (el.ValueKind != JsonValueKind.Array && el.ValueKind != JsonValueKind.Object) {
+	static void writejson(StringBuilder sb, JSONF el, int depth) {
+		if (!el.IsArray && !el.IsObject) {
 			sb.Append(jsoncompact(el));
 			return;
 		}
@@ -204,10 +196,10 @@ static class TextTools {
 			sb.Append(compact);
 			return;
 		}
-		if (el.ValueKind == JsonValueKind.Array) {
+		if (el.IsArray) {
 			sb.Append('[');
 			var first = true;
-			foreach (var x in el.EnumerateArray()) {
+			foreach (var x in el) {
 				if (!first) sb.Append(',');
 				first = false;
 				sb.Append('\n');
@@ -223,12 +215,12 @@ static class TextTools {
 		}
 		sb.Append('{');
 		var firstObj = true;
-		foreach (var p in el.EnumerateObject()) {
+		foreach (var p in el.KeyVals) {
 			if (!firstObj) sb.Append(',');
 			firstObj = false;
 			sb.Append('\n');
 			indent(sb, depth + 1);
-			sb.Append(JsonSerializer.Serialize(p.Name, JsonCompactOpt));
+			sb.Append(JSONF.newData(p.Name).ToJSONString(-1));
 			sb.Append(':');
 			writejson(sb, p.Value, depth + 1);
 		}
@@ -285,11 +277,11 @@ static class TextTools {
 		return bytes;
 	}
 
-	public static string JsonField(JsonElement el, params string[] names) {
+	public static string JsonField(JSONF el, params string[] names) {
 		foreach (var n in names) {
-			if (!el.TryGetProperty(n, out var v)) continue;
-			if (v.ValueKind == JsonValueKind.String) return (v.GetString() ?? "").Trim();
-			if (v.ValueKind is JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False)
+			if (!el.tryget(n, out var v)) continue;
+			if (v.IsString) return (v.Value ?? "").Trim();
+			if (v.IsNumber || v.IsTrue || v.IsFalse)
 				return v.ToString().Trim();
 		}
 		return "";

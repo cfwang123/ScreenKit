@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Reflection;
 using System.Windows.Threading;
 using System.IO;
@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -2209,13 +2209,13 @@ static class Cli {
 			var st = Task.Run(() => http.GetStringAsync(baseUrl + "/api/status").GetAwaiter().GetResult())
 				.GetAwaiter().GetResult();
 			Out("status " + (st.Length > 300 ? st.Substring(0, 300) + "…" : st));
-			using (var sd = JsonDocument.Parse(st)) {
-				if (sd.RootElement.GetProperty("code").GetInt32() != 100)
+			{ var sd = JSONF.Parse(st);
+				if (sd.get("code").AsInt != 100)
 					fail("status code");
-				if (!sd.RootElement.GetProperty("data").TryGetProperty("llm_chat", out _))
+				if (!sd.get("data").tryget("llm_chat", out _))
 					fail("status missing llm_chat");
 				else
-					Out("llm_chat=" + sd.RootElement.GetProperty("data").GetProperty("llm_chat"));
+					Out("llm_chat=" + sd.get("data").get("llm_chat"));
 			}
 
 			// 空请求 → 960 或 961
@@ -2224,8 +2224,8 @@ static class Cli {
 				.GetAwaiter().GetResult();
 			var emptyJson = emptyResp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 			Out("empty " + emptyJson);
-			using (var ed = JsonDocument.Parse(emptyJson)) {
-				var code = ed.RootElement.GetProperty("code").GetInt32();
+			{ var ed = JSONF.Parse(emptyJson);
+				var code = ed.get("code").AsInt;
 				if (code is not 960 and not 961)
 					fail("empty expect 960/961 got " + code);
 				else
@@ -2241,19 +2241,19 @@ static class Cli {
 					.GetAwaiter().GetResult();
 				var json = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 				Out("chat " + (json.Length > 500 ? json.Substring(0, 500) + "…" : json));
-				using var cd = JsonDocument.Parse(json);
-				if (cd.RootElement.GetProperty("code").GetInt32() != 100)
+				var cd = JSONF.Parse(json);
+				if (cd.get("code").AsInt != 100)
 					fail("live chat code");
 				else {
-					var data = cd.RootElement.GetProperty("data");
-					var text = data.GetProperty("text").GetString() ?? "";
+					var data = cd.get("data");
+					var text = data.get("text").Value ?? "";
 					if (text.Length == 0) fail("live chat empty text");
 					else Out("reply OK len=" + text.Length);
-					if (data.TryGetProperty("wav_base64", out var b64)
-						&& b64.ValueKind == JsonValueKind.String
-						&& (b64.GetString()?.Length ?? 0) > 100)
+					if (data.tryget("wav_base64", out var b64)
+						&& b64.IsString
+						&& (b64.Value?.Length ?? 0) > 100)
 						Out("tts wav_base64 OK");
-					else if (data.TryGetProperty("tts_error", out var te))
+					else if (data.tryget("tts_error", out var te))
 						Out("tts_error (可接受): " + te);
 					else
 						Out("WARN: no wav_base64");
@@ -2314,16 +2314,16 @@ static class Cli {
 				http.GetStringAsync(baseUrl + "/api/tts/models").GetAwaiter().GetResult())
 				.GetAwaiter().GetResult();
 			Out("models " + (modelsJson.Length > 400 ? modelsJson.Substring(0, 400) + "…" : modelsJson));
-			using var doc = JsonDocument.Parse(modelsJson);
-			if (doc.RootElement.GetProperty("code").GetInt32() != 100)
+			var doc = JSONF.Parse(modelsJson);
+			if (doc.get("code").AsInt != 100)
 				fail("models code != 100");
 			var hasSapi = false;
 			var hasWin = false;
 			var hasEdge = false;
-			if (doc.RootElement.TryGetProperty("data", out var data)
-				&& data.ValueKind == JsonValueKind.Array) {
-				foreach (var m in data.EnumerateArray()) {
-					var eng = m.TryGetProperty("engine", out var e) ? e.GetString() ?? "" : "";
+			if (doc.tryget("data", out var data)
+				&& data.IsArray) {
+				foreach (var m in data) {
+					var eng = m.tryget("engine", out var e) ? e.Value ?? "" : "";
 					if (eng == "sapi") hasSapi = true;
 					if (eng == "winrt") hasWin = true;
 					if (eng == "edge") hasEdge = true;
@@ -2342,27 +2342,27 @@ static class Cli {
 			var again = Task.Run(() =>
 				http.GetStringAsync(baseUrl + "/api/tts/models").GetAwaiter().GetResult())
 				.GetAwaiter().GetResult();
-			using (var againDoc = JsonDocument.Parse(again)) {
-				if (!againDoc.RootElement.TryGetProperty("cached", out var cachedEl) || !cachedEl.GetBoolean())
+			{ var againDoc = JSONF.Parse(again);
+				if (!againDoc.tryget("cached", out var cachedEl) || !cachedEl.AsBool)
 					fail("第二次 /api/tts/models 未用缓存");
 			}
 			var engines = Task.Run(() =>
 				http.GetStringAsync(baseUrl + "/api/tts/engines").GetAwaiter().GetResult())
 				.GetAwaiter().GetResult();
-			using (var engDoc = JsonDocument.Parse(engines)) {
-				if (engDoc.RootElement.GetProperty("code").GetInt32() != 100)
+			{ var engDoc = JSONF.Parse(engines);
+				if (engDoc.get("code").AsInt != 100)
 					fail("engines code != 100");
-				var n = engDoc.RootElement.GetProperty("data").GetArrayLength();
-				if (n != 4) fail("engines 不是 4 个");
+				var n = engDoc.get("data").Count;
+				if (n != 5) fail("engines 不是 5 个");
 			}
 			var one = Task.Run(() =>
 				http.GetStringAsync(baseUrl + "/api/tts/models?engine=edge").GetAwaiter().GetResult())
 				.GetAwaiter().GetResult();
-			using (var oneDoc = JsonDocument.Parse(one)) {
-				if (!oneDoc.RootElement.TryGetProperty("cached", out var oneCached) || !oneCached.GetBoolean())
+			{ var oneDoc = JSONF.Parse(one);
+				if (!oneDoc.tryget("cached", out var oneCached) || !oneCached.AsBool)
 					fail("engine=edge 未走全量缓存");
-				foreach (var m in oneDoc.RootElement.GetProperty("data").EnumerateArray()) {
-					var eng = m.GetProperty("engine").GetString() ?? "";
+				foreach (var m in oneDoc.get("data")) {
+					var eng = m.get("engine").Value ?? "";
 					if (eng != "edge") fail("engine=edge 混入了 " + eng);
 				}
 			}
@@ -2372,15 +2372,15 @@ static class Cli {
 			if (hasEdge) testhttpttspost(http, baseUrl, "edge", fail);
 			if (hasSapi || hasWin) {
 				var fb = httpttspost(http, baseUrl, "{\"text\":\"你好\"}");
-				using var dFb = JsonDocument.Parse(fb);
-				if (dFb.RootElement.GetProperty("code").GetInt32() != 100)
+				var dFb = JSONF.Parse(fb);
+				if (dFb.get("code").AsInt != 100)
 					fail("省略 engine 回落失败 " + fb);
-				else Out("omit engine OK " + dFb.RootElement.GetProperty("data").GetProperty("engine"));
+				else Out("omit engine OK " + dFb.get("data").get("engine"));
 			}
 
 			var unknown = httpttspost(http, baseUrl, "{\"text\":\"hi\",\"engine\":\"nope\"}");
-			using (var d2 = JsonDocument.Parse(unknown)) {
-				if (d2.RootElement.GetProperty("code").GetInt32() != 925)
+			{ var d2 = JSONF.Parse(unknown);
+				if (d2.get("code").AsInt != 925)
 					fail("未知 engine 应为 925 got=" + unknown);
 				else Out("unknown engine 925 OK");
 			}
@@ -2388,23 +2388,23 @@ static class Cli {
 			var devJson = Task.Run(() =>
 				http.GetStringAsync(baseUrl + "/api/tts/devices").GetAwaiter().GetResult())
 				.GetAwaiter().GetResult();
-			using (var devDoc = JsonDocument.Parse(devJson)) {
-				if (devDoc.RootElement.GetProperty("code").GetInt32() != 100)
+			{ var devDoc = JSONF.Parse(devJson);
+				if (devDoc.get("code").AsInt != 100)
 					fail("devices code != 100 " + devJson);
 				else {
-					var dataDev = devDoc.RootElement.GetProperty("data");
-					var nDev = dataDev.GetArrayLength();
+					var dataDev = devDoc.get("data");
+					var nDev = dataDev.Count;
 					Out("devices " + nDev);
 					var badPlay = httppost(http, baseUrl + "/api/tts/speak", "{\"text\":\"hi\",\"play\":\"nope\"}");
-					using (var bp = JsonDocument.Parse(badPlay)) {
-						if (bp.RootElement.GetProperty("code").GetInt32() != 802)
+					{ var bp = JSONF.Parse(badPlay);
+						if (bp.get("code").AsInt != 802)
 							fail("play 非法应为 802 got=" + badPlay);
 						else Out("bad play 802 OK");
 					}
 					var badDev = httppost(http, baseUrl + "/api/tts/speak",
 						"{\"text\":\"hi\",\"play\":\"queue\",\"devices\":[\"__no_such_device__\"]}");
-					using (var bd = JsonDocument.Parse(badDev)) {
-						if (bd.RootElement.GetProperty("code").GetInt32() != 802)
+					{ var bd = JSONF.Parse(badDev);
+						if (bd.get("code").AsInt != 802)
 							fail("未知设备应为 802 got=" + badDev);
 						else Out("bad device 802 OK");
 					}
@@ -2412,32 +2412,32 @@ static class Cli {
 						Out("SKIP speak（无设备或无 SAPI）");
 					else {
 						var ids = new List<string>();
-						foreach (var devEl in dataDev.EnumerateArray()) {
-							ids.Add(devEl.GetProperty("id").GetString() ?? "");
+						foreach (var devEl in dataDev) {
+							ids.Add(devEl.get("id").Value ?? "");
 							if (ids.Count >= 2) break;
 						}
-						var devArr = string.Join(",", ids.Select(s => JsonSerializer.Serialize(s)));
+						var devArr = string.Join(",", ids.Select(s => JSONF.newData(s).ToJSONString(-1)));
 						var qBody = "{\"text\":\"嗯\",\"engine\":\"sapi\",\"play\":\"queue\",\"devices\":[" + devArr + "]}";
 						var spoke = httppost(http, baseUrl + "/api/tts/speak", qBody);
-						using var sp = JsonDocument.Parse(spoke);
-						if (sp.RootElement.GetProperty("code").GetInt32() != 100)
+						var sp = JSONF.Parse(spoke);
+						if (sp.get("code").AsInt != 100)
 							fail("speak queue " + spoke);
 						else {
-							var sd = sp.RootElement.GetProperty("data");
-							if (sd.GetProperty("play").GetString() != "queue")
+							var sd = sp.get("data");
+							if (sd.get("play").Value != "queue")
 								fail("speak play 不是 queue");
-							if (sd.GetProperty("devices").GetArrayLength() != ids.Count)
-								fail("speak 设备数 " + sd.GetProperty("devices").GetArrayLength());
-							else Out("speak queue ahead=" + sd.GetProperty("ahead") + " devs=" + ids.Count);
+							if (sd.get("devices").Count != ids.Count)
+								fail("speak 设备数 " + sd.get("devices").Count);
+							else Out("speak queue ahead=" + sd.get("ahead") + " devs=" + ids.Count);
 						}
 						var nowBody = "{\"text\":\"嗯\",\"engine\":\"sapi\",\"play\":\"now\",\"devices\":[" + devArr + "]}";
 						var cut = httppost(http, baseUrl + "/api/tts/speak", nowBody);
-						using var cutDoc = JsonDocument.Parse(cut);
-						if (cutDoc.RootElement.GetProperty("code").GetInt32() != 100)
+						var cutDoc = JSONF.Parse(cut);
+						if (cutDoc.get("code").AsInt != 100)
 							fail("speak now " + cut);
-						else if (cutDoc.RootElement.GetProperty("data").GetProperty("play").GetString() != "now")
+						else if (cutDoc.get("data").get("play").Value != "now")
 							fail("speak play 不是 now");
-						else if (cutDoc.RootElement.GetProperty("data").GetProperty("ahead").GetInt32() != 0)
+						else if (cutDoc.get("data").get("ahead").AsInt != 0)
 							fail("speak now ahead 不是 0");
 						else Out("speak now OK");
 					}
@@ -2457,20 +2457,20 @@ static class Cli {
 
 	static void testhttpttspost(HttpClient http, string baseUrl, string engine, Action<string> fail) {
 		var json = httpttspost(http, baseUrl, $"{{\"text\":\"你好\",\"engine\":\"{engine}\"}}");
-		using var doc = JsonDocument.Parse(json);
-		var code = doc.RootElement.GetProperty("code").GetInt32();
+		var doc = JSONF.Parse(json);
+		var code = doc.get("code").AsInt;
 		if (code != 100) {
 			fail($"{engine} code={code} {json}");
 			return;
 		}
-		var data = doc.RootElement.GetProperty("data");
-		var b64 = data.GetProperty("wav_base64").GetString() ?? "";
+		var data = doc.get("data");
+		var b64 = data.get("wav_base64").Value ?? "";
 		var wav = Convert.FromBase64String(b64);
 		if (wav.Length < 100 || wav[0] != (byte)'R' || wav[1] != (byte)'I') {
 			fail($"{engine} wav 不是 RIFF len={wav.Length}");
 			return;
 		}
-		Out($"{engine} OK wav={wav.Length} sr={data.GetProperty("sample_rate")} provider={data.GetProperty("provider")}");
+		Out($"{engine} OK wav={wav.Length} sr={data.get("sample_rate").Value} provider={data.get("provider").Value}");
 	}
 
 	static string httpttspost(HttpClient http, string baseUrl, string json) {
@@ -2649,8 +2649,8 @@ static class Cli {
 				Out($"fail file {lines.Length}");
 				return 10;
 			}
-			var first = JsonSerializer.Deserialize<LlmCall>(lines[0]);
-			var last = JsonSerializer.Deserialize<LlmCall>(lines[lines.Length - 1]);
+			var first = JSONF.Parse(lines[0]).ToObject<LlmCall>();
+			var last = JSONF.Parse(lines[lines.Length - 1]).ToObject<LlmCall>();
 			if (first == null || last == null || first.Model != "m5" || last.Model != "m1004") {
 				Out($"fail disk {(first == null ? "" : first.Model)}..{(last == null ? "" : last.Model)}");
 				return 11;
@@ -6525,7 +6525,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var back = DbConnStore.Load(storefile);
 			if (back.Count != 2 || back[1].Name != "远端" || back[1].Kind != SqlTool.Mysql
 				|| DbConnStore.Unprotect(back[1].Secret) != "p@ss" || back[0].File != db) {
-				Err("FAIL: conn store " + back.Count + " " + JsonSerializer.Serialize(back));
+				Err("FAIL: conn store " + back.Count + " " + JSONF.FromObject(back).ToJSONString(-1));
 				bad++;
 			}
 			else Out("conn store: OK");
@@ -6773,7 +6773,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		var e = DictDb.Get(hits[0].Id);
 		var node = DictWeb.EntryNode(e);
 		var word = "";
-		try { if (node?["word"] != null) word = node["word"].GetValue<string>() ?? ""; }
+		try { word = node.Str("word", ""); }
 		catch { word = ""; }
 		if (word.Length == 0) {
 			Out("entry json empty");

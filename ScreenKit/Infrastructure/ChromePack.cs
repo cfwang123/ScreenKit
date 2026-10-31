@@ -3,8 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -587,9 +586,9 @@ static class ChromePack {
 		var json = text.Substring(brace, end - brace + 1);
 		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		try {
-			using var doc = JsonDocument.Parse(json);
-			if (doc.RootElement.ValueKind != JsonValueKind.Object) return set;
-			foreach (var prop in doc.RootElement.EnumerateObject()) {
+			var doc = JSONF.Parse(json);
+			if (!doc.IsObject) return set;
+			foreach (var prop in doc.KeyVals) {
 				var lang = VoiceLang(prop.Name);
 				if (lang.Length == 0) lang = SpeakLang(prop.Name);
 				if (lang.Length > 0) set.Add(lang);
@@ -639,13 +638,13 @@ static class ChromePack {
 		var map = new Dictionary<string, ChromePackItem>(StringComparer.OrdinalIgnoreCase);
 		var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 		if (path == null) return new List<ChromePackItem>();
-		JsonDocument doc;
-		try { doc = JsonDocument.Parse(File.ReadAllText(path)); }
+		JSONF doc;
+		try { doc = JSONF.Parse(File.ReadAllText(path)); }
 		catch { return new List<ChromePackItem>(); }
-		using (doc) {
-			if (doc.RootElement.ValueKind != JsonValueKind.Array) return new List<ChromePackItem>();
-			foreach (var v in doc.RootElement.EnumerateArray()) {
-				var id = v.TryGetProperty("id", out var idEl) ? idEl.GetString() : "";
+		if (!doc.IsArray) return new List<ChromePackItem>();
+		{
+			foreach (var v in doc) {
+				var id = v.tryget("id", out var idEl) ? idEl.Value : "";
 				var lang = VoiceLang(id);
 				if (lang.Length == 0) continue;
 				if (!map.TryGetValue(lang, out var it)) {
@@ -661,7 +660,7 @@ static class ChromePack {
 					};
 					map[lang] = it;
 				}
-				if (v.TryGetProperty("compressedSize", out var sz) && sz.TryGetInt64(out var n))
+				if (v.tryget("compressedSize", out var sz) && sz.trylong(out var n))
 					it.Size += n;
 				if (dependentvoice(v)) continue;
 				var added = speakercount(v);
@@ -689,8 +688,8 @@ static class ChromePack {
 		var path = findvoices();
 		if (path != null) {
 			try {
-				using var doc = JsonDocument.Parse(File.ReadAllText(path));
-				collectspeakers(doc.RootElement, only, list, seen);
+				var doc = JSONF.Parse(File.ReadAllText(path));
+				collectspeakers(doc, only, list, seen);
 			}
 			catch { }
 		}
@@ -698,8 +697,8 @@ static class ChromePack {
 			var text = cmntext();
 			if (text.Length > 0) {
 				try {
-					using var doc = JsonDocument.Parse(text);
-					collectspeakers(doc.RootElement, only, list, seen);
+					var doc = JSONF.Parse(text);
+					collectspeakers(doc, only, list, seen);
 				}
 				catch { }
 			}
@@ -707,35 +706,35 @@ static class ChromePack {
 		return list;
 	}
 
-	static void collectspeakers(JsonElement root, string only, List<(string name, string lang, string gender)> list, HashSet<string> seen) {
-		if (root.ValueKind != JsonValueKind.Array) return;
-		foreach (var v in root.EnumerateArray()) {
+	static void collectspeakers(JSONF root, string only, List<(string name, string lang, string gender)> list, HashSet<string> seen) {
+		if (!root.IsArray) return;
+		foreach (var v in root) {
 			if (dependentvoice(v)) continue;
-			var lang = VoiceLang(v.TryGetProperty("id", out var idEl) ? idEl.GetString() : "");
+			var lang = VoiceLang(v.tryget("id", out var idEl) ? idEl.Value : "");
 			if (lang.Length == 0) continue;
 			if (only != null && !lang.Equals(only, StringComparison.OrdinalIgnoreCase)) continue;
-			if (!v.TryGetProperty("speakers", out var sp) || sp.ValueKind != JsonValueKind.Array) continue;
-			foreach (var s in sp.EnumerateArray()) {
-				var name = s.TryGetProperty("name", out var ne) ? ne.GetString() : "";
+			if (!v.tryget("speakers", out var sp) || !sp.IsArray) continue;
+			foreach (var s in sp) {
+				var name = s.tryget("name", out var ne) ? ne.Value : "";
 				if (string.IsNullOrWhiteSpace(name)) continue;
 				if (!seen.Add(lang + "\n" + name)) continue;
-				var gender = s.TryGetProperty("gender", out var ge) ? ge.GetString() ?? "" : "";
+				var gender = s.tryget("gender", out var ge) ? ge.Value ?? "" : "";
 				list.Add((name, lang, gender));
 			}
 		}
 	}
 
-	static bool dependentvoice(JsonElement v) {
-		return v.TryGetProperty("dependentVoiceId", out var dep)
-			&& dep.ValueKind == JsonValueKind.String
-			&& !string.IsNullOrWhiteSpace(dep.GetString());
+	static bool dependentvoice(JSONF v) {
+		return v.tryget("dependentVoiceId", out var dep)
+			&& dep.IsString
+			&& !string.IsNullOrWhiteSpace(dep.Value);
 	}
 
-	static int speakercount(JsonElement v) {
-		if (!v.TryGetProperty("speakers", out var sp) || sp.ValueKind != JsonValueKind.Array) return 0;
+	static int speakercount(JSONF v) {
+		if (!v.tryget("speakers", out var sp) || !sp.IsArray) return 0;
 		var n = 0;
-		foreach (var s in sp.EnumerateArray()) {
-			var name = s.TryGetProperty("name", out var ne) ? ne.GetString() : "";
+		foreach (var s in sp) {
+			var name = s.tryget("name", out var ne) ? ne.Value : "";
 			if (!string.IsNullOrWhiteSpace(name)) n++;
 		}
 		return n;
@@ -760,8 +759,8 @@ static class ChromePack {
 			if (text.Length == 0) return;
 			var root = Path.Combine(profile, "WasmTtsEngine");
 			if (!Directory.Exists(root)) return;
-			var extra = JsonNode.Parse(text) as JsonArray;
-			if (extra == null) return;
+			var extra = JSONF.Parse(text);
+			if (!extra.IsArray) return;
 			foreach (var dir in Directory.GetDirectories(root)) {
 				var file = Path.Combine(dir, "voices.json");
 				if (!File.Exists(file)) continue;
@@ -792,24 +791,24 @@ static class ChromePack {
 		return cmnjson ?? "";
 	}
 
-	static bool mergevoices(string file, JsonArray extra) {
-		var root = JsonNode.Parse(File.ReadAllText(file)) as JsonArray;
-		if (root == null) return false;
+	static bool mergevoices(string file, JSONF extra) {
+		var root = JSONF.Parse(File.ReadAllText(file));
+		if (!root.IsArray) return false;
 		var have = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		foreach (var n in root) {
-			var id = n?["id"]?.GetValue<string>() ?? "";
+			var id = n.Str("id", "");
 			if (id.Length > 0) have.Add(id);
 		}
 		var added = false;
 		foreach (var n in extra) {
-			var id = n?["id"]?.GetValue<string>() ?? "";
+			var id = n.Str("id", "");
 			if (id.Length == 0 || have.Contains(id)) continue;
-			root.Add(JsonNode.Parse(n.ToJsonString()));
+			root.Add(JSONF.Parse(n.ToJSONString(-1)));
 			have.Add(id);
 			added = true;
 		}
 		if (!added) return false;
-		File.WriteAllText(file, root.ToJsonString(), new UTF8Encoding(false));
+		File.WriteAllText(file, root.ToJSONString(-1), new UTF8Encoding(false));
 		return true;
 	}
 
@@ -828,8 +827,8 @@ static class ChromePack {
 			if (string.IsNullOrWhiteSpace(profile)) return;
 			Directory.CreateDirectory(profile);
 			var path = Path.Combine(profile, "Local State");
-			JsonNode root = File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path)) : new JsonObject();
-			if (root is not JsonObject) root = new JsonObject();
+			JSONF root = File.Exists(path) ? JSONF.Parse(File.ReadAllText(path)) : JSONF.newObject();
+			if (!root.IsObject) root = JSONF.newObject();
 			var settings = child(root, "settings");
 			var a11y = child(settings, "a11y");
 			var read = child(a11y, "read_anything");
@@ -837,14 +836,15 @@ static class ChromePack {
 			var us = (DateTime.UtcNow.AddDays(-20) - epoch).Ticks / 10;
 			read["last_opened_date"] = us.ToString();
 			read["tts_engine_reinstalled"] = false;
-			File.WriteAllText(path, root.ToJsonString(), new UTF8Encoding(false));
+			File.WriteAllText(path, root.ToJSONString(-1), new UTF8Encoding(false));
 		}
 		catch { }
 	}
 
-	static JsonObject child(JsonNode parent, string key) {
-		if (parent[key] is JsonObject obj) return obj;
-		var next = new JsonObject();
+	static JSONF child(JSONF parent, string key) {
+		var obj = parent.get(key);
+		if (obj.IsObject) return obj;
+		var next = JSONF.newObject();
 		parent[key] = next;
 		return next;
 	}
@@ -1131,28 +1131,28 @@ static class ChromePack {
 	static FeatureInstallState statusof(string raw) {
 		if (string.IsNullOrWhiteSpace(raw)) return FeatureInstallState.Missing;
 		try {
-			using var doc = JsonDocument.Parse(raw);
-			if (doc.RootElement.ValueKind == JsonValueKind.Object) {
-				var status = fieldstatus(doc.RootElement);
+			var doc = JSONF.Parse(raw);
+			if (doc.IsObject) {
+				var status = fieldstatus(doc);
 				if (status.Length > 0) return PackState(status);
-				if (doc.RootElement.TryGetProperty("error", out var e) && e.ValueKind == JsonValueKind.String) {
-					var msg = e.GetString();
+				if (doc.tryget("error", out var e) && e.IsString) {
+					var msg = e.Value;
 					if (!string.IsNullOrWhiteSpace(msg))
 						throw new InvalidOperationException(msg);
 				}
 			}
 		}
-		catch (JsonException) { }
 		catch (InvalidOperationException) { throw; }
+		catch { }
 		return PackState(raw);
 	}
 
-	static string fieldstatus(JsonElement el) {
+	static string fieldstatus(JSONF el) {
 		var status = "";
-		if (el.TryGetProperty("status", out var s) && s.ValueKind == JsonValueKind.String)
-			status = s.GetString() ?? "";
-		if (status.Length == 0 && el.TryGetProperty("installStatus", out var i) && i.ValueKind == JsonValueKind.String)
-			status = i.GetString() ?? "";
+		if (el.tryget("status", out var s) && s.IsString)
+			status = s.Value ?? "";
+		if (status.Length == 0 && el.tryget("installStatus", out var i) && i.IsString)
+			status = i.Value ?? "";
 		return status;
 	}
 
@@ -1258,14 +1258,14 @@ static class ChromePack {
 		total = 0;
 		if (string.IsNullOrWhiteSpace(raw)) return false;
 		try {
-			using var doc = JsonDocument.Parse(raw);
-			var root = doc.RootElement;
-			if (root.TryGetProperty("p", out var pv) && pv.TryGetDouble(out var d)) p = d;
-			seen = root.TryGetProperty("seen", out var sv) && sv.ValueKind == JsonValueKind.True;
-			done = root.TryGetProperty("done", out var dv) && dv.ValueKind == JsonValueKind.True;
-			if (root.TryGetProperty("err", out var ev) && ev.ValueKind == JsonValueKind.String) err = ev.GetString() ?? "";
-			if (root.TryGetProperty("loaded", out var lv) && lv.TryGetDouble(out var ld)) loaded = ld;
-			if (root.TryGetProperty("total", out var tv) && tv.TryGetDouble(out var td)) total = td;
+			var doc = JSONF.Parse(raw);
+			var root = doc;
+			if (root.tryget("p", out var pv) && pv.trydouble(out var d)) p = d;
+			seen = root.tryget("seen", out var sv) && sv.IsTrue;
+			done = root.tryget("done", out var dv) && dv.IsTrue;
+			if (root.tryget("err", out var ev) && ev.IsString) err = ev.Value ?? "";
+			if (root.tryget("loaded", out var lv) && lv.trydouble(out var ld)) loaded = ld;
+			if (root.tryget("total", out var tv) && tv.trydouble(out var td)) total = td;
 			return true;
 		}
 		catch { return false; }
@@ -1277,11 +1277,11 @@ static class ChromePack {
 		body = "";
 		if (string.IsNullOrWhiteSpace(raw)) return false;
 		try {
-			using var doc = JsonDocument.Parse(raw);
-			var root = doc.RootElement;
-			done = root.TryGetProperty("done", out var dv) && dv.ValueKind == JsonValueKind.True;
-			if (root.TryGetProperty("err", out var ev) && ev.ValueKind == JsonValueKind.String) err = ev.GetString() ?? "";
-			if (root.TryGetProperty("raw", out var rv) && rv.ValueKind == JsonValueKind.String) body = rv.GetString() ?? "";
+			var doc = JSONF.Parse(raw);
+			var root = doc;
+			done = root.tryget("done", out var dv) && dv.IsTrue;
+			if (root.tryget("err", out var ev) && ev.IsString) err = ev.Value ?? "";
+			if (root.tryget("raw", out var rv) && rv.IsString) body = rv.Value ?? "";
 			return true;
 		}
 		catch { return false; }
@@ -1438,12 +1438,12 @@ return 'started';
 			using (var resp = req.GetResponse())
 			using (var rd = new StreamReader(resp.GetResponseStream()))
 				text = rd.ReadToEnd();
-			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(text) ? "[]" : text);
-			if (doc.RootElement.ValueKind != JsonValueKind.Array) return best;
-			foreach (var el in doc.RootElement.EnumerateArray()) {
-				var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
+			var doc = JSONF.Parse(string.IsNullOrWhiteSpace(text) ? "[]" : text);
+			if (!doc.IsArray) return best;
+			foreach (var el in doc) {
+				var url = el.tryget("url", out var u) ? u.Value : "";
 				if ((url ?? "").IndexOf(mark, StringComparison.OrdinalIgnoreCase) < 0) continue;
-				var ws = el.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
+				var ws = el.tryget("webSocketDebuggerUrl", out var w) ? w.Value : "";
 				if (string.IsNullOrEmpty(ws)) continue;
 				Sock sock = null;
 				try {
@@ -1661,7 +1661,7 @@ return 'started';
 			try {
 				page = connect("page", "boot.html") ?? connect("page", "voice");
 				if (page == null) return;
-				page.Eval("document.title=" + JsonSerializer.Serialize(title), false, 2000, ct);
+				page.Eval("document.title=" + JSONF.newData(title).ToJSONString(-1), false, 2000, ct);
 			}
 			catch { }
 			finally { try { page?.Dispose(); } catch { } }
@@ -1871,9 +1871,9 @@ return 'started';
 				req.Timeout = 4000;
 				using var resp = req.GetResponse();
 				using var rd = new StreamReader(resp.GetResponseStream());
-				using var doc = JsonDocument.Parse(rd.ReadToEnd());
-				foreach (var el in doc.RootElement.EnumerateArray()) {
-					var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
+				var doc = JSONF.Parse(rd.ReadToEnd());
+				foreach (var el in doc) {
+					var url = el.tryget("url", out var u) ? u.Value : "";
 					if ((url ?? "").IndexOf(TTS_EXT, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 					if ((url ?? "").IndexOf(TTS_EXT_OLD, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 				}
@@ -2038,8 +2038,8 @@ return 'started';
 				req.Timeout = 4000;
 				using var resp = req.GetResponse();
 				using var rd = new StreamReader(resp.GetResponseStream());
-				using var doc = JsonDocument.Parse(rd.ReadToEnd());
-				return doc.RootElement.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
+				var doc = JSONF.Parse(rd.ReadToEnd());
+				return doc.tryget("webSocketDebuggerUrl", out var w) ? w.Value : "";
 			}
 			catch { return ""; }
 		}
@@ -2054,15 +2054,15 @@ return 'started';
 			var expr = "(async function(){var langs=" + arr + ";" + VOICEASK + STATUS + "})()";
 			var raw = EvalExt(expr, true, 300000, ct);
 			var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(raw) ? "[]" : raw);
-			if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("error", out var err))
-				throw new InvalidOperationException(err.GetString());
-			if (doc.RootElement.ValueKind != JsonValueKind.Array) return map;
-			foreach (var el in doc.RootElement.EnumerateArray()) {
-				var lang = el.TryGetProperty("lang", out var l) ? l.GetString() : "";
+			var doc = JSONF.Parse(string.IsNullOrWhiteSpace(raw) ? "[]" : raw);
+			if (doc.IsObject && doc.tryget("error", out var err))
+				throw new InvalidOperationException(err.Value);
+			if (!doc.IsArray) return map;
+			foreach (var el in doc) {
+				var lang = el.tryget("lang", out var l) ? l.Value : "";
 				var st = fieldstatus(el);
-				if (st.Length == 0 && el.TryGetProperty("error", out var errEl) && errEl.ValueKind == JsonValueKind.String)
-					st = errEl.GetString() ?? "";
+				if (st.Length == 0 && el.tryget("error", out var errEl) && errEl.IsString)
+					st = errEl.Value ?? "";
 				if (!string.IsNullOrEmpty(lang)) map[lang] = st ?? "";
 			}
 			return map;
@@ -2095,11 +2095,11 @@ return JSON.stringify(out);
 			req.Timeout = 4000;
 			using var resp = req.GetResponse();
 			using var rd = new StreamReader(resp.GetResponseStream());
-			using var doc = JsonDocument.Parse(rd.ReadToEnd());
-			foreach (var el in doc.RootElement.EnumerateArray()) {
-				var ty = el.TryGetProperty("type", out var t) ? t.GetString() : "";
-				var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
-				var ws = el.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
+			var doc = JSONF.Parse(rd.ReadToEnd());
+			foreach (var el in doc) {
+				var ty = el.tryget("type", out var t) ? t.Value : "";
+				var url = el.tryget("url", out var u) ? u.Value : "";
+				var ws = el.tryget("webSocketDebuggerUrl", out var w) ? w.Value : "";
 				if (ty != "background_page" || string.IsNullOrEmpty(ws) || string.IsNullOrEmpty(url)) continue;
 				if (url.IndexOf("offscreen", StringComparison.OrdinalIgnoreCase) >= 0) continue;
 				if (url.IndexOf("hangout", StringComparison.OrdinalIgnoreCase) >= 0) continue;
@@ -2119,11 +2119,11 @@ return JSON.stringify(out);
 			req.Timeout = 4000;
 			using var resp = req.GetResponse();
 			using var rd = new StreamReader(resp.GetResponseStream());
-			using var doc = JsonDocument.Parse(rd.ReadToEnd());
-			foreach (var el in doc.RootElement.EnumerateArray()) {
-				var ty = el.TryGetProperty("type", out var t) ? t.GetString() : "";
-				var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
-				var ws = el.TryGetProperty("webSocketDebuggerUrl", out var w) ? w.GetString() : "";
+			var doc = JSONF.Parse(rd.ReadToEnd());
+			foreach (var el in doc) {
+				var ty = el.tryget("type", out var t) ? t.Value : "";
+				var url = el.tryget("url", out var u) ? u.Value : "";
+				var ws = el.tryget("webSocketDebuggerUrl", out var w) ? w.Value : "";
 				if (string.IsNullOrEmpty(ws)) continue;
 				if (!anyType && ty != type) continue;
 				if ((url ?? "").IndexOf(urlPart, StringComparison.OrdinalIgnoreCase) < 0) continue;
@@ -2261,7 +2261,7 @@ return JSON.stringify(out);
 
 		public string Eval(string expr, bool wait, int ms, CancellationToken ct) {
 			var id = ++seq;
-			var payload = JsonSerializer.Serialize(new Dictionary<string, object> {
+			var payload = JSONF.FromObject(new Dictionary<string, object> {
 				["id"] = id,
 				["method"] = "Runtime.evaluate",
 				["params"] = new Dictionary<string, object> {
@@ -2270,7 +2270,7 @@ return JSON.stringify(out);
 					["awaitPromise"] = wait,
 					["userGesture"] = true,
 				},
-			});
+			}).ToJSONString(-1);
 			send(payload);
 			var start = Environment.TickCount;
 			while (unchecked(Environment.TickCount - start) < ms) {
@@ -2280,18 +2280,18 @@ return JSON.stringify(out);
 				if (left < 50) left = 50;
 				var msg = recv(left);
 				if (msg == null) continue;
-				using var doc = JsonDocument.Parse(msg);
-				if (!matchid(doc.RootElement, id)) {
+				var doc = JSONF.Parse(msg);
+				if (!matchid(doc, id)) {
 					note(msg);
 					continue;
 				}
-				if (doc.RootElement.TryGetProperty("error", out var err))
+				if (doc.tryget("error", out var err))
 					throw new InvalidOperationException(err.ToString());
-				if (!doc.RootElement.TryGetProperty("result", out var result)) return "";
-				if (result.TryGetProperty("exceptionDetails", out var ex))
+				if (!doc.tryget("result", out var result)) return "";
+				if (result.tryget("exceptionDetails", out var ex))
 					throw new InvalidOperationException(ex.ToString());
-				if (result.TryGetProperty("result", out var inner) && inner.TryGetProperty("value", out var val)) {
-					if (val.ValueKind == JsonValueKind.String) return val.GetString() ?? "";
+				if (result.tryget("result", out var inner) && inner.tryget("value", out var val)) {
+					if (val.IsString) return val.Value ?? "";
 					return val.ToString();
 				}
 				return "";
@@ -2303,12 +2303,8 @@ return JSON.stringify(out);
 
 		public void Call(string method, string paramsJson, CancellationToken ct) {
 			var id = ++seq;
-			var node = new JsonObject {
-				["id"] = id,
-				["method"] = method ?? "",
-				["params"] = JsonNode.Parse(string.IsNullOrWhiteSpace(paramsJson) ? "{}" : paramsJson),
-			};
-			send(node.ToJsonString());
+			var node = JSONF.newObject(("id", id), ("method", method ?? ""), ("params", JSONF.Parse(string.IsNullOrWhiteSpace(paramsJson) ? "{}" : paramsJson)));
+			send(node.ToJSONString(-1));
 			var start = Environment.TickCount;
 			while (unchecked(Environment.TickCount - start) < 8000) {
 				ct.ThrowIfCancellationRequested();
@@ -2317,12 +2313,12 @@ return JSON.stringify(out);
 				if (left < 50) left = 50;
 				var msg = recv(left);
 				if (msg == null) continue;
-				using var doc = JsonDocument.Parse(msg);
-				if (!matchid(doc.RootElement, id)) {
+				var doc = JSONF.Parse(msg);
+				if (!matchid(doc, id)) {
 					note(msg);
 					continue;
 				}
-				if (doc.RootElement.TryGetProperty("error", out var err))
+				if (doc.tryget("error", out var err))
 					throw new InvalidOperationException(err.ToString());
 				return;
 			}
@@ -2385,28 +2381,28 @@ return JSON.stringify(out);
 			full = false;
 		}
 
-		static bool matchid(JsonElement root, int id) {
-			if (!root.TryGetProperty("id", out var idEl) || idEl.ValueKind != JsonValueKind.Number) return false;
-			return idEl.TryGetInt32(out var n) && n == id;
+		static bool matchid(JSONF root, int id) {
+			if (!root.tryget("id", out var idEl) || !idEl.IsNumber) return false;
+			return idEl.tryint(out var n) && n == id;
 		}
 
 		void note(string msg) {
 			try {
-				using var doc = JsonDocument.Parse(msg);
-				var root = doc.RootElement;
-				if (!root.TryGetProperty("method", out var methodEl) || methodEl.ValueKind != JsonValueKind.String) return;
-				var method = methodEl.GetString() ?? "";
-				if (!root.TryGetProperty("params", out var p) || p.ValueKind != JsonValueKind.Object) return;
+				var doc = JSONF.Parse(msg);
+				var root = doc;
+				if (!root.tryget("method", out var methodEl) || !methodEl.IsString) return;
+				var method = methodEl.Value ?? "";
+				if (!root.tryget("params", out var p) || !p.IsObject) return;
 				if (method == "Network.requestWillBeSent") {
 					var id = reqid(p);
-					var url = p.TryGetProperty("request", out var req) ? text(req, "url") : "";
+					var url = p.tryget("request", out var req) ? text(req, "url") : "";
 					if (id.Length > 0 && packurl(url)) watch.Add(id);
 					return;
 				}
 				if (method == "Network.responseReceived" || method == "Network.responseReceivedExtraInfo") {
 					var id = reqid(p);
 					var url = "";
-					if (p.TryGetProperty("response", out var resp)) url = text(resp, "url");
+					if (p.tryget("response", out var resp)) url = text(resp, "url");
 					if (id.Length > 0 && url.Length > 0 && !packurl(url)) {
 						watch.Remove(id);
 						reqgot.Remove(id);
@@ -2455,7 +2451,7 @@ return JSON.stringify(out);
 					return;
 				}
 				if (method != "Runtime.consoleAPICalled" && method != "Runtime.exceptionThrown") return;
-				var line = method == "Runtime.consoleAPICalled" ? consoletext(p) : p.GetRawText();
+				var line = method == "Runtime.consoleAPICalled" ? consoletext(p) : p.ToJSONString(-1);
 				var low = line.ToLowerInvariant();
 				if (!low.Contains("download") && !low.Contains("install") && !line.Contains("下载") && !line.Contains("安装") && !low.Contains("progress"))
 					return;
@@ -2482,15 +2478,15 @@ return JSON.stringify(out);
 			reqtotal[id] = n;
 		}
 
-		static string text(JsonElement el, string name) {
-			if (!el.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.String) return "";
-			return v.GetString() ?? "";
+		static string text(JSONF el, string name) {
+			if (!el.tryget(name, out var v) || !v.IsString) return "";
+			return v.Value ?? "";
 		}
 
-		static string reqid(JsonElement p) {
-			if (!p.TryGetProperty("requestId", out var v)) return "";
-			if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
-			if (v.ValueKind == JsonValueKind.Number) return v.ToString();
+		static string reqid(JSONF p) {
+			if (!p.tryget("requestId", out var v)) return "";
+			if (v.IsString) return v.Value ?? "";
+			if (v.IsNumber) return v.ToString();
 			return "";
 		}
 
@@ -2501,56 +2497,56 @@ return JSON.stringify(out);
 				|| s.Contains("edgedl") || s.Contains("dl.google.") || s.Contains("update2/crx") || s.Contains("clients2.google.");
 		}
 
-		static long jsonlong(JsonElement el, string name) {
-			if (!el.TryGetProperty(name, out var v)) return 0;
-			if (v.ValueKind == JsonValueKind.Number) {
-				if (v.TryGetInt64(out var n)) return n;
-				if (v.TryGetDouble(out var d)) return (long)d;
+		static long jsonlong(JSONF el, string name) {
+			if (!el.tryget(name, out var v)) return 0;
+			if (v.IsNumber) {
+				if (v.trylong(out var n)) return n;
+				if (v.trydouble(out var d)) return (long)d;
 			}
-			if (v.ValueKind == JsonValueKind.String && long.TryParse(v.GetString(), out var s)) return s;
+			if (v.IsString && long.TryParse(v.Value, out var s)) return s;
 			return 0;
 		}
 
-		static long contentlen(JsonElement p) {
-			if (p.TryGetProperty("response", out var resp) && resp.ValueKind == JsonValueKind.Object && resp.TryGetProperty("headers", out var headers)) {
+		static long contentlen(JSONF p) {
+			if (p.tryget("response", out var resp) && resp.IsObject && resp.tryget("headers", out var headers)) {
 				var n = headerlen(headers);
 				if (n > 0) return n;
 			}
-			if (p.TryGetProperty("headers", out var extra)) return headerlen(extra);
+			if (p.tryget("headers", out var extra)) return headerlen(extra);
 			return 0;
 		}
 
-		static long headerlen(JsonElement headers) {
-			if (headers.ValueKind == JsonValueKind.Object) {
-				foreach (var h in headers.EnumerateObject()) {
+		static long headerlen(JSONF headers) {
+			if (headers.IsObject) {
+				foreach (var h in headers.KeyVals) {
 					if (!h.Name.Equals("content-length", StringComparison.OrdinalIgnoreCase)) continue;
-					if (h.Value.ValueKind == JsonValueKind.String && long.TryParse(h.Value.GetString(), out var n)) return n;
-					if (h.Value.ValueKind == JsonValueKind.Number && h.Value.TryGetInt64(out var n2)) return n2;
+					if (h.Value.IsString && long.TryParse(h.Value.Value, out var n)) return n;
+					if (h.Value.IsNumber && h.Value.trylong(out var n2)) return n2;
 				}
 			}
-			if (headers.ValueKind == JsonValueKind.Array) {
-				foreach (var el in headers.EnumerateArray()) {
+			if (headers.IsArray) {
+				foreach (var el in headers) {
 					var name = text(el, "name");
 					if (!name.Equals("content-length", StringComparison.OrdinalIgnoreCase)) continue;
-					if (!el.TryGetProperty("value", out var val)) continue;
-					if (val.ValueKind == JsonValueKind.String && long.TryParse(val.GetString(), out var n)) return n;
-					if (val.ValueKind == JsonValueKind.Number && val.TryGetInt64(out var n2)) return n2;
+					if (!el.tryget("value", out var val)) continue;
+					if (val.IsString && long.TryParse(val.Value, out var n)) return n;
+					if (val.IsNumber && val.trylong(out var n2)) return n2;
 				}
 			}
 			return 0;
 		}
 
-		static string consoletext(JsonElement p) {
-			if (!p.TryGetProperty("args", out var args) || args.ValueKind != JsonValueKind.Array) return "";
+		static string consoletext(JSONF p) {
+			if (!p.tryget("args", out var args) || !args.IsArray) return "";
 			var sb = new StringBuilder();
-			foreach (var a in args.EnumerateArray()) {
+			foreach (var a in args) {
 				if (sb.Length > 0) sb.Append(' ');
-				if (a.TryGetProperty("value", out var v)) {
-					if (v.ValueKind == JsonValueKind.String) sb.Append(v.GetString());
+				if (a.tryget("value", out var v)) {
+					if (v.IsString) sb.Append(v.Value);
 					else sb.Append(v.ToString());
 				}
-				else if (a.TryGetProperty("description", out var d) && d.ValueKind == JsonValueKind.String)
-					sb.Append(d.GetString());
+				else if (a.tryget("description", out var d) && d.IsString)
+					sb.Append(d.Value);
 			}
 			return sb.ToString();
 		}

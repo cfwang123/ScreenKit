@@ -1,7 +1,6 @@
 using System.IO;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -108,12 +107,6 @@ sealed class PdfOcrProject {
 	[JsonIgnore]
 	public bool Dirty { get; set; }
 
-	static readonly JsonSerializerOptions JsonOpt = new() {
-		WriteIndented = true,
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-	};
-
 	public string FullText() {
 		var sb = new StringBuilder();
 		for (int i = 0; i < Pages.Count; i++) {
@@ -167,7 +160,7 @@ sealed class PdfOcrProject {
 			else
 				p.ImageFile = p.ImageFile.Replace('\\', '/');
 		}
-		var json = JsonSerializer.Serialize(this, JsonOpt);
+		var json = JSONF.FromObject(this, skipNull: true, camel: true).ToJSONString(0);
 		File.WriteAllText(Path.Combine(DraftDir, "project.json"), json, new UTF8Encoding(false));
 		Dirty = false;
 	}
@@ -179,7 +172,7 @@ sealed class PdfOcrProject {
 		if (!File.Exists(jsonPath))
 			throw new FileNotFoundException("缺少 project.json", jsonPath);
 		var json = File.ReadAllText(jsonPath, Encoding.UTF8);
-		var proj = JsonSerializer.Deserialize<PdfOcrProject>(json, JsonOpt)
+		var proj = JSONF.Parse(json).ToObject<PdfOcrProject>()
 			?? throw new InvalidOperationException("草稿损坏");
 		proj.DraftDir = dir;
 		proj.Pages ??= new List<PdfPageEdit>();

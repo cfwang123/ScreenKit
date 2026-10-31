@@ -1,4 +1,4 @@
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -48,10 +48,10 @@ sealed class MarianTokenizer {
 
 		Dictionary<string, int> map;
 		using (var fs = File.OpenRead(vocabPath))
-		using (var doc = JsonDocument.Parse(fs)) {
+		{ var doc = JSONF.Parse(fs);
 			map = new Dictionary<string, int>(StringComparer.Ordinal);
-			foreach (var p in doc.RootElement.EnumerateObject())
-				map[p.Name] = p.Value.GetInt32();
+			foreach (var p in doc.KeyVals)
+				map[p.Name] = p.Value.AsInt;
 		}
 
 		var maxId = 0;

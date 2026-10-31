@@ -1,5 +1,5 @@
 using System.IO;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -87,10 +87,10 @@ static class TtsModelScanner {
 			foreach (var jf in Directory.GetFiles(dir, "*.json")) {
 				try {
 					using var fs = File.OpenRead(jf);
-					using var doc = JsonDocument.Parse(fs);
-					if (!doc.RootElement.TryGetProperty("speakers", out var spk)) continue;
-					foreach (var kv in spk.EnumerateObject()) {
-						var sp = new TtsSpeakerInfo { Name = kv.Name, Id = kv.Value.GetInt32() };
+					var doc = JSONF.Parse(fs);
+					if (!doc.tryget("speakers", out var spk)) continue;
+					foreach (var kv in spk.KeyVals) {
+						var sp = new TtsSpeakerInfo { Name = kv.Name, Id = kv.Value.AsInt };
 						if (TtsSpeakerInfo.ZhLlNames.TryGetValue(kv.Name, out var cn))
 							sp.ChineseName = cn;
 						// 继承模型语言（配置可覆盖）
@@ -216,38 +216,38 @@ static class TtsModelScanner {
 		if (!File.Exists(path)) return;
 		try {
 			using var fs = File.OpenRead(path);
-			using var doc = JsonDocument.Parse(fs);
-			if (doc.RootElement.ValueKind != JsonValueKind.Object) return;
+			var doc = JSONF.Parse(fs);
+			if (!doc.IsObject) return;
 
 			foreach (var m in models) {
 				var key = m.DisplayName;
 				if (string.IsNullOrEmpty(key)) continue;
-				if (!doc.RootElement.TryGetProperty(key, out var entry)) continue;
-				if (entry.ValueKind != JsonValueKind.Object) continue;
+				if (!doc.tryget(key, out var entry)) continue;
+				if (!entry.IsObject) continue;
 
-				if (entry.TryGetProperty("volume", out var volEl)
-					&& volEl.ValueKind == JsonValueKind.Number) {
-					var v = volEl.GetSingle();
+				if (entry.tryget("volume", out var volEl)
+					&& volEl.IsNumber) {
+					var v = volEl.AsFloat;
 					if (v > 0 && !float.IsNaN(v) && !float.IsInfinity(v))
 						m.Volume = Compat.Clamp(v, 0.05f, 16f);
 				}
 
-				if (entry.TryGetProperty("lang", out var langEl)
-					&& langEl.ValueKind == JsonValueKind.String) {
-					var lg = langEl.GetString() ?? "";
+				if (entry.tryget("lang", out var langEl)
+					&& langEl.IsString) {
+					var lg = langEl.Value ?? "";
 					if (!string.IsNullOrWhiteSpace(lg))
 						m.Lang = lg.Trim();
 				}
 
-				if (entry.TryGetProperty("gender", out var genEl)
-					&& genEl.ValueKind == JsonValueKind.String) {
-					var g = TtsGender.Normalize(genEl.GetString());
+				if (entry.tryget("gender", out var genEl)
+					&& genEl.IsString) {
+					var g = TtsGender.Normalize(genEl.Value);
 					if (!string.IsNullOrEmpty(g))
 						m.Gender = g;
 				}
 
-				if (entry.TryGetProperty("speakers", out var spkEl)
-					&& spkEl.ValueKind == JsonValueKind.Object
+				if (entry.tryget("speakers", out var spkEl)
+					&& spkEl.IsObject
 					&& m.Speakers != null) {
 					// 1) 更新已有发音人
 					foreach (var sp in m.Speakers)
@@ -263,13 +263,13 @@ static class TtsModelScanner {
 	}
 
 	/// <summary>把 tts_config 里的 speakers 键并入模型（缺则新增）。</summary>
-	static void mergespeakersfromconfig(TtsModelInfo m, JsonElement spkEl) {
+	static void mergespeakersfromconfig(TtsModelInfo m, JSONF spkEl) {
 		var defLang = "";
 		if (!string.IsNullOrEmpty(m.Lang)) {
 			var parts = m.Lang.Split(new[] { ',', '/', '|', '+' }, StringSplitOptions.RemoveEmptyEntries);
 			if (parts.Length > 0) defLang = TtsLang.Normalize(parts[0]);
 		}
-		foreach (var prop in spkEl.EnumerateObject()) {
+		foreach (var prop in spkEl.KeyVals) {
 			var key = prop.Name;
 			// 已有同名
 			if (m.Speakers.Any(s => string.Equals(s.Name, key, StringComparison.OrdinalIgnoreCase)))
@@ -280,10 +280,10 @@ static class TtsModelScanner {
 				&& int.TryParse(key.Substring("speaker".Length), out var sid))
 				id = sid;
 			// 对象内 id
-			if (id < 0 && prop.Value.ValueKind == JsonValueKind.Object
-				&& prop.Value.TryGetProperty("id", out var idEl)
-				&& idEl.ValueKind == JsonValueKind.Number)
-				id = idEl.GetInt32();
+			if (id < 0 && prop.Value.IsObject
+				&& prop.Value.tryget("id", out var idEl)
+				&& idEl.IsNumber)
+				id = idEl.AsInt;
 			// 已有同 Id（仅当能解析出 id）
 			if (id >= 0 && m.Speakers.Any(s => s.Id == id)) {
 				// 已存在：更新属性；「默认」改成配置键名
@@ -324,7 +324,7 @@ static class TtsModelScanner {
 		m.Speakers.Sort((a, b) => a.Id.CompareTo(b.Id));
 	}
 
-	static void applyspeakerentry(TtsSpeakerInfo sp, JsonElement spkEl) {
+	static void applyspeakerentry(TtsSpeakerInfo sp, JSONF spkEl) {
 		// 按 Name 或 speaker{id}
 		if (!trygetspeaker(spkEl, sp.Name, out var node)
 			&& !trygetspeaker(spkEl, "speaker" + sp.Id, out node))
@@ -332,28 +332,28 @@ static class TtsModelScanner {
 		applyspeakernode(sp, node);
 	}
 
-	static void applyspeakernode(TtsSpeakerInfo sp, JsonElement node) {
-		if (node.ValueKind == JsonValueKind.String) {
-			sp.ChineseName = node.GetString() ?? "";
+	static void applyspeakernode(TtsSpeakerInfo sp, JSONF node) {
+		if (node.IsString) {
+			sp.ChineseName = node.Value ?? "";
 			var inferred = TtsGender.InferFromText(sp.ChineseName);
 			if (!string.IsNullOrEmpty(inferred))
 				sp.Gender = inferred;
 			return;
 		}
 
-		if (node.ValueKind != JsonValueKind.Object) return;
+		if (!node.IsObject) return;
 
-		if (node.TryGetProperty("name", out var nameEl) && nameEl.ValueKind == JsonValueKind.String)
-			sp.ChineseName = nameEl.GetString() ?? "";
-		else if (node.TryGetProperty("cn", out nameEl) && nameEl.ValueKind == JsonValueKind.String)
-			sp.ChineseName = nameEl.GetString() ?? "";
-		else if (node.TryGetProperty("label", out nameEl) && nameEl.ValueKind == JsonValueKind.String)
-			sp.ChineseName = nameEl.GetString() ?? "";
+		if (node.tryget("name", out var nameEl) && nameEl.IsString)
+			sp.ChineseName = nameEl.Value ?? "";
+		else if (node.tryget("cn", out nameEl) && nameEl.IsString)
+			sp.ChineseName = nameEl.Value ?? "";
+		else if (node.tryget("label", out nameEl) && nameEl.IsString)
+			sp.ChineseName = nameEl.Value ?? "";
 
-		if (node.TryGetProperty("lang", out var le) && le.ValueKind == JsonValueKind.String)
-			sp.Lang = TtsLang.Normalize(le.GetString());
-		if (node.TryGetProperty("gender", out var ge) && ge.ValueKind == JsonValueKind.String)
-			sp.Gender = TtsGender.Normalize(ge.GetString());
+		if (node.tryget("lang", out var le) && le.IsString)
+			sp.Lang = TtsLang.Normalize(le.Value);
+		if (node.tryget("gender", out var ge) && ge.IsString)
+			sp.Gender = TtsGender.Normalize(ge.Value);
 
 		// 仅 name 时再从文案推断性别
 		if (string.IsNullOrEmpty(sp.Gender)) {
@@ -363,9 +363,9 @@ static class TtsModelScanner {
 		}
 	}
 
-	static bool trygetspeaker(JsonElement spkEl, string key, out JsonElement node) {
+	static bool trygetspeaker(JSONF spkEl, string key, out JSONF node) {
 		node = default;
 		if (string.IsNullOrEmpty(key)) return false;
-		return spkEl.TryGetProperty(key, out node);
+		return spkEl.tryget(key, out node);
 	}
 }

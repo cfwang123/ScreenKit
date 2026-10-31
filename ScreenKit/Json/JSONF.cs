@@ -2,10 +2,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace ScreenKit.Json;
+
+/// <summary>标了这个特性的属性或字段不参与 FromObject / ToObject。</summary>
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public sealed class JsonIgnoreAttribute : Attribute { }
 
 // 从 Helper3 的 JSONF.cs 移植。保留宽松解析：键可以不带引号，允许 // 和 /* */ 注释。
 // 词典的紧凑词条就是这种写法，标准 JSON 解析器读不了。
@@ -435,6 +440,94 @@ public struct JSONF : IEnumerable<JSONF> {
 
 	public bool ContainsKey(string key) => Oval is JsonMap<string, JSONF> map && map.ContainsKey(key);
 
+	/// <summary>写一个键并返回自身，便于链式拼对象。</summary>
+	public JSONF Set(string key, JSONF value) {
+		if (Type == NodeType.Object) this[key] = value;
+		return this;
+	}
+
+	/// <summary>追加一项并返回自身，便于链式拼数组。</summary>
+	public JSONF Push(JSONF value) {
+		if (Type == NodeType.Array) Add(value);
+		return this;
+	}
+
+	public bool IsString => Type == NodeType.String;
+	public bool IsNumber => Type is NodeType.Int or NodeType.Long or NodeType.Float or NodeType.Double or NodeType.Decimal;
+	public bool IsBool => Type == NodeType.Bool;
+	public bool IsTrue => Type == NodeType.Bool && Val.BoolVal;
+	public bool IsFalse => Type == NodeType.Bool && !Val.BoolVal;
+
+	/// <summary>取子项；不存在返回 false，value 为未定义节点。</summary>
+	public bool tryget(string key, out JSONF value) {
+		if (Oval is JsonMap<string, JSONF> map && map.TryGetValue(key, out value)) return true;
+		value = default;
+		return false;
+	}
+
+	public bool tryget(int index, out JSONF value) {
+		if (Oval is JsonList<JSONF> arr && index >= 0 && index < arr.Count) {
+			value = arr[index];
+			return true;
+		}
+		value = default;
+		return false;
+	}
+
+	/// <summary>按整数取值；非数字返回 false。</summary>
+	public bool tryint(out int value) {
+		value = 0;
+		if (Type == NodeType.String)
+			return int.TryParse((string)Oval, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+		if (!IsNumber) return false;
+		value = AsInt;
+		return true;
+	}
+
+	public bool trylong(out long value) {
+		value = 0;
+		if (Type == NodeType.String)
+			return long.TryParse((string)Oval, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+		if (!IsNumber) return false;
+		value = AsLong;
+		return true;
+	}
+
+	public bool trydouble(out double value) {
+		value = 0;
+		if (Type == NodeType.String)
+			return double.TryParse((string)Oval, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+		if (!IsNumber) return false;
+		value = AsDouble;
+		return true;
+	}
+
+	/// <summary>取字符串；键不存在或为 null 时给默认值（默认 null）。</summary>
+	public string Str(string key, string def = null) {
+		var v = get(key);
+		return v.IsNull ? def : v.Value;
+	}
+
+	public int Int(string key, int def = 0) {
+		var v = get(key);
+		return v.IsNull ? def : v.AsInt;
+	}
+
+	public long Long(string key, long def = 0) {
+		var v = get(key);
+		return v.IsNull ? def : v.AsLong;
+	}
+
+	public double Double(string key, double def = 0) {
+		var v = get(key);
+		return v.IsNull ? def : v.AsDouble;
+	}
+
+	public bool Bool(string key, bool def = false) {
+		var v = get(key);
+		return v.IsNull ? def : v.AsBool;
+	}
+
 	public void Add(string key, JSONF value) {
 		if (Type != NodeType.Object || value.Type == NodeType.NotExist) return;
 		if (Oval is JsonMap<string, JSONF> map) map.Add(key, value);
@@ -638,6 +731,155 @@ public struct JSONF : IEnumerable<JSONF> {
 	public static explicit operator DateTime(JSONF v) => v.AsDateTime;
 	public static explicit operator byte[](JSONF v) => v.AsByteArray;
 
+	/// <summary>标量取值（装箱）；数组和对象返回节点本身。</summary>
+	public object GetValueObject() {
+		switch (Type) {
+			case NodeType.String: return Value;
+			case NodeType.Int: return Val.IntVal;
+			case NodeType.Long: return Val.LongVal;
+			case NodeType.Float: return Val.FloatVal;
+			case NodeType.Double: return Val.DoubleVal;
+			case NodeType.Bool: return Val.BoolVal;
+			case NodeType.Decimal: return (decimal)Oval!;
+			case NodeType.DateTime: return Val.TimeVal;
+			case NodeType.ByteArray: return Oval;
+			default: return this;
+		}
+	}
+
+	/// <summary>普通对象（POCO、字典、集合）→ JSONF。skipNull 不写 null，skipDefault 连默认值也不写，camel 把字段名首字母改小写。</summary>
+	public static JSONF FromObject(object v, bool skipNull = false, bool skipDefault = false, bool camel = false) {
+		if (v == null) return NULL;
+		if (v is JSONF jf) return jf;
+		if (v is string s) return newData(s);
+		if (v is bool b) return newData(b);
+		if (v is int i) return newData(i);
+		if (v is long l) return newData(l);
+		if (v is short sh) return newData((long)sh);
+		if (v is byte by) return newData((long)by);
+		if (v is sbyte sb) return newData((long)sb);
+		if (v is ushort us) return newData((long)us);
+		if (v is uint ui) return newData((long)ui);
+		if (v is ulong ul) return newData(ul);
+		if (v is float f) return newData(f);
+		if (v is double d) return newData(d);
+		if (v is decimal m) return newData(m);
+		if (v is DateTime dt) return newData(dt);
+		if (v is Enum e) return newData(Convert.ToInt64(e, CultureInfo.InvariantCulture));
+		if (v is IDictionary dict) {
+			var o = newObject();
+			foreach (DictionaryEntry de in dict)
+				o.Add(de.Key?.ToString() ?? "", FromObject(de.Value, skipNull, skipDefault, camel));
+			return o;
+		}
+		if (v is IEnumerable en) {
+			var a = newArray();
+			foreach (var item in en) a.Add(FromObject(item, skipNull, skipDefault, camel));
+			return a;
+		}
+		var t = v.GetType();
+		var obj = newObject();
+		foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
+			if (!p.CanRead || p.GetIndexParameters().Length > 0) continue;
+			if (p.GetCustomAttribute<JsonIgnoreAttribute>() != null) continue;
+			var pv = p.GetValue(v);
+			if (skipval(pv, p.PropertyType, skipNull, skipDefault)) continue;
+			obj[camel ? camelname(p.Name) : p.Name] = FromObject(pv, skipNull, skipDefault, camel);
+		}
+		foreach (var fld in t.GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+			if (fld.GetCustomAttribute<JsonIgnoreAttribute>() != null) continue;
+			var fv = fld.GetValue(v);
+			if (skipval(fv, fld.FieldType, skipNull, skipDefault)) continue;
+			obj[camel ? camelname(fld.Name) : fld.Name] = FromObject(fv, skipNull, skipDefault, camel);
+		}
+		return obj;
+	}
+
+	static string camelname(string name) =>
+		name.Length == 0 || char.IsLower(name[0]) ? name : char.ToLowerInvariant(name[0]) + name.Substring(1);
+
+	static bool skipval(object v, Type t, bool skipNull, bool skipDefault) {
+		if (v == null) return skipNull;
+		if (!skipDefault || !t.IsValueType) return false;
+		return v.Equals(Activator.CreateInstance(t));
+	}
+
+	/// <summary>按类型还原对象；键先按原名找，再按不区分大小写找。</summary>
+	public object ToObject(Type t) {
+		if (t == typeof(JSONF)) return this;
+		if (t == typeof(string)) return IsNull ? null : Value;
+		if (t == typeof(object)) return GetValueObject();
+		var u = Nullable.GetUnderlyingType(t);
+		if (u != null) return IsNull ? null : ToObject(u);
+		if (t == typeof(bool)) return AsBool;
+		if (t == typeof(int)) return AsInt;
+		if (t == typeof(long)) return AsLong;
+		if (t == typeof(short)) return (short)AsInt;
+		if (t == typeof(byte)) return (byte)AsInt;
+		if (t == typeof(sbyte)) return (sbyte)AsInt;
+		if (t == typeof(ushort)) return (ushort)AsInt;
+		if (t == typeof(uint)) return (uint)AsLong;
+		if (t == typeof(ulong)) return (ulong)AsLong;
+		if (t == typeof(float)) return AsFloat;
+		if (t == typeof(double)) return AsDouble;
+		if (t == typeof(decimal)) return AsDecimal;
+		if (t == typeof(DateTime)) return AsDateTime;
+		if (t.IsEnum) return Enum.ToObject(t, AsLong);
+		if (t.IsArray) {
+			var et = t.GetElementType();
+			var arr = Array.CreateInstance(et, Count);
+			for (var i = 0; i < Count; i++) arr.SetValue(get(i).ToObject(et), i);
+			return arr;
+		}
+		if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>)) {
+			var et = t.GetGenericArguments()[0];
+			var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(et));
+			foreach (var item in this) list.Add(item.ToObject(et));
+			return list;
+		}
+		if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>)) {
+			var kt = t.GetGenericArguments()[0];
+			var vt = t.GetGenericArguments()[1];
+			var dd = (IDictionary)Activator.CreateInstance(t);
+			foreach (var (k, val) in KeyVals) {
+				var key = kt == typeof(string) ? k : Convert.ChangeType(k, kt, CultureInfo.InvariantCulture);
+				dd[key] = val.ToObject(vt);
+			}
+			return dd;
+		}
+		if (IsNull) return null;
+		var obj = Activator.CreateInstance(t);
+		foreach (var p in t.GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
+			if (!p.CanWrite || p.GetIndexParameters().Length > 0) continue;
+			if (p.GetCustomAttribute<JsonIgnoreAttribute>() != null) continue;
+			if (!trykey(p.Name, out var pv)) continue;
+			p.SetValue(obj, pv.ToObject(p.PropertyType));
+		}
+		foreach (var fld in t.GetFields(BindingFlags.Public | BindingFlags.Instance)) {
+			if (fld.GetCustomAttribute<JsonIgnoreAttribute>() != null) continue;
+			if (!trykey(fld.Name, out var fv)) continue;
+			fld.SetValue(obj, fv.ToObject(fld.FieldType));
+		}
+		return obj;
+	}
+
+	public T ToObject<T>() => (T)ToObject(typeof(T));
+
+	bool trykey(string name, out JSONF value) {
+		if (ContainsKey(name)) {
+			value = get(name);
+			return true;
+		}
+		foreach (var k in Keys) {
+			if (string.Equals(k, name, StringComparison.OrdinalIgnoreCase)) {
+				value = get(k);
+				return true;
+			}
+		}
+		value = default;
+		return false;
+	}
+
 	public string RoundTo(int dec, bool trailingzero = false) {
 		if (dec < 0) dec = 0;
 		var v = Math.Round(AsDouble, dec);
@@ -675,7 +917,7 @@ public struct JSONF : IEnumerable<JSONF> {
 		}
 	}
 
-	public IEnumerable<(string, JSONF)> KeyVals {
+	public IEnumerable<(string Name, JSONF Value)> KeyVals {
 		get {
 			if (Oval is JsonMap<string, JSONF> map) {
 				foreach (var v in map) yield return v;
@@ -833,6 +1075,12 @@ public struct JSONF : IEnumerable<JSONF> {
 	}
 
 	/// <summary>宽松解析。键可不加引号，支持 // 与 /* */ 注释、尾逗号。</summary>
+	/// <summary>从流解析（按 UTF-8 读到底，流不关闭）。</summary>
+	public static JSONF Parse(System.IO.Stream stream) {
+		using var sr = new System.IO.StreamReader(stream, Encoding.UTF8, true, 8192, leaveOpen: true);
+		return Parse(sr.ReadToEnd());
+	}
+
 	public static JSONF Parse(string aJSON, bool runexp = true) {
 		if (aJSON == null) return "";
 		var stack = new Stack<JSONF>();
@@ -1081,18 +1329,6 @@ public struct JSONF : IEnumerable<JSONF> {
 			case TypeCode.Boolean: return newData((bool)o);
 			case TypeCode.String: return newData((string)o);
 			default: return NULL;
-		}
-	}
-
-	public object GetValueObject() {
-		switch (Type) {
-			case NodeType.Int: return Val.IntVal;
-			case NodeType.Long: return Val.LongVal;
-			case NodeType.Float: return Val.FloatVal;
-			case NodeType.Double: return Val.DoubleVal;
-			case NodeType.DateTime: return Val.TimeVal;
-			case NodeType.Bool: return Val.BoolVal;
-			default: return Oval!;
 		}
 	}
 

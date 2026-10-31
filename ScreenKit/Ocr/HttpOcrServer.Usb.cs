@@ -1,4 +1,4 @@
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -25,25 +25,14 @@ sealed partial class HttpOcrServer {
 				writejson(ctx, 200, err(802, msg));
 				return;
 			}
-			var ifs = new JsonArray();
+			var ifs = JSONF.newArray();
 			if (info.Interfaces != null) {
 				foreach (var it in info.Interfaces) {
 					if (it == null) continue;
-					ifs.Add(new JsonObject { ["id"] = it.Id, ["name"] = it.Name });
+					ifs.Add(JSONF.newObject(("id", it.Id), ("name", it.Name)));
 				}
 			}
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["vid"] = info.Vid,
-					["pid"] = info.Pid,
-					["vendor"] = info.Vendor,
-					["product"] = info.Product,
-					["model"] = info.Model.Length > 0 ? info.Model : info.Product,
-					["interfaces"] = ifs,
-					["text"] = info.Text,
-				},
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("vid", info.Vid), ("pid", info.Pid), ("vendor", info.Vendor), ("product", info.Product), ("model", info.Model.Length > 0 ? info.Model : info.Product), ("interfaces", ifs), ("text", info.Text)))));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(802, ex.InnerException?.Message ?? ex.Message));

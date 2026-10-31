@@ -1,12 +1,12 @@
 using System.IO;
 using System.IO.Compression;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
 /// <summary>sendfile 目录上的列出/建目录/上传/删除。</summary>
 static class SendFileOps {
-	public static JsonArray List(string rel, bool deep) {
+	public static JSONF List(string rel, bool deep) {
 		if (!SendFilePaths.TryResolve(rel, out var full, out var err))
 			throw new InvalidOperationException(err ?? "路径非法");
 		if (!Directory.Exists(full) && !File.Exists(full)) {
@@ -19,7 +19,7 @@ static class SendFileOps {
 		}
 		if (File.Exists(full))
 			throw new InvalidOperationException("不是目录");
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		if (deep)
 			walk(full, arr);
 		else {
@@ -261,7 +261,7 @@ static class SendFileOps {
 		return !string.IsNullOrEmpty(name) && name[0] == '.';
 	}
 
-	static void walk(string dir, JsonArray arr) {
+	static void walk(string dir, JSONF arr) {
 		foreach (var d in Directory.GetDirectories(dir)) {
 			if (hiddendir(d)) continue;
 			arr.Add(item(d, dir: true));
@@ -273,7 +273,7 @@ static class SendFileOps {
 		}
 	}
 
-	static JsonObject item(string full, bool dir) {
+	static JSONF item(string full, bool dir) {
 		var name = Path.GetFileName(full);
 		long size = 0;
 		long mtime = 0;
@@ -288,12 +288,6 @@ static class SendFileOps {
 			}
 		}
 		catch { }
-		return new JsonObject {
-			["name"] = name ?? "",
-			["path"] = SendFilePaths.RelFrom(full),
-			["dir"] = dir,
-			["size"] = size,
-			["mtime"] = mtime,
-		};
+		return JSONF.newObject(("name", name ?? ""), ("path", SendFilePaths.RelFrom(full)), ("dir", dir), ("size", size), ("mtime", mtime));
 	}
 }

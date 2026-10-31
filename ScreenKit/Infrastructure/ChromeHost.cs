@@ -1,10 +1,9 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -39,7 +38,7 @@ static class ChromeHost {
 		var id = Interlocked.Increment(ref seq);
 		var jobRate = Math.Max(0.5, Math.Min(2.0, rate));
 		var jobVol = Math.Max(0, Math.Min(1, volume));
-		var json = JsonSerializer.Serialize(new {
+		var json = JSONF.FromObject(new {
 			op = "speak",
 			id,
 			text = text ?? "",
@@ -47,7 +46,7 @@ static class ChromeHost {
 			lang = lang ?? "",
 			rate = jobRate,
 			volume = jobVol,
-		}).Replace("<", "\\u003c");
+		}).ToJSONString(-1).Replace("<", "\\u003c");
 		var done = waiter(wait);
 		var slot = new Slot { Id = id, Page = "speak.html", Fail = "Chrome 没有发出声音", Done = done };
 		submit(id, "speak.html", json, slot, exe, idleSec, ct);
@@ -57,18 +56,12 @@ static class ChromeHost {
 
 	public static List<string> Translate(List<string> texts, string src, string dst, string exe, int idleSec, CancellationToken ct, Action<double> progress = null) {
 		var id = Interlocked.Increment(ref seq);
-		var items = new JsonArray();
+		var items = JSONF.newArray();
 		if (texts != null) {
 			foreach (var s in texts) items.Add(s ?? "");
 		}
-		var jo = new JsonObject {
-			["op"] = "tr",
-			["id"] = id,
-			["src"] = src ?? "",
-			["dst"] = dst ?? "",
-			["items"] = items,
-		};
-		var json = jo.ToJsonString().Replace("<", "\\u003c");
+		var jo = JSONF.newObject(("op", "tr"), ("id", id), ("src", src ?? ""), ("dst", dst ?? ""), ("items", items));
+		var json = jo.ToJSONString(-1).Replace("<", "\\u003c");
 		try {
 			return translateonce(id, json, exe, idleSec, ct);
 		}
@@ -76,7 +69,7 @@ static class ChromeHost {
 			ChromePack.EnsurePair(src, dst, exe, ct, progress);
 			id = Interlocked.Increment(ref seq);
 			jo["id"] = id;
-			json = jo.ToJsonString().Replace("<", "\\u003c");
+			json = jo.ToJSONString(-1).Replace("<", "\\u003c");
 			return translateonce(id, json, exe, idleSec, ct);
 		}
 	}
@@ -515,10 +508,10 @@ static class ChromeHost {
 			using var resp = req.GetResponse();
 			using var rd = new StreamReader(resp.GetResponseStream());
 			var text = rd.ReadToEnd();
-			using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(text) ? "[]" : text);
-			if (doc.RootElement.ValueKind == JsonValueKind.Array) {
-				foreach (var el in doc.RootElement.EnumerateArray()) {
-					var url = el.TryGetProperty("url", out var u) ? u.GetString() : "";
+			var doc = JSONF.Parse(string.IsNullOrWhiteSpace(text) ? "[]" : text);
+			if (doc.IsArray) {
+				foreach (var el in doc) {
+					var url = el.tryget("url", out var u) ? u.Value : "";
 					if ((url ?? "").IndexOf(mark, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 				}
 			}
@@ -734,14 +727,15 @@ static class ChromeHost {
 		var err = "";
 		var items = new List<string>();
 		try {
-			var jo = JsonNode.Parse(body) as JsonObject;
-			if (jo == null || jo["id"] == null) return;
-			id = jo["id"].GetValue<int>();
-			ok = jo["ok"] != null && jo["ok"].GetValue<bool>();
-			err = jo["err"]?.GetValue<string>() ?? "";
-			if (jo["items"] is JsonArray arr) {
+			var jo = JSONF.Parse(body);
+			if (!jo.IsObject) return;
+			id = jo.Int("id");
+			ok = jo.get("ok").IsNotNull && jo.Bool("ok");
+			err = jo.Str("err") ?? "";
+			var arr = jo.get("items");
+			if (arr.IsArray) {
 				foreach (var n in arr)
-					items.Add(n?.GetValue<string>() ?? "");
+					items.Add(n.Value);
 			}
 		}
 		catch { return; }
@@ -937,32 +931,22 @@ static class ChromeHost {
 		var path = Path.Combine(ChromeTts.ProfileDir(), "Default", "Preferences");
 		if (!File.Exists(path)) return;
 		var text = File.ReadAllText(path);
-		var root = JsonNode.Parse(text) as JsonObject;
-		if (root == null) return;
-		var browser = root["browser"] as JsonObject;
-		if (browser == null) {
-			browser = new JsonObject();
+		var root = JSONF.Parse(text);
+		if (!root.IsObject) return;
+		var browser = root.get("browser");
+		if (!browser.IsObject) {
+			browser = JSONF.newObject();
 			root["browser"] = browser;
 		}
-		browser["window_placement"] = new JsonObject {
-			["bottom"] = top + height,
-			["left"] = left,
-			["maximized"] = false,
-			["right"] = left + width,
-			["top"] = top,
-			["work_area_bottom"] = wb,
-			["work_area_left"] = wl,
-			["work_area_right"] = wr,
-			["work_area_top"] = wt,
-		};
-		var prof = root["profile"] as JsonObject;
-		if (prof == null) {
-			prof = new JsonObject();
+		browser["window_placement"] = JSONF.newObject(("bottom", top + height), ("left", left), ("maximized", false), ("right", left + width), ("top", top), ("work_area_bottom", wb), ("work_area_left", wl), ("work_area_right", wr), ("work_area_top", wt));
+		var prof = root.get("profile");
+		if (!prof.IsObject) {
+			prof = JSONF.newObject();
 			root["profile"] = prof;
 		}
 		prof["exit_type"] = "Normal";
 		prof["exited_cleanly"] = true;
-		var next = root.ToJsonString();
+		var next = root.ToJSONString(-1);
 		if (next.Length * 2 < text.Length) return;
 		File.WriteAllText(path, next, new UTF8Encoding(false));
 	}

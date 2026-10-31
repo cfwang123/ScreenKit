@@ -1,11 +1,9 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -71,19 +69,6 @@ static class HttpDebug {
 	const int TIMEOUT_MS = 30000;
 	const int MAX_BODY = 1024 * 1024;
 
-	static readonly JsonSerializerOptions Opt = new() {
-		WriteIndented = true,
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-	};
-	/// <summary>导出文件只留有效字段，空的 id、分组和参数不写进去。</summary>
-	static readonly JsonSerializerOptions FileOpt = new() {
-		WriteIndented = true,
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-	};
 	static string uacache;
 
 	public static string StorePath() =>
@@ -95,7 +80,7 @@ static class HttpDebug {
 		if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
 			try {
 				var text = File.ReadAllText(path, Encoding.UTF8);
-				book = JsonSerializer.Deserialize<HttpDbgBook>(text, Opt) ?? new HttpDbgBook();
+				book = JSONF.Parse(text).ToObject<HttpDbgBook>() ?? new HttpDbgBook();
 			}
 			catch (Exception ex) {
 				error = ex.Message;
@@ -115,7 +100,7 @@ static class HttpDebug {
 		normalize(book, "default");
 		var dir = Path.GetDirectoryName(path);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-		var json = JsonSerializer.Serialize(book, Opt);
+		var json = JSONF.FromObject(book, skipNull: true, camel: true).ToJSONString(0);
 		var tmp = path + ".tmp";
 		File.WriteAllText(tmp, json, new UTF8Encoding(false));
 		if (File.Exists(path)) {
@@ -139,7 +124,7 @@ static class HttpDebug {
 				file.Items.Add(copyitem(it));
 			}
 		}
-		return JsonSerializer.Serialize(file, FileOpt);
+		return JSONF.FromObject(file, skipNull: true, skipDefault: true, camel: true).ToJSONString(0);
 	}
 
 	/// <summary>导出用副本：id、分组和空字段留 null，写文件时整项省略。</summary>
@@ -172,26 +157,26 @@ static class HttpDebug {
 			error = "badformat";
 			return -1;
 		}
-		JsonDocument doc;
-		try { doc = JsonDocument.Parse(json); }
+		JSONF root;
+		try { root = JSONF.Parse(json); }
 		catch (Exception ex) { error = ex.Message; return -1; }
-		using (doc) {
-			var root = doc.RootElement;
-			if (root.ValueKind != JsonValueKind.Object) { error = "badformat"; return -1; }
+		{
+			if (!root.IsObject) { error = "badformat"; return -1; }
 			var byname = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 			foreach (var g in book.Groups) {
 				var name = (g.Name ?? "").Trim();
 				if (name.Length > 0 && !byname.ContainsKey(name)) byname[name] = g.Id;
 			}
-			var hasgroups = root.TryGetProperty("groups", out var groups) && groups.ValueKind == JsonValueKind.Array;
+			var groups = root.get("groups");
+			var hasgroups = groups.IsArray;
 			var map = new Dictionary<string, string>(StringComparer.Ordinal);
 			if (hasgroups) {
-				foreach (var g in groups.EnumerateArray()) {
-					if (g.ValueKind != JsonValueKind.Object) continue;
-					var oldid = g.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
-						? (idEl.GetString() ?? "") : "";
-					var name = g.TryGetProperty("name", out var nmEl) && nmEl.ValueKind == JsonValueKind.String
-						? (nmEl.GetString() ?? "").Trim() : "";
+				foreach (var g in groups) {
+					if (!g.IsObject) continue;
+					var idEl = g.get("id");
+					var oldid = idEl.Type == JSONF.NodeType.String ? idEl.Value : "";
+					var nmEl = g.get("name");
+					var name = nmEl.Type == JSONF.NodeType.String ? nmEl.Value.Trim() : "";
 					if (name.Length == 0) name = oldid.Trim();
 					var target = groupfor(book, byname, name);
 					if (oldid.Length > 0) map[oldid] = target;
@@ -199,20 +184,20 @@ static class HttpDebug {
 			}
 			var single = !string.IsNullOrEmpty(fallbackGroup) && book.Groups.Any(g => g.Id == fallbackGroup)
 				? fallbackGroup : groupfor(book, byname, "");
-			if (!hasgroups && root.TryGetProperty("group", out var grpEl) && grpEl.ValueKind == JsonValueKind.String) {
-				var name = (grpEl.GetString() ?? "").Trim();
+			var grpEl = root.get("group");
+			if (!hasgroups && grpEl.Type == JSONF.NodeType.String) {
+				var name = grpEl.Value.Trim();
 				if (name.Length > 0) single = groupfor(book, byname, name);
 			}
-			if (!root.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array) {
+			var items = root.get("items");
+			if (!items.IsArray) {
 				error = "badformat";
 				return -1;
 			}
 			var added = 0;
-			foreach (var el in items.EnumerateArray()) {
-				if (el.ValueKind != JsonValueKind.Object) continue;
-				HttpDbgItem it;
-				try { it = el.Deserialize<HttpDbgItem>(Opt); }
-				catch { continue; }
+			foreach (var el in items) {
+				if (!el.IsObject) continue;
+				var it = el.ToObject<HttpDbgItem>();
 				if (it == null) continue;
 				var gid = single;
 				if (hasgroups && !string.IsNullOrEmpty(it.Group) && map.TryGetValue(it.Group, out var mapped)) gid = mapped;
@@ -489,8 +474,15 @@ static class HttpDebug {
 			return false;
 		}
 		try {
-			using var doc = JsonDocument.Parse(text);
-			return doc.RootElement.ValueKind != JsonValueKind.Undefined;
+			var s = text.Trim();
+			if (s.Length < 2
+				|| (s[0] == '{' && s[s.Length - 1] != '}')
+				|| (s[0] == '[' && s[s.Length - 1] != ']')) {
+				error = "badjson";
+				return false;
+			}
+			var doc = JSONF.Parse(s);
+			return !doc.IsNull;
 		}
 		catch (Exception ex) {
 			error = ex.Message;
@@ -676,7 +668,7 @@ static class HttpDebug {
 				fail("import bad");
 			if (ImportInto(expbook, "{", DEFAULT_GROUP, out _, out _) != -1) fail("import broken json");
 			var wholebook = new HttpDbgBook { Seeded = true };
-			if (ImportInto(wholebook, JsonSerializer.Serialize(back, Opt), DEFAULT_GROUP, out _, out var wher) != 1
+			if (ImportInto(wholebook, JSONF.FromObject(back, skipNull: true, camel: true).ToJSONString(-1), DEFAULT_GROUP, out _, out var wher) != 1
 				|| !string.IsNullOrEmpty(wher) || wholebook.Groups.Count != 2)
 				fail("import whole " + wher + " " + wholebook.Groups.Count);
 			var port = freeport();

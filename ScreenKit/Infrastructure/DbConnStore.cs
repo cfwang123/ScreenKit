@@ -1,8 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -24,13 +22,6 @@ sealed class DbConnItem {
 static class DbConnStore {
 	const string FILE_NAME = "sql-conns.json";
 
-	static readonly JsonSerializerOptions Opt = new() {
-		WriteIndented = true,
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-	};
-
 	public static string StorePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILE_NAME);
 
 	/// <summary>读不到或内容坏了都当没有；没有名字的条目丢掉。</summary>
@@ -40,7 +31,7 @@ static class DbConnStore {
 		try {
 			if (!File.Exists(path)) return list;
 			var text = File.ReadAllText(path, Encoding.UTF8);
-			var got = JsonSerializer.Deserialize<List<DbConnItem>>(text, Opt);
+			var got = JSONF.Parse(text).ToObject<List<DbConnItem>>();
 			if (got == null) return list;
 			foreach (var it in got) {
 				if (it == null || string.IsNullOrWhiteSpace(it.Name)) continue;
@@ -53,7 +44,7 @@ static class DbConnStore {
 
 	public static void Save(List<DbConnItem> list, string path = null) {
 		path ??= StorePath;
-		var json = JsonSerializer.Serialize(list, Opt);
+		var json = JSONF.FromObject(list, skipNull: true, skipDefault: true, camel: true).ToJSONString(0);
 		var tmp = path + ".tmp";
 		File.WriteAllText(tmp, json, new UTF8Encoding(false));
 		if (File.Exists(path)) File.Replace(tmp, path, null);

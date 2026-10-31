@@ -1,6 +1,5 @@
-using System.Net;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Net;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -10,7 +9,7 @@ namespace ScreenKit;
 /// </summary>
 sealed partial class HttpOcrServer {
 	void handlechat(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
@@ -39,10 +38,10 @@ sealed partial class HttpOcrServer {
 
 		try {
 			userText = (str(jo, "text") ?? str(jo, "message") ?? str(jo, "content") ?? "").Trim();
-			var hasAudio = (jo["base64"] != null && jo["base64"].GetValueKind() != JsonValueKind.Null
-					&& !string.IsNullOrWhiteSpace(jo["base64"]?.GetValue<string>()))
-				|| (jo["path"] != null && jo["path"].GetValueKind() == JsonValueKind.String
-					&& !string.IsNullOrWhiteSpace(jo["path"].GetValue<string>()));
+			var hasAudio = (jo.get("base64").IsNotNull && !jo.get("base64").IsNull
+					&& !string.IsNullOrWhiteSpace(jo.Str("base64")))
+				|| (jo.get("path").IsNotNull && jo.get("path").IsString
+					&& !string.IsNullOrWhiteSpace(jo.Str("path")));
 
 			if (userText.Length == 0 && hasAudio) {
 				var tAsr = Environment.TickCount;
@@ -68,8 +67,8 @@ sealed partial class HttpOcrServer {
 				return;
 			}
 
-			var wantAgent = jo["agent"] != null
-				? asbool(jo["agent"], o.ChatAgent)
+			var wantAgent = jo.get("agent").IsNotNull
+				? asbool(jo.get("agent"), o.ChatAgent)
 				: o.ChatAgent;
 			var oChat = o.Clone();
 			oChat.ChatLlm = ep.DisplayName;
@@ -98,19 +97,9 @@ sealed partial class HttpOcrServer {
 			}
 
 			// 是否返回 TTS：只看请求 tts=true/false，不看配置或其它别名
-			var wantTts = asbool(jo["tts"], false);
+			var wantTts = asbool(jo.get("tts"), false);
 
-			var data = new JsonObject {
-				["text"] = reply,
-				["reply"] = reply,
-				["user_text"] = userText,
-				["llm"] = ep.DisplayName,
-				["model"] = ep.Model ?? "",
-				["agent"] = wantAgent,
-				["tts"] = wantTts,
-				["asr_ms"] = asrMs,
-				["llm_ms"] = llmMs,
-			};
+			var data = JSONF.newObject(("text", reply), ("reply", reply), ("user_text", userText), ("llm", ep.DisplayName), ("model", ep.Model ?? ""), ("agent", wantAgent), ("tts", wantTts), ("asr_ms", asrMs), ("llm_ms", llmMs));
 			if (asrModel.Length > 0)
 				data["asr_model"] = asrModel;
 
@@ -145,12 +134,7 @@ sealed partial class HttpOcrServer {
 
 			var ms = Math.Max(0, Environment.TickCount - t0);
 			data["total_ms"] = ms;
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = data,
-				["time"] = ms,
-				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", data), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 		}
 		catch (Exception ex) {
 			var msg = ex.Message ?? "";
@@ -161,17 +145,17 @@ sealed partial class HttpOcrServer {
 		}
 	}
 
-	string chatasr(JsonObject jo, out string modelName) {
+	string chatasr(JSONF jo, out string modelName) {
 		modelName = "";
 
 		byte[] audioBytes = null;
 		string pathHint = null;
-		if (jo["base64"] != null && jo["base64"].GetValueKind() != JsonValueKind.Null) {
-			audioBytes = decodebase64(jo["base64"]?.GetValue<string>() ?? "");
+		if (jo.get("base64").IsNotNull && !jo.get("base64").IsNull) {
+			audioBytes = decodebase64(jo.Str("base64") ?? "");
 		}
 		if ((audioBytes == null || audioBytes.Length == 0)
-			&& jo["path"] != null && jo["path"].GetValueKind() == JsonValueKind.String)
-			pathHint = jo["path"].GetValue<string>();
+			&& jo.get("path").IsNotNull && jo.get("path").IsString)
+			pathHint = jo.Str("path");
 		if ((audioBytes == null || audioBytes.Length == 0) && string.IsNullOrWhiteSpace(pathHint))
 			throw new InvalidOperationException("语音消息缺少 base64 或 path");
 
@@ -181,9 +165,9 @@ sealed partial class HttpOcrServer {
 			wantModel = "";
 
 		var lang = str(jo, "lang") ?? "auto";
-		var useItn = jo["itn"] == null || jo["itn"].GetValueKind() == JsonValueKind.Null
-			|| asbool(jo["itn"], true);
-		var post = jo["postprocess"] == null || asbool(jo["postprocess"], true);
+		var useItn = jo.get("itn").IsNull || jo.get("itn").IsNull
+			|| asbool(jo.get("itn"), true);
+		var post = jo.get("postprocess").IsNull || asbool(jo.get("postprocess"), true);
 		var compute = parsecompute(str(jo, "device") ?? str(jo, "compute") ?? "auto");
 
 		var models = svc.ScanAsr?.Invoke() ?? new List<AsrModelInfo>();
@@ -204,7 +188,7 @@ sealed partial class HttpOcrServer {
 		string tmpPath = null;
 		try {
 			if (audioBytes != null && audioBytes.Length > 0) {
-				var ext = guessext(audioBytes, jo["filename"]?.GetValue<string>() ?? ".wav");
+				var ext = guessext(audioBytes, jo.Str("filename") ?? ".wav");
 				tmpPath = Path.Combine(Path.GetTempPath(), "wpocr_chat_" + Guid.NewGuid().ToString("N") + ext);
 				File.WriteAllBytes(tmpPath, audioBytes);
 				pathHint = tmpPath;
@@ -237,7 +221,7 @@ sealed partial class HttpOcrServer {
 	}
 
 	(float[] samples, int sr, string provider, string model, string voice, int sid, string engine)
-		chattts(JsonObject jo, string text) {
+		chattts(JSONF jo, string text) {
 		var engineRaw = str(jo, "engine") ?? "";
 		var modelName = str(jo, "tts_model") ?? "";
 		// 避免把 LLM model 当成 TTS
@@ -245,13 +229,13 @@ sealed partial class HttpOcrServer {
 			modelName = str(jo, "model") ?? "";
 		var voice = str(jo, "voice") ?? str(jo, "speaker") ?? "";
 		int? sid = null;
-		if (jo["speaker_id"] != null) sid = asint(jo["speaker_id"], 0);
-		else if (jo["sid"] != null) sid = asint(jo["sid"], 0);
+		if (jo.get("speaker_id").IsNotNull) sid = asint(jo.get("speaker_id"), 0);
+		else if (jo.get("sid").IsNotNull) sid = asint(jo.get("sid"), 0);
 		var sidVal = sid ?? 0;
 		var speed = 1f;
-		if (jo["speed"] != null) speed = Compat.Clamp(asfloat(jo["speed"], 1f), 0.5f, 2f);
+		if (jo.get("speed").IsNotNull) speed = Compat.Clamp(asfloat(jo.get("speed"), 1f), 0.5f, 2f);
 		var volume = 100;
-		if (jo["volume"] != null) volume = Compat.Clamp(asint(jo["volume"], 100), 0, 100);
+		if (jo.get("volume").IsNotNull) volume = Compat.Clamp(asint(jo.get("volume"), 100), 0, 100);
 		var compute = parsecompute(str(jo, "device") ?? str(jo, "compute") ?? "auto");
 
 		if (!tryparseengine(engineRaw, out var kind))
@@ -270,12 +254,11 @@ sealed partial class HttpOcrServer {
 		return synthsherpa(text, modelName, sidVal, speed, compute);
 	}
 
-	static List<(string role, string content)> readchathistory(JsonObject jo) {
+	static List<(string role, string content)> readchathistory(JSONF jo) {
 		var list = new List<(string, string)>();
-		if (jo["messages"] == null || jo["messages"].GetValueKind() != JsonValueKind.Array)
-			return list;
-		foreach (var n in jo["messages"].AsArray()) {
-			if (n is not JsonObject m) continue;
+		var msgs = jo.get("messages");
+		if (!msgs.IsArray) return list;
+		foreach (var m in msgs) {
 			var role = (str(m, "role") ?? "").Trim().ToLowerInvariant();
 			var content = (str(m, "content") ?? str(m, "text") ?? "").Trim();
 			if (role is not "user" and not "assistant") continue;

@@ -1,6 +1,6 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -54,10 +54,10 @@ static partial class ChatRoom {
 		return true;
 	}
 
-	static void onfile(Conn c, JsonObject jo) {
+	static void onfile(Conn c, JSONF jo) {
 		if (!c.joined) { enqueue(c, errjson("join")); return; }
 		if (!aim(c, jo, out var to, out var dest, out var priv)) return;
-		var fid = jo["file"]?.ToString() ?? "";
+		var fid = jo.Str("file", "");
 		if (!lookup(fid, out var up)) { enqueue(c, errjson("file")); return; }
 		if (c.lastsay != 0 && Environment.TickCount - c.lastsay < SAYMS) {
 			enqueue(c, errjson("fast"));
@@ -134,14 +134,7 @@ static partial class ChatRoom {
 				try { File.Delete(pathof(old)); } catch { }
 			}
 		}
-		writehttp(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["id"] = up.id,
-			["name"] = up.name,
-			["kind"] = up.kind,
-			["size"] = up.size,
-			["mime"] = up.mime,
-		}.ToJsonString(jsonopt));
+		writehttp(ctx, 200, JSONF.newObject(("code", 100), ("id", up.id), ("name", up.name), ("kind", up.kind), ("size", up.size), ("mime", up.mime)).ToJSONString(-1));
 	}
 
 	static void sendup(SockCtx ctx, string id) {
@@ -178,24 +171,13 @@ static partial class ChatRoom {
 	}
 
 	static string filejson(Conn c, Up up, int to, string tonick, bool priv) {
-		var o = new JsonObject {
-			["op"] = "file",
-			["id"] = c.id,
-			["nick"] = c.nick,
-			["gender"] = c.gender,
-			["file"] = up.id,
-			["name"] = up.name,
-			["kind"] = up.kind,
-			["size"] = up.size,
-			["mime"] = up.mime,
-			["t"] = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
-		};
+		var o = JSONF.newObject(("op", "file"), ("id", c.id), ("nick", c.nick), ("gender", c.gender), ("file", up.id), ("name", up.name), ("kind", up.kind), ("size", up.size), ("mime", up.mime), ("t", DateTimeOffset.Now.ToUnixTimeMilliseconds()));
 		stamp(o, to, tonick, priv);
-		return o.ToJsonString(jsonopt);
+		return o.ToJSONString(-1);
 	}
 
 	static string httperr(string code) =>
-		new JsonObject { ["code"] = 400, ["err"] = code }.ToJsonString(jsonopt);
+		JSONF.newObject(("code", 400), ("err", code)).ToJSONString(-1);
 
 	static void writehttp(SockCtx ctx, int status, string json) {
 		var bytes = Encoding.UTF8.GetBytes(json);
@@ -211,7 +193,7 @@ static partial class ChatRoom {
 	}
 
 	static void writemiss(SockCtx ctx) {
-		writehttp(ctx, 200, new JsonObject { ["code"] = 404, ["err"] = "file" }.ToJsonString(jsonopt));
+		writehttp(ctx, 200, JSONF.newObject(("code", 404), ("err", "file")).ToJSONString(-1));
 	}
 
 	static byte[] readlimited(Stream src, long clen, out string err) {

@@ -1,10 +1,8 @@
-using System.Drawing.Text;
+﻿using System.Drawing.Text;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 using NAudio.Wave;
 
 namespace ScreenKit;
@@ -74,9 +72,6 @@ sealed partial class HttpOcrServer : IDisposable {
 	static string[] fontNames;
 	static int lastfonts;
 	static readonly object fontlock = new();
-	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-	};
 
 	public HttpOcrServer(Func<OcrOptions> optionsFactory, OcrRunner sharedRunner) {
 		getOpts = optionsFactory ?? throw new ArgumentNullException(nameof(optionsFactory));
@@ -677,17 +672,7 @@ sealed partial class HttpOcrServer : IDisposable {
 
 			if (path is "/api" or "/api/") {
 				var lang = HttpApiCatalog.LangOf(queryone(req.Url, "lang"));
-				writejson(ctx, 200, new JsonObject {
-					["code"] = 100,
-					["data"] = new JsonObject {
-						["name"] = AppNames.Current + " HTTP API",
-						["umi_compatible"] = true,
-						["lang"] = lang,
-						["langs"] = HttpApiCatalog.Langs(),
-						["endpoints"] = apilist(optNow),
-						["apis"] = HttpApiCatalog.Apis(optNow, lang),
-					},
-				});
+				writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("name", AppNames.Current + " HTTP API"), ("umi_compatible", true), ("lang", lang), ("langs", HttpApiCatalog.Langs()), ("endpoints", apilist(optNow)), ("apis", HttpApiCatalog.Apis(optNow, lang))))));
 				return;
 			}
 
@@ -753,17 +738,14 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	/// <summary>英语不规则动词表，数据在 EnConj.IR。GET /api/conj/irr</summary>
 	void handleirr(SockCtx ctx) {
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		foreach (var row in EnConj.Irregulars) {
 			if (row == null || row.Length < 5) continue;
-			var one = new JsonArray { row[0] ?? "", row[1] ?? "", row[2] ?? "", row[3] ?? "", row[4] ?? "" };
-			if (row.Length >= 7) one.Add(new JsonArray { row[5] ?? "", row[6] ?? "" });
+			var one = JSONF.newArray(row[0] ?? "", row[1] ?? "", row[2] ?? "", row[3] ?? "", row[4] ?? "");
+			if (row.Length >= 7) one.Add(JSONF.newArray(row[5] ?? "", row[6] ?? ""));
 			arr.Add(one);
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject { ["rows"] = arr },
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("rows", arr)))));
 	}
 
 	/// <summary>日/韩/英动词变形：GET/POST /api/conj?lang=ja|ko|en&amp;q=…&amp;kind=&amp;flag=&amp;sub=&amp;type=&amp;ui=zh&amp;o1=&amp;o2=</summary>
@@ -785,24 +767,12 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(942, "变形失败: " + ex.Message));
 			return;
 		}
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		if (r.Rows != null) {
 			foreach (var one in r.Rows)
-				arr.Add(new JsonObject { ["l"] = one.L ?? "", ["v"] = one.V ?? "", ["g"] = one.G ?? "" });
+				arr.Add(JSONF.newObject(("l", one.L ?? ""), ("v", one.V ?? ""), ("g", one.G ?? "")));
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["ok"] = r.Ok,
-				["err"] = r.Err ?? "",
-				["head"] = r.Head ?? "",
-				["name"] = r.Name ?? "",
-				["note"] = r.Note ?? "",
-				["irr"] = r.Irr ?? "",
-				["kind"] = r.Kind ?? "",
-				["rows"] = arr,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("ok", r.Ok), ("err", r.Err ?? ""), ("head", r.Head ?? ""), ("name", r.Name ?? ""), ("note", r.Note ?? ""), ("irr", r.Irr ?? ""), ("kind", r.Kind ?? ""), ("rows", arr)))));
 	}
 
 	void handlestatus(SockCtx ctx) {
@@ -830,37 +800,8 @@ sealed partial class HttpOcrServer : IDisposable {
 				lastscan = Environment.TickCount;
 			}
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["app"] = "ScreenKit",
-				["http_enabled"] = o.HttpEnabled,
-				["http_ocr"] = o.HttpOcr,
-				["http_tts"] = o.HttpTts,
-				["http_asr"] = o.HttpAsr,
-				["http_translate"] = o.HttpTranslate,
-				["http_chat"] = o.HttpChat,
-				["http_face"] = o.HttpFace,
-				["http_rtsp"] = o.HttpRtsp,
-				["ocr_engine"] = runner != null,
-				["asr_engine"] = svc?.AsrEngine != null,
-				["tts_engine"] = svc?.TtsEngine != null,
-				["tts_sapi"] = ttssapiavailable(),
-				["tts_winrt"] = ttswinrtavailable(),
-				["tts_edge"] = true,
-				["asr_models"] = asrN,
-				["tts_models"] = ttsN,
-				["face_ready"] = FaceModels.IsReady(),
-				["face_models"] = faceN,
-				["barcode"] = true,
-				["itn"] = WetextItn.IsAvailable,
-				["itn_error"] = WetextItn.IsAvailable ? "" : (WetextItn.LastError ?? ""),
-				["llm_translate"] = AsrLlmClient.IsEndpointReady(
-					o.SelectedTranslateLlm() ?? o.SelectedLlm()),
-				["llm_chat"] = AsrLlmClient.IsChatReady(o),
-			},
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("app", "ScreenKit"), ("http_enabled", o.HttpEnabled), ("http_ocr", o.HttpOcr), ("http_tts", o.HttpTts), ("http_asr", o.HttpAsr), ("http_translate", o.HttpTranslate), ("http_chat", o.HttpChat), ("http_face", o.HttpFace), ("http_rtsp", o.HttpRtsp), ("ocr_engine", runner != null), ("asr_engine", svc?.AsrEngine != null), ("tts_engine", svc?.TtsEngine != null), ("tts_sapi", ttssapiavailable()), ("tts_winrt", ttswinrtavailable()), ("tts_edge", true), ("asr_models", asrN), ("tts_models", ttsN), ("face_ready", FaceModels.IsReady()), ("face_models", faceN), ("barcode", true), ("itn", WetextItn.IsAvailable), ("itn_error", WetextItn.IsAvailable ? "" : (WetextItn.LastError ?? "")), ("llm_translate", AsrLlmClient.IsEndpointReady(
+					o.SelectedTranslateLlm() ?? o.SelectedLlm())), ("llm_chat", AsrLlmClient.IsChatReady(o)))), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
 	void handlecast(SockCtx ctx) {
@@ -956,14 +897,14 @@ sealed partial class HttpOcrServer : IDisposable {
 		string text = null;
 		var ms = 1900;
 		if (ispost(ctx.Request)) {
-			JsonObject jo;
+			JSONF jo;
 			try { jo = readjsonbody(ctx.Request); }
 			catch (Exception ex) {
 				writejson(ctx, 200, err(801, ex.Message));
 				return;
 			}
-			text = jo["text"]?.GetValue<string>() ?? jo["message"]?.GetValue<string>();
-			if (jo["ms"] != null) ms = asint(jo["ms"], 1900);
+			text = jo.Str("text") ?? jo.Str("message");
+			if (jo.get("ms").IsNotNull) ms = asint(jo.get("ms"), 1900);
 		}
 		else {
 			text = query(ctx.Request, "text") ?? query(ctx.Request, "message");
@@ -975,13 +916,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 		UiToast.Show(null, text.Trim(), ms);
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["text"] = text.Trim(),
-				["ms"] = ms < 800 ? 800 : (ms > 8000 ? 8000 : ms),
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("text", text.Trim()), ("ms", ms < 800 ? 800 : (ms > 8000 ? 8000 : ms))))));
 	}
 
 	void handlelangjs(SockCtx ctx) {
@@ -1108,23 +1043,14 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(802, "未知 op"));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["text"] = outText,
-				["op"] = op,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("text", outText), ("op", op)))));
 	}
 
 	void handlefonts(SockCtx ctx) {
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		foreach (var name in systemfonts())
 			arr.Add(name);
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr)));
 	}
 
 	static string[] systemfonts() {
@@ -1156,21 +1082,10 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(802, "cp 超出范围"));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["cp"] = cp,
-				["gbk"] = row.Gbk,
-				["gb18030"] = row.Gb18030,
-				["big5"] = row.Big5,
-				["shift_jis"] = row.ShiftJis,
-				["euc_kr"] = row.EucKr,
-				["latin1"] = row.Latin1,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("cp", cp), ("gbk", row.Gbk), ("gb18030", row.Gb18030), ("big5", row.Big5), ("shift_jis", row.ShiftJis), ("euc_kr", row.EucKr), ("latin1", row.Latin1)))));
 	}
 
-	static bool readcp(SockCtx ctx, JsonObject jo, out int cp) {
+	static bool readcp(SockCtx ctx, JSONF jo, out int cp) {
 		cp = -1;
 		var raw = (field(ctx, jo, "cp") ?? "").Trim();
 		if (raw.Length > 0) {
@@ -1233,14 +1148,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["png"] = Convert.ToBase64String(png),
-				["format"] = format,
-				["encoding"] = encoding,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("png", Convert.ToBase64String(png)), ("format", format), ("encoding", encoding)))));
 	}
 
 	static string textstatstext(string text) {
@@ -1248,20 +1156,16 @@ sealed partial class HttpOcrServer : IDisposable {
 		return $"字符 {s.Chars}\n不计空白 {s.CharsNoWs}\n行 {s.Lines}\nUTF-8 {s.Utf8Bytes}\nGBK {s.GbkBytes}";
 	}
 
-	static void fakecatalog(JsonObject data) {
-		var kinds = new JsonArray();
+	static void fakecatalog(JSONF data) {
+		var kinds = JSONF.newArray();
 		foreach (var k in BogusGen.KindMeta()) {
-			kinds.Add(new JsonObject { ["id"] = k.Id, ["key"] = k.Key });
+			kinds.Add(JSONF.newObject(("id", k.Id), ("key", k.Key)));
 		}
-		var langs = new JsonArray();
+		var langs = JSONF.newArray();
 		foreach (var lang in BogusGen.Languages()) {
-			var ks = new JsonArray();
+			var ks = JSONF.newArray();
 			foreach (var id in lang.Kinds) ks.Add(id);
-			langs.Add(new JsonObject {
-				["id"] = lang.Id,
-				["name"] = lang.Name,
-				["kinds"] = ks,
-			});
+			langs.Add(JSONF.newObject(("id", lang.Id), ("name", lang.Name), ("kinds", ks)));
 		}
 		data["kinds"] = kinds;
 		data["langs"] = langs;
@@ -1271,9 +1175,9 @@ sealed partial class HttpOcrServer : IDisposable {
 		if (!readbody(ctx, out var jo)) return;
 		var kind = field(ctx, jo, "kind");
 		if (string.IsNullOrEmpty(kind)) {
-			var data = new JsonObject { ["installed"] = BogusGen.Installed };
+			var data = JSONF.newObject(("installed", BogusGen.Installed));
 			if (BogusGen.Installed) fakecatalog(data);
-			writejson(ctx, 200, new JsonObject { ["code"] = 100, ["data"] = data });
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", data)));
 			return;
 		}
 		if (!BogusGen.Installed) {
@@ -1281,10 +1185,10 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 		var n = 10;
-		if (jo != null && jo["n"] != null) n = asint(jo["n"], 10);
+		if (jo != null && jo.get("n").IsNotNull) n = asint(jo.get("n"), 10);
 		else {
 			var raw = query(ctx.Request, "n");
-			if (!string.IsNullOrWhiteSpace(raw)) n = asint(JsonValue.Create(raw), 10);
+			if (!string.IsNullOrWhiteSpace(raw)) n = asint(JSONF.newData(raw), 10);
 		}
 		var locale = field(ctx, jo, "locale");
 		string text;
@@ -1293,25 +1197,14 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(802, ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["installed"] = true,
-				["locale"] = locale ?? "",
-				["kind"] = kind,
-				["text"] = text,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("installed", true), ("locale", locale ?? ""), ("kind", kind), ("text", text)))));
 	}
 
 	void handlepinyin(SockCtx ctx) {
 		if (!readbody(ctx, out var jo)) return;
 		var text = field(ctx, jo, "text") ?? field(ctx, jo, "message");
 		if (string.IsNullOrEmpty(text)) {
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject { ["installed"] = PinyinConvert.Installed },
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("installed", PinyinConvert.Installed)))));
 			return;
 		}
 		if (!PinyinConvert.Installed) {
@@ -1328,14 +1221,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["installed"] = true,
-				["pinyin"] = pinyin,
-				["py"] = py,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("installed", true), ("pinyin", pinyin), ("py", py)))));
 	}
 
 	void handlemd(SockCtx ctx) {
@@ -1372,14 +1258,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["html"] = html,
-				["theme"] = th.Id,
-				["bg"] = th.Bg,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("html", html), ("theme", th.Id), ("bg", th.Bg)))));
 	}
 
 	void handlezhconv(SockCtx ctx) {
@@ -1400,13 +1279,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["text"] = outText,
-				["to"] = dir == 1 ? "trad" : "simp",
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("text", outText), ("to", dir == 1 ? "trad" : "simp")))));
 	}
 
 	void handlecalendar(SockCtx ctx) {
@@ -1427,25 +1300,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["cal"] = WinCal.Alias(id),
-				["gregorian"] = info.Gregorian ?? "",
-				["ganzhi"] = info.Ganzhi ?? "",
-				["era"] = info.Era ?? "",
-				["era_num"] = info.EraNum,
-				["year"] = string.IsNullOrEmpty(info.Year) ? info.YearNum.ToString() : info.Year,
-				["year_num"] = info.YearNum,
-				["month"] = info.Month ?? "",
-				["month_num"] = info.MonthNum,
-				["month_count"] = info.MonthCount,
-				["day"] = info.Day ?? "",
-				["day_num"] = info.DayNum,
-				["week"] = info.Week ?? "",
-				["leap"] = info.LeapMonth,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("cal", WinCal.Alias(id)), ("gregorian", info.Gregorian ?? ""), ("ganzhi", info.Ganzhi ?? ""), ("era", info.Era ?? ""), ("era_num", info.EraNum), ("year", string.IsNullOrEmpty(info.Year) ? info.YearNum.ToString() : info.Year), ("year_num", info.YearNum), ("month", info.Month ?? ""), ("month_num", info.MonthNum), ("month_count", info.MonthCount), ("day", info.Day ?? ""), ("day_num", info.DayNum), ("week", info.Week ?? ""), ("leap", info.LeapMonth)))));
 	}
 
 	void handlejpyomi(SockCtx ctx) {
@@ -1456,7 +1311,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 		var mono = false;
-		if (jo != null && jo["mono"] != null) mono = asbool(jo["mono"], false);
+		if (jo != null && jo.get("mono").IsNotNull) mono = asbool(jo.get("mono"), false);
 		else {
 			var raw = query(ctx.Request, "mono");
 			if (!string.IsNullOrWhiteSpace(raw)) mono = parseboolstr(raw, false);
@@ -1467,18 +1322,11 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(failcode(ex), ex.Message));
 			return;
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["ruby"] = res.Ruby ?? "",
-				["yomi"] = res.Yomi ?? "",
-				["mono"] = mono,
-			},
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("ruby", res.Ruby ?? ""), ("yomi", res.Yomi ?? ""), ("mono", mono)))));
 	}
 
-	bool readbody(SockCtx ctx, out JsonObject jo) {
-		jo = null;
+	bool readbody(SockCtx ctx, out JSONF jo) {
+		jo = default;
 		if (!ispost(ctx.Request)) return true;
 		try {
 			jo = readjsonbody(ctx.Request);
@@ -1490,15 +1338,11 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 	}
 
-	static string field(SockCtx ctx, JsonObject jo, string key) {
-		if (jo != null) {
-			var n = jo[key];
-			if (n == null) return null;
-			try {
-				if (n.GetValueKind() == JsonValueKind.String) return n.GetValue<string>();
-			}
-			catch { }
-			return n.ToString();
+	static string field(SockCtx ctx, JSONF jo, string key) {
+		if (jo.IsObject) {
+			var n = jo.get(key);
+			if (n.IsNull) return null;
+			return n.Value;
 		}
 		return query(ctx.Request, key);
 	}
@@ -1553,10 +1397,7 @@ sealed partial class HttpOcrServer : IDisposable {
 
 	void handlecaststop(SockCtx ctx) {
 		try { CastHost.CloseCast(); } catch { }
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject { ["ok"] = true },
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("ok", true)))));
 	}
 
 	void handleasrmodels(SockCtx ctx) {
@@ -1572,26 +1413,14 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 		list ??= new List<AsrModelInfo>();
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		foreach (var m in list) {
 			if (m == null) continue;
 			var eng = m.IsWindows ? "winrt" : "sherpa";
 			if (engine.Length > 0 && engine != eng) continue;
-			arr.Add(new JsonObject {
-				["engine"] = eng,
-				["id"] = m.DisplayName ?? "",
-				["name"] = m.DisplayName ?? "",
-				["type"] = m.IsWindows ? "Windows" : m.Type.ToString(),
-				["streaming"] = m.IsStreaming,
-				["sample_rate"] = m.SampleRate,
-				["culture"] = m.Culture ?? "",
-			});
+			arr.Add(JSONF.newObject(("engine", eng), ("id", m.DisplayName ?? ""), ("name", m.DisplayName ?? ""), ("type", m.IsWindows ? "Windows" : m.Type.ToString()), ("streaming", m.IsStreaming), ("sample_rate", m.SampleRate), ("culture", m.Culture ?? "")));
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count)));
 	}
 
 	/// <summary>ASR 引擎：本地 Sherpa-ONNX 与 Windows 系统识别器。</summary>
@@ -1605,19 +1434,12 @@ sealed partial class HttpOcrServer : IDisposable {
 		var sherpa = list.Count(m => m != null && !m.IsWindows);
 		var stream = list.Count(m => m != null && !m.IsWindows && m.IsStreaming);
 		var win = list.Count(m => m != null && m.IsWindows);
-		var arr = new JsonArray {
-			new JsonObject { ["engine"] = "sherpa", ["name"] = "Sherpa-ONNX", ["count"] = sherpa, ["streaming"] = stream },
-			new JsonObject { ["engine"] = "winrt", ["name"] = "Windows 语音识别", ["count"] = win },
-		};
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-		});
+		var arr = JSONF.newArray(JSONF.newObject(("engine", "sherpa"), ("name", "Sherpa-ONNX"), ("count", sherpa), ("streaming", stream)), JSONF.newObject(("engine", "winrt"), ("name", "Windows 语音识别"), ("count", win)));
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count)));
 	}
 
 	void handleasr(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
@@ -1627,8 +1449,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		byte[] audioBytes = null;
 		string pathHint = null;
 		// base64 音频
-		if (jo["base64"] != null && jo["base64"].GetValueKind() != JsonValueKind.Null) {
-			try { audioBytes = decodebase64(jo["base64"]?.GetValue<string>() ?? ""); }
+		if (jo.get("base64").IsNotNull && !jo.get("base64").IsNull) {
+			try { audioBytes = decodebase64(jo.Str("base64") ?? ""); }
 			catch (Exception ex) {
 				writejson(ctx, 200, err(806, "base64 解码失败: " + ex.Message));
 				return;
@@ -1636,8 +1458,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 		// 服务端本地路径（仅本机调试）
 		if ((audioBytes == null || audioBytes.Length == 0)
-			&& jo["path"] != null && jo["path"].GetValueKind() == JsonValueKind.String) {
-			pathHint = jo["path"].GetValue<string>();
+			&& jo.get("path").IsNotNull && jo.get("path").IsString) {
+			pathHint = jo.Str("path");
 		}
 		// multipart 图片接口也可传 file，此处仅 JSON
 		if ((audioBytes == null || audioBytes.Length == 0) && string.IsNullOrWhiteSpace(pathHint)) {
@@ -1645,14 +1467,14 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 
-		var modelName = jo["model"]?.GetValue<string>() ?? jo["asr_model"]?.GetValue<string>() ?? "";
-		var lang = jo["lang"]?.GetValue<string>() ?? "auto";
-		var useItn = jo["itn"] == null || jo["itn"].GetValueKind() == JsonValueKind.Null
-			|| (jo["itn"].GetValueKind() == JsonValueKind.True)
-			|| (jo["itn"].GetValueKind() == JsonValueKind.String
-				&& !string.Equals(jo["itn"].GetValue<string>(), "false", StringComparison.OrdinalIgnoreCase));
-		var post = jo["postprocess"] == null || jo["postprocess"].GetValueKind() != JsonValueKind.False;
-		var computeStr = (jo["device"]?.GetValue<string>() ?? jo["compute"]?.GetValue<string>() ?? "auto").Trim();
+		var modelName = jo.Str("model") ?? jo.Str("asr_model") ?? "";
+		var lang = jo.Str("lang") ?? "auto";
+		var useItn = jo.get("itn").IsNull || jo.get("itn").IsNull
+			|| (jo.get("itn").IsTrue)
+			|| (jo.get("itn").IsString
+				&& !string.Equals(jo.Str("itn"), "false", StringComparison.OrdinalIgnoreCase));
+		var post = jo.get("postprocess").IsNull || !jo.get("postprocess").IsFalse;
+		var computeStr = (jo.Str("device") ?? jo.Str("compute") ?? "auto").Trim();
 
 		var models = svc.ScanAsr?.Invoke() ?? new List<AsrModelInfo>();
 		// HTTP 默认离线模型（流式包不能 Offline 识别）
@@ -1678,7 +1500,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		var t0 = Environment.TickCount;
 		try {
 			if (audioBytes != null && audioBytes.Length > 0) {
-				var ext = guessext(audioBytes, jo["filename"]?.GetValue<string>() ?? ".wav");
+				var ext = guessext(audioBytes, jo.Str("filename") ?? ".wav");
 				tmpPath = Path.Combine(Path.GetTempPath(), "wpocr_asr_" + Guid.NewGuid().ToString("N") + ext);
 				File.WriteAllBytes(tmpPath, audioBytes);
 				pathHint = tmpPath;
@@ -1718,21 +1540,7 @@ sealed partial class HttpOcrServer : IDisposable {
 				text = AsrTextNorm.Postprocess(text ?? "");
 
 			var ms = Math.Max(0, Environment.TickCount - t0);
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["text"] = text ?? "",
-					["model"] = model.DisplayName,
-					["provider"] = provider,
-					["sample_rate"] = 16000,
-					["audio_sec"] = Math.Round(audioSec, 3),
-					["load_ms"] = loadMs,
-					["recognize_ms"] = recMs,
-					["postprocess"] = post,
-				},
-				["time"] = ms,
-				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("text", text ?? ""), ("model", model.DisplayName), ("provider", provider), ("sample_rate", 16000), ("audio_sec", Math.Round(audioSec, 3)), ("load_ms", loadMs), ("recognize_ms", recMs), ("postprocess", post))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(913, "识别失败: " + ex.Message));
@@ -1744,42 +1552,33 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handleitn(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
 			return;
 		}
-		var text = jo["text"]?.GetValue<string>() ?? "";
+		var text = jo.Str("text") ?? "";
 		var t0 = Environment.TickCount;
 		var outText = AsrTextNorm.Postprocess(text ?? "");
 		var ms = Math.Max(0, Environment.TickCount - t0);
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["text"] = outText ?? "",
-				["input"] = text ?? "",
-				["wetext"] = WetextItn.IsAvailable,
-			},
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("text", outText ?? ""), ("input", text ?? ""), ("wetext", WetextItn.IsAvailable))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
-	static JsonObject readjsonbody(SockReq req) {
+	static JSONF readjsonbody(SockReq req) {
 		string body;
 		using (var sr = new StreamReader(req.InputStream, req.ContentEncoding ?? Encoding.UTF8))
 			body = sr.ReadToEnd();
 		if (string.IsNullOrWhiteSpace(body))
 			throw new InvalidOperationException("请求为空。");
-		JsonNode root;
-		try { root = JsonNode.Parse(body); }
+		JSONF root;
+		try { root = JSONF.Parse(body); }
 		catch (Exception ex) {
 			throw new InvalidOperationException("请求无法解析为 json: " + ex.Message);
 		}
-		if (root is not JsonObject jo)
+		if (!root.IsObject)
 			throw new InvalidOperationException("请求体须为 JSON 对象。");
-		return jo;
+		return root;
 	}
 
 	static TtsComputeMode parsecompute(string s) {
@@ -1847,7 +1646,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	void handleocr(SockCtx ctx) {
 		var req = ctx.Request;
 		byte[] imageBytes = null;
-		JsonObject optNode = null;
+		JSONF optNode = default;
 
 		var ctype = req.ContentType ?? "";
 		try {
@@ -1863,23 +1662,24 @@ sealed partial class HttpOcrServer : IDisposable {
 					writejson(ctx, 200, err(801, "请求为空。"));
 					return;
 				}
-				JsonNode root;
+				JSONF root;
 				try {
-					root = JsonNode.Parse(body);
+					root = JSONF.Parse(body);
 				}
 				catch (Exception ex) {
 					writejson(ctx, 200, err(800, $"请求无法解析为json。 {ex.Message}"));
 					return;
 				}
-				if (root is not JsonObject jo) {
+				if (!root.IsObject) {
 					writejson(ctx, 200, err(801, "请求为空。"));
 					return;
 				}
-				if (jo["base64"] == null || jo["base64"].GetValueKind() == JsonValueKind.Null) {
+				var jo = root;
+				if (jo.get("base64").IsNull || jo.get("base64").IsNull) {
 					writejson(ctx, 200, err(802, "请求中缺少 base64 字段。"));
 					return;
 				}
-				var b64 = jo["base64"]?.GetValue<string>() ?? "";
+				var b64 = jo.Str("base64") ?? "";
 				if (string.IsNullOrWhiteSpace(b64)) {
 					writejson(ctx, 200, err(802, "请求中缺少 base64 字段。"));
 					return;
@@ -1891,12 +1691,13 @@ sealed partial class HttpOcrServer : IDisposable {
 					writejson(ctx, 200, err(806, $"base64 解码失败: {ex.Message}"));
 					return;
 				}
-				if (jo["options"] != null && jo["options"].GetValueKind() != JsonValueKind.Null) {
-					if (jo["options"] is not JsonObject) {
+				var optEl = jo.get("options");
+				if (optEl.IsNotNull) {
+					if (!optEl.IsObject) {
 						writejson(ctx, 200, err(803, "请求中 options 字段必须为字典。"));
 						return;
 					}
-					optNode = jo["options"].AsObject();
+					optNode = optEl;
 				}
 			}
 		}
@@ -1954,20 +1755,15 @@ sealed partial class HttpOcrServer : IDisposable {
 		var hasText = result?.Lines != null && result.Lines.Count > 0;
 		var hasCodes = codes != null && codes.DecodedCount > 0;
 		if (!hasText && !hasCodes) {
-			var empty = new JsonObject {
-				["code"] = 101,
-				["data"] = wantBarcode ? "未检测到文字或条码" : "未检测到文字",
-				["time"] = ms,
-				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			};
+			var empty = JSONF.newObject(("code", 101), ("data", wantBarcode ? "未检测到文字或条码" : "未检测到文字"), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds()));
 			if (wantBarcode)
-				empty["barcodes"] = new JsonArray();
+				empty["barcodes"] = JSONF.newArray();
 			putstat(empty, result, ocrOpt);
 			writejson(ctx, 200, empty);
 			return;
 		}
 
-		JsonArray barcodeArr = null;
+		JSONF barcodeArr = default;
 		if (wantBarcode)
 			barcodeArr = buildbarcodearray(codes);
 
@@ -1977,13 +1773,8 @@ sealed partial class HttpOcrServer : IDisposable {
 				text = string.Join("\n", result.Lines.Select(l => l.Text ?? ""));
 			else
 				text = codes?.FullText ?? "";
-			var jo = new JsonObject {
-				["code"] = 100,
-				["data"] = text,
-				["time"] = ms,
-				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			};
-			if (barcodeArr != null)
+			var jo = JSONF.newObject(("code", 100), ("data", text), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds()));
+			if (barcodeArr.IsArray)
 				jo["barcodes"] = barcodeArr;
 			putstat(jo, result, ocrOpt);
 			writejson(ctx, 200, jo);
@@ -1991,37 +1782,26 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 
 		// dict：Umi 风格 list[{text,score,box,end}]
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		if (hasText) {
 			for (int i = 0; i < result.Lines.Count; i++) {
 				var ln = result.Lines[i];
-				var box = new JsonArray();
+				var box = JSONF.newArray();
 				if (ln.Box != null) {
 					foreach (var p in ln.Box)
-						box.Add(new JsonArray { Math.Round(p.X, 1), Math.Round(p.Y, 1) });
+						box.Add(JSONF.newArray(Math.Round(p.X, 1), Math.Round(p.Y, 1)));
 				}
-				arr.Add(new JsonObject {
-					["text"] = ln.Text ?? "",
-					["score"] = Math.Round(ln.Score, 8),
-					["box"] = box,
-					// 与 Umi 一致：行末换行（最后一行也给 \n，拼接时更稳）
-					["end"] = "\n",
-				});
+				arr.Add(JSONF.newObject(("text", ln.Text ?? ""), ("score", Math.Round(ln.Score, 8)), ("box", box), ("end", "\n")));
 			}
 		}
-		var resp = new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		};
-		if (barcodeArr != null)
+		var resp = JSONF.newObject(("code", 100), ("data", arr), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds()));
+		if (barcodeArr.IsArray)
 			resp["barcodes"] = barcodeArr;
 		putstat(resp, result, ocrOpt);
 		writejson(ctx, 200, resp);
 	}
 
-	static void putstat(JsonObject jo, OcrResult result, OcrOptions opt) {
+	static void putstat(JSONF jo, OcrResult result, OcrOptions opt) {
 		if (jo == null || result == null) return;
 		var lines = result.Lines;
 		var n = lines == null ? 0 : lines.Count;
@@ -2030,44 +1810,28 @@ sealed partial class HttpOcrServer : IDisposable {
 			foreach (var ln in lines) sum += ln == null ? 0 : ln.Score;
 		}
 		var score = n > 0 ? sum / n : 0;
-		jo["stat"] = new JsonObject {
-			["infer"] = Math.Max(0, result.InferMs),
-			["load"] = Math.Max(0, result.LoadMs),
-			["score"] = Math.Round(score, 4),
-			["device"] = result.DeviceUsed ?? "",
-			["model"] = result.ModelLabel ?? "",
-			["width"] = result.Width,
-			["height"] = result.Height,
-			["lines"] = n,
-			["limit"] = opt == null ? 0 : opt.DetLimitSideLen,
-		};
+		jo["stat"] = JSONF.newObject(("infer", Math.Max(0, result.InferMs)), ("load", Math.Max(0, result.LoadMs)), ("score", Math.Round(score, 4)), ("device", result.DeviceUsed ?? ""), ("model", result.ModelLabel ?? ""), ("width", result.Width), ("height", result.Height), ("lines", n), ("limit", opt == null ? 0 : opt.DetLimitSideLen));
 	}
 
-	static JsonArray buildbarcodearray(QrResult codes) {
-		var arr = new JsonArray();
+	static JSONF buildbarcodearray(QrResult codes) {
+		var arr = JSONF.newArray();
 		if (codes?.Codes == null) return arr;
 		foreach (var c in codes.Codes) {
 			if (c == null || string.IsNullOrEmpty(c.Text)) continue;
-			var box = new JsonArray();
+			var box = JSONF.newArray();
 			if (c.Box != null) {
 				foreach (var p in c.Box)
-					box.Add(new JsonArray { Math.Round(p.X, 1), Math.Round(p.Y, 1) });
+					box.Add(JSONF.newArray(Math.Round(p.X, 1), Math.Round(p.Y, 1)));
 			}
 			var typ = string.IsNullOrEmpty(c.Type) ? "UNKNOWN" : c.Type;
-			arr.Add(new JsonObject {
-				["type"] = typ,
-				// Umi-OCR /api/qrcode 读 format（二维码为 QRCode），本接口仍保留 type
-				["format"] = typ,
-				["text"] = c.Text ?? "",
-				["box"] = box,
-			});
+			arr.Add(JSONF.newObject(("type", typ), ("format", typ), ("text", c.Text ?? ""), ("box", box)));
 		}
 		return arr;
 	}
 
 	OcrResult runocr(byte[] imageBytes, OcrOptions o) => runner.RunBytes(o, imageBytes);
 
-	OcrOptions buildocroptions(Dictionary<string, JsonNode> map) {
+	OcrOptions buildocroptions(Dictionary<string, JSONF> map) {
 		var baseOpt = getOpts() ?? new OcrOptions();
 		// 浅拷贝，避免污染主窗口
 		var o = new OcrOptions {
@@ -2091,10 +1855,10 @@ sealed partial class HttpOcrServer : IDisposable {
 
 		// ocr.angle → UseCls
 		if (map.TryGetValue("ocr.angle", out var ang) && ang != null) {
-			if (ang.GetValueKind() == JsonValueKind.True) o.UseCls = true;
-			else if (ang.GetValueKind() == JsonValueKind.False) o.UseCls = false;
-			else if (ang.GetValueKind() == JsonValueKind.String) {
-				var s = ang.GetValue<string>();
+			if (ang.IsTrue) o.UseCls = true;
+			else if (ang.IsFalse) o.UseCls = false;
+			else if (ang.IsString) {
+				var s = ang.Value;
 				if (s.Equals("true", StringComparison.OrdinalIgnoreCase) || s == "1") o.UseCls = true;
 				else if (s.Equals("false", StringComparison.OrdinalIgnoreCase) || s == "0") o.UseCls = false;
 			}
@@ -2180,67 +1944,38 @@ sealed partial class HttpOcrServer : IDisposable {
 			writejson(ctx, 200, err(802, "未知 engine（winocr / onnx）"));
 			return;
 		}
-		var packs = new JsonArray();
+		var packs = JSONF.newArray();
 		if (engine.Length == 0 || engine == "winocr") {
 			List<WinOcrLang> langs;
 			try { langs = runsta(() => WinOcr.Languages()); }
 			catch { langs = new List<WinOcrLang>(); }
-			var winModels = new JsonArray();
+			var winModels = JSONF.newArray();
 			foreach (var lang in langs) {
-				winModels.Add(new JsonObject {
-					["engine"] = "winocr",
-					["id"] = lang.Tag ?? "",
-					["name"] = string.IsNullOrWhiteSpace(lang.Name) ? (lang.Tag ?? "") : lang.Name,
-				});
+				winModels.Add(JSONF.newObject(("engine", "winocr"), ("id", lang.Tag ?? ""), ("name", string.IsNullOrWhiteSpace(lang.Name) ? (lang.Tag ?? "") : lang.Name)));
 			}
-			packs.Add(new JsonObject {
-				["id"] = WinOcr.PackId,
-				["engine"] = "winocr",
-				["name"] = "Windows 系统 OCR",
-				["models"] = winModels,
-			});
+			packs.Add(JSONF.newObject(("id", WinOcr.PackId), ("engine", "winocr"), ("name", "Windows 系统 OCR"), ("models", winModels)));
 		}
 		if (engine.Length == 0 || engine == "onnx") {
 			List<ModelPack> onnx;
 			try { onnx = ModelCatalog.Scan(); }
 			catch { onnx = new List<ModelPack>(); }
 			foreach (var p in onnx) {
-				var models = new JsonArray();
+				var models = JSONF.newArray();
 				if (p.Variants != null) {
 					foreach (var v in p.Variants) {
 						var name = v.DisplayName;
 						if (string.IsNullOrWhiteSpace(name)) name = v.Title ?? "";
-						models.Add(new JsonObject {
-							["engine"] = "onnx",
-							["id"] = v.Title ?? "",
-							["name"] = name,
-						});
+						models.Add(JSONF.newObject(("engine", "onnx"), ("id", v.Title ?? ""), ("name", name)));
 					}
 				}
-				packs.Add(new JsonObject {
-					["id"] = p.Id ?? "",
-					["engine"] = "onnx",
-					["name"] = p.DisplayName,
-					["models"] = models,
-				});
+				packs.Add(JSONF.newObject(("id", p.Id ?? ""), ("engine", "onnx"), ("name", p.DisplayName), ("models", models)));
 			}
 		}
 		var cur = getOpts?.Invoke() ?? new OcrOptions();
 		var dev = cur.Device == OcrDevice.Gpu ? "gpu"
 			: cur.Device == OcrDevice.IntelGpu ? "intel" : "cpu";
 		var langCur = WinOcr.Is(cur) ? (cur.WinOcrLangs ?? "") : (cur.ModelVariant ?? "");
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["packs"] = packs,
-				["current"] = new JsonObject {
-					["pack"] = cur.ModelPackId ?? "",
-					["language"] = langCur,
-					["device"] = dev,
-				},
-			},
-			["count"] = packs.Count,
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("packs", packs), ("current", JSONF.newObject(("pack", cur.ModelPackId ?? ""), ("language", langCur), ("device", dev))))), ("count", packs.Count)));
 	}
 
 	/// <summary>OCR 引擎：Windows 系统 OCR 与本地 ONNX 模型包。</summary>
@@ -2251,15 +1986,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		var onnx = 0;
 		try { onnx = ModelCatalog.Scan().Count; }
 		catch { }
-		var arr = new JsonArray {
-			new JsonObject { ["engine"] = "winocr", ["name"] = "Windows 系统 OCR", ["count"] = win },
-			new JsonObject { ["engine"] = "onnx", ["name"] = "ONNX 模型包", ["count"] = onnx },
-		};
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-		});
+		var arr = JSONF.newArray(JSONF.newObject(("engine", "winocr"), ("name", "Windows 系统 OCR"), ("count", win)), JSONF.newObject(("engine", "onnx"), ("name", "ONNX 模型包"), ("count", onnx)));
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count)));
 	}
 
 	static void applypack(OcrOptions o, string id) {
@@ -2358,109 +2086,36 @@ sealed partial class HttpOcrServer : IDisposable {
 		return false;
 	}
 
-	static Dictionary<string, JsonNode> mergedefaults(JsonObject optNode) {
+	static Dictionary<string, JSONF> mergedefaults(JSONF optNode) {
 		var def = getdefaulmap();
-		if (optNode != null) {
-			foreach (var kv in optNode) {
-				if (kv.Value != null)
-					def[kv.Key] = kv.Value.DeepClone();
+		if (optNode.IsObject) {
+			foreach (var (k, v) in optNode.KeyVals) {
+				if (!v.IsNull)
+					def[k] = v.Clone;
 			}
 		}
 		return def;
 	}
 
-	static Dictionary<string, JsonNode> getdefaulmap() {
+	static Dictionary<string, JSONF> getdefaulmap() {
 		var o = buildoptionsobj();
-		var map = new Dictionary<string, JsonNode>(StringComparer.Ordinal);
-		foreach (var kv in o) {
-			if (kv.Value is JsonObject jo && jo["default"] != null)
-				map[kv.Key] = jo["default"].DeepClone();
-			else
-				map[kv.Key] = kv.Value?.DeepClone();
+		var map = new Dictionary<string, JSONF>(StringComparer.Ordinal);
+		foreach (var (k, v) in o.KeyVals) {
+			var d = v.get("default");
+			map[k] = d.IsNull ? v.Clone : d.Clone;
 		}
 		return map;
 	}
 
-	static JsonObject buildoptionsobj() {
+	static JSONF buildoptionsobj() {
 		// 与 Umi get_options 结构相近：每项含 title / default / optionsList 等
-		return new JsonObject {
-			["ocr.angle"] = new JsonObject {
-				["title"] = "纠正文本方向",
-				["toolTip"] = "启用方向分类（cls）",
-				["default"] = true,
-				["optionsList"] = new JsonArray {
-					new JsonArray { true, "启用" },
-					new JsonArray { false, "禁用" },
-				},
-			},
-			["ocr.maxSideLen"] = new JsonObject {
-				["title"] = "检测边长上限",
-				["toolTip"] = "图像最长边缩放到此值再检测，越大越准但越慢",
-				["default"] = 1024,
-				["type"] = "int",
-			},
-			["ocr.engine"] = new JsonObject {
-				["title"] = "识别引擎",
-				["toolTip"] = "空=跟主窗。winocr=Windows 系统 OCR，不加载 ONNX。onnx=主窗是系统 OCR 时改回模型包。",
-				["default"] = "",
-				["optionsList"] = new JsonArray {
-					new JsonArray { "", "跟主窗" },
-					new JsonArray { "winocr", "Windows 系统 OCR" },
-					new JsonArray { "onnx", "ONNX 模型" },
-				},
-			},
-			["ocr.language"] = new JsonObject {
-				["title"] = "识别语言/模型",
-				["toolTip"] = "ONNX：变体标题，如「简体中文」。系统 OCR：BCP-47 或语言名，如 zh-Hans-CN、en-US、英语。设为 winocr 即选用系统 OCR。",
-				["default"] = "",
-				["type"] = "string",
-			},
-			["ocr.device"] = new JsonObject {
-				["title"] = "推理设备",
-				["toolTip"] = "cpu / gpu / intel（扩展项，Umi 客户端可忽略）",
-				["default"] = "cpu",
-				["optionsList"] = new JsonArray {
-					new JsonArray { "cpu", "CPU" },
-					new JsonArray { "gpu", "GPU (CUDA)" },
-					new JsonArray { "intel", "核显 (DirectML)" },
-				},
-			},
-			["tbpu.parser"] = new JsonObject {
-				["title"] = "排版解析方案",
-				["toolTip"] = "当前实现按检测顺序输出；参数保留兼容",
-				["default"] = "multi_line",
-				["optionsList"] = new JsonArray {
-					new JsonArray { "multi_para", "多栏-按自然段换行" },
-					new JsonArray { "multi_line", "多栏-总是换行" },
-					new JsonArray { "multi_none", "多栏-无换行" },
-					new JsonArray { "none", "不做处理" },
-				},
-			},
-			["data.format"] = new JsonObject {
-				["title"] = "数据返回格式",
-				["toolTip"] = "返回值中 data 字段的格式",
-				["default"] = "dict",
-				["optionsList"] = new JsonArray {
-					new JsonArray { "dict", "含有位置等信息的原始字典" },
-					new JsonArray { "text", "纯文本" },
-				},
-			},
-			["ocr.barcode"] = new JsonObject {
-				["title"] = "识别条码/二维码",
-				["toolTip"] = "同时扫描 QR / EAN / Code128 / DataMatrix 等；结果写入 barcodes[{type,text,box}]。"
-					+ " 别名：ocr.qr、ocr.codes",
-				["default"] = false,
-				["optionsList"] = new JsonArray {
-					new JsonArray { true, "启用" },
-					new JsonArray { false, "禁用" },
-				},
-			},
-		};
+		return JSONF.newObject(("ocr.angle", JSONF.newObject(("title", "纠正文本方向"), ("toolTip", "启用方向分类（cls）"), ("default", true), ("optionsList", JSONF.newArray(JSONF.newArray(true, "启用"), JSONF.newArray(false, "禁用"))))), ("ocr.maxSideLen", JSONF.newObject(("title", "检测边长上限"), ("toolTip", "图像最长边缩放到此值再检测，越大越准但越慢"), ("default", 1024), ("type", "int"))), ("ocr.engine", JSONF.newObject(("title", "识别引擎"), ("toolTip", "空=跟主窗。winocr=Windows 系统 OCR，不加载 ONNX。onnx=主窗是系统 OCR 时改回模型包。"), ("default", ""), ("optionsList", JSONF.newArray(JSONF.newArray("", "跟主窗"), JSONF.newArray("winocr", "Windows 系统 OCR"), JSONF.newArray("onnx", "ONNX 模型"))))), ("ocr.language", JSONF.newObject(("title", "识别语言/模型"), ("toolTip", "ONNX：变体标题，如「简体中文」。系统 OCR：BCP-47 或语言名，如 zh-Hans-CN、en-US、英语。设为 winocr 即选用系统 OCR。"), ("default", ""), ("type", "string"))), ("ocr.device", JSONF.newObject(("title", "推理设备"), ("toolTip", "cpu / gpu / intel（扩展项，Umi 客户端可忽略）"), ("default", "cpu"), ("optionsList", JSONF.newArray(JSONF.newArray("cpu", "CPU"), JSONF.newArray("gpu", "GPU (CUDA)"), JSONF.newArray("intel", "核显 (DirectML)"))))), ("tbpu.parser", JSONF.newObject(("title", "排版解析方案"), ("toolTip", "当前实现按检测顺序输出；参数保留兼容"), ("default", "multi_line"), ("optionsList", JSONF.newArray(JSONF.newArray("multi_para", "多栏-按自然段换行"), JSONF.newArray("multi_line", "多栏-总是换行"), JSONF.newArray("multi_none", "多栏-无换行"), JSONF.newArray("none", "不做处理"))))), ("data.format", JSONF.newObject(("title", "数据返回格式"), ("toolTip", "返回值中 data 字段的格式"), ("default", "dict"), ("optionsList", JSONF.newArray(JSONF.newArray("dict", "含有位置等信息的原始字典"), JSONF.newArray("text", "纯文本"))))), ("ocr.barcode", JSONF.newObject(("title", "识别条码/二维码"), ("toolTip", "同时扫描 QR / EAN / Code128 / DataMatrix 等；结果写入 barcodes[{type,text,box}]。"
+					+ " 别名：ocr.qr、ocr.codes"), ("default", false), ("optionsList", JSONF.newArray(JSONF.newArray(true, "启用"), JSONF.newArray(false, "禁用"))))));
 	}
 
 	// ───────── multipart ─────────
 
-	static (byte[] image, JsonObject options) readmultipart(SockReq req) {
+	static (byte[] image, JSONF options) readmultipart(SockReq req) {
 		var ctype = req.ContentType ?? "";
 		var boundary = extractboundary(ctype);
 		if (string.IsNullOrEmpty(boundary))
@@ -2472,7 +2127,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		var parts = parseparts(raw, boundary);
 
 		byte[] image = null;
-		JsonObject options = null;
+		JSONF options = default;
 		string b64 = null;
 
 		foreach (var p in parts) {
@@ -2503,7 +2158,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			}
 			// 单个 option 字段：ocr.angle / data.format 等
 			if (((name)?.IndexOf('.') ?? -1) >= 0 && !string.IsNullOrWhiteSpace(text)) {
-				options ??= new JsonObject();
+				if (!options.IsObject) options = JSONF.newObject();
 				options[p.Name] = tryparsescalar(text);
 			}
 		}
@@ -2514,17 +2169,17 @@ sealed partial class HttpOcrServer : IDisposable {
 		return (image, options);
 	}
 
-	static JsonObject parseoptionsfield(string text) {
+	static JSONF parseoptionsfield(string text) {
 		text = (text ?? "").Trim();
-		if (text.Length == 0) return null;
+		if (text.Length == 0) return default;
 		try {
-			var node = JsonNode.Parse(text);
-			if (node is JsonObject jo) return jo;
+			var node = JSONF.Parse(text);
+			if (node.IsObject) return node;
 			throw new InvalidOperationException("options 字段必须为字典。");
 		}
-		catch (JsonException) {
+		catch (Exception) {
 			// 兼容 data.format=text&ocr.angle=true 或单行 key=value
-			var jo = new JsonObject();
+			var jo = JSONF.newObject();
 			foreach (var piece in text.Split(new[] { '&', ';', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
 				var eq = piece.IndexOf('=');
 				if (eq <= 0) continue;
@@ -2539,7 +2194,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		}
 	}
 
-	static JsonNode tryparsescalar(string s) {
+	static JSONF tryparsescalar(string s) {
 		s = s.Trim();
 		if (s.Equals("true", StringComparison.OrdinalIgnoreCase)) return true;
 		if (s.Equals("false", StringComparison.OrdinalIgnoreCase)) return false;
@@ -2547,7 +2202,7 @@ sealed partial class HttpOcrServer : IDisposable {
 		if (double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)) return d;
 		// 尝试 JSON
 		if ((s.StartsWith("{") && s.EndsWith("}")) || (s.StartsWith("[") && s.EndsWith("]"))) {
-			try { return JsonNode.Parse(s); } catch { }
+			try { return JSONF.Parse(s); } catch { }
 		}
 		return s;
 	}
@@ -2689,29 +2344,25 @@ sealed partial class HttpOcrServer : IDisposable {
 		return Convert.FromBase64String(b64);
 	}
 
-	static string getstr(Dictionary<string, JsonNode> map, string key, string def) {
-		if (!map.TryGetValue(key, out var n) || n == null) return def;
-		if (n.GetValueKind() == JsonValueKind.String) return n.GetValue<string>() ?? def;
-		return n.ToString() ?? def;
+	static string getstr(Dictionary<string, JSONF> map, string key, string def) {
+		if (!map.TryGetValue(key, out var n) || n.IsNull) return def;
+		return n.Value ?? def;
 	}
 
-	static bool getbool(Dictionary<string, JsonNode> map, string key, bool def) {
-		if (!map.TryGetValue(key, out var n) || n == null) return def;
+	static bool getbool(Dictionary<string, JSONF> map, string key, bool def) {
+		if (!map.TryGetValue(key, out var n) || n.IsNull) return def;
 		return asbool(n, def);
 	}
 
-	static bool asbool(JsonNode n, bool def) {
-		if (n == null) return def;
-		try {
-			return n.GetValueKind() switch {
-				JsonValueKind.True => true,
-				JsonValueKind.False => false,
-				JsonValueKind.Number => n.GetValue<double>() != 0,
-				JsonValueKind.String => parseboolstr(n.GetValue<string>(), def),
-				_ => def,
-			};
-		}
-		catch { return def; }
+	static bool asbool(JSONF n, bool def) {
+		if (n.IsNull) return def;
+		return n.Type switch {
+			JSONF.NodeType.Bool => n.AsBool,
+			JSONF.NodeType.Int or JSONF.NodeType.Long or JSONF.NodeType.Float
+				or JSONF.NodeType.Double or JSONF.NodeType.Decimal => n.AsDouble != 0,
+			JSONF.NodeType.String => parseboolstr(n.Value, def),
+			_ => def,
+		};
 	}
 
 	static bool parseboolstr(string s, bool def) {
@@ -2728,34 +2379,27 @@ sealed partial class HttpOcrServer : IDisposable {
 		return def;
 	}
 
-	static int asint(JsonNode n, int def) {
-		if (n == null) return def;
-		try {
-			return n.GetValueKind() switch {
-				JsonValueKind.Number => n.GetValue<int>(),
-				JsonValueKind.String => int.TryParse(n.GetValue<string>(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : def,
-				_ => def,
-			};
-		}
-		catch { return def; }
+	static int asint(JSONF n, int def) {
+		if (n.IsNull) return def;
+		return n.Type switch {
+			JSONF.NodeType.Int or JSONF.NodeType.Long => n.AsInt,
+			JSONF.NodeType.Float or JSONF.NodeType.Double or JSONF.NodeType.Decimal => (int)n.AsDouble,
+			JSONF.NodeType.String => int.TryParse(n.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var v) ? v : def,
+			_ => def,
+		};
 	}
 
-	static float asfloat(JsonNode n, float def) {
-		if (n == null) return def;
-		try {
-			return n.GetValueKind() switch {
-				JsonValueKind.Number => (float)n.GetValue<double>(),
-				JsonValueKind.String => float.TryParse(n.GetValue<string>(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : def,
-				_ => def,
-			};
-		}
-		catch { return def; }
+	static float asfloat(JSONF n, float def) {
+		if (n.IsNull) return def;
+		return n.Type switch {
+			JSONF.NodeType.Int or JSONF.NodeType.Long or JSONF.NodeType.Float
+				or JSONF.NodeType.Double or JSONF.NodeType.Decimal => (float)n.AsDouble,
+			JSONF.NodeType.String => float.TryParse(n.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : def,
+			_ => def,
+		};
 	}
 
-	static JsonObject err(int code, string msg) => new() {
-		["code"] = code,
-		["data"] = msg ?? "",
-	};
+	static JSONF err(int code, string msg) => JSONF.newObject(("code", code), ("data", msg ?? ""));
 
 	/// <summary>异常对应的业务码：缺运行库单列 953，其余按 500。</summary>
 	static int failcode(Exception ex) => ex is MissingFeatureException ? 953 : 500;
@@ -2774,44 +2418,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		return System.Net.IPAddress.IsLoopback(addr);
 	}
 
-	static JsonArray apilist(OcrOptions o) {
-		var a = new JsonArray {
-			"GET  /  本机工具页",
-			"GET  /dict  词典页（新窗口）",
-			"GET  /reader  小说阅读器页（新窗口）",
-			"GET  /chrome  Chrome 模型页",
-			"GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语",
-			"GET  /api/dict/entry  ?id=",
-			"GET  /api/dict/speak  ?text=&lang=  WAV；该语言用 Chrome 时仅本机",
-			"GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md",
-			"GET  /api/reader/list  小说阅读器：web/up/reader 下的 txt、md",
-			"GET  /api/reader/file  ?name=&enc=  读一篇的正文",
-			"POST /api/reader/upload  ?name=&overwrite=1  正文就是文件字节",
-			"POST /api/reader/rename  JSON{from,to} · /api/reader/delete JSON{name}",
-			"POST /api/reader/stop  停止 Chrome 朗读",
-			"GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js",
-			"GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}",
-			"GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成",
-			"GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟",
-			"GET/POST /api/ipcity  IP 城市。GET ?ip= 或 POST JSON{ip}。ip 为空时查本机出口",
-			"GET/POST /api/mac  MAC 厂家。GET ?mac= 或 POST JSON{mac}",
-			"GET/POST /api/usb  USB ID。GET ?vid=&pid= 或 POST JSON{vid,pid}。返回厂家、产品、型号和接口",
-			"GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空",
-			"GET  /api/fonts  本机已安装字体",
-			"GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}",
-			"POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart",
-			"GET  /api/status",
-			"GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}",
-			"GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}",
-			"GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；有 text 时同时返回 pinyin 和 py",
-			"GET/POST /api/md  Markdown 转网页。POST JSON{text|base64,title?,theme?}，返回 data.html 和 data.bg",
-			"GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}",
-			"GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}",
-			"GET/POST /api/cast/stop  立即关闭投屏画面",
-			"WebSocket /chat  工具页聊天室",
-			"POST /chat/file  聊天室上传。multipart 字段 file，kind=image|file。图片和文件写入程序目录 tmp/chat-*，启动时删除",
-			"GET  /chat/file/{id}  下载聊天室里的图片或文件",
-		};
+	static JSONF apilist(OcrOptions o) {
+		var a = JSONF.newArray("GET  /  本机工具页", "GET  /dict  词典页（新窗口）", "GET  /reader  小说阅读器页（新窗口）", "GET  /chrome  Chrome 模型页", "GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语", "GET  /api/dict/entry  ?id=", "GET  /api/dict/speak  ?text=&lang=  WAV；该语言用 Chrome 时仅本机", "GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md", "GET  /api/reader/list  小说阅读器：web/up/reader 下的 txt、md", "GET  /api/reader/file  ?name=&enc=  读一篇的正文", "POST /api/reader/upload  ?name=&overwrite=1  正文就是文件字节", "POST /api/reader/rename  JSON{from,to} · /api/reader/delete JSON{name}", "POST /api/reader/stop  停止 Chrome 朗读", "GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/viewer.min.css · /sk/viewer.min.js", "GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}", "GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成", "GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟", "GET/POST /api/ipcity  IP 城市。GET ?ip= 或 POST JSON{ip}。ip 为空时查本机出口", "GET/POST /api/mac  MAC 厂家。GET ?mac= 或 POST JSON{mac}", "GET/POST /api/usb  USB ID。GET ?vid=&pid= 或 POST JSON{vid,pid}。返回厂家、产品、型号和接口", "GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空", "GET  /api/fonts  本机已安装字体", "GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}", "POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart", "GET  /api/status", "GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}", "GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}", "GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；有 text 时同时返回 pinyin 和 py", "GET/POST /api/md  Markdown 转网页。POST JSON{text|base64,title?,theme?}，返回 data.html 和 data.bg", "GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}", "GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}", "GET/POST /api/cast/stop  立即关闭投屏画面", "WebSocket /chat  工具页聊天室", "POST /chat/file  聊天室上传。multipart 字段 file，kind=image|file。图片和文件写入程序目录 tmp/chat-*，启动时删除", "GET  /chat/file/{id}  下载聊天室里的图片或文件");
 		if (o.HttpOcr && o.ModOcr) {
 			a.Add("GET  /api/ocr/engines  只列识别引擎和各自的模型数量");
 			a.Add("GET  /api/ocr/models  ?engine=winocr|onnx 按引擎列模型包");
@@ -2849,8 +2457,8 @@ sealed partial class HttpOcrServer : IDisposable {
 		return a;
 	}
 
-	static void writejson(SockCtx ctx, int httpStatus, JsonNode body) {
-		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));
+	static void writejson(SockCtx ctx, int httpStatus, JSONF body) {
+		var bytes = Encoding.UTF8.GetBytes(body.ToJSONString(-1));
 		var res = ctx.Response;
 		// 失败也返回 200。错误在 JSON 的 code / data。httpStatus 只标明调用处原来的含义。
 		_ = httpStatus;

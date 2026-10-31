@@ -1,4 +1,4 @@
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -67,25 +67,25 @@ static class PasswordVariant {
 		var list = new List<PasswordVariantRow>();
 		var json = TextTools.ExtractJson(text ?? "");
 		if (json.Length == 0) return list;
-		JsonDocument doc;
-		try { doc = JsonDocument.Parse(json); }
+		JSONF doc;
+		try { doc = JSONF.Parse(json); }
 		catch { return list; }
-		using (doc) {
-			var root = doc.RootElement;
-			if (root.ValueKind == JsonValueKind.Object) {
+		{
+			var root = doc;
+			if (root.IsObject) {
 				foreach (var name in new[] { "items", "rows", "data", "variants" }) {
-					if (root.TryGetProperty(name, out var arr) && arr.ValueKind == JsonValueKind.Array) {
+					if (root.tryget(name, out var arr) && arr.IsArray) {
 						root = arr;
 						break;
 					}
 				}
 			}
-			if (root.ValueKind != JsonValueKind.Array) return list;
+			if (!root.IsArray) return list;
 			var seen = new HashSet<string>(StringComparer.Ordinal);
 			var seedTrim = (seed ?? "").Trim();
 			if (seedTrim.Length > 0) seen.Add(seedTrim);
-			foreach (var el in root.EnumerateArray()) {
-				if (el.ValueKind != JsonValueKind.Object) continue;
+			foreach (var el in root) {
+				if (!el.IsObject) continue;
 				var pw = TextTools.JsonField(el, "pw", "password", "variant", "text");
 				var note = TextTools.JsonField(el, "note", "reason", "how", "method");
 				pw = normpw(pw);

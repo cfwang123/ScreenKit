@@ -1,6 +1,5 @@
-using System.Net;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+﻿using System.Net;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -22,17 +21,8 @@ sealed partial class HttpOcrServer {
 		var ready = models.Count(m => m != null && m.IsOnnx && m.IsReady);
 		var llms = o.LlmList?.Where(x => x != null).ToList() ?? new List<LlmEndpoint>();
 		var llmReady = llms.Count(x => AsrLlmClient.IsEndpointReady(x));
-		var arr = new JsonArray {
-			new JsonObject { ["engine"] = "auto", ["name"] = "Auto" },
-			new JsonObject { ["engine"] = "onnx", ["name"] = "ONNX", ["count"] = onnx, ["ready"] = ready },
-			new JsonObject { ["engine"] = "chrome", ["name"] = "Chrome", ["ready"] = o.ChromeTranslate() },
-			new JsonObject { ["engine"] = "llm", ["name"] = "LLM", ["count"] = llms.Count, ["ready"] = llmReady },
-		};
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-		});
+		var arr = JSONF.newArray(JSONF.newObject(("engine", "auto"), ("name", "Auto")), JSONF.newObject(("engine", "onnx"), ("name", "ONNX"), ("count", onnx), ("ready", ready)), JSONF.newObject(("engine", "chrome"), ("name", "Chrome"), ("ready", o.ChromeTranslate())), JSONF.newObject(("engine", "llm"), ("name", "LLM"), ("count", llms.Count), ("ready", llmReady)));
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count)));
 	}
 
 	/// <summary>按引擎列翻译模型：onnx 是本地方向模型，llm 是已配置端点。</summary>
@@ -43,12 +33,12 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		var o = getOpts?.Invoke() ?? new OcrOptions();
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		if (engine.Length == 0 || engine == "onnx") {
 			List<TranslateModelInfo> models;
 			try { models = TranslateModelScanner.Scan(); }
 			catch { models = new List<TranslateModelInfo>(); }
-			foreach (var one in translatemodels(models)) arr.Add(JsonNode.Parse(one.ToJsonString()));
+			foreach (var one in translatemodels(models)) arr.Add(JSONF.Parse(one.ToJSONString(-1)));
 		}
 		if (engine.Length == 0 || engine == "llm") {
 			var list = o.LlmList;
@@ -56,21 +46,11 @@ sealed partial class HttpOcrServer {
 				foreach (var ep in list) {
 					if (ep == null) continue;
 					var name = ep.DisplayName ?? "";
-					arr.Add(new JsonObject {
-						["engine"] = "llm",
-						["id"] = name,
-						["name"] = name,
-						["model"] = ep.Model ?? "",
-						["ready"] = AsrLlmClient.IsEndpointReady(ep),
-					});
+					arr.Add(JSONF.newObject(("engine", "llm"), ("id", name), ("name", name), ("model", ep.Model ?? ""), ("ready", AsrLlmClient.IsEndpointReady(ep))));
 				}
 			}
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = arr,
-			["count"] = arr.Count,
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr), ("count", arr.Count)));
 	}
 
 	void handletranslatelangs(SockCtx ctx) {
@@ -82,73 +62,44 @@ sealed partial class HttpOcrServer {
 		catch { models = new List<TranslateModelInfo>(); }
 		var wide = llm || chrome;
 		var srcs = translatesrcs(models, wide);
-		var srcArr = new JsonArray();
-		var dst = new JsonObject();
+		var srcArr = JSONF.newArray();
+		var dst = JSONF.newObject();
 		foreach (var s in srcs) {
 			srcArr.Add(s);
-			var arr = new JsonArray();
+			var arr = JSONF.newArray();
 			foreach (var t in translatedsts(models, wide, s)) arr.Add(t);
 			dst[s] = arr;
 		}
 		o.AutoTranslatePair(out var autoNative, out var autoLearn);
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["llm"] = llm,
-				["chrome"] = chrome,
-				["src"] = srcArr,
-				["dst"] = dst,
-				["auto_native"] = autoNative,
-				["auto_learn"] = autoLearn,
-				["auto_label"] = TrLang.AutoLabel(autoNative, autoLearn),
-				["engines"] = translateengines(o),
-				["models"] = translatemodels(models),
-			},
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("llm", llm), ("chrome", chrome), ("src", srcArr), ("dst", dst), ("auto_native", autoNative), ("auto_learn", autoLearn), ("auto_label", TrLang.AutoLabel(autoNative, autoLearn)), ("engines", translateengines(o)), ("models", translatemodels(models)))), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
 	/// <summary>可选引擎：自动、本地 ONNX、Chrome，以及参数设置里配的每个 LLM 端点。</summary>
-	static JsonArray translateengines(OcrOptions o) {
-		var arr = new JsonArray {
-			new JsonObject { ["engine"] = "auto" },
-			new JsonObject { ["engine"] = "onnx" },
-			new JsonObject { ["engine"] = "chrome" },
-		};
+	static JSONF translateengines(OcrOptions o) {
+		var arr = JSONF.newArray(JSONF.newObject(("engine", "auto")), JSONF.newObject(("engine", "onnx")), JSONF.newObject(("engine", "chrome")));
 		var list = o?.LlmList;
 		if (list != null) {
 			foreach (var ep in list) {
 				var name = ep?.DisplayName ?? "";
 				if (name.Length == 0) continue;
-				arr.Add(new JsonObject {
-					["engine"] = "llm",
-					["name"] = name,
-					["model"] = ep.Model ?? "",
-				});
+				arr.Add(JSONF.newObject(("engine", "llm"), ("name", name), ("model", ep.Model ?? "")));
 			}
 		}
 		return arr;
 	}
 
 	/// <summary>本地模型只列 ONNX；key 是方向键，name 是目录名（不含路径）。</summary>
-	static JsonArray translatemodels(List<TranslateModelInfo> models) {
-		var arr = new JsonArray();
+	static JSONF translatemodels(List<TranslateModelInfo> models) {
+		var arr = JSONF.newArray();
 		foreach (var m in models) {
 			if (m == null || !m.IsOnnx) continue;
-			arr.Add(new JsonObject {
-				["engine"] = "onnx",
-				["key"] = m.DirKey,
-				["src"] = m.SourceLang,
-				["dst"] = m.TargetLang,
-				["name"] = Path.GetFileName(m.ModelDir) ?? "",
-				["ready"] = m.IsReady,
-			});
+			arr.Add(JSONF.newObject(("engine", "onnx"), ("key", m.DirKey), ("src", m.SourceLang), ("dst", m.TargetLang), ("name", Path.GetFileName(m.ModelDir) ?? ""), ("ready", m.IsReady)));
 		}
 		return arr;
 	}
 
 	void handletranslate(SockCtx ctx) {
-		JsonObject jo;
+		JSONF jo;
 		try { jo = readjsonbody(ctx.Request); }
 		catch (Exception ex) {
 			writejson(ctx, 200, err(800, ex.Message));
@@ -182,8 +133,8 @@ sealed partial class HttpOcrServer {
 		}
 
 		var chunk = 0;
-		if (jo["chunk"] != null && jo["chunk"].GetValueKind() == JsonValueKind.Number)
-			chunk = jo["chunk"].GetValue<int>();
+		if (jo.get("chunk").IsNotNull && jo.get("chunk").IsNumber)
+			chunk = jo.Int("chunk");
 		else {
 			var cs = str(jo, "chunk");
 			if (!string.IsNullOrWhiteSpace(cs) && int.TryParse(cs, out var cv)) chunk = cv;
@@ -206,44 +157,25 @@ sealed partial class HttpOcrServer {
 		finally { llmslots.Release(); }
 		var ms = Math.Max(0, Environment.TickCount - t0);
 
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		var miss = 0;
 		for (var i = 0; i < items.Count; i++) {
 			var srcText = items[i] ?? "";
 			var outText = i < outs.Count ? (outs[i] ?? "") : "";
 			if (srcText.Trim().Length > 0 && outText.Trim().Length == 0) miss++;
-			arr.Add(new JsonObject {
-				["i"] = i + 1,
-				["text"] = srcText,
-				["out"] = outText,
-			});
+			arr.Add(JSONF.newObject(("i", i + 1), ("text", srcText), ("out", outText)));
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["src"] = src,
-				["dst"] = dst,
-				["model"] = ep.Model ?? "",
-				["llm"] = ep.DisplayName ?? "",
-				["engine"] = "llm",
-				["chunk"] = chunk,
-				["count"] = items.Count,
-				["miss"] = miss,
-				["items"] = arr,
-			},
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("src", src), ("dst", dst), ("model", ep.Model ?? ""), ("llm", ep.DisplayName ?? ""), ("engine", "llm"), ("chunk", chunk), ("count", items.Count), ("miss", miss), ("items", arr))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
-	static bool wantchrome(JsonObject jo, OcrOptions o) {
+	static bool wantchrome(JSONF jo, OcrOptions o) {
 		var e = str(jo, "engine") ?? str(jo, "llm") ?? str(jo, "model") ?? "";
 		if (e.Equals("chrome", StringComparison.OrdinalIgnoreCase)) return true;
 		if (e.Length > 0 && !e.Equals("auto", StringComparison.OrdinalIgnoreCase)) return false;
 		return o != null && o.ChromeTranslate();
 	}
 
-	void translatechrome(SockCtx ctx, OcrOptions o, JsonObject jo) {
+	void translatechrome(SockCtx ctx, OcrOptions o, JSONF jo) {
 		var items = readitems(jo);
 		if (items == null || items.Count == 0) {
 			writejson(ctx, 200, err(941, "请提供 items 字符串数组，或 text"));
@@ -262,33 +194,15 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		var ms = Math.Max(0, Environment.TickCount - t0);
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		var miss = 0;
 		for (var i = 0; i < items.Count; i++) {
 			var srcText = items[i] ?? "";
 			var outText = i < outs.Count ? (outs[i] ?? "") : "";
 			if (srcText.Trim().Length > 0 && outText.Trim().Length == 0) miss++;
-			arr.Add(new JsonObject {
-				["i"] = i + 1,
-				["text"] = srcText,
-				["out"] = outText,
-			});
+			arr.Add(JSONF.newObject(("i", i + 1), ("text", srcText), ("out", outText)));
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["src"] = src,
-				["dst"] = dst,
-				["model"] = "Chrome",
-				["llm"] = "",
-				["engine"] = "chrome",
-				["count"] = items.Count,
-				["miss"] = miss,
-				["items"] = arr,
-			},
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("src", src), ("dst", dst), ("model", "Chrome"), ("llm", ""), ("engine", "chrome"), ("count", items.Count), ("miss", miss), ("items", arr))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
 	static LlmEndpoint resolveep(OcrOptions o, string want) {
@@ -300,21 +214,23 @@ sealed partial class HttpOcrServer {
 		return o.SelectedTranslateLlm() ?? o.SelectedLlm();
 	}
 
-	static List<string> readitems(JsonObject jo) {
+	static List<string> readitems(JSONF jo) {
 		var list = new List<string>();
-		var node = jo["items"] ?? jo["texts"] ?? jo["list"];
-		if (node is JsonArray arr) {
-			foreach (var x in arr) {
-				if (x == null || x.GetValueKind() == JsonValueKind.Null) {
+		var node = jo.get("items");
+		if (node.IsNull) node = jo.get("texts");
+		if (node.IsNull) node = jo.get("list");
+		if (node.IsArray) {
+			foreach (var x in node) {
+				if (x.IsNull) {
 					list.Add("");
 					continue;
 				}
-				if (x.GetValueKind() == JsonValueKind.String)
-					list.Add(x.GetValue<string>() ?? "");
-				else if (x is JsonObject xo)
-					list.Add(str(xo, "text") ?? str(xo, "src") ?? "");
+				if (x.IsString)
+					list.Add(x.Value ?? "");
+				else if (x.IsObject)
+					list.Add(str(x, "text") ?? str(x, "src") ?? "");
 				else
-					list.Add(x.ToString() ?? "");
+					list.Add(x.ToString());
 			}
 			return list;
 		}
@@ -327,7 +243,7 @@ sealed partial class HttpOcrServer {
 	}
 
 	/// <summary>解析请求语言：src/dst/dir 优先；缺省或 auto 时按 native/learn（缺省取配置）检测。</summary>
-	static void resolvereq(OcrOptions o, JsonObject jo, List<string> items, out string src, out string dst) {
+	static void resolvereq(OcrOptions o, JSONF jo, List<string> items, out string src, out string dst) {
 		src = TrLang.Normalize(str(jo, "src") ?? str(jo, "from") ?? "");
 		dst = TrLang.Normalize(str(jo, "dst") ?? str(jo, "to") ?? "");
 		var dir = str(jo, "dir") ?? str(jo, "tr_dir") ?? "";
@@ -392,34 +308,15 @@ sealed partial class HttpOcrServer {
 			return;
 		}
 		var ms = Math.Max(0, Environment.TickCount - t0);
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		var miss = 0;
 		for (var i = 0; i < items.Count; i++) {
 			var srcText = items[i] ?? "";
 			var outText = i < outs.Count ? (outs[i] ?? "") : "";
 			if (srcText.Trim().Length > 0 && outText.Trim().Length == 0) miss++;
-			arr.Add(new JsonObject {
-				["i"] = i + 1,
-				["text"] = srcText,
-				["out"] = outText,
-			});
+			arr.Add(JSONF.newObject(("i", i + 1), ("text", srcText), ("out", outText)));
 		}
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = new JsonObject {
-				["src"] = src,
-				["dst"] = dst,
-				["model"] = model.DisplayName ?? key,
-				["llm"] = "",
-				["engine"] = "onnx",
-				["chunk"] = 1,
-				["count"] = items.Count,
-				["miss"] = miss,
-				["items"] = arr,
-			},
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("src", src), ("dst", dst), ("model", model.DisplayName ?? key), ("llm", ""), ("engine", "onnx"), ("chunk", 1), ("count", items.Count), ("miss", miss), ("items", arr))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
 	/// <summary>本地模型可用方向键（zh-en）或目录名（opus-mt-zh-en-onnx）指定。</summary>
@@ -508,10 +405,8 @@ sealed partial class HttpOcrServer {
 		httpTr = null;
 	}
 
-	static string str(JsonObject jo, string key) {
-		if (jo == null || jo[key] == null) return null;
-		if (jo[key].GetValueKind() == JsonValueKind.String)
-			return jo[key].GetValue<string>();
-		return null;
+	static string str(JSONF jo, string key) {
+		var el = jo.get(key);
+		return el.IsString ? el.Value : null;
 	}
 }

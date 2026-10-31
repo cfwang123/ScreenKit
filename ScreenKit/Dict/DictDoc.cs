@@ -1,5 +1,5 @@
-using System.Text.Json.Nodes;
 using System.Windows.Documents;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -12,14 +12,14 @@ static class DictDoc {
 	// 整份文档就是行：每行 [缩进(0/1), 行后距, [行内块…]]；空行就是行内块为空的行。
 	// 行内块：["t", 文本, 角色, 语言] / ["k", 文案键, 角色, 后缀, 语言] /
 	//         ["a", 文本, 查询词, 语言] / ["v", 朗读文本, 语言]
-	public static JsonObject Build(DictEntry e, bool only, string ui) {
-		var blocks = new JsonArray();
-		var doc = new JsonObject { ["lines"] = blocks };
+	public static JSONF Build(DictEntry e, bool only, string ui) {
+		var blocks = JSONF.newArray();
+		var doc = JSONF.newObject(("lines", blocks));
 		if (e == null) return doc;
 		var entrylang = DictWindow.speaklang(e.Dict ?? "");
 		var zharticle = e.Dict == "zh" && e.Extra.Length > 0;
 		var forms = DictWindow.headforms(e);
-		var head = new JsonArray();
+		var head = JSONF.newArray();
 		for (var i = 0; i < forms.Count; i++) {
 			if (i == 0) head.Add(s(forms[i], "t", entrylang));
 			else head.Add(s(", " + forms[i], "b", entrylang));
@@ -36,7 +36,7 @@ static class DictDoc {
 			}
 			if (tags.Count > 0) {
 				var joined = string.Join(" · ", tags);
-				var r = new JsonArray { k("dict.lab.tags", "l") };
+				var r = JSONF.newArray(k("dict.lab.tags", "l"));
 				r.Add(s(joined, "b", DictWindow.TextLang(joined, entrylang)));
 				blocks.Add(p(0, 1, r));
 			}
@@ -45,10 +45,7 @@ static class DictDoc {
 				if (lines.Count == 1) {
 					// 只有一条语源：标签和正文排同一行，去掉数据里带的「1. 」，下面空一行。
 					var text = nonum(lines[0]);
-					blocks.Add(p(0, 0, new JsonArray {
-						k("dict.lab.etym", "l", " "),
-						s(text, "b", DictWindow.TextLang(text, entrylang)),
-					}));
+					blocks.Add(p(0, 0, JSONF.newArray(k("dict.lab.etym", "l", " "), s(text, "b", DictWindow.TextLang(text, entrylang)))));
 				}
 				else {
 					blocks.Add(oneKey("dict.lab.etym", "l", 0));
@@ -58,7 +55,7 @@ static class DictDoc {
 				blocks.Add(gap(4));
 			}
 			foreach (var c in e.Conjugations) {
-				var r = new JsonArray { k("dict.lab.conj", "l") };
+				var r = JSONF.newArray(k("dict.lab.conj", "l"));
 				var firstpart = true;
 				foreach (var part in c.Split('　')) {
 					if (!firstpart) r.Add(s("　", "b"));
@@ -68,7 +65,7 @@ static class DictDoc {
 				blocks.Add(p(0, 0, r));
 			}
 			if (e.See.Count > 0) {
-				var r = new JsonArray { k("dict.lab.see", "l", " ") };
+				var r = JSONF.newArray(k("dict.lab.see", "l", " "));
 				var first = true;
 				foreach (var sw in e.See) {
 					if (sw == null || sw.Length == 0) continue;
@@ -88,32 +85,29 @@ static class DictDoc {
 		return doc;
 	}
 
-	static void senses(DictEntry e, JsonArray blocks, string entrylang, bool only, string ui) {
+	static void senses(DictEntry e, JSONF blocks, string entrylang, bool only, string ui) {
 		var n = 1;
 		string lastpos = null;
 		var anySense = false;
 		var linkphrase = e.Dict != "ko";
 		var blockstyle = e.Dict == "ko" || e.Dict == "en";
-		JsonArray curp = null;
+		JSONF curp = default;
 		var idiomopen = false;
 		foreach (var sn in e.Senses) {
 			if (!sn.Sub) idiomopen = false;
-			if (sn.Idiom.Length > 0 || !sn.Sub) curp = null;
+			if (sn.Idiom.Length > 0 || !sn.Sub) curp = default;
 			if (sn.Idiom.Length > 0) {
 				if (e.Dict == "en") {
 					if (!idiomopen) {
 						if (anySense) blocks.Add(gap(4));
-						blocks.Add(p(0, 0, new JsonArray { k("dict.lab.phrase", "l", "：") }));
+						blocks.Add(p(0, 0, JSONF.newArray(k("dict.lab.phrase", "l", "："))));
 						idiomopen = true;
 					}
-					blocks.Add(p(0, 0, new JsonArray {
-						s("· ", "n"),
-						link(sn.Idiom, DictWindow.firsttoken(sn.Idiom), entrylang),
-					}));
+					blocks.Add(p(0, 0, JSONF.newArray(s("· ", "n"), link(sn.Idiom, DictWindow.firsttoken(sn.Idiom), entrylang))));
 				}
 				else {
 					if (anySense && !only) blocks.Add(gap(4));
-					var r = new JsonArray { k("dict.lab.phrase", "l", " ") };
+					var r = JSONF.newArray(k("dict.lab.phrase", "l", " "));
 					if (linkphrase) r.Add(link(sn.Idiom, DictWindow.firsttoken(sn.Idiom), entrylang));
 					else r.Add(s(sn.Idiom, "b", entrylang));
 					blocks.Add(p(0, 0, r));
@@ -125,22 +119,22 @@ static class DictDoc {
 				blocks.Add(one("▶ " + sn.Pos, "p", 1, DictWindow.TextLang(sn.Pos, entrylang)));
 				lastpos = sn.Pos;
 				n = 1;
-				curp = null;
+				curp = default;
 			}
 			var numbered = false;
 			// 返回新建的段落；仅释义时把它记作 curp，后续译文并到同一段。
-			JsonArray gloss(string tagkey, string lemma, string def, string lang) {
-				if (lemma.Length == 0 && def.Length == 0) return null;
+			JSONF gloss(string tagkey, string lemma, string def, string lang) {
+				if (lemma.Length == 0 && def.Length == 0) return default;
 				var text = DictWindow.join2(lemma, def);
 				if (only) {
 					text = DictWindow.onelines(text);
-					if (text.Length == 0) return null;
-					if (curp != null) {
+					if (text.Length == 0) return default;
+					if (curp.IsNotNull) {
 						curp.Add(s("; " + text, "b", lang));
-						return null;
+						return default;
 					}
 				}
-				var r = new JsonArray();
+				var r = JSONF.newArray();
 				var withnum = !numbered && !sn.Sub;
 				if (withnum) {
 					r.Add(s(n + ". ", "n"));
@@ -180,10 +174,10 @@ static class DictDoc {
 			}
 			if (e.Dict == "ko" && sn.Phrases.Count > 0 && sn.Idiom.Length == 0) {
 				blocks.Add(gap(4));
-				blocks.Add(p(1, 0, new JsonArray { k("dict.lab.phrase", "l", "：") }));
+				blocks.Add(p(1, 0, JSONF.newArray(k("dict.lab.phrase", "l", "："))));
 				foreach (var ph in sn.Phrases) {
 					if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
-					var r = new JsonArray { s("· ", "n") };
+					var r = JSONF.newArray(s("· ", "n"));
 					if (ph.Text.Length > 0) r.Add(s(ph.Text, "b", entrylang));
 					var say = DictWindow.examplesrc(ph.Text);
 					if (say.Length > 0) r.Add(spk(say, entrylang));
@@ -196,7 +190,7 @@ static class DictDoc {
 			}
 			else foreach (var ph in sn.Phrases) {
 				if (ph.Text.Length == 0 && ph.Zh.Length == 0) continue;
-				var r = new JsonArray { k("dict.lab.phrase", "l", " ") };
+				var r = JSONF.newArray(k("dict.lab.phrase", "l", " "));
 				if (linkphrase && ph.Text.Length > 0) r.Add(link(ph.Text, DictWindow.firsttoken(ph.Text), entrylang));
 				else r.Add(s(ph.Text, "b", entrylang));
 				if (!linkphrase) {
@@ -205,20 +199,17 @@ static class DictDoc {
 				}
 				blocks.Add(p(0, 0, r));
 				if (ph.Zh.Length > 0) {
-					blocks.Add(p(0, 0, new JsonArray {
-						k("dict.lab.zh", "l", " ", "zh"),
-						s(ph.Zh, "b", "zh"),
-					}));
+					blocks.Add(p(0, 0, JSONF.newArray(k("dict.lab.zh", "l", " ", "zh"), s(ph.Zh, "b", "zh"))));
 				}
 			}
 			if (!only) {
 				if (sn.Sentences.Count > 0) {
 					if (blockstyle && sn.Idiom.Length == 0) blocks.Add(gap(4));
-					blocks.Add(p(blockstyle ? 1 : 0, 0, new JsonArray { k("dict.lab.example", "e") }));
+					blocks.Add(p(blockstyle ? 1 : 0, 0, JSONF.newArray(k("dict.lab.example", "e"))));
 				}
 				foreach (var ex in sn.Sentences) {
 					if (ex.Text.Length == 0 && ex.Zh.Length == 0) continue;
-					var r = new JsonArray();
+					var r = JSONF.newArray();
 					if (blockstyle) {
 						r.Add(s("· ", "n"));
 						if (ex.Text.Length > 0) r.Add(s(ex.Text, "x", entrylang));
@@ -233,29 +224,23 @@ static class DictDoc {
 					}
 					blocks.Add(p(blockstyle ? 1 : 0, 0, r));
 					if (ex.Zh.Length > 0 && !same) {
-						blocks.Add(p(0, 0, new JsonArray {
-							k("dict.lab.zh", "l", " ", "zh"),
-							s(ex.Zh, "b", "zh"),
-						}));
+						blocks.Add(p(0, 0, JSONF.newArray(k("dict.lab.zh", "l", " ", "zh"), s(ex.Zh, "b", "zh"))));
 					}
 				}
 			}
 			if (!sn.Sub && !numbered && sn.Phrases.Count == 0 && sn.Sentences.Count == 0) {
-				blocks.Add(p(0, 0, new JsonArray {
-					s(n + ". ", "n"),
-					k("dict.empty.sense", "r"),
-				}));
+				blocks.Add(p(0, 0, JSONF.newArray(s(n + ". ", "n"), k("dict.empty.sense", "r"))));
 				n++;
 			}
 			else if (!sn.Sub && !numbered) {
-				blocks.Add(p(0, 0, new JsonArray { s(n + ".", "n") }));
+				blocks.Add(p(0, 0, JSONF.newArray(s(n + ".", "n"))));
 				n++;
 			}
 		}
 	}
 
-	static JsonArray p(double indent, double bottom, JsonArray runs) =>
-		new() { indent > 0 ? 1 : 0, (int)bottom, runs };
+	static JSONF p(double indent, double bottom, JSONF runs) =>
+		JSONF.newArray(indent > 0 ? 1 : 0, (int)bottom, runs);
 
 	/// <summary>去掉行首的「1. 」这类序号。</summary>
 	static string nonum(string text) {
@@ -267,48 +252,51 @@ static class DictDoc {
 		return text.Substring(i);
 	}
 
-	static JsonArray gap(double h) => p(0, h, new JsonArray());
+	static JSONF gap(double h) => p(0, h, JSONF.newArray());
 
-	static JsonArray one(string text, string role, double bottom, string lang = null) =>
-		p(0, bottom, new JsonArray { s(text, role, lang) });
+	static JSONF one(string text, string role, double bottom, string lang = null) =>
+		p(0, bottom, JSONF.newArray(s(text, role, lang)));
 
-	static JsonArray oneKey(string key, string role, double bottom, string suffix = null) =>
-		p(0, bottom, new JsonArray { k(key, role, suffix) });
+	static JSONF oneKey(string key, string role, double bottom, string suffix = null) =>
+		p(0, bottom, JSONF.newArray(k(key, role, suffix)));
 
-	static JsonArray s(string text, string role, string lang = null) =>
-		new() { "t", text ?? "", role ?? "b", lang ?? "" };
+	static JSONF s(string text, string role, string lang = null) =>
+		JSONF.newArray("t", text ?? "", role ?? "b", lang ?? "");
 
-	static JsonArray k(string key, string role, string suffix = null, string lang = null) =>
-		new() { "k", key, role ?? "l", suffix ?? "", lang ?? "" };
+	static JSONF k(string key, string role, string suffix = null, string lang = null) =>
+		JSONF.newArray("k", key, role ?? "l", suffix ?? "", lang ?? "");
 
-	static JsonArray link(string text, string query, string lang) =>
-		new() { "a", text ?? "", query ?? text ?? "", lang ?? "" };
+	static JSONF link(string text, string query, string lang) =>
+		JSONF.newArray("a", text ?? "", query ?? text ?? "", lang ?? "");
 
-	static JsonArray spk(string text, string lang) =>
-		new() { "v", text ?? "", lang ?? "" };
+	static JSONF spk(string text, string lang) =>
+		JSONF.newArray("v", text ?? "", lang ?? "");
 }
 
 /// <summary>把 DictDoc 的 JSON 画进 WPF 的 FlowDocument。</summary>
 static class DictDocView {
-	public static void Fill(FlowDocument doc, JsonNode node, Action<string> onlink, Action<string, string> onspk) {
+	public static void Fill(FlowDocument doc, JSONF node, Action<string> onlink, Action<string, string> onspk) {
 		doc.Blocks.Clear();
-		if (node?["lines"] is not JsonArray lines) return;
+		var lines = node.get("lines");
+		if (!lines.IsArray) return;
 		foreach (var ln in lines) {
-			if (ln is not JsonArray a || a.Count < 3) continue;
+			var a = ln;
+			if (!a.IsArray || a.Count < 3) continue;
 			var p = new Paragraph {
-				Margin = new Thickness(num(a[0]) > 0 ? 16 : 0, 0, 0, num(a[1])),
+				Margin = new Thickness(num(a.get(0)) > 0 ? 16 : 0, 0, 0, num(a.get(1))),
 				LineHeight = 18,
 			};
-			if (a[2] is JsonArray runs) {
-				foreach (var rn in runs) addruns(p, rn as JsonArray, onlink, onspk);
+			var runs = a.get(2);
+			if (runs.IsArray) {
+				foreach (var rn in runs) addruns(p, rn, onlink, onspk);
 			}
 			doc.Blocks.Add(p);
 		}
 	}
 
-	static void addruns(Paragraph p, JsonArray r, Action<string> onlink, Action<string, string> onspk) {
-		if (r == null || r.Count < 2) return;
-		var kind = (string)r[0];
+	static void addruns(Paragraph p, JSONF r, Action<string> onlink, Action<string, string> onspk) {
+		if (!r.IsArray || r.Count < 2) return;
+		var kind = r.get(0).Value;
 		if (kind == "t") {
 			addrun(p, str(r, 1), role(str(r, 2)), str(r, 3));
 			return;
@@ -368,15 +356,10 @@ static class DictDocView {
 		return null;
 	}
 
-	static string str(JsonArray a, int i) {
-		if (i >= a.Count || a[i] == null) return "";
-		if (a[i] is JsonValue v) return v.ToString();
-		return "";
+	static string str(JSONF a, int i) {
+		var v = a.get(i);
+		return v.IsValue ? v.Value : "";
 	}
 
-	static double num(JsonNode n) {
-		if (n is JsonValue v && v.TryGetValue<double>(out var d)) return d;
-		if (n is JsonValue vi && vi.TryGetValue<int>(out var i)) return i;
-		return 0;
-	}
+	static double num(JSONF n) => n.IsValue ? n.AsDouble : 0;
 }

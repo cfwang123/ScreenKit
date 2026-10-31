@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -108,8 +108,8 @@ sealed class CastDisc : IDisposable {
 		}
 		if (!s.StartsWith("{")) return;
 		try {
-			var o = JsonNode.Parse(s) as JsonObject;
-			if (o == null) return;
+			var o = JSONF.Parse(s);
+			if (!o.IsObject) return;
 			var http = CastProto.Jint(o, "httpPort");
 			if (http <= 0) http = CastProto.Jint(o, "http");
 			if (http <= 0) http = CastProto.Jint(o, "tcp");
@@ -175,14 +175,7 @@ sealed class CastDisc : IDisposable {
 		var o = CastHost.Opt;
 		if (o != null && !o.SendFileEnabled && !o.CastRecvEnabled) return;
 		var nm = string.IsNullOrWhiteSpace(o?.SendFileName) ? name() : o.SendFileName.Trim();
-		var json = new JsonObject {
-			["v"] = 1,
-			["name"] = nm,
-			["httpPort"] = httpport(),
-			["pcId"] = o?.SendFilePcId ?? "",
-			["cmd"] = "discover",
-			["cast"] = true,
-		}.ToJsonString();
+		var json = JSONF.newObject(("v", 1), ("name", nm), ("httpPort", httpport()), ("pcId", o?.SendFilePcId ?? ""), ("cmd", "discover"), ("cast", true)).ToJSONString(-1);
 		var bytes = Encoding.UTF8.GetBytes(json);
 		try { u.Send(bytes, bytes.Length, ep); }
 		catch { }

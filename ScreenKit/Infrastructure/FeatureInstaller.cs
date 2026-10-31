@@ -6,9 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 using Microsoft.Win32.SafeHandles;
 using SharpCompress.Common;
 using SharpCompress.Readers;
@@ -1165,22 +1163,15 @@ arabic_dict.txt
 		if (string.IsNullOrWhiteSpace(dir)) return;
 		try {
 			Directory.CreateDirectory(dir);
-			var node = new JsonObject {
-				["name"] = nameZh ?? "",
-				["nameEn"] = nameEn ?? "",
-			};
-			var vs = new JsonObject();
+			var node = JSONF.newObject(("name", nameZh ?? ""), ("nameEn", nameEn ?? ""));
+			var vs = JSONF.newObject();
 			if (variantEn != null) {
 				foreach (var kv in variantEn)
 					vs[kv.Key] = kv.Value;
 			}
 			node["variants"] = vs;
-			var opts = new JsonSerializerOptions(JsonSerializerOptions.Default) {
-				WriteIndented = true,
-				Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-			};
 			File.WriteAllText(Path.Combine(dir, "pack.json"),
-				node.ToJsonString(opts) + "\n", new UTF8Encoding(false));
+				node.ToJSONString(0) + "\n", new UTF8Encoding(false));
 		}
 		catch (Exception ex) {
 			CaptureLog.Ex("writepackjson " + dir, ex);

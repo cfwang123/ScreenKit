@@ -1,6 +1,6 @@
 using System.IO;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -272,18 +272,18 @@ static class ModelCatalog {
 		if (!File.Exists(path)) return;
 		try {
 			using var fs = File.OpenRead(path);
-			using var doc = JsonDocument.Parse(fs);
-			var root = doc.RootElement;
-			if (root.ValueKind != JsonValueKind.Object) return;
+			var doc = JSONF.Parse(fs);
+			var root = doc;
+			if (!root.IsObject) return;
 			var zh = jsonstr(root, "name") ?? jsonstr(root, "nameZh");
 			var en = jsonstr(root, "nameEn");
 			if (!string.IsNullOrWhiteSpace(zh)) pack.NameZh = zh;
 			if (!string.IsNullOrWhiteSpace(en)) pack.NameEn = en;
-			if (root.TryGetProperty("variants", out var vs) && vs.ValueKind == JsonValueKind.Object) {
+			if (root.tryget("variants", out var vs) && vs.IsObject) {
 				var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-				foreach (var p in vs.EnumerateObject()) {
-					if (p.Value.ValueKind == JsonValueKind.String)
-						map[p.Name] = p.Value.GetString() ?? "";
+				foreach (var p in vs.KeyVals) {
+					if (p.Value.IsString)
+						map[p.Name] = p.Value.Value ?? "";
 				}
 				applyvarianten(pack, map);
 			}
@@ -311,21 +311,21 @@ static class ModelCatalog {
 		if (!File.Exists(path)) return;
 		try {
 			using var fs = File.OpenRead(path);
-			using var doc = JsonDocument.Parse(fs);
-			var root = doc.RootElement;
-			if (root.ValueKind != JsonValueKind.Object) return;
-			if (root.TryGetProperty("packs", out var packsEl) && packsEl.ValueKind == JsonValueKind.Object) {
-				foreach (var p in packsEl.EnumerateObject()) {
-					if (p.Value.ValueKind != JsonValueKind.Object) continue;
+			var doc = JSONF.Parse(fs);
+			var root = doc;
+			if (!root.IsObject) return;
+			if (root.tryget("packs", out var packsEl) && packsEl.IsObject) {
+				foreach (var p in packsEl.KeyVals) {
+					if (!p.Value.IsObject) continue;
 					var zh = jsonstr(p.Value, "name") ?? jsonstr(p.Value, "nameZh") ?? "";
 					var en = jsonstr(p.Value, "nameEn") ?? "";
 					catalogPacks[p.Name] = (zh, en);
 				}
 			}
-			if (root.TryGetProperty("variants", out var varEl) && varEl.ValueKind == JsonValueKind.Object) {
-				foreach (var p in varEl.EnumerateObject()) {
-					if (p.Value.ValueKind == JsonValueKind.String)
-						catalogVariants[p.Name] = p.Value.GetString() ?? "";
+			if (root.tryget("variants", out var varEl) && varEl.IsObject) {
+				foreach (var p in varEl.KeyVals) {
+					if (p.Value.IsString)
+						catalogVariants[p.Name] = p.Value.Value ?? "";
 				}
 			}
 		}
@@ -334,10 +334,10 @@ static class ModelCatalog {
 		}
 	}
 
-	static string jsonstr(JsonElement el, string name) {
-		if (!el.TryGetProperty(name, out var v) || v.ValueKind != JsonValueKind.String)
+	static string jsonstr(JSONF el, string name) {
+		if (!el.tryget(name, out var v) || !v.IsString)
 			return null;
-		var s = v.GetString();
+		var s = v.Value;
 		return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 	}
 }

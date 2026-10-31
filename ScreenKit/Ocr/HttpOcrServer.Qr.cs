@@ -1,5 +1,5 @@
 using System.Net;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -7,7 +7,7 @@ namespace ScreenKit;
 sealed partial class HttpOcrServer {
 	void handleqr(SockCtx ctx) {
 		byte[] imageBytes;
-		JsonObject jo;
+		JSONF jo;
 		try {
 			(imageBytes, jo) = readqrimage(ctx.Request);
 		}
@@ -15,7 +15,7 @@ sealed partial class HttpOcrServer {
 			writejson(ctx, 200, err(800, ex.Message));
 			return;
 		}
-		jo ??= new JsonObject();
+		if (!jo.IsObject) jo = JSONF.newObject();
 		if (imageBytes == null || imageBytes.Length == 0) {
 			var p = jostr(jo, "path") ?? jostr(jo, "file");
 			if (!string.IsNullOrWhiteSpace(p)) {
@@ -40,27 +40,15 @@ sealed partial class HttpOcrServer {
 		var arr = buildbarcodearray(codes);
 		var n = codes?.DecodedCount ?? 0;
 		if (n == 0) {
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 101,
-				["data"] = format == "text" ? "" : "未检测到条码或二维码",
-				["count"] = 0,
-				["time"] = ms,
-				["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 101), ("data", format == "text" ? "" : "未检测到条码或二维码"), ("count", 0), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 			return;
 		}
 
-		JsonNode data = format == "text" ? JsonValue.Create(codes.FullText ?? "") : arr;
-		writejson(ctx, 200, new JsonObject {
-			["code"] = 100,
-			["data"] = data,
-			["count"] = n,
-			["time"] = ms,
-			["timestamp"] = DateTimeOffset.Now.ToUnixTimeSeconds(),
-		});
+		JSONF data = format == "text" ? JSONF.newData(codes.FullText ?? "") : arr;
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", data), ("count", n), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
-	(byte[] image, JsonObject jo) readqrimage(SockReq req) {
+	(byte[] image, JSONF jo) readqrimage(SockReq req) {
 		var ctype = req.ContentType ?? "";
 		if (ctype.StartsWith("multipart/", StringComparison.OrdinalIgnoreCase)) {
 			var (img, opt) = readmultipart(req);
@@ -73,9 +61,10 @@ sealed partial class HttpOcrServer {
 		return (img2, jo);
 	}
 
-	static string qrformat(JsonObject jo) {
+	static string qrformat(JSONF jo) {
 		var f = jostr(jo, "format") ?? jostr(jo, "data.format");
-		if (jo?["options"] is JsonObject opt) {
+		var opt = jo.get("options");
+		if (opt.IsObject) {
 			f ??= jostr(opt, "data.format") ?? jostr(opt, "format");
 		}
 		if (string.Equals(f, "text", StringComparison.OrdinalIgnoreCase))

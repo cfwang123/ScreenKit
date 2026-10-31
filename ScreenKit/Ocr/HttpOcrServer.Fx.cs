@@ -1,5 +1,5 @@
 using System.Globalization;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -19,13 +19,7 @@ sealed partial class HttpOcrServer {
 		}
 		try {
 			var quote = FxRate.Quote(amount, from, to);
-			writejson(ctx, 200, new JsonObject {
-				["code"] = 100,
-				["data"] = new JsonObject {
-					["text"] = quote.Text,
-					["live"] = quote.Live,
-				},
-			});
+			writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("text", quote.Text), ("live", quote.Live)))));
 		}
 		catch (Exception ex) {
 			writejson(ctx, 200, err(802, ex.Message));

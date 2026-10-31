@@ -6,7 +6,7 @@ using System.Net.Http;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Text.RegularExpressions;
 using Windows.Devices.Geolocation;
 
@@ -1424,14 +1424,14 @@ static class NetTools {
 			return info;
 		}
 		try {
-			using var doc = JsonDocument.Parse(json);
-			var r = doc.RootElement;
+			var doc = JSONF.Parse(json);
+			var r = doc;
 			string get(params string[] keys) {
 				foreach (var k in keys) {
-					if (!r.TryGetProperty(k, out var v)) continue;
-					if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
-					if (v.ValueKind == JsonValueKind.Number || v.ValueKind == JsonValueKind.True
-						|| v.ValueKind == JsonValueKind.False)
+					if (!r.tryget(k, out var v)) continue;
+					if (v.IsString) return v.Value ?? "";
+					if (v.IsNumber || v.IsTrue
+						|| v.IsFalse)
 						return v.ToString();
 				}
 				return "";
@@ -1606,36 +1606,36 @@ static class NetTools {
 			return info;
 		}
 		try {
-			using var doc = JsonDocument.Parse(body);
-			var r = doc.RootElement;
-			if (r.ValueKind == JsonValueKind.Array) {
-				if (r.GetArrayLength() == 0) {
+			var doc = JSONF.Parse(body);
+			var r = doc;
+			if (r.IsArray) {
+				if (r.Count == 0) {
 					info.Error = "未登记厂家";
 					info.Text = mactext(info);
 					return info;
 				}
 				r = r[0];
 			}
-			if (r.ValueKind != JsonValueKind.Object) {
+			if (!r.IsObject) {
 				info.Error = "bad json";
 				return info;
 			}
 			string get(params string[] keys) {
 				foreach (var k in keys) {
-					if (!r.TryGetProperty(k, out var v)) continue;
-					if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
+					if (!r.tryget(k, out var v)) continue;
+					if (v.IsString) return v.Value ?? "";
 				}
 				return "";
 			}
-			if (r.TryGetProperty("found", out var found) && found.ValueKind == JsonValueKind.False) {
+			if (r.tryget("found", out var found) && found.IsFalse) {
 				info.Error = "未登记厂家";
 				info.Text = mactext(info);
 				return info;
 			}
 			var company = "";
-			if (r.TryGetProperty("vendor", out var ven) && ven.ValueKind == JsonValueKind.Object
-				&& ven.TryGetProperty("name", out var nm) && nm.ValueKind == JsonValueKind.String)
-				company = nm.GetString() ?? "";
+			if (r.tryget("vendor", out var ven) && ven.IsObject
+				&& ven.tryget("name", out var nm) && nm.IsString)
+				company = nm.Value ?? "";
 			if (company.Length == 0) company = get("company", "org");
 			info.Company = company;
 			info.Country = get("country");
@@ -2051,14 +2051,14 @@ static class NetTools {
 		json = (json ?? "").Trim();
 		if (json.Length == 0) return "(empty)";
 		try {
-			using var doc = JsonDocument.Parse(json);
-			var r = doc.RootElement;
+			var doc = JSONF.Parse(json);
+			var r = doc;
 			string get(params string[] keys) {
 				foreach (var k in keys) {
-					if (!r.TryGetProperty(k, out var v)) continue;
-					if (v.ValueKind == JsonValueKind.String) return v.GetString() ?? "";
-					if (v.ValueKind == JsonValueKind.Number || v.ValueKind == JsonValueKind.True
-						|| v.ValueKind == JsonValueKind.False)
+					if (!r.tryget(k, out var v)) continue;
+					if (v.IsString) return v.Value ?? "";
+					if (v.IsNumber || v.IsTrue
+						|| v.IsFalse)
 						return v.ToString();
 				}
 				return "";

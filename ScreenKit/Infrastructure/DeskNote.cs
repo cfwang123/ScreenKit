@@ -1,5 +1,5 @@
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -37,7 +37,7 @@ public sealed class DeskNote {
 	public static DeskNote Load(string path) {
 		try {
 			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return new DeskNote();
-			var note = JsonSerializer.Deserialize<DeskNote>(File.ReadAllText(path));
+			var note = JSONF.Parse(File.ReadAllText(path)).ToObject<DeskNote>();
 			if (note == null) return new DeskNote();
 			if (note.Text == null) note.Text = "";
 			if (note.Items == null) note.Items = new List<DeskNoteItem>();
@@ -54,7 +54,7 @@ public sealed class DeskNote {
 
 	public void Save(string path) {
 		if (string.IsNullOrWhiteSpace(path)) return;
-		var json = JsonSerializer.Serialize(this, Opt);
+		var json = JSONF.FromObject(this).ToJSONString(0);
 		var dir = Path.GetDirectoryName(path);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 		File.WriteAllText(path, json, new UTF8Encoding(false));
@@ -89,7 +89,6 @@ public sealed class DeskNote {
 		return sb.ToString();
 	}
 
-	static readonly JsonSerializerOptions Opt = new() { WriteIndented = true };
 }
 
 public sealed class DeskNoteItem {

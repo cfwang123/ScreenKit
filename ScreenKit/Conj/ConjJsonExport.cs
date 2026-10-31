@@ -1,6 +1,5 @@
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -112,10 +111,7 @@ static class ConjJsonExport {
 				}).ToArray(),
 			}).ToArray(),
 		};
-		var json = JsonSerializer.Serialize(doc, new JsonSerializerOptions {
-			WriteIndented = true,
-			Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-		});
+		var json = JSONF.FromObject(doc).ToJSONString(1);
 		var full = Path.GetFullPath(path);
 		var dir = Path.GetDirectoryName(full);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using System.Text.Json;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -39,7 +39,7 @@ public sealed class PerfOpt {
 	public static PerfOpt Load(string path) {
 		try {
 			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return new PerfOpt();
-			var o = JsonSerializer.Deserialize<PerfOpt>(File.ReadAllText(path));
+			var o = JSONF.Parse(File.ReadAllText(path)).ToObject<PerfOpt>();
 			if (o == null) return new PerfOpt();
 			if (o.Flags == null) o.Flags = new Dictionary<string, bool>();
 			return o;
@@ -49,7 +49,7 @@ public sealed class PerfOpt {
 
 	public void Save(string path) {
 		if (string.IsNullOrWhiteSpace(path)) return;
-		var json = JsonSerializer.Serialize(this);
+		var json = JSONF.FromObject(this).ToJSONString(0);
 		var dir = Path.GetDirectoryName(path);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 		File.WriteAllText(path, json);

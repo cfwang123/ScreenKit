@@ -281,8 +281,6 @@
       <_SlimRoot Remove="$(OutputPath)Microsoft.Data.Sqlite.dll" />
       <_SlimRoot Remove="$(OutputPath)SQLitePCLRaw.*.dll" />
       <_SlimRoot Remove="$(OutputPath)MySqlConnector.dll" />
-      <!-- JSON 由 Json/JSONF.cs 处理，不再带 System.Text.Json.dll -->
-      <_SlimRoot Remove="$(OutputPath)System.Text.Json.dll" />
       <_SlimRoot Remove="$(OutputPath)Oracle.ManagedDataAccess.dll" />
       <_SlimRoot Remove="$(OutputPath)System.Formats.Asn1.dll" />
       <_SlimRoot Remove="$(OutputPath)Bogus.dll" />
@@ -357,7 +355,6 @@
       <_SlimJunk Include="$(_SlimOut)\ZXing.dll;$(_SlimOut)\SharpCompress.dll;$(_SlimOut)\SharpSevenZip.dll;$(_SlimOut)\e_sqlite3.dll;$(_SlimOut)\Bogus.dll;$(_SlimOut)\NPinyin.dll" />
       <_SlimJunk Include="$(_SlimOut)\Microsoft.Data.Sqlite.dll;$(_SlimOut)\SQLitePCLRaw.*.dll;$(_SlimOut)\MySqlConnector.dll;$(_SlimOut)\Oracle.ManagedDataAccess.dll;$(_SlimOut)\System.Formats.Asn1.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
-      <_SlimJunk Include="$(_SlimOut)\System.Text.Json.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\web\jname-s.txt;$(_SlimOut)\web\jname-g.txt" />
       <_SlimJunk Include="$(_SlimOut)\web\L.js" />

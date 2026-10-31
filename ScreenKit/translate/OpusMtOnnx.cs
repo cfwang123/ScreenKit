@@ -1,4 +1,4 @@
-using System.Text.Json;
+using ScreenKit.Json;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 
@@ -59,13 +59,13 @@ sealed class OpusMtOnnx : IDisposable {
 		if (!File.Exists(path)) path = Path.Combine(modelDir, "generation_config.json");
 		if (!File.Exists(path)) return;
 		try {
-			using var doc = JsonDocument.Parse(File.ReadAllText(path));
-			var r = doc.RootElement;
-			if (r.TryGetProperty("decoder_start_token_id", out var a)) startId = a.GetInt32();
-			if (r.TryGetProperty("eos_token_id", out var b)) eosId = b.GetInt32();
-			if (r.TryGetProperty("pad_token_id", out var c)) padId = c.GetInt32();
-			if (r.TryGetProperty("forced_eos_token_id", out var d)) forcedEos = d.GetInt32();
-			if (r.TryGetProperty("max_length", out var m)) cfgMax = m.GetInt32();
+			var doc = JSONF.Parse(File.ReadAllText(path));
+			var r = doc;
+			if (r.tryget("decoder_start_token_id", out var a)) startId = a.AsInt;
+			if (r.tryget("eos_token_id", out var b)) eosId = b.AsInt;
+			if (r.tryget("pad_token_id", out var c)) padId = c.AsInt;
+			if (r.tryget("forced_eos_token_id", out var d)) forcedEos = d.AsInt;
+			if (r.tryget("max_length", out var m)) cfgMax = m.AsInt;
 		}
 		catch { }
 	}

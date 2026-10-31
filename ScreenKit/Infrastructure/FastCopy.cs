@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using Microsoft.Win32;
 
 namespace ScreenKit;
@@ -1155,7 +1155,7 @@ public static class FastCopy {
 			}
 			else {
 				var dto = new ClipDto { Kind = kind, Paths = paths };
-				File.WriteAllText(path, JsonSerializer.Serialize(dto), new UTF8Encoding(false));
+				File.WriteAllText(path, JSONF.FromObject(dto).ToJSONString(-1), new UTF8Encoding(false));
 			}
 		});
 		try {
@@ -1174,7 +1174,7 @@ public static class FastCopy {
 		try {
 			var path = clippath();
 			if (!File.Exists(path)) return null;
-			return JsonSerializer.Deserialize<ClipDto>(File.ReadAllText(path, Encoding.UTF8));
+			return JSONF.Parse(File.ReadAllText(path, Encoding.UTF8)).ToObject<ClipDto>();
 		}
 		catch { return null; }
 	}

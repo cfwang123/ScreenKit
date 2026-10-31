@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -363,24 +363,24 @@ static class AsrLlmClient {
 	static (int code, string body, int ms, string think, bool sendMax) postround(
 		string url, string key, string model, object messages, string think, bool sendMax,
 		int timeoutMs, float temperature, CancellationToken ct) {
-		var json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature));
+		var json = JSONF.FromObject(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature)).ToJSONString(-1);
 		LlmLog.Info("req " + clip(json, 4000));
 		var (code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		if (code == 400 && think == "off" && mustthink(body)) {
 			think = "low";
-			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature));
+			json = JSONF.FromObject(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature)).ToJSONString(-1);
 			LlmLog.Info("retry think=low (model forbids off) " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		}
 		if (code == 400 && !string.IsNullOrEmpty(think)) {
 			think = null;
-			json = JsonSerializer.Serialize(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature));
+			json = JSONF.FromObject(makepayload(model, messages, think, sendMax ? ROUNDTOKENS : 0, temperature)).ToJSONString(-1);
 			LlmLog.Info("retry without think fields " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		}
 		if (code == 400 && sendMax) {
 			sendMax = false;
-			json = JsonSerializer.Serialize(makepayload(model, messages, think, 0, temperature));
+			json = JSONF.FromObject(makepayload(model, messages, think, 0, temperature)).ToJSONString(-1);
 			LlmLog.Info("retry without max_tokens " + clip(json, 4000));
 			(code, body, ms) = postjson(url, key, json, timeoutMs, ct);
 		}
@@ -505,44 +505,44 @@ static class AsrLlmClient {
 
 	/// <summary>解析 choices[0] 的正文与 finish_reason。供 CLI 自检。</summary>
 	public static (string text, string finish) ParseChoice(string json) {
-		using var doc = JsonDocument.Parse(json);
-		var root = doc.RootElement;
-		if (!root.TryGetProperty("choices", out var choices)
-			|| choices.ValueKind != JsonValueKind.Array
-			|| choices.GetArrayLength() == 0)
+		var doc = JSONF.Parse(json);
+		var root = doc;
+		if (!root.tryget("choices", out var choices)
+			|| !choices.IsArray
+			|| choices.Count == 0)
 			throw new InvalidOperationException("响应无 choices");
 		var c0 = choices[0];
 		var finish = "";
-		if (c0.TryGetProperty("finish_reason", out var fr) && fr.ValueKind == JsonValueKind.String)
-			finish = fr.GetString() ?? "";
-		else if (c0.TryGetProperty("finishReason", out var fr2) && fr2.ValueKind == JsonValueKind.String)
-			finish = fr2.GetString() ?? "";
-		if (c0.TryGetProperty("message", out var msg)) {
+		if (c0.tryget("finish_reason", out var fr) && fr.IsString)
+			finish = fr.Value ?? "";
+		else if (c0.tryget("finishReason", out var fr2) && fr2.IsString)
+			finish = fr2.Value ?? "";
+		if (c0.tryget("message", out var msg)) {
 			var text = readtext(msg, "content");
 			if (text.Length == 0)
 				LlmLog.Info("message.content empty kind=" +
-					(msg.TryGetProperty("content", out var c) ? c.ValueKind.ToString() : "missing")
+					(msg.tryget("content", out var c) ? c.Type.ToString() : "missing")
 					+ " finish=" + finish);
 			return (text, finish);
 		}
-		if (c0.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
-			return (t.GetString() ?? "", finish);
+		if (c0.tryget("text", out var t) && t.IsString)
+			return (t.Value ?? "", finish);
 		throw new InvalidOperationException("响应无 message");
 	}
 
-	static string readtext(JsonElement msg, string name) {
-		if (!msg.TryGetProperty(name, out var el)) return "";
-		if (el.ValueKind == JsonValueKind.String) return el.GetString() ?? "";
-		if (el.ValueKind == JsonValueKind.Null) return "";
-		if (el.ValueKind != JsonValueKind.Array) return "";
+	static string readtext(JSONF msg, string name) {
+		if (!msg.tryget(name, out var el)) return "";
+		if (el.IsString) return el.Value ?? "";
+		if (el.IsNull) return "";
+		if (!el.IsArray) return "";
 		var sb = new StringBuilder();
-		foreach (var p in el.EnumerateArray()) {
-			if (p.ValueKind == JsonValueKind.String)
-				sb.Append(p.GetString());
-			else if (p.ValueKind == JsonValueKind.Object
-				&& p.TryGetProperty("text", out var tx)
-				&& tx.ValueKind == JsonValueKind.String)
-				sb.Append(tx.GetString());
+		foreach (var p in el) {
+			if (p.IsString)
+				sb.Append(p.Value);
+			else if (p.IsObject
+				&& p.tryget("text", out var tx)
+				&& tx.IsString)
+				sb.Append(tx.Value);
 		}
 		return sb.ToString();
 	}

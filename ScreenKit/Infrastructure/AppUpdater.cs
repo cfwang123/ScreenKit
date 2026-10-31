@@ -4,7 +4,7 @@ using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
+using ScreenKit.Json;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -516,12 +516,12 @@ static class AppUpdater {
 	// ───────── 解析 Release JSON ─────────
 
 	static UpdateInfo parserrelease(string json, string currentVersion) {
-		using var doc = JsonDocument.Parse(json);
-		var root = doc.RootElement;
-		var tag = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
-		var name = root.TryGetProperty("name", out var n) ? n.GetString() : null;
-		var html = root.TryGetProperty("html_url", out var h) ? h.GetString() : REPO_PAGE;
-		var body = root.TryGetProperty("body", out var b) ? b.GetString() : null;
+		var doc = JSONF.Parse(json);
+		var root = doc;
+		var tag = root.tryget("tag_name", out var t) ? t.Value ?? "" : "";
+		var name = root.tryget("name", out var n) ? n.Value : null;
+		var html = root.tryget("html_url", out var h) ? h.Value : REPO_PAGE;
+		var body = root.tryget("body", out var b) ? b.Value : null;
 		var ver = normalizever(tag);
 		if (string.IsNullOrEmpty(ver) && !string.IsNullOrEmpty(name))
 			ver = normalizever(name);
@@ -530,10 +530,10 @@ static class AppUpdater {
 
 		string assetUrl = null, assetName = null;
 		long assetSize = 0;
-		if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array) {
-			JsonElement? preferred = null;
-			foreach (var a in assets.EnumerateArray()) {
-				var an = a.TryGetProperty("name", out var anEl) ? anEl.GetString() : null;
+		if (root.tryget("assets", out var assets) && assets.IsArray) {
+			JSONF? preferred = null;
+			foreach (var a in assets) {
+				var an = a.tryget("name", out var anEl) ? anEl.Value : null;
 				if (string.IsNullOrEmpty(an)) continue;
 				var lower = an.ToLowerInvariant();
 				if (lower.EndsWith(".7z") || lower.EndsWith(".zip")) {
@@ -546,9 +546,9 @@ static class AppUpdater {
 			}
 			if (preferred != null) {
 				var a = preferred.Value;
-				assetName = a.TryGetProperty("name", out var an2) ? an2.GetString() : null;
-				assetUrl = a.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
-				if (a.TryGetProperty("size", out var sz) && sz.TryGetInt64(out var s))
+				assetName = a.tryget("name", out var an2) ? an2.Value : null;
+				assetUrl = a.tryget("browser_download_url", out var u) ? u.Value : null;
+				if (a.tryget("size", out var sz) && sz.trylong(out var s))
 					assetSize = s;
 			}
 		}
@@ -573,16 +573,16 @@ static class AppUpdater {
 	}
 
 	static ApkInfo parseapkobj(string json) {
-		using var doc = JsonDocument.Parse(json);
-		return parseapk(doc.RootElement);
+		var doc = JSONF.Parse(json);
+		return parseapk(doc);
 	}
 
 	static ApkInfo parseapklist(string json) {
-		using var doc = JsonDocument.Parse(json);
-		var root = doc.RootElement;
-		if (root.ValueKind != JsonValueKind.Array) return parseapk(root);
+		var doc = JSONF.Parse(json);
+		var root = doc;
+		if (!root.IsArray) return parseapk(root);
 		ApkInfo first = null;
-		foreach (var el in root.EnumerateArray()) {
+		foreach (var el in root) {
 			var info = parseapk(el);
 			if (info == null) continue;
 			first ??= info;
@@ -591,20 +591,20 @@ static class AppUpdater {
 		return first;
 	}
 
-	static ApkInfo parseapk(JsonElement root) {
-		var tag = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
-		var html = root.TryGetProperty("html_url", out var h) ? h.GetString() : REPO_PAGE;
+	static ApkInfo parseapk(JSONF root) {
+		var tag = root.tryget("tag_name", out var t) ? t.Value ?? "" : "";
+		var html = root.tryget("html_url", out var h) ? h.Value : REPO_PAGE;
 		var ver = normalizever(tag);
 		if (string.IsNullOrEmpty(ver))
 			ver = tag.Trim().TrimStart('v', 'V');
 
 		string assetUrl = null, assetName = null;
 		long assetSize = 0;
-		if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array) {
-			JsonElement? preferred = null;
-			JsonElement? anyApk = null;
-			foreach (var a in assets.EnumerateArray()) {
-				var an = a.TryGetProperty("name", out var anEl) ? anEl.GetString() : null;
+		if (root.tryget("assets", out var assets) && assets.IsArray) {
+			JSONF? preferred = null;
+			JSONF? anyApk = null;
+			foreach (var a in assets) {
+				var an = a.tryget("name", out var anEl) ? anEl.Value : null;
 				if (string.IsNullOrEmpty(an)) continue;
 				var lower = an.ToLowerInvariant();
 				if (!lower.EndsWith(".apk")) continue;
@@ -619,9 +619,9 @@ static class AppUpdater {
 			preferred ??= anyApk;
 			if (preferred != null) {
 				var a = preferred.Value;
-				assetName = a.TryGetProperty("name", out var an2) ? an2.GetString() : null;
-				assetUrl = a.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
-				if (a.TryGetProperty("size", out var sz) && sz.TryGetInt64(out var s))
+				assetName = a.tryget("name", out var an2) ? an2.Value : null;
+				assetUrl = a.tryget("browser_download_url", out var u) ? u.Value : null;
+				if (a.tryget("size", out var sz) && sz.trylong(out var s))
 					assetSize = s;
 			}
 		}
@@ -693,20 +693,20 @@ static class AppUpdater {
 		list = null;
 		if (string.IsNullOrWhiteSpace(json)) return false;
 		try {
-			using var doc = JsonDocument.Parse(json);
-			var root = doc.RootElement;
-			if (root.ValueKind != JsonValueKind.Object) return false;
-			if (!root.TryGetProperty("versions", out var arr) || arr.ValueKind != JsonValueKind.Array)
+			var doc = JSONF.Parse(json);
+			var root = doc;
+			if (!root.IsObject) return false;
+			if (!root.tryget("versions", out var arr) || !arr.IsArray)
 				return false;
 			list = new List<ReleaseNote>();
-			foreach (var el in arr.EnumerateArray()) {
-				if (el.ValueKind != JsonValueKind.Object) continue;
-				var ver = el.TryGetProperty("version", out var v) ? v.GetString() : null;
+			foreach (var el in arr) {
+				if (!el.IsObject) continue;
+				var ver = el.tryget("version", out var v) ? v.Value : null;
 				ver = normalizever(ver);
 				if (string.IsNullOrEmpty(ver)) continue;
-				var date = el.TryGetProperty("date", out var d) ? d.GetString() ?? "" : "";
-				var en = el.TryGetProperty("english", out var e) ? e.GetString() ?? "" : "";
-				var zh = el.TryGetProperty("chinese", out var z) ? z.GetString() ?? "" : "";
+				var date = el.tryget("date", out var d) ? d.Value ?? "" : "";
+				var en = el.tryget("english", out var e) ? e.Value ?? "" : "";
+				var zh = el.tryget("chinese", out var z) ? z.Value ?? "" : "";
 				var body = new StringBuilder();
 				if (en.Length > 0) body.Append("## English\n\n").Append(en.Trim()).Append("\n\n");
 				if (zh.Length > 0) body.Append("## 中文\n\n").Append(zh.Trim()).Append('\n');
@@ -732,16 +732,16 @@ static class AppUpdater {
 		hitOlder = false;
 		var list = new List<ReleaseNote>();
 		if (string.IsNullOrWhiteSpace(json)) return list;
-		using var doc = JsonDocument.Parse(json);
-		var root = doc.RootElement;
-		if (root.ValueKind != JsonValueKind.Array) return list;
-		count = root.GetArrayLength();
+		var doc = JSONF.Parse(json);
+		var root = doc;
+		if (!root.IsArray) return list;
+		count = root.Count;
 		var cur = normalizever(currentVersion) ?? currentVersion;
-		foreach (var el in root.EnumerateArray()) {
-			if (el.ValueKind != JsonValueKind.Object) continue;
+		foreach (var el in root) {
+			if (!el.IsObject) continue;
 			if (jsontrue(el, "draft") || jsontrue(el, "prerelease")) continue;
-			var tag = el.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
-			var name = el.TryGetProperty("name", out var n) ? n.GetString() : null;
+			var tag = el.tryget("tag_name", out var t) ? t.Value ?? "" : "";
+			var name = el.tryget("name", out var n) ? n.Value : null;
 			var ver = normalizever(tag);
 			if (string.IsNullOrEmpty(ver) && !string.IsNullOrEmpty(name))
 				ver = normalizever(name);
@@ -752,8 +752,8 @@ static class AppUpdater {
 				hitOlder = true;
 				continue;
 			}
-			var body = el.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
-			var pub = el.TryGetProperty("published_at", out var p) ? p.GetString() : null;
+			var body = el.tryget("body", out var b) ? b.Value ?? "" : "";
+			var pub = el.tryget("published_at", out var p) ? p.Value : null;
 			if (!string.IsNullOrEmpty(pub) && pub.Length >= 10) pub = pub.Substring(0, 10);
 			SplitNotes(body, out var en, out var zh);
 			list.Add(new ReleaseNote {
@@ -768,8 +768,8 @@ static class AppUpdater {
 		return list;
 	}
 
-	static bool jsontrue(JsonElement el, string name) =>
-		el.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.True;
+	static bool jsontrue(JSONF el, string name) =>
+		el.tryget(name, out var v) && v.IsTrue;
 
 	static List<ReleaseNote> sortnotes(List<ReleaseNote> src) {
 		var map = new Dictionary<string, ReleaseNote>(StringComparer.OrdinalIgnoreCase);

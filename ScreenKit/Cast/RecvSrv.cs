@@ -1,6 +1,6 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.IO.Pipes;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -308,10 +308,10 @@ sealed class CastRecvSrv : IDisposable {
 	}
 
 	bool dojson(byte[] payload) {
-		JsonObject o = null;
+		JSONF o;
 		try { o = CastProto.ParseJson(payload); }
 		catch { return false; }
-		if (o == null) return false;
+		if (!o.IsObject) return false;
 		var cmd = CastProto.Jstr(o, "cmd");
 		if (cmd == "bye") {
 			drop = true;
@@ -353,10 +353,10 @@ sealed class CastRecvSrv : IDisposable {
 		ench = h;
 		var via = CastProto.Jstr(o, "via");
 		hellovia = via;
-		if (o["audio"] is JsonValue jav && jav.TryGetValue<bool>(out var aon))
-			delayv = aon;
-		if (o["pts"] is JsonValue jpts && jpts.TryGetValue<bool>(out var pon))
-			haspts = pon;
+		var ael = o.get("audio");
+		if (ael.Type == JSONF.NodeType.Bool) delayv = ael.AsBool;
+		var pel = o.get("pts");
+		if (pel.Type == JSONF.NodeType.Bool) haspts = pel.AsBool;
 		if (!SendJson(new { cmd = "hello", name = CastHost.Name })) {
 			Log?.Invoke($"握手应答失败 {via} {n} {w}x{h}");
 			return false;

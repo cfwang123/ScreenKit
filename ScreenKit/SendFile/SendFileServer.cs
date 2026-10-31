@@ -1,12 +1,10 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -36,9 +34,6 @@ public sealed partial class SendFileServer : IDisposable {
 	int lastSeenTick;
 	public event Action<string> Logged;
 
-	static readonly JsonSerializerOptions JsonUtf8 = new(JsonSerializerOptions.Default) {
-		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-	};
 
 	public const string DISCOVER = "SCREENKIT_DISCOVER";
 	const string STAGING = ".to_phone";
@@ -592,14 +587,7 @@ public sealed partial class SendFileServer : IDisposable {
 				if (!o.SendFileEnabled && !o.CastRecvEnabled) continue;
 				var name = string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName.Trim();
 				var httpPort = ListenPort > 0 ? ListenPort : FileHttpPort(o);
-				var json = new JsonObject {
-					["v"] = 1,
-					["name"] = name,
-					["httpPort"] = httpPort,
-					["pcId"] = o.SendFilePcId ?? "",
-					["cmd"] = "discover",
-					["cast"] = o.CastRecvEnabled,
-				}.ToJsonString(JsonUtf8);
+				var json = JSONF.newObject(("v", 1), ("name", name), ("httpPort", httpPort), ("pcId", o.SendFilePcId ?? ""), ("cmd", "discover"), ("cast", o.CastRecvEnabled)).ToJSONString(-1);
 				var bytes = Encoding.UTF8.GetBytes(json);
 				try { u.Send(bytes, bytes.Length, ep); } catch { }
 			}
@@ -715,11 +703,7 @@ public sealed partial class SendFileServer : IDisposable {
 		var existing = Auth.Find(id, tokenHdr ?? "");
 		if (existing != null) {
 			touch(existing.Id);
-			writejson(ctx, 200, ok(new JsonObject {
-				["token"] = existing.Token,
-				["name"] = getOpts()?.SendFileName ?? Environment.MachineName,
-				["pcId"] = getOpts()?.SendFilePcId ?? "",
-			}));
+			writejson(ctx, 200, ok(JSONF.newObject(("token", existing.Token), ("name", getOpts()?.SendFileName ?? Environment.MachineName), ("pcId", getOpts()?.SendFilePcId ?? ""))));
 			return;
 		}
 		var dev = Auth.Pair(id, name, ip);
@@ -728,29 +712,16 @@ public sealed partial class SendFileServer : IDisposable {
 			return;
 		}
 		touch(dev.Id);
-		writejson(ctx, 200, ok(new JsonObject {
-			["token"] = dev.Token,
-			["name"] = getOpts()?.SendFileName ?? Environment.MachineName,
-			["pcId"] = getOpts()?.SendFilePcId ?? "",
-		}));
+		writejson(ctx, 200, ok(JSONF.newObject(("token", dev.Token), ("name", getOpts()?.SendFileName ?? Environment.MachineName), ("pcId", getOpts()?.SendFilePcId ?? ""))));
 	}
 
 	void handlepull(SfCtx ctx, SendFileDevice dev) {
 		var list = Outbox.List(dev.Id);
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		foreach (var it in list) {
-			arr.Add(new JsonObject {
-				["id"] = it.Id,
-				["path"] = it.StoreRel ?? "",
-				["rel"] = it.PhoneRel ?? "",
-				["name"] = it.Name ?? "",
-				["size"] = it.Size,
-			});
+			arr.Add(JSONF.newObject(("id", it.Id), ("path", it.StoreRel ?? ""), ("rel", it.PhoneRel ?? ""), ("name", it.Name ?? ""), ("size", it.Size)));
 		}
-		writejson(ctx, 200, ok(new JsonObject {
-			["items"] = arr,
-			["usbAcc"] = CastHost.UsbNotifyPhone,
-		}));
+		writejson(ctx, 200, ok(JSONF.newObject(("items", arr), ("usbAcc", CastHost.UsbNotifyPhone))));
 	}
 
 	void handlepulldone(SfCtx ctx, SendFileDevice dev) {
@@ -771,23 +742,18 @@ public sealed partial class SendFileServer : IDisposable {
 				try { SendFileOps.Delete(it.StoreRel); } catch { }
 			}
 		}
-		writejson(ctx, 200, ok(new JsonObject { ["id"] = id }));
+		writejson(ctx, 200, ok(JSONF.newObject(("id", id))));
 	}
 
 	void handleinfo(SfCtx ctx, SendFileDevice dev) {
 		var o = getOpts() ?? new OcrOptions();
 		SendFilePaths.EnsureRoot();
-		var info = new JsonObject {
-			["name"] = string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName,
-			["pcId"] = o.SendFilePcId ?? "",
-			["device"] = dev.Name ?? "",
-			["root"] = "sendfile",
-		};
+		var info = JSONF.newObject(("name", string.IsNullOrWhiteSpace(o.SendFileName) ? Environment.MachineName : o.SendFileName), ("pcId", o.SendFilePcId ?? ""), ("device", dev.Name ?? ""), ("root", "sendfile"));
 		photojson(o, info);
 		writejson(ctx, 200, ok(info));
 	}
 
-	internal static void photojson(OcrOptions o, JsonObject dst) {
+	internal static void photojson(OcrOptions o, JSONF dst) {
 		if (o == null) o = new OcrOptions();
 		var fmt = string.Equals(o.PhotoFmt, "png", StringComparison.OrdinalIgnoreCase) ? "png" : "jpg";
 		var q = o.PhotoJpgQuality <= 0 ? 60 : Compat.Clamp(o.PhotoJpgQuality, 1, 100);
@@ -803,10 +769,7 @@ public sealed partial class SendFileServer : IDisposable {
 		var deep = truthy(ctx.Request.QueryString["deep"]);
 		try {
 			var items = SendFileOps.List(rel, deep);
-			writejson(ctx, 200, ok(new JsonObject {
-				["path"] = rel ?? "",
-				["items"] = items,
-			}));
+			writejson(ctx, 200, ok(JSONF.newObject(("path", rel ?? ""), ("items", items))));
 		}
 		catch (InvalidOperationException ex) {
 			writejson(ctx, 200, err(410, ex.Message));
@@ -930,7 +893,7 @@ public sealed partial class SendFileServer : IDisposable {
 			if (truthy(ctx.Request.QueryString["photo"]))
 				fitphoto(rel);
 			Jobs.Finish(job.Id, true, null);
-			writejson(ctx, 200, ok(new JsonObject { ["path"] = rel ?? "" }));
+			writejson(ctx, 200, ok(JSONF.newObject(("path", rel ?? ""))));
 		}
 		catch (InvalidOperationException ex) {
 			Jobs.Finish(job.Id, false, ex.Message);
@@ -960,7 +923,7 @@ public sealed partial class SendFileServer : IDisposable {
 			rel = ctx.Request.QueryString["path"] ?? "";
 		try {
 			SendFileOps.Mkdir(rel);
-			writejson(ctx, 200, ok(new JsonObject { ["path"] = rel ?? "" }));
+			writejson(ctx, 200, ok(JSONF.newObject(("path", rel ?? ""))));
 		}
 		catch (InvalidOperationException ex) {
 			writejson(ctx, 200, err(410, ex.Message));
@@ -975,7 +938,7 @@ public sealed partial class SendFileServer : IDisposable {
 		}
 		try {
 			SendFileOps.Delete(rel);
-			writejson(ctx, 200, ok(new JsonObject { ["path"] = rel ?? "" }));
+			writejson(ctx, 200, ok(JSONF.newObject(("path", rel ?? ""))));
 		}
 		catch (InvalidOperationException ex) {
 			writejson(ctx, 200, err(410, ex.Message));
@@ -988,13 +951,9 @@ public sealed partial class SendFileServer : IDisposable {
 		if (!string.IsNullOrWhiteSpace(q))
 			long.TryParse(q, NumberStyles.Integer, CultureInfo.InvariantCulture, out since);
 		var list = Text.PullOut(dev.Id, since);
-		var arr = new JsonArray();
+		var arr = JSONF.newArray();
 		foreach (var m in list) {
-			arr.Add(new JsonObject {
-				["id"] = m.Id,
-				["text"] = m.Text ?? "",
-				["time"] = m.Unix,
-			});
+			arr.Add(JSONF.newObject(("id", m.Id), ("text", m.Text ?? ""), ("time", m.Unix)));
 		}
 		writejson(ctx, 200, ok(arr));
 	}
@@ -1008,7 +967,7 @@ public sealed partial class SendFileServer : IDisposable {
 			return;
 		}
 		var msg = Text.PushInbox(text);
-		writejson(ctx, 200, ok(new JsonObject { ["id"] = msg.Id }));
+		writejson(ctx, 200, ok(JSONF.newObject(("id", msg.Id))));
 	}
 
 	SendFileDevice authed(SfReq req) {
@@ -1026,43 +985,28 @@ public sealed partial class SendFileServer : IDisposable {
 		return "";
 	}
 
-	static JsonObject readjson(SfReq req) {
+	static JSONF readjson(SfReq req) {
 		try {
 			using var sr = new StreamReader(req.InputStream, req.ContentEncoding ?? Encoding.UTF8);
 			var s = sr.ReadToEnd();
-			if (string.IsNullOrWhiteSpace(s)) return new JsonObject();
-			return JsonNode.Parse(s) as JsonObject ?? new JsonObject();
+			if (string.IsNullOrWhiteSpace(s)) return JSONF.newObject();
+			var parsed = JSONF.Parse(s);
+			return parsed.IsObject ? parsed : JSONF.newObject();
 		}
-		catch { return new JsonObject(); }
+		catch { return JSONF.newObject(); }
 	}
 
-	static long jsonlong(JsonObject o, string key) {
-		if (o == null) return 0;
-		try {
-			if (!o.TryGetPropertyValue(key, out var n) || n == null) return 0;
-			if (n is JsonValue jv) {
-				try { return jv.GetValue<long>(); } catch { }
-				try { return jv.GetValue<int>(); } catch { }
-				if (long.TryParse(jv.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var x))
-					return x;
-			}
-		}
-		catch { }
-		return 0;
+	static long jsonlong(JSONF o, string key) {
+		var n = o.get(key);
+		if (n.IsNull) return 0;
+		if (n.Type is JSONF.NodeType.Int or JSONF.NodeType.Long or JSONF.NodeType.Float
+			or JSONF.NodeType.Double or JSONF.NodeType.Decimal) return n.AsLong;
+		return long.TryParse(n.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) ? x : 0;
 	}
 
-	static string str(JsonObject o, string key) {
-		if (o == null) return "";
-		try {
-			if (!o.TryGetPropertyValue(key, out var n) || n == null) return "";
-			if (n is JsonValue jv) {
-				try { return jv.GetValue<string>() ?? ""; }
-				catch { return jv.ToString() ?? ""; }
-			}
-			return n.ToString() ?? "";
-		}
-		catch { }
-		return "";
+	static string str(JSONF o, string key) {
+		var n = o.get(key);
+		return n.IsNull ? "" : (n.Value ?? "");
 	}
 
 	static bool truthy(string s) {
@@ -1070,32 +1014,21 @@ public sealed partial class SendFileServer : IDisposable {
 		return s == "1" || s.Equals("true", StringComparison.OrdinalIgnoreCase) || s.Equals("yes", StringComparison.OrdinalIgnoreCase);
 	}
 
-	static bool flag(JsonObject o, string key) {
-		if (o == null || string.IsNullOrEmpty(key)) return false;
-		try {
-			if (!o.TryGetPropertyValue(key, out var n) || n == null) return false;
-			if (n is JsonValue jv) {
-				try { return jv.GetValue<bool>(); } catch { }
-				return truthy(jv.ToString());
-			}
-		}
-		catch { }
-		return false;
+	static bool flag(JSONF o, string key) {
+		if (string.IsNullOrEmpty(key)) return false;
+		var n = o.get(key);
+		if (n.IsNull) return false;
+		if (n.Type == JSONF.NodeType.Bool) return n.AsBool;
+		return truthy(n.Value);
 	}
 
 	static bool isget(string m) => string.Equals(m, "GET", StringComparison.OrdinalIgnoreCase);
 	static bool ispost(string m) => string.Equals(m, "POST", StringComparison.OrdinalIgnoreCase);
 	static bool ishead(string m) => string.Equals(m, "HEAD", StringComparison.OrdinalIgnoreCase);
 
-	static JsonObject ok(JsonNode data) => new() {
-		["code"] = 100,
-		["data"] = data,
-	};
+	static JSONF ok(JSONF data) => JSONF.newObject(("code", 100), ("data", data));
 
-	static JsonObject err(int code, string msg) => new() {
-		["code"] = code,
-		["data"] = msg ?? "",
-	};
+	static JSONF err(int code, string msg) => JSONF.newObject(("code", code), ("data", msg ?? ""));
 
 	static void writecors(SfCtx ctx, int status) {
 		var res = ctx.Response;
@@ -1107,8 +1040,8 @@ public sealed partial class SendFileServer : IDisposable {
 		try { res.Close(); } catch { }
 	}
 
-	static void writejson(SfCtx ctx, int httpStatus, JsonNode body) {
-		var bytes = Encoding.UTF8.GetBytes(body.ToJsonString(JsonUtf8));
+	static void writejson(SfCtx ctx, int httpStatus, JSONF body) {
+		var bytes = Encoding.UTF8.GetBytes(body.ToJSONString(-1));
 		var res = ctx.Response;
 		// 失败也返回 200。错误在 JSON 的 code / data。
 		_ = httpStatus;

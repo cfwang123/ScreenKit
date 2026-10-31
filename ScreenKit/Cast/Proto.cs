@@ -1,7 +1,6 @@
 using System.IO;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
+using ScreenKit.Json;
 
 namespace ScreenKit;
 
@@ -29,7 +28,7 @@ static class CastProto {
 	}
 
 	public static byte[] PackJson(object obj) {
-		var json = JsonSerializer.Serialize(obj);
+		var json = JSONF.FromObject(obj).ToJSONString(-1);
 		return Pack(T_JSON, Encoding.UTF8.GetBytes(json));
 	}
 
@@ -55,24 +54,20 @@ static class CastProto {
 		return payload != null;
 	}
 
-	public static JsonObject ParseJson(byte[] payload) {
-		if (payload == null || payload.Length == 0) return null;
-		return JsonNode.Parse(Encoding.UTF8.GetString(payload)) as JsonObject;
+	public static JSONF ParseJson(byte[] payload) {
+		if (payload == null || payload.Length == 0) return default;
+		return JSONF.Parse(Encoding.UTF8.GetString(payload));
 	}
 
-	public static string Jstr(JsonObject o, string k) {
-		if (o == null || string.IsNullOrEmpty(k) || o[k] == null) return "";
-		try { return o[k].GetValue<string>() ?? ""; }
-		catch { return o[k].ToString() ?? ""; }
+	public static string Jstr(JSONF o, string k) {
+		if (o.NotExist || string.IsNullOrEmpty(k)) return "";
+		var v = o.get(k);
+		return v.IsNull ? "" : v.Value;
 	}
 
-	public static int Jint(JsonObject o, string k) {
-		if (o == null || string.IsNullOrEmpty(k) || o[k] == null) return 0;
-		try { return o[k].GetValue<int>(); }
-		catch { }
-		try { return (int)o[k].GetValue<long>(); }
-		catch { }
-		return 0;
+	public static int Jint(JSONF o, string k) {
+		if (o.NotExist || string.IsNullOrEmpty(k)) return 0;
+		return o.get(k).AsInt;
 	}
 
 	static void writeu32(byte[] b, int o, uint v) {
