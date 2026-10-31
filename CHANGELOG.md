@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Byte viewer: float rows now show the value as m x 2^e; tables are no longer click-to-copy and their text can be selected.
 - English conjugation examples show complete sentences instead of trailing ellipses.
 - Byte viewer: the hex field auto-groups input as XX XX, Backspace/Delete removes a whole byte, typing at the caret overwrites the nibble there, and the field starts with 01 00 00 00.
+- Password generator remembers the last options (length, count, character classes, custom set); changes are written to localStorage 2 seconds after the last edit and restored on open.
 
 #### Fixed
 
@@ -112,6 +113,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 字节解读：浮点行增加 m × 2^e 表示；表格不再点击复制，改为可手动选中文字。
 - 英语词形变化的示例句改为完整句子，不再用省略号。
 - 字节解读：十六进制输入框自动按 XX XX 分组，退格/删除一次去掉一个字节，光标在中间时按半字节覆盖输入；打开时预填 01 00 00 00。
+- 密码生成器记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
 
 #### 修复
 

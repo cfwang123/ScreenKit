@@ -114,7 +114,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Chinese segmentation**: Split by word, sentence, or grapheme
   - **In-browser model**: Run text tasks on the browser’s local model; Speak can filter voices by language. Google voices use the installed offline pack, and the list shows whether that pack is installed. The page link opens the Chrome model page
   - **Translate**: Translate text into another language, with its own engine and local ONNX model pickers
-  - **Password generator**: Generate passwords
+  - **Password generator**: Generate passwords and remember the last length, count and character options
   - **Regular expressions**: Find regex matches
   - **Number names**: Write a number in several readings, and see the common floating-point formats too
   - **Test data**: Generate fake data by type

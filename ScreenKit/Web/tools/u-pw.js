@@ -1,4 +1,8 @@
 (function(){
+	var page = null;
+	var STORE = "sk-pw-opts";
+	var SAVEDELAY = 2000;
+	var savetimer = 0;
 	SK.regutil("u-pw", {
 		title: "随机密码",
 		go: "生成",
@@ -18,15 +22,19 @@
 			return pwtext();
 		},
 		open: function(t){
+			flushopts();
 			page = t;
+			restoreopts();
 			var pwids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb"];
 			var pi;
 			for (pi = 0; pi < pwids.length; pi++) page.doms[SK.domkey(pwids[pi])].onchange = fillpwset;
 			page.doms.boxSet.onchange = pwsetmode;
 			pwsetmode();
+			watchopts();
 			if (SK.utilrun) SK.utilrun();
 		}
 	});
+	if (window.addEventListener) window.addEventListener("pagehide", flushopts);
 	function pwsetmode(){
 		var on = SK.onbox("box-set");
 		var ids = ["box-low", "box-up", "box-dig", "box-sym", "box-amb", "box-each"];
@@ -38,6 +46,80 @@
 		var box = page.doms.boxSetChars;
 		if (box) box.disabled = !on;
 		if (!on) fillpwset();
+	}
+
+	// ---- 记住上次的选项 ----
+	// 改动后等两秒再写 localStorage，打开工具时读回来。
+	function watchopts(){
+		var ids = ["box-len", "box-n", "box-low", "box-up", "box-dig", "box-sym",
+			"box-amb", "box-each", "box-set", "box-set-chars"];
+		var i;
+		var el;
+		for (i = 0; i < ids.length; i++) {
+			el = page.doms[SK.domkey(ids[i])];
+			if (!el || !el.addEventListener) continue;
+			el.addEventListener("input", scheduleopts);
+			el.addEventListener("change", scheduleopts);
+		}
+	}
+
+	function scheduleopts(){
+		if (savetimer) clearTimeout(savetimer);
+		savetimer = setTimeout(saveopts, SAVEDELAY);
+	}
+
+	function flushopts(){
+		if (!savetimer) return;
+		clearTimeout(savetimer);
+		savetimer = 0;
+		saveopts();
+	}
+
+	function saveopts(){
+		savetimer = 0;
+		if (!page || !page.doms) return;
+		var d = page.doms;
+		var s = {
+			len: d.boxLen ? d.boxLen.value : "",
+			n: d.boxN ? d.boxN.value : "",
+			low: !!(d.boxLow && d.boxLow.checked),
+			up: !!(d.boxUp && d.boxUp.checked),
+			dig: !!(d.boxDig && d.boxDig.checked),
+			sym: !!(d.boxSym && d.boxSym.checked),
+			amb: !!(d.boxAmb && d.boxAmb.checked),
+			each: !!(d.boxEach && d.boxEach.checked),
+			set: !!(d.boxSet && d.boxSet.checked),
+			chars: d.boxSetChars ? d.boxSetChars.value : ""
+		};
+		try { F.lset(STORE, F.json(s)); } catch (e) {}
+	}
+
+	function restoreopts(){
+		var raw = "";
+		var s;
+		try { raw = F.lget(STORE) || ""; } catch (e) { raw = ""; }
+		if (!raw) return;
+		try { s = F.parse(raw); } catch (e) { return; }
+		if (!s || typeof s !== "object") return;
+		var d = page.doms;
+		if (d.boxLen && isdigits(s.len)) d.boxLen.value = s.len;
+		if (d.boxN && isdigits(s.n)) d.boxN.value = s.n;
+		setchecked(d.boxLow, s.low);
+		setchecked(d.boxUp, s.up);
+		setchecked(d.boxDig, s.dig);
+		setchecked(d.boxSym, s.sym);
+		setchecked(d.boxAmb, s.amb);
+		setchecked(d.boxEach, s.each);
+		setchecked(d.boxSet, s.set);
+		if (d.boxSetChars && typeof s.chars === "string") d.boxSetChars.value = s.chars;
+	}
+
+	function isdigits(v){
+		return typeof v === "string" && /^[0-9]+$/.test(v);
+	}
+
+	function setchecked(el, v){
+		if (el && typeof v === "boolean") el.checked = v;
 	}
 
 	function pwgroups(){
