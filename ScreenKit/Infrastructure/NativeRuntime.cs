@@ -19,6 +19,10 @@ static class NativeRuntime {
 	const string SkiaVer = "3.119.0";
 	const string PdfiumPkg = "bblanchon.pdfium.win32";
 	const string PdfiumVer = "139.0.7215";
+	const string PdfSharpPkg = "pdfsharp";
+	const string PdfSharpVer = "6.2.0";
+	const string PdfToImagePkg = "pdftoimage";
+	const string PdfToImageVer = "5.1.1";
 	const string SherpaPkg = "org.k2fsa.sherpa.onnx.runtime.win-x64";
 	const string SherpaVer = "1.13.3";
 
@@ -55,12 +59,19 @@ static class NativeRuntime {
 	const string NPinyinVer = "0.2.6321.26573";
 	const string LibSkia = "libSkiaSharp.dll";
 	const string Pdfium = "pdfium.dll";
+	const string PdfToImageDll = "PDFtoImage.dll";
+	/// <summary>PDF 用的托管库（PdfSharp 6 拆成多个程序集 + PDFtoImage），随 PDF 功能一起装。</summary>
+	public static readonly string[] PdfManagedDlls = [
+		"PdfSharp.dll", "PdfSharp.Shared.dll", "PdfSharp.Quality.dll", "PdfSharp.Snippets.dll",
+		"PdfSharp.System.dll", "PdfSharp.WPFonts.dll", "PdfSharp.BarCodes.dll", "PdfSharp.Charting.dll",
+		"PdfSharp.Cryptography.dll", PdfToImageDll,
+	];
 	const string SherpaCApi = "sherpa-onnx-c-api.dll";
 
 	static readonly object gate = new();
 	static readonly HttpClient Http = createhttp();
 	static bool opencvOk;
-	static bool skiaOk;
+	static bool pdfOk;
 	static bool sherpaOk;
 
 	static HttpClient createhttp() {
@@ -94,8 +105,15 @@ static class NativeRuntime {
 		File.Exists(Path.Combine(BaseDir, Pdfium))
 		|| File.Exists(Path.Combine(BaseDir, "x64", Pdfium));
 
-	/// <summary>PDF 需要 Skia + PDFium 齐全。</summary>
+	/// <summary>PDF 渲染的原生库：Skia + PDFium 齐全。</summary>
 	public static bool HasSkiaPdf() => HasSkia() && HasPdfium();
+
+	/// <summary>PDF 用的托管库：PdfSharp 各程序集 + PDFtoImage（精简包按需安装）。</summary>
+	public static bool HasPdfManaged() =>
+		PdfManagedDlls.All(n => File.Exists(Path.Combine(BaseDir, n)));
+
+	/// <summary>PDF 整套就绪：原生 Skia / PDFium + 托管 PdfSharp / PDFtoImage。</summary>
+	public static bool HasPdfReady() => HasSkiaPdf() && HasPdfManaged();
 
 	public static bool HasSherpa() =>
 		File.Exists(Path.Combine(BaseDir, SherpaCApi))
@@ -110,6 +128,10 @@ static class NativeRuntime {
 	public static long NPinyinSizeHint => 76288L;
 	public static long SkiaSizeHint => 11L * 1024 * 1024;
 	public static long PdfiumSizeHint => 6L * 1024 * 1024;
+	/// <summary>PdfSharp 9 个程序集 + PDFtoImage，合计约 1.6MB。</summary>
+	public static long PdfManagedSizeHint => PdfSharpSizeHint + PdfToImageSizeHint;
+	static long PdfSharpSizeHint => 1585472L;
+	static long PdfToImageSizeHint => 71528L;
 	public static long SherpaSizeHint => 5L * 1024 * 1024;
 	public static long OracleSizeHint => 4750952L;
 	public static long MysqlSizeHint => 855400L;
@@ -132,18 +154,18 @@ static class NativeRuntime {
 		lock (gate) opencvOk = HasOpenCv();
 	}
 
-	/// <summary>PDF 光栅需要 Skia + PDFium。缺失时弹窗提示安装。</summary>
-	public static void EnsureSkiaPdf(IProgress<string> log = null, IProgress<InstallProgress> progress = null) {
-		if (skiaOk && HasSkiaPdf()) return;
-		if (HasSkiaPdf()) {
-			lock (gate) skiaOk = true;
+	/// <summary>PDF 光栅需要 Skia + PDFium + PdfSharp / PDFtoImage。缺失时弹窗提示安装。</summary>
+	public static void EnsurePdf(IProgress<string> log = null, IProgress<InstallProgress> progress = null) {
+		if (pdfOk && HasPdfReady()) return;
+		if (HasPdfReady()) {
+			lock (gate) pdfOk = true;
 			return;
 		}
-		log?.Report("缺少 PDF 渲染库（Skia / PDFium）");
+		log?.Report("缺少 PDF 渲染库（Skia / PDFium / PdfSharp / PDFtoImage）");
 		if (!FeaturePrompt.EnsurePdf())
 			throw new MissingFeatureException(
-				"未安装 PDF 渲染库。请打开「安装功能」安装 Skia 与 PDFium 后再试。");
-		lock (gate) skiaOk = HasSkiaPdf();
+				"未安装 PDF 渲染库。请打开「安装功能」安装 PDF 渲染（Skia、PDFium、PdfSharp、PDFtoImage）后再试。");
+		lock (gate) pdfOk = HasPdfReady();
 	}
 
 	/// <summary>ASR / TTS Sherpa 需要 sherpa-onnx-c-api.dll。缺失时弹窗提示安装。</summary>
@@ -279,7 +301,7 @@ static class NativeRuntime {
 			},
 			log, progress, ct, SkiaSizeHint).ConfigureAwait(false);
 		copybeside(LibSkia, "x64");
-		skiaOk = HasSkiaPdf();
+		pdfOk = HasPdfReady();
 	}
 
 	public static async Task InstallPdfium(
@@ -291,7 +313,22 @@ static class NativeRuntime {
 			},
 			log, progress, ct, PdfiumSizeHint).ConfigureAwait(false);
 		copybeside(Pdfium, "x64");
-		skiaOk = HasSkiaPdf();
+		pdfOk = HasPdfReady();
+	}
+
+	/// <summary>PDF 托管库：PdfSharp 6 各程序集（netstandard2.0）+ PDFtoImage（net471）。</summary>
+	public static async Task InstallPdfManaged(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await FeatureInstaller.InstallNuGetFiles(PdfSharpPkg, PdfSharpVer,
+			PdfManagedDlls
+				.Where(n => n != PdfToImageDll)
+				.Select(n => ("lib/netstandard2.0/" + n, Path.Combine(BaseDir, n)))
+				.ToArray(),
+			log, progress, ct, PdfSharpSizeHint).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(PdfToImagePkg, PdfToImageVer,
+			new[] { ("lib/net471/" + PdfToImageDll, Path.Combine(BaseDir, PdfToImageDll)) },
+			log, progress, ct, PdfToImageSizeHint).ConfigureAwait(false);
+		pdfOk = HasPdfReady();
 	}
 
 	public static async Task InstallSherpa(
@@ -339,14 +376,19 @@ static class NativeRuntime {
 		deletefiles(log, LibSkia,
 			Path.Combine("x64", LibSkia),
 			Path.Combine("runtimes", "win-x64", "native", LibSkia));
-		skiaOk = false;
+		pdfOk = false;
 	}
 
 	public static void UninstallPdfium(IProgress<string> log = null) {
 		deletefiles(log, Pdfium,
 			Path.Combine("x64", Pdfium),
 			Path.Combine("runtimes", "win-x64", "native", Pdfium));
-		skiaOk = false;
+		pdfOk = false;
+	}
+
+	public static void UninstallPdfManaged(IProgress<string> log = null) {
+		deletefiles(log, PdfManagedDlls);
+		pdfOk = false;
 	}
 
 	public static void UninstallSherpa(IProgress<string> log = null) {
@@ -490,6 +532,7 @@ static class NativeRuntime {
 		sb.AppendLine($"NPinyin: {(HasNPinyin() ? "OK" : "缺失")}  ({NPinyinDll})");
 		sb.AppendLine($"libSkiaSharp: {(HasSkia() ? "OK" : "缺失")}  ({LibSkia})");
 		sb.AppendLine($"pdfium: {(HasPdfium() ? "OK" : "缺失")}  ({Pdfium})");
+		sb.AppendLine($"PdfSharp / PDFtoImage: {(HasPdfManaged() ? "OK" : "缺失")}  ({PdfManagedDlls.Length} 个托管库)");
 		sb.AppendLine($"sherpa-onnx-c-api: {(HasSherpa() ? "OK" : "缺失")}  ({SherpaCApi})");
 		sb.AppendLine("录屏: 仅 ffmpeg64");
 		return sb.ToString();

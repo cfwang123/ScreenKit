@@ -287,6 +287,8 @@
       <_SlimRoot Remove="$(OutputPath)NPinyin.dll" />
       <_SlimRoot Remove="$(OutputPath)libSkiaSharp.dll" />
       <_SlimRoot Remove="$(OutputPath)pdfium.dll" />
+      <_SlimRoot Remove="$(OutputPath)PdfSharp*.dll" />
+      <_SlimRoot Remove="$(OutputPath)PDFtoImage.dll" />
       <_SlimRoot Remove="$(OutputPath)sherpa-onnx-c-api.dll" />
       <_SlimRoot Remove="$(OutputPath)onnxruntime.dll" />
       <_SlimRoot Remove="$(OutputPath)onnxruntime_providers_*.dll" />
@@ -351,6 +353,7 @@
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
       <_SlimJunk Include="$(_SlimOut)\OpenCvSharpExtern.dll;$(_SlimOut)\libSkiaSharp.dll;$(_SlimOut)\pdfium.dll;$(_SlimOut)\sherpa-onnx-c-api.dll" />
+      <_SlimJunk Include="$(_SlimOut)\PdfSharp*.dll;$(_SlimOut)\PDFtoImage.dll" />
       <_SlimJunk Include="$(_SlimOut)\opencv_videoio_ffmpeg*.dll" />
       <_SlimJunk Include="$(_SlimOut)\ZXing.dll;$(_SlimOut)\SharpCompress.dll;$(_SlimOut)\SharpSevenZip.dll;$(_SlimOut)\e_sqlite3.dll;$(_SlimOut)\Bogus.dll;$(_SlimOut)\NPinyin.dll" />
       <_SlimJunk Include="$(_SlimOut)\Microsoft.Data.Sqlite.dll;$(_SlimOut)\SQLitePCLRaw.*.dll;$(_SlimOut)\MySqlConnector.dll;$(_SlimOut)\Oracle.ManagedDataAccess.dll;$(_SlimOut)\System.Formats.Asn1.dll" />

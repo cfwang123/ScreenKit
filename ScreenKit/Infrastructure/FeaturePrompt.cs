@@ -78,7 +78,7 @@ static class FeaturePrompt {
 
 	public static bool EnsurePdf(Window owner = null) =>
 		EnsureKinds(owner, Loc.T("feat.prompt.pdf.title"), Loc.T("feat.prompt.pdf.detail"),
-			FeatureKind.NativeSkia, FeatureKind.NativePdfium);
+			FeatureKind.NativeSkia, FeatureKind.NativePdfium, FeatureKind.PdfManaged);
 
 	public static bool EnsureFfmpeg(Window owner = null) =>
 		EnsureKinds(owner, Loc.T("feat.prompt.ffmpeg.title"), Loc.T("feat.prompt.ffmpeg.detail"),

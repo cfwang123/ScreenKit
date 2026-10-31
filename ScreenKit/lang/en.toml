@@ -5287,3 +5287,5 @@ sql.driver.deletefail = "Cannot delete {0}: {1} (file in use; restart the app an
 sql.oracle.host = "Server"
 sql.oracle.service = "Service"
 sql.nouser = "Enter a user name"
+feat.PdfManaged.title = "Runtime · PdfSharp / PDFtoImage"
+feat.PdfManaged.detail = "PDF workbench · ~1.6 MB · skip if you do not use PDF"

@@ -5287,3 +5287,5 @@ sql.driver.deletefail = "删除 {0} 失败：{1}（可能正在使用，重启�
 sql.oracle.host = "服务器"
 sql.oracle.service = "服务名"
 sql.nouser = "请填写用户名"
+feat.PdfManaged.title = "运行库 · PdfSharp / PDFtoImage"
+feat.PdfManaged.detail = "PDF 工作台 · 约 1.6 MB · 按需下载，不用 PDF 可不装"

@@ -34,6 +34,8 @@ public enum FeatureKind {
 	NativeSkia,
 	/// <summary>pdfium.dll（PDF 渲染，约 6MB，按需）。</summary>
 	NativePdfium,
+	/// <summary>PdfSharp 各程序集 + PDFtoImage（PDF 渲染 / 导出，约 1.6MB，按需）。</summary>
+	PdfManaged,
 	/// <summary>sherpa-onnx-c-api.dll（ASR/TTS 约 4–5MB；本机 net48 随编译保留，精简包按需安装）。</summary>
 	NativeSherpa,
 	/// <summary>InsightFace buffalo_l：检测+识别+关键点+性别年龄，约 326MB。</summary>
@@ -227,6 +229,7 @@ static class FeatureInstaller {
 			make(FeatureKind.NPinyin, "native"),
 			make(FeatureKind.NativeSkia, "native"),
 			make(FeatureKind.NativePdfium, "native"),
+			make(FeatureKind.PdfManaged, "native"),
 			make(FeatureKind.NativeSherpa, "native"),
 			make(FeatureKind.OrtCpu, "native"),
 			make(FeatureKind.OcrRapidCh, "ocr"),
@@ -291,6 +294,7 @@ static class FeatureInstaller {
 		FeatureKind.NPinyin => NativeRuntime.NPinyinSizeHint,
 		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint,
 		FeatureKind.NativePdfium => NativeRuntime.PdfiumSizeHint,
+		FeatureKind.PdfManaged => NativeRuntime.PdfManagedSizeHint,
 		FeatureKind.NativeSherpa => NativeRuntime.SherpaSizeHint,
 		FeatureKind.OcrRapidCh => 18L * 1024 * 1024,
 		FeatureKind.OcrUmi => 78L * 1024 * 1024,
@@ -376,6 +380,8 @@ static class FeatureInstaller {
 				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"));
 			case FeatureKind.NativePdfium:
 				return filesize(Path.Combine(BaseDir, "pdfium.dll"));
+			case FeatureKind.PdfManaged:
+				return sumfiles(NativeRuntime.PdfManagedDlls);
 			case FeatureKind.NativeSherpa:
 				return filesize(Path.Combine(BaseDir, "sherpa-onnx-c-api.dll"));
 			case FeatureKind.OcrRapidCh: return dirsize(Path.Combine(OcrModelsDir, "rapid-ch"));
@@ -466,6 +472,8 @@ static class FeatureInstaller {
 			return NativeRuntime.HasSkia() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativePdfium:
 			return NativeRuntime.HasPdfium() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.PdfManaged:
+			return NativeRuntime.HasPdfManaged() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSherpa:
 			return NativeRuntime.HasSherpa() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.OcrRapidCh:
@@ -667,6 +675,9 @@ static class FeatureInstaller {
 		case FeatureKind.NativePdfium:
 			await NativeRuntime.InstallPdfium(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.PdfManaged:
+			await NativeRuntime.InstallPdfManaged(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.NativeSherpa:
 			await NativeRuntime.InstallSherpa(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -771,6 +782,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.NativePdfium:
 			NativeRuntime.UninstallPdfium(log);
+			break;
+		case FeatureKind.PdfManaged:
+			NativeRuntime.UninstallPdfManaged(log);
 			break;
 		case FeatureKind.NativeSherpa:
 			NativeRuntime.UninstallSherpa(log);

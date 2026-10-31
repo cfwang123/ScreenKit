@@ -145,7 +145,7 @@ static class FeaturePick {
 		leaf("ime", "feat.pick.ime", "feat.pick.ime.detail",
 			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.ImeDb),
 		leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
-			FeatureKind.NativeSkia, FeatureKind.NativePdfium),
+			FeatureKind.NativeSkia, FeatureKind.NativePdfium, FeatureKind.PdfManaged),
 		leaf("zxing", "feat.pick.zxing", "feat.pick.zxing.detail", FeatureKind.NativeZxing),
 		leaf("sharpcompress", "feat.pick.sharpcompress", "feat.pick.sharpcompress.detail",
 			FeatureKind.SharpCompress),

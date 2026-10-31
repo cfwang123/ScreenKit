@@ -84,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: a datetime whose time part is zero is shown as a date only.
 - Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments
 - All JSON parsing, writing and the JSON DOM now run on the built-in JSONF parser; the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
+- PdfSharp and PDFtoImage now install on demand; the slim package no longer ships them and they come with the PDF runtime.
 
 #### Fixed
 
@@ -137,6 +138,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：日期时间的时间部分为 0 时只显示日期。
 - 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释
 - JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
+- PdfSharp 与 PDFtoImage 改为按需安装，精简包不再附带，随 PDF 运行库一起安装和卸载。
 
 #### 修复
 
