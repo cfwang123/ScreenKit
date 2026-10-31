@@ -6233,11 +6233,90 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 					Err("FAIL: clear top err=" + e2);
 					bad++;
 				}
+				if (!WinTop.SetTitle(h, "wintop-test") || WinTop.Describe(h).Title != "wintop-test") {
+					Err("FAIL: set title");
+					bad++;
+				}
+				if (!WinTop.MoveResize(h, 40, 60, 200, 120)) {
+					Err("FAIL: move resize");
+					bad++;
+				}
+				var info = WinTop.Describe(h);
+				if (info.X != 40 || info.Y != 60 || info.W != 200 || info.H != 120) {
+					Err($"FAIL: rect {info.RectText}");
+					bad++;
+				}
+				if (!WinTop.ClientCenter(h, out var cx, out var cy) || cx != 100 || cy != 60) {
+					Err($"FAIL: client center {cx},{cy}");
+					bad++;
+				}
+				if (!WinTop.SetStyleBits(h, false, WinTop.WS_BORDER, true)
+					|| (WinTop.Describe(h).Style & WinTop.WS_BORDER) == 0) {
+					Err("FAIL: add WS_BORDER");
+					bad++;
+				}
+				if (!WinTop.SetStyleBits(h, false, WinTop.WS_BORDER, false)
+					|| (WinTop.Describe(h).Style & WinTop.WS_BORDER) != 0) {
+					Err("FAIL: remove WS_BORDER");
+					bad++;
+				}
+				if (!WinTop.SetEnabled(h, false) || WinTop.Describe(h).Enabled) {
+					Err("FAIL: disable");
+					bad++;
+				}
+				if (!WinTop.SetEnabled(h, true) || !WinTop.Describe(h).Enabled) {
+					Err("FAIL: enable");
+					bad++;
+				}
+				if (!WinTop.SetVisible(h, true) || !WinTop.Describe(h).Visible) {
+					Err("FAIL: show");
+					bad++;
+				}
+				if (!WinTop.SetVisible(h, false) || WinTop.Describe(h).Visible) {
+					Err("FAIL: hide");
+					bad++;
+				}
+				if (!WinTop.PostClick(h, 10, 10, "left", "click")) {
+					Err("FAIL: post click");
+					bad++;
+				}
+				if (!WinTop.Post(h, 0, IntPtr.Zero, IntPtr.Zero)) {
+					Err("FAIL: post message");
+					bad++;
+				}
+				WinTop.MoveResize(h, -4000, -4000, 200, 120);
+				if (!WinTop.MoveToScreen(h)) {
+					Err("FAIL: move to screen");
+					bad++;
+				}
+				else {
+					var back = WinTop.Describe(h);
+					if (back.X == -4000 && back.Y == -4000) {
+						Err($"FAIL: still offscreen {back.RectText}");
+						bad++;
+					}
+				}
+				var tree = WinTop.BuildTree(h);
+				if (tree?.Info == null || tree.Info.Hwnd != h) {
+					Err("FAIL: build tree");
+					bad++;
+				}
+				if (!WinTop.CloseWin(h)) {
+					Err("FAIL: close");
+					bad++;
+				}
+				// 命令行模式没有消息泵，WM_CLOSE 不会被处理，窗口由 finally 里的 DestroyProbe 收掉
 			}
 			var list = WinTop.List();
 			Out("windows " + list.Count);
 			if (list.Count == 0) {
 				Err("FAIL: empty list");
+				bad++;
+			}
+			var wide = WinTop.List(true);
+			Out("windows+hidden " + wide.Count);
+			if (wide.Count < list.Count) {
+				Err("FAIL: hidden list smaller");
 				bad++;
 			}
 		}
@@ -7879,7 +7958,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）
       --test-wincal  农历甲辰正月与 2023 闰二月
       --test-jpyomi  東京 的系统读音
-      --test-wintop  枚举顶层窗口，并对探测窗设置/取消固定在前面
+      --test-wintop  枚举顶层窗口，并对探测窗改标题/位置/样式位、显隐和发送消息
       --test-autokey  解析按键与间隔，并向探测窗发送一次 F13 和一次左键点击
       --test-fastcopy  复制、跳过、重命名、同分区剪切、硬链接、统计大小，以及多选合并
       --test-glyphmod  点阵按行按列打包，并给 Segoe UI 的 A 和空格生成 C 数组

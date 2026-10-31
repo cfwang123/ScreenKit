@@ -231,13 +231,16 @@
 				          AutomationProperties.AutomationId="menu.cat.talk"/>
 				<MenuItem x:Name="mnnetgroup" Header="网络工具(_N)"
 				          AutomationProperties.AutomationId="menu.netgroup"
-				          ToolTip="网络工具、HTTP 请求调试和端口占用">
+				          ToolTip="网络工具、HTTP 请求调试、SOAP 接口调试和端口占用">
 					<MenuItem x:Name="mnnet" Header="网络工具(_N)…"
 					          AutomationProperties.AutomationId="menu.net"
 					          ToolTip="Ping、域名解析、端口测试、网络唤醒和网络发现"/>
 					<MenuItem x:Name="mnhttpdbg" Header="HTTP 请求调试(_E)…"
 					          AutomationProperties.AutomationId="menu.httpdbg"
 					          ToolTip="保存请求、分组，一行一个参数，JSON 正文"/>
+					<MenuItem x:Name="mnsoapdbg" Header="SOAP 接口调试(_S)…"
+					          AutomationProperties.AutomationId="menu.soapdbg"
+					          ToolTip="读取 WSDL，调试 SOAP 接口并启动本地模拟服务"/>
 					<MenuItem x:Name="mnportuse" Header="网络端口占用(_O)…"
 					          AutomationProperties.AutomationId="menu.portuse"
 					          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>
@@ -264,7 +267,7 @@
 					          ToolTip="半透明小窗，显示 CPU、GPU、内存、网络和磁盘"/>
 					<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
 					          AutomationProperties.AutomationId="menu.wintop"
-					          ToolTip="选择窗口，设置或取消固定在前面"/>
+					          ToolTip="取窗看属性，改标题位置和样式位，置顶、发消息、连续点击"/>
 					<MenuItem x:Name="mnautokey" Header="自动按键(_K)…"
 					          AutomationProperties.AutomationId="menu.autokey"
 					          ToolTip="按快捷键开始或停止，连续向前台窗口发送按键或鼠标点击"/>

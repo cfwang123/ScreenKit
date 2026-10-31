@@ -74,6 +74,30 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		// SOAP 调试窗口冒烟：只开这个窗口，便于 UIA 检查。
+		if (args.Any(a => a == "--test-soap-ui")) {
+			base.OnStartup(e);
+			var w = new SoapDebugWindow();
+			MainWindow = w;
+			w.Show();
+			return;
+		}
+
+		// SOAP 调试核心自测：不启动 GUI，结果写到 soap_selftest.log
+		if (args.Any(a => a == "--test-soap")) {
+			var lines = new System.Collections.Generic.List<string>();
+			var code = 1;
+			try { code = ScreenKit.Soap.SoapSelfTest.Run(lines.Add, s => lines.Add("[ERR] " + s)); }
+			catch (Exception ex) { lines.Add("[ERR] " + ex); }
+			try {
+				File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "soap_selftest.log"),
+					lines, new UTF8Encoding(false));
+			}
+			catch { }
+			Environment.Exit(code);
+			return;
+		}
+
 		// 命令行模式：不启动 GUI、不占单实例锁
 		if (Cli.IsCli(args)) {
 			initcuda();

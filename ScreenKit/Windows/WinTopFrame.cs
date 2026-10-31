@@ -18,7 +18,8 @@ sealed class WinTopFrame : Window {
 	static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
 
 	int lastX = int.MinValue, lastY, lastW, lastH;
-	bool shown;
+	int flashUntil, nextFlash;
+	bool shown, flashOn = true;
 	public IntPtr Handle { get; private set; }
 	public IntPtr Target { get; private set; }
 
@@ -53,6 +54,40 @@ sealed class WinTopFrame : Window {
 		lastH = h;
 		ScreenDpi.PinWindowToPhysical(this, x, y, w, h);
 		applyregion();
+	}
+
+	/// <summary>闪烁提示：外框在 ms 毫秒内每 80ms 显隐一次，结束后恢复常显。</summary>
+	public void Flash(IntPtr target, int ms = 600) {
+		Place(target);
+		if (!shown) return;
+		flashUntil = Environment.TickCount + ms;
+		nextFlash = Environment.TickCount + 80;
+		flashOn = true;
+		if (!IsVisible) Show();
+	}
+
+	/// <summary>由主定时器调用，处理闪烁显隐。</summary>
+	public void Tick() {
+		if (flashUntil == 0) return;
+		if (Environment.TickCount - flashUntil >= 0) {
+			flashUntil = 0;
+			flashOn = true;
+			if (shown && !IsVisible) Show();
+			return;
+		}
+		if (Environment.TickCount - nextFlash < 0) return;
+		nextFlash = Environment.TickCount + 80;
+		flashOn = !flashOn;
+		if (!shown) return;
+		if (flashOn) Show();
+		else Hide();
+	}
+
+	public void EndFlash() {
+		if (flashUntil == 0) return;
+		flashUntil = 0;
+		flashOn = true;
+		if (shown && !IsVisible) Show();
 	}
 
 	void hideframe() {

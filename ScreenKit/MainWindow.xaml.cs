@@ -113,6 +113,7 @@ public partial class MainWindow : Window {
 	FileProbeWindow fileProbeWin;
 	PerfMonWindow perfMonWin;
 	HttpDebugWindow httpDbgWin;
+	SoapDebugWindow soapDbgWin;
 	ZhConvertWindow zhConvWin;
 	PinyinWindow pinyinWin;
 
@@ -1856,6 +1857,7 @@ public partial class MainWindow : Window {
 		mnfileprobe.Click += (_, _) => openfileprobe();
 		mnperfmon.Click += (_, _) => openperfmon();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
+		mnsoapdbg.Click += (_, _) => opensoapdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
 		mnpinyin.Click += (_, _) => openpinyin();
 		mnhangul.Click += (_, _) => hangulset(mnhangul.IsChecked == true);
@@ -2056,6 +2058,8 @@ public partial class MainWindow : Window {
 			mnperfmon.ToolTip = Loc.T("menu.perfmon.tip");
 			mnhttpdbg.Header = Loc.T("menu.httpdbg");
 			mnhttpdbg.ToolTip = Loc.T("menu.httpdbg.tip");
+			mnsoapdbg.Header = Loc.T("menu.soapdbg");
+			mnsoapdbg.ToolTip = Loc.T("menu.soapdbg.tip");
 			mnzhconv.Header = Loc.T("menu.zhconv");
 			mnzhconv.ToolTip = Loc.T("menu.zhconv.tip");
 			mnpinyin.Header = Loc.T("menu.pinyin");
@@ -4831,6 +4835,9 @@ public partial class MainWindow : Window {
 	void openhttpdbg() =>
 		opentoolwin(ref httpDbgWin, () => new HttpDebugWindow(), "menu.httpdbg");
 
+	void opensoapdbg() =>
+		opentoolwin(ref soapDbgWin, () => new SoapDebugWindow(), "menu.soapdbg");
+
 	void openzhconv() =>
 		opentoolwin(ref zhConvWin, () => new ZhConvertWindow(), "menu.zhconv");
 
@@ -5003,6 +5010,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
 				else if (ReferenceEquals(sysWin, w)) sysWin = null;
 				else if (ReferenceEquals(httpDbgWin, w)) httpDbgWin = null;
+				else if (ReferenceEquals(soapDbgWin, w)) soapDbgWin = null;
 				else if (ReferenceEquals(zhConvWin, w)) zhConvWin = null;
 				else if (ReferenceEquals(winCalWin, w)) winCalWin = null;
 				else if (ReferenceEquals(jpYomiWin, w)) jpYomiWin = null;

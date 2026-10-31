@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ScreenKit SOAP 内置示例服务（自测用）。
+
+  覆盖场景：无参数 / 单值 / 多输出 / 复杂嵌套 / 数组 / 属性 / 可选 / 多种 xs 类型。
+  用法一：点界面上的“示例”按钮，或用命令行自测参数 test-soap
+  用法二：切到“接口模拟”页 → 启动，即可用模拟响应把整套方法跑通
+-->
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                  xmlns:tns="urn:screenkit:soapdemo"
+                  targetNamespace="urn:screenkit:soapdemo"
+                  name="DemoService">
+
+  <wsdl:types>
+    <xs:schema targetNamespace="urn:screenkit:soapdemo" elementFormDefault="qualified">
+
+      <xs:complexType name="Address">
+        <xs:sequence>
+          <xs:element name="street" type="xs:string" minOccurs="0" />
+          <xs:element name="city" type="xs:string" />
+          <xs:element name="zip" type="xs:string" minOccurs="0" />
+        </xs:sequence>
+        <xs:attribute name="country" type="xs:string" />
+      </xs:complexType>
+
+      <xs:complexType name="User">
+        <xs:sequence>
+          <xs:element name="id" type="xs:int" />
+          <xs:element name="name" type="xs:string" />
+          <xs:element name="email" type="xs:string" minOccurs="0" />
+          <xs:element name="active" type="xs:boolean" />
+          <xs:element name="score" type="xs:double" minOccurs="0" />
+          <xs:element name="tags" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
+          <xs:element name="address" type="tns:Address" minOccurs="0" />
+        </xs:sequence>
+      </xs:complexType>
+
+      <xs:complexType name="OrderLine">
+        <xs:sequence>
+          <xs:element name="sku" type="xs:string" />
+          <xs:element name="qty" type="xs:int" />
+          <xs:element name="price" type="xs:decimal" />
+        </xs:sequence>
+      </xs:complexType>
+
+      <!-- 1) 最简：两个整数相加 -->
+      <xs:element name="Add">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="a" type="xs:int" />
+            <xs:element name="b" type="xs:int" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="AddResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="result" type="xs:int" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <!-- 2) 字符串往返 -->
+      <xs:element name="Echo">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="text" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="EchoResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="echoed" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <!-- 3) 复杂返回值：嵌套类型 + 数组 + 属性 -->
+      <xs:element name="GetUser">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="id" type="xs:int" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="GetUserResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="user" type="tns:User" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <!-- 4) 复杂入参：对象数组 + 可选字段 -->
+      <xs:element name="SubmitOrder">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="orderId" type="xs:string" />
+            <xs:element name="items" type="tns:OrderLine" maxOccurs="unbounded" />
+            <xs:element name="memo" type="xs:string" minOccurs="0" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="SubmitOrderResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="ok" type="xs:boolean" />
+            <xs:element name="traceId" type="xs:string" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <!-- 5) 无输入参数 -->
+      <xs:element name="GetServerTime">
+        <xs:complexType />
+      </xs:element>
+      <xs:element name="GetServerTimeResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="time" type="xs:dateTime" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+      <!-- 6) 多输出 + decimal -->
+      <xs:element name="Divide">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="a" type="xs:decimal" />
+            <xs:element name="b" type="xs:decimal" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="DivideResponse">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="result" type="xs:decimal" />
+            <xs:element name="remainder" type="xs:decimal" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+
+    </xs:schema>
+  </wsdl:types>
+
+  <wsdl:message name="AddIn"><wsdl:part name="parameters" element="tns:Add" /></wsdl:message>
+  <wsdl:message name="AddOut"><wsdl:part name="parameters" element="tns:AddResponse" /></wsdl:message>
+  <wsdl:message name="EchoIn"><wsdl:part name="parameters" element="tns:Echo" /></wsdl:message>
+  <wsdl:message name="EchoOut"><wsdl:part name="parameters" element="tns:EchoResponse" /></wsdl:message>
+  <wsdl:message name="GetUserIn"><wsdl:part name="parameters" element="tns:GetUser" /></wsdl:message>
+  <wsdl:message name="GetUserOut"><wsdl:part name="parameters" element="tns:GetUserResponse" /></wsdl:message>
+  <wsdl:message name="SubmitOrderIn"><wsdl:part name="parameters" element="tns:SubmitOrder" /></wsdl:message>
+  <wsdl:message name="SubmitOrderOut"><wsdl:part name="parameters" element="tns:SubmitOrderResponse" /></wsdl:message>
+  <wsdl:message name="GetServerTimeIn"><wsdl:part name="parameters" element="tns:GetServerTime" /></wsdl:message>
+  <wsdl:message name="GetServerTimeOut"><wsdl:part name="parameters" element="tns:GetServerTimeResponse" /></wsdl:message>
+  <wsdl:message name="DivideIn"><wsdl:part name="parameters" element="tns:Divide" /></wsdl:message>
+  <wsdl:message name="DivideOut"><wsdl:part name="parameters" element="tns:DivideResponse" /></wsdl:message>
+
+  <wsdl:portType name="DemoPort">
+    <wsdl:operation name="Add">
+      <wsdl:input message="tns:AddIn" />
+      <wsdl:output message="tns:AddOut" />
+    </wsdl:operation>
+    <wsdl:operation name="Echo">
+      <wsdl:input message="tns:EchoIn" />
+      <wsdl:output message="tns:EchoOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetUser">
+      <wsdl:input message="tns:GetUserIn" />
+      <wsdl:output message="tns:GetUserOut" />
+    </wsdl:operation>
+    <wsdl:operation name="SubmitOrder">
+      <wsdl:input message="tns:SubmitOrderIn" />
+      <wsdl:output message="tns:SubmitOrderOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetServerTime">
+      <wsdl:input message="tns:GetServerTimeIn" />
+      <wsdl:output message="tns:GetServerTimeOut" />
+    </wsdl:operation>
+    <wsdl:operation name="Divide">
+      <wsdl:input message="tns:DivideIn" />
+      <wsdl:output message="tns:DivideOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+
+  <wsdl:binding name="DemoSoap" type="tns:DemoPort">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document" />
+    <wsdl:operation name="Add">
+      <soap:operation soapAction="urn:screenkit:soapdemo/Add" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Echo">
+      <soap:operation soapAction="urn:screenkit:soapdemo/Echo" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetUser">
+      <soap:operation soapAction="urn:screenkit:soapdemo/GetUser" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SubmitOrder">
+      <soap:operation soapAction="urn:screenkit:soapdemo/SubmitOrder" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetServerTime">
+      <soap:operation soapAction="urn:screenkit:soapdemo/GetServerTime" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="Divide">
+      <soap:operation soapAction="urn:screenkit:soapdemo/Divide" />
+      <wsdl:input><soap:body use="literal" /></wsdl:input>
+      <wsdl:output><soap:body use="literal" /></wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+
+  <wsdl:service name="DemoService">
+    <wsdl:port name="DemoSoap" binding="tns:DemoSoap">
+      <soap:address location="http://127.0.0.1:8080/demo/calc" />
+    </wsdl:port>
+  </wsdl:service>
+
+</wsdl:definitions>

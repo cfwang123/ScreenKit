@@ -55,6 +55,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP request debugger can export a group of requests to JSON and import it back.
 - Web tools add a byte decoder that reads consecutive bytes as int8 through fp64, fp16/bf16, ASCII and UTF-8, with selectable byte order.
 - Byte viewer also decodes FP8 E4M3 and E5M2.
+- SOAP debugger: read a WSDL, edit parameters from its XSD, call SOAP 1.1/1.2 operations, and run a local mock service with per-operation responses and request logs.
+- Window manager: pick a window, browse its tree and properties, edit title/rect/style bits, run quick actions, send custom messages, and repeat mouse clicks
 
 #### Changed
 
@@ -99,6 +101,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 请求调试可以把一组请求导出为 JSON，也能导入回来。
 - web 工具新增字节解读，可把连续字节按 int8 到 fp64、fp16/bf16、ASCII、UTF-8 等格式解读，大小端可选。
 - 字节解读新增 FP8（E4M3、E5M2）解码。
+- SOAP 接口调试：读取 WSDL、按 XSD 编辑参数并调用 SOAP 1.1/1.2 接口，另带本地模拟服务和请求日志。
+- 窗口管理：可取窗、查看窗口树和完整属性，改标题/位置尺寸/样式位，快捷操作，发自定义消息，连续鼠标点击
 
 #### 变更
 

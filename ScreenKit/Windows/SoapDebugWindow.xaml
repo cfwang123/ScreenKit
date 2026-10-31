@@ -1,0 +1,332 @@
+<Window x:Class="ScreenKit.SoapDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:soap="clr-namespace:ScreenKit.Soap"
+        Title="SOAP 接口调试"
+        Width="1080" Height="820"
+        MinWidth="900" MinHeight="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="soapdbg.window">
+	<Window.Resources>
+		<BooleanToVisibilityConverter x:Key="BoolToVis" />
+		<Style x:Key="FieldLabel" TargetType="TextBlock">
+			<Setter Property="VerticalAlignment" Value="Center" />
+			<Setter Property="Margin" Value="0,0,6,0" />
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}" />
+		</Style>
+		<Style x:Key="SectionTitle" TargetType="TextBlock">
+			<Setter Property="FontWeight" Value="SemiBold" />
+			<Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+			<Setter Property="VerticalAlignment" Value="Center" />
+		</Style>
+		<Style x:Key="MonoBox" TargetType="TextBox">
+			<Setter Property="FontFamily" Value="Consolas, Microsoft YaHei UI" />
+			<Setter Property="FontSize" Value="12" />
+			<Setter Property="AcceptsReturn" Value="True" />
+			<Setter Property="AcceptsTab" Value="True" />
+			<Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+			<Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+			<Setter Property="TextWrapping" Value="NoWrap" />
+		</Style>
+		<Style x:Key="WideButton" TargetType="Button" BasedOn="{StaticResource ToolBtn}">
+			<Setter Property="MinWidth" Value="58" />
+			<Setter Property="Height" Value="30" />
+			<Setter Property="Padding" Value="10,2" />
+			<Setter Property="Margin" Value="0,0,6,0" />
+		</Style>
+
+		<!-- 参数树节点：名称 + 类型提示 + 值输入框（数组可设重复次数） -->
+		<HierarchicalDataTemplate DataType="{x:Type soap:PNode}" ItemsSource="{Binding Children}">
+			<StackPanel Orientation="Horizontal" Margin="0,1">
+				<TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontWeight="SemiBold" ToolTip="{Binding Name}" />
+				<TextBlock Text="{Binding Hint}" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}" Margin="8,0,0,0" />
+				<TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Width="200" Margin="10,0,0,0"
+						 Height="23" Padding="4,1" VerticalContentAlignment="Center"
+						 Visibility="{Binding IsLeaf, Converter={StaticResource BoolToVis}}" />
+				<TextBlock Text="×" VerticalAlignment="Center" Margin="8,0,3,0" Foreground="{StaticResource TextMuted}"
+						   Visibility="{Binding IsArray, Converter={StaticResource BoolToVis}}" />
+				<TextBox Text="{Binding Occurs, UpdateSourceTrigger=PropertyChanged}" Width="44" Height="23"
+						 Padding="4,1" VerticalContentAlignment="Center" ToolTip="重复次数 / 数组元素个数"
+						 Visibility="{Binding IsArray, Converter={StaticResource BoolToVis}}" />
+			</StackPanel>
+		</HierarchicalDataTemplate>
+		<Style TargetType="TreeViewItem">
+			<Setter Property="IsExpanded" Value="True" />
+			<Setter Property="Padding" Value="1" />
+		</Style>
+	</Window.Resources>
+
+	<DockPanel>
+		<!-- 顶部：WSDL 地址 -->
+		<Border DockPanel.Dock="Top" Background="{StaticResource BgToolbar}" BorderBrush="{StaticResource BorderSoft}"
+				BorderThickness="0,0,0,1" Padding="14,10">
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="*" />
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="Auto" />
+					<ColumnDefinition Width="Auto" />
+				</Grid.ColumnDefinitions>
+				<TextBlock Grid.Column="0" Text="WSDL" Style="{StaticResource FieldLabel}" />
+				<ComboBox Grid.Column="1" x:Name="eUrl" IsEditable="True" Height="30" MinWidth="160"
+						  AutomationProperties.AutomationId="soapdbg.wsdl"
+						  ToolTip="http/https 的 ?wsdl 地址，或本地 .wsdl 文件路径（回车读取）" />
+				<Button Grid.Column="2" x:Name="bLoad" Content="读取" Style="{StaticResource WideButton}"
+						Margin="8,0,4,0" AutomationProperties.AutomationId="soapdbg.load"
+						ToolTip="读取 WSDL 并列出方法" />
+				<Button Grid.Column="3" x:Name="bBrowse" Content="浏览…" Style="{StaticResource WideButton}"
+						AutomationProperties.AutomationId="soapdbg.browse"
+						ToolTip="选择本地 WSDL 文件" />
+				<Button Grid.Column="4" x:Name="bDemo" Content="示例" Style="{StaticResource WideButton}"
+						AutomationProperties.AutomationId="soapdbg.demo"
+						ToolTip="载入内置示例 WSDL，可配合“接口模拟”页直接自测" />
+				<CheckBox Grid.Column="5" x:Name="cTrust" Content="信任全部证书" IsChecked="True"
+						  VerticalAlignment="Center" Margin="8,0,0,0"
+						  AutomationProperties.AutomationId="soapdbg.trust"
+						  ToolTip="允许访问自签名 / 过期证书的 https 服务" />
+			</Grid>
+		</Border>
+
+		<!-- 底部状态栏 -->
+		<Border DockPanel.Dock="Bottom" Background="{StaticResource BgToolbar}" BorderBrush="{StaticResource BorderSoft}"
+				BorderThickness="0,1,0,0" Padding="14,6">
+			<TextBlock x:Name="lbStatus" Text="就绪" Foreground="{StaticResource TextPrimary}"
+					   TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="soapdbg.status" />
+		</Border>
+
+		<TabControl x:Name="tabs" Margin="12">
+			<!-- ==================== Tab1：接口调试 ==================== -->
+			<TabItem x:Name="tabDebug" Header="接口调试">
+				<Grid Margin="0,8,0,0">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="240" MinWidth="150" />
+						<ColumnDefinition Width="6" />
+						<ColumnDefinition Width="*" />
+					</Grid.ColumnDefinitions>
+
+					<DockPanel Grid.Column="0" Margin="0,0,0,4">
+						<TextBlock DockPanel.Dock="Top" Text="方法" Style="{StaticResource SectionTitle}" Margin="0,0,0,6" />
+						<TextBox DockPanel.Dock="Top" x:Name="eFilter" Margin="0,0,0,6" Height="28" Padding="6,2"
+								 ToolTip="按名称过滤方法" AutomationProperties.AutomationId="soapdbg.filter" />
+						<TreeView x:Name="tvMethods" AutomationProperties.AutomationId="soapdbg.methods"
+								  BorderBrush="{StaticResource BorderSoft}" />
+					</DockPanel>
+
+					<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+					<Grid Grid.Column="2" Margin="0,0,0,4">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto" />
+							<RowDefinition Height="*" MinHeight="150" />
+							<RowDefinition Height="Auto" />
+							<RowDefinition Height="Auto" />
+							<RowDefinition Height="Auto" />
+							<RowDefinition Height="Auto" />
+							<RowDefinition Height="*" MinHeight="130" />
+							<RowDefinition Height="Auto" />
+						</Grid.RowDefinitions>
+
+						<StackPanel Grid.Row="0" Margin="0,0,0,6">
+							<TextBlock x:Name="lbMethod" Text="（未选择方法）" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+									   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+									   AutomationProperties.AutomationId="soapdbg.method" />
+							<Grid Margin="0,6,0,0">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="Auto" />
+									<ColumnDefinition Width="82" />
+									<ColumnDefinition Width="Auto" />
+									<ColumnDefinition Width="*" />
+								</Grid.ColumnDefinitions>
+								<TextBlock Grid.Column="0" Text="SOAP 版本" Style="{StaticResource FieldLabel}" />
+								<ComboBox Grid.Column="1" x:Name="eSoapVersion" Height="26"
+										  AutomationProperties.AutomationId="soapdbg.version">
+									<ComboBoxItem Content="1.1" IsSelected="True" />
+									<ComboBoxItem Content="1.2" />
+								</ComboBox>
+								<TextBlock Grid.Column="2" x:Name="lbSoapAction" Text="SOAPAction" Style="{StaticResource FieldLabel}" Margin="14,0,6,0" />
+								<TextBox Grid.Column="3" x:Name="eSoapAction" Height="26" Padding="4,2" VerticalContentAlignment="Center"
+										 MinWidth="100" AutomationProperties.AutomationId="soapdbg.action" />
+							</Grid>
+						</StackPanel>
+
+						<TabControl Grid.Row="1">
+							<TabItem x:Name="tabInput" Header="输入参数">
+								<TreeView x:Name="tvInput" BorderBrush="{StaticResource BorderSoft}"
+										  AutomationProperties.AutomationId="soapdbg.input" />
+							</TabItem>
+							<TabItem x:Name="tabRequest" Header="请求报文">
+								<TextBox x:Name="eRequestXml" Style="{StaticResource MonoBox}" IsReadOnly="True"
+										 AutomationProperties.AutomationId="soapdbg.request" />
+							</TabItem>
+							<TabItem x:Name="tabWsdl" Header="WSDL 源文档">
+								<TextBox x:Name="eWsdlText" Style="{StaticResource MonoBox}" IsReadOnly="True"
+										 AutomationProperties.AutomationId="soapdbg.wsdltext" />
+							</TabItem>
+						</TabControl>
+
+						<Grid Grid.Row="2" Margin="0,8,0,6">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition Width="*" />
+								<ColumnDefinition Width="Auto" />
+								<ColumnDefinition Width="Auto" />
+							</Grid.ColumnDefinitions>
+							<TextBlock Grid.Column="0" x:Name="lbAddress" Text="调用地址：" Style="{StaticResource FieldLabel}" />
+							<TextBox Grid.Column="1" x:Name="eAddress" Height="28" Padding="4,2" VerticalContentAlignment="Center"
+									 MinWidth="120" AutomationProperties.AutomationId="soapdbg.address" />
+							<Button Grid.Column="2" x:Name="bInvoke" Content="调用" Margin="8,0,6,0" Height="30" MinWidth="64"
+									Style="{StaticResource ToolBtn}" AutomationProperties.AutomationId="soapdbg.invoke"
+									ToolTip="发送 SOAP 请求（F5）" />
+							<Button Grid.Column="3" x:Name="bResetValues" Content="清空值" Height="30" MinWidth="64"
+									Style="{StaticResource ToolBtn}" AutomationProperties.AutomationId="soapdbg.clearvalues" />
+						</Grid>
+
+						<Expander Grid.Row="3" x:Name="expAdvanced" Header="高级选项（HTTP 头、超时）" Margin="0,0,0,6" IsExpanded="False">
+							<Grid Margin="4,8,4,2">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="Auto" />
+									<ColumnDefinition Width="*" />
+								</Grid.ColumnDefinitions>
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto" />
+									<RowDefinition Height="Auto" />
+								</Grid.RowDefinitions>
+								<TextBlock Grid.Row="0" Grid.Column="0" x:Name="lbHeaders" Text="HTTP 头：" Style="{StaticResource FieldLabel}"
+										   VerticalAlignment="Top" />
+								<TextBox Grid.Row="0" Grid.Column="1" x:Name="eHeaders" Height="64" AcceptsReturn="True"
+										 Padding="4,2" FontFamily="Consolas" VerticalScrollBarVisibility="Auto"
+										 AutomationProperties.AutomationId="soapdbg.headers"
+										 ToolTip="每行一个 Header，格式 name: value" />
+								<StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,8,0,0">
+									<TextBlock x:Name="lbTimeout" Text="超时(ms)：" Style="{StaticResource FieldLabel}" />
+									<TextBox x:Name="eTimeout" Width="90" Height="26" Text="60000" Padding="4,2"
+											 VerticalContentAlignment="Center" AutomationProperties.AutomationId="soapdbg.timeout" />
+								</StackPanel>
+							</Grid>
+						</Expander>
+
+						<StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,2,0,5">
+							<TextBlock x:Name="lbResultTitle" Text="返回结果" Style="{StaticResource SectionTitle}" />
+							<TextBlock x:Name="lbTiming" Foreground="{StaticResource TextMuted}" Margin="12,0,0,0" VerticalAlignment="Center" />
+						</StackPanel>
+
+						<TabControl Grid.Row="6">
+							<TabItem x:Name="tabResponse" Header="响应体">
+								<TextBox x:Name="eResponse" Style="{StaticResource MonoBox}" IsReadOnly="True"
+										 AutomationProperties.AutomationId="soapdbg.response" />
+							</TabItem>
+							<TabItem x:Name="tabTrace" Header="原始交互">
+								<TextBox x:Name="eTrace" Style="{StaticResource MonoBox}" IsReadOnly="True"
+										 AutomationProperties.AutomationId="soapdbg.trace" />
+							</TabItem>
+						</TabControl>
+
+						<TextBlock Grid.Row="7" x:Name="lbResponseInfo" Foreground="{StaticResource TextMuted}" Margin="0,5,0,0"
+								   TextTrimming="CharacterEllipsis" AutomationProperties.AutomationId="soapdbg.responseinfo" />
+					</Grid>
+				</Grid>
+			</TabItem>
+
+			<!-- ==================== Tab2：接口模拟 ==================== -->
+			<TabItem x:Name="tabMock" Header="接口模拟">
+				<Grid Margin="0,8,0,0">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto" />
+						<RowDefinition Height="*" />
+					</Grid.RowDefinitions>
+
+					<Border Grid.Row="0" Background="{StaticResource BgToolbar}" BorderBrush="{StaticResource BorderSoft}"
+							BorderThickness="1" Padding="10,8" Margin="0,0,0,8" CornerRadius="8">
+						<WrapPanel>
+							<TextBlock x:Name="lbPort" Text="端口" Style="{StaticResource FieldLabel}" />
+							<TextBox x:Name="ePort" Width="68" Height="28" Text="8080" Padding="4,2"
+									 VerticalContentAlignment="Center" AutomationProperties.AutomationId="soapdbg.port" />
+							<Button x:Name="bStartMock" Content="启动" Style="{StaticResource WideButton}" Margin="8,0,6,0"
+									AutomationProperties.AutomationId="soapdbg.mock.start" />
+							<Button x:Name="bStopMock" Content="停止" Style="{StaticResource WideButton}"
+									AutomationProperties.AutomationId="soapdbg.mock.stop" />
+							<TextBlock x:Name="lbMockUrl" Text="服务地址" Style="{StaticResource FieldLabel}" Margin="14,0,6,0" />
+							<TextBox x:Name="eMockUrl" Width="200" Height="28" IsReadOnly="True" Padding="4,2"
+									 VerticalContentAlignment="Center" Background="#F0F3F7"
+									 AutomationProperties.AutomationId="soapdbg.mock.url" />
+							<Button x:Name="bCopyMockUrl" Content="复制" Style="{StaticResource WideButton}" Margin="8,0,6,0"
+									AutomationProperties.AutomationId="soapdbg.mock.copy" />
+							<Button x:Name="bUseMockUrl" Content="填入调试页" Style="{StaticResource WideButton}"
+									AutomationProperties.AutomationId="soapdbg.mock.use" />
+						</WrapPanel>
+					</Border>
+
+					<Grid Grid.Row="1">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="240" MinWidth="150" />
+							<ColumnDefinition Width="6" />
+							<ColumnDefinition Width="*" />
+						</Grid.ColumnDefinitions>
+
+						<DockPanel Grid.Column="0">
+							<TextBlock DockPanel.Dock="Top" x:Name="lbMockOps" Text="WSDL 中的接口" Style="{StaticResource SectionTitle}"
+									   Margin="0,0,0,6" />
+							<ListBox x:Name="lbMockOpsList" DisplayMemberPath="." BorderBrush="{StaticResource BorderSoft}"
+									 AutomationProperties.AutomationId="soapdbg.mock.ops" />
+						</DockPanel>
+
+						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" />
+
+						<Grid Grid.Column="2">
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto" />
+								<RowDefinition Height="2*" MinHeight="140" />
+								<RowDefinition Height="Auto" />
+								<RowDefinition Height="*" MinHeight="100" />
+							</Grid.RowDefinitions>
+
+							<WrapPanel Grid.Row="0" Margin="0,0,0,6">
+								<TextBlock x:Name="lbMockResponse" Text="响应内容：" Style="{StaticResource SectionTitle}" />
+								<TextBlock x:Name="lbMockOp" Text="（未选择）" Style="{StaticResource FieldLabel}" Margin="8,0,8,0" />
+								<Button x:Name="bMockDefault" Content="默认响应" Style="{StaticResource WideButton}"
+										AutomationProperties.AutomationId="soapdbg.mock.default"
+										ToolTip="按 WSDL 输出参数生成空响应模板" />
+								<Button x:Name="bMockRevert" Content="恢复默认" Style="{StaticResource WideButton}"
+										AutomationProperties.AutomationId="soapdbg.mock.revert" />
+								<Button x:Name="bMockSave" Content="导出配置" Style="{StaticResource WideButton}"
+										AutomationProperties.AutomationId="soapdbg.mock.export" />
+								<Button x:Name="bMockLoad" Content="导入配置" Style="{StaticResource WideButton}"
+										AutomationProperties.AutomationId="soapdbg.mock.import" />
+							</WrapPanel>
+
+							<TextBox Grid.Row="1" x:Name="eMockResponse" Style="{StaticResource MonoBox}"
+									 AutomationProperties.AutomationId="soapdbg.mock.response"
+									 ToolTip="填写 soap:Body 内部 XML；也可直接粘贴完整 Envelope" />
+
+							<WrapPanel Grid.Row="2" Margin="0,8,0,5">
+								<TextBlock x:Name="lbMockLogTitle" Text="请求日志" Style="{StaticResource SectionTitle}" />
+								<TextBlock x:Name="lbMockCount" Foreground="{StaticResource TextMuted}" Margin="10,0,0,0" VerticalAlignment="Center" />
+								<Button x:Name="bMockClearLog" Content="清空" Style="{StaticResource WideButton}" Margin="12,0,0,0"
+										AutomationProperties.AutomationId="soapdbg.mock.clearlog" />
+							</WrapPanel>
+
+							<Grid Grid.Row="3">
+								<Grid.ColumnDefinitions>
+									<ColumnDefinition Width="2*" MinWidth="150" />
+									<ColumnDefinition Width="6" />
+									<ColumnDefinition Width="3*" />
+								</Grid.ColumnDefinitions>
+								<ListBox Grid.Column="0" x:Name="lbMockLog" DisplayMemberPath="."
+										 BorderBrush="{StaticResource BorderSoft}"
+										 AutomationProperties.AutomationId="soapdbg.mock.log" />
+								<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent" />
+								<TextBox Grid.Column="2" x:Name="eMockLogDetail" Style="{StaticResource MonoBox}" IsReadOnly="True"
+										 AutomationProperties.AutomationId="soapdbg.mock.logdetail" />
+							</Grid>
+						</Grid>
+					</Grid>
+				</Grid>
+			</TabItem>
+		</TabControl>
+	</DockPanel>
+</Window>

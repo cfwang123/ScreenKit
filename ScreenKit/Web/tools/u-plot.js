@@ -42,6 +42,8 @@
 		{ g: "eq3", mode: "3", fn: "(x^2+9/4*y^2+z^2-1)^3-x^2*z^3-9/80*y^2*z^3=0" }
 	];
 	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65, zoom: 1 };
+	var HOME = { yaw: -0.6, pitch: 0.65 };
+	var YSPAN = 4;
 	var view3 = { s: 1, ox: 0, oy: 0 };
 	var canvas = null;
 	var watch = null;
@@ -122,7 +124,10 @@
 		}
 		if (watch) watch.disconnect();
 		if (window.ResizeObserver && canvas.parentElement) {
-			watch = new ResizeObserver(function(){ paint(); });
+			watch = new ResizeObserver(function(){
+				if (mode === "3") cam.xspan = cam.yspan * stageaspect();
+				paint();
+			});
 			watch.observe(canvas.parentElement);
 		}
 		markmode();
@@ -241,15 +246,25 @@
 		el.className = bad ? "hint bad" : "hint";
 	}
 
+	// 三维采样平面按画布宽高比张开：画布越宽 x 方向就多画一些，左右的空白少一点。
+	function stageaspect(){
+		var stage = canvas && canvas.parentElement;
+		var w = stage && stage.clientWidth > 2 ? stage.clientWidth : 800;
+		var h = stage && stage.clientHeight > 2 ? stage.clientHeight : 420;
+		var r = w / h;
+		if (!(r > 1)) return 1;
+		return r > 4 ? 4 : r;
+	}
+
 	function resetview(){
 		if (mode === "3") {
 			cam.cx = 0;
 			cam.cy = 0;
-			cam.xspan = 4;
-			cam.yspan = 4;
+			cam.yspan = YSPAN;
+			cam.xspan = YSPAN * stageaspect();
 			cam.zoom = 1;
-			cam.yaw = -0.6;
-			cam.pitch = 0.65;
+			cam.yaw = HOME.yaw;
+			cam.pitch = HOME.pitch;
 			return;
 		}
 		var stage = canvas && canvas.parentElement;
@@ -769,29 +784,32 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
-	// 三维按内容的外接球定比例：球半径跟视角无关，所以转动、俯仰时画面大小和 xyz 比例都不变，
-	// 同时又不会因为换个角度就超出画布。居中用内容中心投影后的位置。
+	// 三维画面大小按内容在初始视角下的投影范围定：换任何视角都只转不缩放，
+	// 外接球留的余量也一起去掉，采样平面有多宽就尽量画多宽。
 	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
 		var cx = (box.x0 + box.x1) / 2;
 		var cy = (box.y0 + box.y1) / 2;
 		var cz = (box.z0 + box.z1) / 2;
-		var r = 0, i, p, dx, dy, dz, d2;
-		if (isFinite(cx) && isFinite(cy) && isFinite(cz)) {
-			for (i = 0; i < list.length; i++) {
-				p = list[i];
-				if (!p || !p.ok) continue;
-				dx = p.wx - cx;
-				dy = p.wy - cy;
-				dz = p.wz - cz;
-				d2 = dx * dx + dy * dy + dz * dz;
-				if (d2 > r) r = d2;
-			}
-			r = Math.sqrt(r);
+		var hy = Math.cos(HOME.yaw), hx = Math.sin(HOME.yaw);
+		var hp = Math.cos(HOME.pitch), hs = Math.sin(HOME.pitch);
+		var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+		var i, p, u, v;
+		for (i = 0; i < list.length; i++) {
+			p = list[i];
+			if (!p || !p.ok) continue;
+			u = p.wx * hy - p.wy * hx;
+			v = (p.wx * hx + p.wy * hy) * hs + p.wz * hp;
+			if (u < x0) x0 = u;
+			if (u > x1) x1 = u;
+			if (v < y0) y0 = v;
+			if (v > y1) y1 = v;
 		}
-		if (!(r > 1e-9) || !isFinite(r)) r = Math.max(0.001, Math.max(cam.xspan, cam.yspan));
 		var pad = 14;
-		var s = (Math.min(w, h) - pad * 2) / (r * 2) * cam.zoom;
-		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / r;
+		var s;
+		if (x1 > x0 && y1 > y0) s = Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / (y1 - y0));
+		else s = 0;
+		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / Math.max(0.001, Math.max(cam.xspan, cam.yspan));
+		s *= cam.zoom;
 		view3.s = s;
 		view3.ox = w / 2 - (cx * cyaw - cy * syaw) * s;
 		view3.oy = h / 2 + ((cx * syaw + cy * cyaw) * sp + cz * cp) * s;
@@ -811,12 +829,11 @@
 		return { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity };
 	}
 
-	// 三维点投影：x、y 按采样范围等比归一，z 按 zfit 归一，再按 yaw 旋转、pitch 俯仰。
-	// 返回 view3 缩放前的 ux、uz、用来排序前后遮挡的深度 d，以及归一后的三维坐标。
+	// 三维点投影：x、y、z 直接按世界单位（x/y 和 z 同一把尺，不按采样范围拉伸），
+	// 再按 yaw 旋转、pitch 俯仰。返回 view3 缩放前的 ux、uz、深度 d 和归一后的三维坐标。
 	function proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit){
-		var fit = Math.max(cam.xspan, cam.yspan);
-		var X = (x - cam.cx) / cam.xspan * fit;
-		var Y = (y - cam.cy) / cam.yspan * fit;
+		var X = x - cam.cx;
+		var Y = y - cam.cy;
 		var Z = (z - zmid) * zfit;
 		var x1 = X * cyaw - Y * syaw;
 		var y1 = X * syaw + Y * cyaw;
@@ -836,7 +853,6 @@
 		}
 		var n = 46;
 		var grid = n + 1;
-		var fit = Math.max(cam.xspan, cam.yspan);
 		var zraw = new Array(grid * grid);
 		var i, j, x, y, z, finite = [];
 		for (j = 0; j < grid; j++) {
@@ -858,7 +874,7 @@
 		}
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
-		var zfit = fit / (hi - lo);
+		var zfit = cam.yspan / (hi - lo);
 		var pts = new Array(grid * grid);
 		var box = newbox();
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
@@ -873,8 +889,8 @@
 					if (z < lo - pad) z = lo - pad;
 					else if (z > hi + pad) z = hi + pad;
 				}
-				var X = (x - cam.cx) / cam.xspan * fit;
-				var Y = (y - cam.cy) / cam.yspan * fit;
+				var X = x - cam.cx;
+				var Y = y - cam.cy;
 				var Z = ok ? (z - zmid) * zfit : 0;
 				var x1 = X * cyaw - Y * syaw;
 				var y1 = X * syaw + Y * cyaw;
@@ -910,7 +926,6 @@
 	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
 	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
 	function draw3implicit(ctx, w, h){
-		var fit = Math.max(cam.xspan, cam.yspan);
 		var n = drag ? 46 : (style === "dots" ? 88 : 72);
 		var m = drag ? 46 : 80;
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
@@ -919,7 +934,7 @@
 		var cols = new Array(cw * cw);
 		var box = newbox();
 		var all = [];
-		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
+		var z0 = -cam.yspan, z1 = cam.yspan, dz = (z1 - z0) / m;
 		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, gap;
 		for (j = 0; j <= n; j++) {
 			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
@@ -969,7 +984,7 @@
 			}
 		}
 		fit3(w, h, box, all, cyaw, syaw, cp, sp);
-		gap = 2 * fit * view3.s / n;
+		gap = 2 * cam.yspan * view3.s / n;
 		var row;
 		for (i = 0; i < cols.length; i++) {
 			row = cols[i];
@@ -1390,8 +1405,14 @@
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit));
 		}
 		var o = proj(0, 0, 0);
-		var ax = proj(cam.xspan * 0.85, 0, 0);
-		var ay = proj(0, cam.yspan * 0.85, 0);
+		// 轴不要比曲面还长，免得被画布切掉。
+		var armx = cam.xspan * 0.85, army = cam.yspan * 0.85;
+		if (box) {
+			if (box.x1 > 1e-6 && box.x1 < armx) armx = box.x1;
+			if (box.y1 > 1e-6 && box.y1 < army) army = box.y1;
+		}
+		var ax = proj(armx, 0, 0);
+		var ay = proj(0, army, 0);
 		var az = proj(0, 0, hi);
 		ctx.lineWidth = 1.5;
 		ctx.font = '12px "Segoe UI", "Microsoft YaHei UI", sans-serif';
@@ -1684,3 +1705,5 @@
 	function isletter(c){ return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"); }
 	function isdigit(c){ return c >= "0" && c <= "9"; }
 })();
+
+

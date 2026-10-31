@@ -95,6 +95,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Performance**: A borderless window with CPU, GPU, memory, network, and disk, with a pin and an update interval.
 - **File info**: Reads the header type and shows version, image, media, and text-encoding details. EXE and DLL files get another page for sections, imports, exports, the signature, and public .NET types.
 - **HTTP request debugger**: Requests are saved in groups; parameters are one `key=value` per line, headers are one `name: value` per line, and a POST can be JSON, XML, or raw text. The URL and parameters stay in sync, a Chrome User-Agent and the Content-Type are filled in automatically, and a group can be exported to JSON and imported back.
+- **SOAP debugger**: Read a WSDL from a URL or a local file, edit parameters from its XSD, preview the envelope, and call SOAP 1.1/1.2 operations. It can also run a local mock service with per-operation responses, request logs, and importable/exportable config.
 - **MIDI synthesizer**: Play with the mouse or the keyboard, open, change, and save MIDI files, and see a live waveform.
 - **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV.
 - **Camera**: Preview a camera, take photos and videos, and scan QR codes and barcodes. Double-click the picture for fullscreen; double-click again or press Esc to leave it.
@@ -102,7 +103,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Desktop note**: A borderless translucent note for text or a to-do list; content and position are remembered. The pin in the title bar keeps it above other windows, and that too is remembered.
 - **RTSP test server**: Encodes a bouncing picture to H.264 and serves an RTSP address on the chosen port.
 - **Auto key**: Sends keys or clicks in a row to the foreground window; the default F6 starts and stops it while the window is open.
-- **Window manager**: Lists visible top-level windows and pins one in front or unpins it.
+- **Window manager**: Lists top-level windows (hidden ones too, if you like) and frames the target you pick. Shows the window tree plus HWND, class, process, rect, and style bits; edits the title and rect, pins, shows or hides, enables or disables, sends custom messages, and repeats mouse clicks at client-area coordinates.
 
 ### Web tools
 

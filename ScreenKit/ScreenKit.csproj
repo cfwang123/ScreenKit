@@ -95,6 +95,7 @@
     <EmbeddedResource Include="SendFile\web\app.js" LogicalName="web.app.js" />
     <EmbeddedResource Include="SendFile\web\d.css" LogicalName="web.d.css" />
     <EmbeddedResource Include="SendFile\web\m.css" LogicalName="web.m.css" />
+    <EmbeddedResource Include="Soap\demo.wsdl" LogicalName="ScreenKit.Soap.demo.wsdl" />
   </ItemGroup>
 
   <!-- .NET Framework 程序集引用 -->
