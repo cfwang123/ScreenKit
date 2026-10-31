@@ -82,6 +82,11 @@ public partial class SqlWindow : Window {
 				run();
 			}
 		};
+		// 行号：行头显示当前视图里的序号，排序后重新编一次
+		dg.LoadingRow += (_, e) => e.Row.Header = (e.Row.GetIndex() + 1).ToString();
+		dgs.LoadingRow += (_, e) => e.Row.Header = (e.Row.GetIndex() + 1).ToString();
+		dg.Sorting += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => renumber(dg)));
+		dgs.Sorting += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => renumber(dgs)));
 		etop.Items.Clear();
 		etop.Items.Add("100");
 		etop.Items.Add("1000");
@@ -507,6 +512,14 @@ public partial class SqlWindow : Window {
 	int toplimit() {
 		if (etop.SelectedItem is not string s) return 1000;
 		return int.TryParse(s, out var v) ? v : 1000;
+	}
+
+	/// <summary>排序后行不会重新 Loading，显式把已实化的行头刷一遍序号。</summary>
+	static void renumber(DataGrid g) {
+		for (var i = 0; i < g.Items.Count; i++) {
+			if (g.ItemContainerGenerator.ContainerFromIndex(i) is not DataGridRow row) continue;
+			row.Header = (i + 1).ToString();
+		}
 	}
 
 	static DataTable tableof(SqlResult r) {

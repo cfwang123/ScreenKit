@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: open a SQLite file by dropping it in, or connect to SQL Server; list tables and views, view rows and schema, and run any SQL
 - Database query: connect to MySQL and Oracle; their drivers install on demand and are left out of the slim package.
 - Database query: save frequently used connections and apply one with a click.
+- Database query: show row numbers in the data grid
 
 #### Changed
 
@@ -115,6 +116,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：拖入 SQLite 文件即可打开，也能连 SQL Server；列出表和视图，看内容与表结构，执行任意 SQL
 - 数据库查询：可连接 MySQL 和 Oracle，驱动按需安装、不进精简包。
 - 数据库查询：常用连接可保存，选中即套用。
+- 数据库查询：数据表格增加行号列
 
 #### 变更
 

@@ -11,6 +11,21 @@
         FontSize="13"
         AllowDrop="True"
         AutomationProperties.AutomationId="sql.window">
+	<Window.Resources>
+		<!-- 行号列：用行头显示，不占数据列，复制和排序都不带它 -->
+		<Style x:Key="RowNumHeader" TargetType="DataGridRowHeader">
+			<Setter Property="Background" Value="#F4F6F9"/>
+			<Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
+			<Setter Property="BorderThickness" Value="0,0,1,1"/>
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="Padding" Value="6,0"/>
+			<Setter Property="MinWidth" Value="0"/>
+			<Setter Property="HorizontalContentAlignment" Value="Center"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+		</Style>
+	</Window.Resources>
+
 	<Grid Margin="16">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -183,13 +198,14 @@
 				            AutomationProperties.AutomationId="sql.tabs">
 					<TabItem x:Name="tabdata" AutomationProperties.AutomationId="sql.tab.data">
 						<DataGrid x:Name="dg" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
-						          HeadersVisibility="Column" GridLinesVisibility="All" BorderThickness="0"
+						          HeadersVisibility="All" GridLinesVisibility="All" BorderThickness="0"
 						          Background="{StaticResource BgPanel}" RowBackground="White"
 						          AlternatingRowBackground="#F7FAFC"
 						          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
 						          EnableRowVirtualization="True" EnableColumnVirtualization="True"
 						          ClipboardCopyMode="IncludeHeader" SelectionUnit="Cell"
-						          AutomationProperties.AutomationId="sql.grid"/>
+						          AutomationProperties.AutomationId="sql.grid"
+						          RowHeaderStyle="{StaticResource RowNumHeader}"/>
 					</TabItem>
 					<TabItem x:Name="tabschema" AutomationProperties.AutomationId="sql.tab.schema">
 						<DockPanel>
@@ -202,12 +218,13 @@
 								         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
 							</StackPanel>
 							<DataGrid x:Name="dgs" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
-							          HeadersVisibility="Column" GridLinesVisibility="All" BorderThickness="0"
+							          HeadersVisibility="All" GridLinesVisibility="All" BorderThickness="0"
 							          Background="{StaticResource BgPanel}" RowBackground="White"
 							          AlternatingRowBackground="#F7FAFC"
 							          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
 							          ClipboardCopyMode="IncludeHeader" SelectionUnit="Cell"
-							          AutomationProperties.AutomationId="sql.schema.grid"/>
+							          AutomationProperties.AutomationId="sql.schema.grid"
+							          RowHeaderStyle="{StaticResource RowNumHeader}"/>
 						</DockPanel>
 					</TabItem>
 				</TabControl>
