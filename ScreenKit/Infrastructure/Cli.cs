@@ -6336,6 +6336,21 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 	static int testsql() {
 		Out("=== 数据库查询 --test-sql ===");
 		var bad = 0;
+		// 日期时间显示：时间部分是 0 就只给日期
+		var fmt = typeof(SqlTool).GetMethod("text", BindingFlags.NonPublic | BindingFlags.Static);
+		var dates = new (object Value, string Want)[] {
+			(new DateTime(2024, 1, 2), "2024-01-02"),
+			(new DateTime(2024, 1, 2, 3, 4, 5), "2024-01-02 03:04:05"),
+			(new DateTimeOffset(2024, 1, 2, 0, 0, 0, TimeSpan.FromHours(8)), "2024-01-02"),
+			(new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(8)), "2024-01-02 03:04:05+08:00"),
+		};
+		foreach (var c in dates) {
+			var got = fmt?.Invoke(null, new[] { c.Value }) as string;
+			if (got != c.Want) {
+				Err($"FAIL: datetime {c.Value} => {got}");
+				bad++;
+			}
+		}
 		var db = Path.Combine(Path.GetTempPath(), "sk-sql-test-" + Environment.TickCount + ".db");
 		System.Data.Common.DbConnection cn = null;
 		try {
@@ -6401,6 +6416,120 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 					bad++;
 				}
 			}
+			// 数据库驱动：SQLite 随编译/安装存在，Oracle 按需下载安装
+			Out("sqlite driver: " + (DbDriver.Installed(DbKind.Sqlite) ? "OK" : "缺失"));
+			var hadOracle = DbDriver.Installed(DbKind.Oracle);
+			if (!hadOracle) {
+				try {
+					FeatureInstaller.InstallAsync(FeatureKind.DbOracle, null, null, CancellationToken.None)
+						.GetAwaiter().GetResult();
+				}
+				catch (Exception ex) {
+					Err("FAIL: 安装 Oracle 驱动 " + ex.Message);
+					bad++;
+				}
+			}
+			Out("oracle driver: " + (DbDriver.Installed(DbKind.Oracle) ? "OK" : "缺失"));
+			if (DbDriver.Installed(DbKind.Oracle)) {
+				var o1 = SqlTool.OracleConn("h:1521", "svc", "u", "p");
+				if (!o1.Contains("Data Source=h:1521/svc") || !o1.Contains("User Id=u") || !o1.Contains("Password=p")) {
+					Err("FAIL: oracle conn " + o1);
+					bad++;
+				}
+				var o2 = SqlTool.OracleConn("h", "", "u", "p");
+				if (!o2.Contains("Data Source=h")) {
+					Err("FAIL: oracle conn no service " + o2);
+					bad++;
+				}
+				var ot = SqlTool.TableSql(SqlTool.Oracle, "t", 5);
+				if (ot != "SELECT * FROM \"t\" WHERE ROWNUM <= 5") {
+					Err("FAIL: oracle tablesql " + ot);
+					bad++;
+				}
+				var oc = SqlTool.Connect(SqlTool.Oracle, o1, out var oerr);
+				if (oc != null) {
+					try { oc.Dispose(); } catch { }
+					Out("oracle connect: 意外连上 h:1521");
+				}
+				else {
+					Out("oracle connect 预期失败: " + oerr);
+					if (oerr.IndexOf("Could not load file or assembly", StringComparison.OrdinalIgnoreCase) >= 0
+						|| oerr.IndexOf("FileNotFound", StringComparison.OrdinalIgnoreCase) >= 0
+						|| oerr.IndexOf("TypeLoad", StringComparison.OrdinalIgnoreCase) >= 0
+						|| oerr.IndexOf("无法加载文件或程序集", StringComparison.OrdinalIgnoreCase) >= 0) {
+						Err("FAIL: Oracle 驱动加载 " + oerr);
+						bad++;
+					}
+				}
+			}
+			if (!hadOracle && DbDriver.Installed(DbKind.Oracle)) {
+				DbDriver.Reset();
+				var removed = DbDriver.Uninstall(DbKind.Oracle, null);
+				Out("oracle uninstall: " + (removed && !DbDriver.Installed(DbKind.Oracle) ? "OK" : "残留"));
+			}
+			// MySQL：连接串、表 SQL、引号；驱动按需装一次再卸掉
+			var hadMysql = DbDriver.Installed(DbKind.Mysql);
+			if (!hadMysql) {
+				try {
+					FeatureInstaller.InstallAsync(FeatureKind.DbMysql, null, null, CancellationToken.None)
+						.GetAwaiter().GetResult();
+				}
+				catch (Exception ex) {
+					Err("FAIL: 安装 MySQL 驱动 " + ex.Message);
+					bad++;
+				}
+			}
+			Out("mysql driver: " + (DbDriver.Installed(DbKind.Mysql) ? "OK" : "缺失"));
+			var my1 = SqlTool.MysqlConn("h:3306", "d", "u", "p");
+			if (!my1.Contains("Server=h:3306") || !my1.Contains("Database=d") || !my1.Contains("User ID=u")) {
+				Err("FAIL: mysql conn " + my1);
+				bad++;
+			}
+			var mt = SqlTool.TableSql(SqlTool.Mysql, "t", 5);
+			if (mt != "SELECT * FROM `t` LIMIT 5") {
+				Err("FAIL: mysql tablesql " + mt);
+				bad++;
+			}
+			if (DbDriver.Installed(DbKind.Mysql)) {
+				var mc = SqlTool.Connect(SqlTool.Mysql, my1, out var merr);
+				if (mc != null) {
+					try { mc.Dispose(); } catch { }
+					Out("mysql connect: 意外连上 h:3306");
+				}
+				else {
+					Out("mysql connect 预期失败: " + merr);
+					if (merr.IndexOf("Could not load file or assembly", StringComparison.OrdinalIgnoreCase) >= 0
+						|| merr.IndexOf("FileNotFound", StringComparison.OrdinalIgnoreCase) >= 0
+						|| merr.IndexOf("TypeLoad", StringComparison.OrdinalIgnoreCase) >= 0
+						|| merr.IndexOf("无法加载文件或程序集", StringComparison.OrdinalIgnoreCase) >= 0) {
+						Err("FAIL: MySQL 驱动加载 " + merr);
+						bad++;
+					}
+				}
+			}
+			if (!hadMysql && DbDriver.Installed(DbKind.Mysql)) {
+				DbDriver.Reset();
+				var removed = DbDriver.Uninstall(DbKind.Mysql, null);
+				Out("mysql uninstall: " + (removed && !DbDriver.Installed(DbKind.Mysql) ? "OK" : "残留"));
+			}
+			// 连接管理：存到临时文件再读回，密码要能还原
+			var storefile = Path.Combine(Path.GetTempPath(), "sk-sql-conns-" + Environment.TickCount + ".json");
+			var items = new List<DbConnItem> {
+				new() { Name = "本地", Kind = SqlTool.Sqlite, File = db },
+				new() {
+					Name = "远端", Kind = SqlTool.Mysql, Host = "h:3306", Db = "d", User = "u",
+					Secret = DbConnStore.Protect("p@ss"),
+				},
+			};
+			DbConnStore.Save(items, storefile);
+			var back = DbConnStore.Load(storefile);
+			if (back.Count != 2 || back[1].Name != "远端" || back[1].Kind != SqlTool.Mysql
+				|| DbConnStore.Unprotect(back[1].Secret) != "p@ss" || back[0].File != db) {
+				Err("FAIL: conn store " + back.Count + " " + JsonSerializer.Serialize(back));
+				bad++;
+			}
+			else Out("conn store: OK");
+			try { File.Delete(storefile); } catch { }
 			var m1 = SqlTool.MssqlConn("h", "d", "", "");
 			if (!m1.Contains("Integrated Security=True")) {
 				Err("FAIL: integrated security " + m1);
@@ -8057,7 +8186,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-wincal  农历甲辰正月与 2023 闰二月
       --test-jpyomi  東京 的系统读音
       --test-wintop  枚举顶层窗口，并对探测窗改标题/位置/样式位、显隐和发送消息
-      --test-sql     SQLite 建表、写入、查询、表结构和表名，SQL Server 连接串
+      --test-sql     SQLite 建表/查询/结构，SQL Server / MySQL / Oracle 连接串与引号，MySQL / Oracle 驱动装卸，连接保存与读取
       --test-autokey  解析按键与间隔，并向探测窗发送一次 F13 和一次左键点击
       --test-fastcopy  复制、跳过、重命名、同分区剪切、硬链接、统计大小，以及多选合并
       --test-glyphmod  点阵按行按列打包，并给 Segoe UI 的 A 和空格生成 C 数组

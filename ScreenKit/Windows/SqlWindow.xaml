@@ -25,12 +25,15 @@
 		<!-- 连接栏 -->
 		<Border Grid.Row="1" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
 		        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+			<StackPanel>
 			<WrapPanel VerticalAlignment="Center">
 				<TextBlock x:Name="lbtype" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
 				<ComboBox x:Name="ecxkind" Width="130" Height="30" Margin="0,0,10,0" VerticalContentAlignment="Center"
 				          AutomationProperties.AutomationId="sql.kind">
 					<ComboBoxItem Content="SQLite" IsSelected="True"/>
 					<ComboBoxItem Content="SQL Server"/>
+					<ComboBoxItem Content="MySQL"/>
+					<ComboBoxItem Content="Oracle"/>
 				</ComboBox>
 
 				<StackPanel x:Name="psqlite" Orientation="Horizontal" VerticalAlignment="Center">
@@ -61,9 +64,62 @@
 					             BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 				</StackPanel>
 
+				<StackPanel x:Name="pmysql" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+					<TextBlock x:Name="lbmhost" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="emhost" Width="150" Height="30" Padding="8,4" Margin="0,0,8,0"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         ToolTip="主机:端口，如 192.168.1.10:3306"
+					         AutomationProperties.AutomationId="sql.mysql.host"/>
+					<TextBlock x:Name="lbmdb" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="emdb" Width="120" Height="30" Padding="8,4" Margin="0,0,8,0"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="sql.mysql.db"/>
+					<TextBlock x:Name="lbmuser" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="emuser" Width="90" Height="30" Padding="8,4" Margin="0,0,8,0"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="sql.mysql.user"/>
+					<TextBlock x:Name="lbmpw" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<PasswordBox x:Name="empw" Width="90" Height="30" Padding="8,4" Margin="0,0,10,0"
+					             BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+				</StackPanel>
+
+				<StackPanel x:Name="poracle" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
+					<TextBlock x:Name="lbohost" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="eohost" Width="150" Height="30" Padding="8,4" Margin="0,0,8,0"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         ToolTip="主机:端口，如 192.168.1.10:1521"
+					         AutomationProperties.AutomationId="sql.oracle.host"/>
+					<TextBlock x:Name="lboservice" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="eoservice" Width="120" Height="30" Padding="8,4" Margin="0,0,8,0"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="sql.oracle.service"/>
+					<TextBlock x:Name="lbouser" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="eouser" Width="90" Height="30" Padding="8,4" Margin="0,0,8,0"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="sql.oracle.user"/>
+					<TextBlock x:Name="lbopw" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+					<PasswordBox x:Name="eopw" Width="90" Height="30" Padding="8,4" Margin="0,0,10,0"
+					             BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
+				</StackPanel>
+
 				<Button x:Name="bconnect" Style="{StaticResource ToolBtn}" Margin="0"
 				        AutomationProperties.AutomationId="sql.connect"/>
 			</WrapPanel>
+			<WrapPanel Margin="0,8,0,0" VerticalAlignment="Center">
+				<TextBlock x:Name="lbconn" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+				<ComboBox x:Name="econn" Width="260" Height="30" Margin="0,0,10,0" VerticalContentAlignment="Center"
+				          DisplayMemberPath="Name"
+				          AutomationProperties.AutomationId="sql.conns"/>
+				<TextBlock x:Name="lbconnname" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+				<TextBox x:Name="ecname" Width="150" Height="30" Padding="8,4" Margin="0,0,8,0"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         AutomationProperties.AutomationId="sql.conn.name"/>
+				<Button x:Name="bsaveconn" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+				        AutomationProperties.AutomationId="sql.conn.save"/>
+				<Button x:Name="bdelconn" Style="{StaticResource ToolBtn}" Margin="0"
+				        AutomationProperties.AutomationId="sql.conn.del"/>
+			</WrapPanel>
+			</StackPanel>
 		</Border>
 
 		<!-- 主体 -->

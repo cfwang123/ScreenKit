@@ -54,8 +54,14 @@ public enum FeatureKind {
 	SharpCompress,
 	/// <summary>7za.dll（解压 7z，约 0.4MB）。</summary>
 	Native7za,
-	/// <summary>e_sqlite3.dll（词典 SQLite，约 1.7MB）。</summary>
+	/// <summary>SQLite 驱动：Microsoft.Data.Sqlite + SQLitePCLRaw + e_sqlite3（数据库查询、输入法词库）。</summary>
 	NativeSqlite,
+	/// <summary>MySQL 驱动：MySqlConnector，约 0.9MB。</summary>
+	DbMysql,
+	/// <summary>Oracle 驱动：Oracle.ManagedDataAccess + System.Formats.Asn1，约 4.9MB。</summary>
+	DbOracle,
+	/// <summary>SQL Server：用 .NET Framework 自带的 System.Data.SqlClient，无需下载。</summary>
+	DbMssql,
 	/// <summary>Bogus.dll（测试数据，约 2.3MB）。</summary>
 	Bogus,
 	/// <summary>NPinyin.dll（中文转拼音，约 75KB）。</summary>
@@ -215,7 +221,10 @@ static class FeatureInstaller {
 			make(FeatureKind.NativeZxing, "native"),
 			make(FeatureKind.SharpCompress, "native"),
 			make(FeatureKind.Native7za, "native"),
-			make(FeatureKind.NativeSqlite, "native"),
+			make(FeatureKind.NativeSqlite, "db"),
+			make(FeatureKind.DbMysql, "db"),
+			make(FeatureKind.DbOracle, "db"),
+			make(FeatureKind.DbMssql, "db"),
 			make(FeatureKind.Bogus, "native"),
 			make(FeatureKind.NPinyin, "native"),
 			make(FeatureKind.NativeSkia, "native"),
@@ -276,7 +285,10 @@ static class FeatureInstaller {
 		FeatureKind.NativeZxing => NativeRuntime.ZxingSizeHint,
 		FeatureKind.SharpCompress => NativeRuntime.SharpCompressSizeHint,
 		FeatureKind.Native7za => NativeRuntime.SevenZipSizeHint,
-		FeatureKind.NativeSqlite => NativeRuntime.SqliteSizeHint,
+		FeatureKind.NativeSqlite => NativeRuntime.SqliteDriverSizeHint,
+		FeatureKind.DbMysql => NativeRuntime.MysqlSizeHint,
+		FeatureKind.DbOracle => NativeRuntime.OracleSizeHint,
+		FeatureKind.DbMssql => 0,
 		FeatureKind.Bogus => NativeRuntime.BogusSizeHint,
 		FeatureKind.NPinyin => NativeRuntime.NPinyinSizeHint,
 		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint,
@@ -326,7 +338,7 @@ static class FeatureInstaller {
 				? Loc.T("feat.ImeDb.old") : Loc.T("feat.ImeDb.detail");
 		// 体积：已装显示本机占用，否则显示预期下载约数
 		var onDisk = measuresize(it.Kind);
-		if (it.Kind is FeatureKind.MediaFoundation or FeatureKind.Mjpeg) {
+		if (it.Kind is FeatureKind.MediaFoundation or FeatureKind.Mjpeg or FeatureKind.DbMssql) {
 			it.SizeBytes = 0;
 			it.SizeText = Loc.T("feat.size.builtin");
 			return;
@@ -353,7 +365,11 @@ static class FeatureInstaller {
 			case FeatureKind.Native7za:
 				return filesize(Path.Combine(BaseDir, "7za.dll"));
 			case FeatureKind.NativeSqlite:
-				return filesize(Path.Combine(BaseDir, "e_sqlite3.dll"));
+				return sumfiles(DbDriver.SqliteFiles);
+			case FeatureKind.DbMysql:
+				return sumfiles(DbDriver.MysqlFiles);
+			case FeatureKind.DbOracle:
+				return sumfiles(DbDriver.OracleFiles);
 			case FeatureKind.Bogus:
 				return filesize(Path.Combine(BaseDir, "Bogus.dll"));
 			case FeatureKind.NPinyin:
@@ -437,7 +453,13 @@ static class FeatureInstaller {
 		case FeatureKind.Native7za:
 			return NativeRuntime.Has7za() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSqlite:
-			return NativeRuntime.HasSqlite() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+			return probefiles(DbDriver.SqliteFiles);
+		case FeatureKind.DbMysql:
+			return probefiles(DbDriver.MysqlFiles);
+		case FeatureKind.DbOracle:
+			return probefiles(DbDriver.OracleFiles);
+		case FeatureKind.DbMssql:
+			return FeatureInstallState.Installed;
 		case FeatureKind.Bogus:
 			return NativeRuntime.HasBogus() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NPinyin:
@@ -497,6 +519,24 @@ static class FeatureInstaller {
 		default:
 			return FeatureInstallState.Missing;
 		}
+	}
+
+	/// <summary>程序目录下若干文件的总大小。</summary>
+	static long sumfiles(string[] files) {
+		long n = 0;
+		foreach (var f in files) n += filesize(Path.Combine(BaseDir, f));
+		return n;
+	}
+
+	/// <summary>整组文件都在才算装好，缺一部分为 Partial。</summary>
+	static FeatureInstallState probefiles(string[] files) {
+		if (files == null || files.Length == 0) return FeatureInstallState.Installed;
+		var have = 0;
+		foreach (var f in files) {
+			if (File.Exists(Path.Combine(BaseDir, f))) have++;
+		}
+		if (have == 0) return FeatureInstallState.Missing;
+		return have == files.Length ? FeatureInstallState.Installed : FeatureInstallState.Partial;
 	}
 
 	static bool ocrpackok(string dir, params string[] files) {
@@ -608,6 +648,15 @@ static class FeatureInstaller {
 		case FeatureKind.NativeSqlite:
 			await NativeRuntime.InstallSqlite(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.DbMysql:
+			await NativeRuntime.InstallMysql(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.DbOracle:
+			await NativeRuntime.InstallOracle(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.DbMssql:
+			log?.Report(Loc.T("feat.size.builtin"));
+			break;
 		case FeatureKind.Bogus:
 			await NativeRuntime.InstallBogus(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -703,6 +752,15 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.NativeSqlite:
 			NativeRuntime.UninstallSqlite(log);
+			break;
+		case FeatureKind.DbMysql:
+			DbDriver.Uninstall(DbKind.Mysql, log);
+			break;
+		case FeatureKind.DbOracle:
+			DbDriver.Uninstall(DbKind.Oracle, log);
+			break;
+		case FeatureKind.DbMssql:
+			log?.Report(Loc.T("feat.size.builtin"));
 			break;
 		case FeatureKind.Bogus:
 			NativeRuntime.UninstallBogus(log);
@@ -1724,6 +1782,13 @@ arabic_dict.txt
 		reportprog(progress, 1, note: "完成");
 		log?.Report("onnxcpu64 完成（CPU 推理可用；若曾加载失败请重启程序）");
 	}
+
+	/// <summary>按 nupkg 条目装文件到指定路径：本机 NuGet 缓存优先，其次国内镜像 / nuget.org。</summary>
+	public static Task InstallNuGetFiles(string packageId, string version,
+		(string ZipPath, string DestFile)[] files,
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct,
+		long sizeHint) =>
+		extractnupkgfiles(packageId, version, files, log, progress, ct, sizeHint);
 
 	/// <summary>从本机 NuGet 缓存或 CDN nupkg 解出指定条目到目标路径。</summary>
 	static async Task extractnupkgfiles(

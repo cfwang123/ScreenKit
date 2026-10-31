@@ -170,6 +170,10 @@ static class FeaturePrompt {
 			FeatureKind.FaceInsight);
 	}
 
+	/// <summary>直接打开「安装功能」，预勾指定组件。</summary>
+	public static void OpenInstall(Window owner, params FeatureKind[] kinds) =>
+		openinstall(owner, kinds);
+
 	static void openinstall(Window owner, FeatureKind[] preferKinds, bool openTtsTab = false) {
 		try {
 			var win = new InstallFeaturesWindow(firstRun: false, preferSelect: preferKinds, openTtsTab: openTtsTab);

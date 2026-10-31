@@ -16,10 +16,12 @@ sealed class SqlResult {
 	public string Error { get; set; } = "";
 }
 
-/// <summary>SQLite 与 SQL Server 的连接串、表枚举、查询和表结构（都用 DbConnection，共用一套执行代码）。</summary>
+/// <summary>SQLite / SQL Server / MySQL / Oracle 的连接串、表枚举、查询和表结构（都用 DbConnection，共用一套执行代码）。</summary>
 static class SqlTool {
 	public const string Sqlite = "sqlite";
 	public const string Mssql = "mssql";
+	public const string Mysql = "mysql";
+	public const string Oracle = "oracle";
 
 	public static string SqliteConn(string path) {
 		var b = new SqliteConnectionStringBuilder {
@@ -46,10 +48,49 @@ static class SqlTool {
 		return b.ConnectionString;
 	}
 
+	/// <summary>Oracle：<paramref name="service"/> 为空时按 host 直连（EZ Connect），否则拼成 host/service。</summary>
+	public static string OracleConn(string host, string service, string user, string pw) {
+		var ds = (host ?? "").Trim().TrimEnd('/');
+		var svc = (service ?? "").Trim().Trim('/');
+		if (svc.Length > 0) ds += "/" + svc;
+		var b = new DbConnectionStringBuilder {
+			["Data Source"] = ds,
+			["User Id"] = (user ?? "").Trim(),
+			["Password"] = pw ?? "",
+			["Connection Timeout"] = 8,
+			["Pooling"] = false,
+		};
+		return b.ConnectionString;
+	}
+
+	/// <summary>MySQL：<paramref name="host"/> 可带端口（host:3306）。</summary>
+	public static string MysqlConn(string host, string db, string user, string pw) {
+		var b = new DbConnectionStringBuilder {
+			["Server"] = (host ?? "").Trim(),
+			["Database"] = (db ?? "").Trim(),
+			["User ID"] = (user ?? "").Trim(),
+			["Password"] = pw ?? "",
+			["Connection Timeout"] = 8,
+			["Pooling"] = false,
+		};
+		return b.ConnectionString;
+	}
+
+	/// <summary>按引擎建连接。Oracle / MySQL 走反射加载的 DbProviderFactory，SQLite / SQL Server 直接用各自连接类。</summary>
 	public static DbConnection Connect(string kind, string conn, out string err) {
 		err = "";
-		DbConnection cn = kind == Mssql ? new SqlConnection(conn) : (DbConnection)new SqliteConnection(conn);
+		DbConnection cn;
 		try {
+			if (kind == Mssql) cn = new SqlConnection();
+			else if (kind == Sqlite) cn = new SqliteConnection();
+			else cn = DbDriver.Factory(DbKindOf(kind)).CreateConnection();
+		}
+		catch (Exception ex) {
+			err = ex.Message;
+			return null;
+		}
+		try {
+			cn.ConnectionString = conn;
 			cn.Open();
 			return cn;
 		}
@@ -60,13 +101,28 @@ static class SqlTool {
 		}
 	}
 
+	public static DbKind DbKindOf(string kind) => kind switch {
+		Mssql => DbKind.Mssql,
+		Mysql => DbKind.Mysql,
+		Oracle => DbKind.Oracle,
+		_ => DbKind.Sqlite,
+	};
+
 	public static List<string> Tables(DbConnection cn, string kind, out string err) {
 		err = "";
 		var list = new List<string>();
 		if (cn == null) return list;
-		var sql = kind == Mssql
-			? "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE IN ('BASE TABLE','VIEW') ORDER BY TABLE_NAME"
-			: "SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY name";
+		string sql;
+		if (kind == Mssql)
+			sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE IN ('BASE TABLE','VIEW') ORDER BY TABLE_NAME";
+		else if (kind == Oracle)
+			// 当前用户模式下的表与视图
+			sql = "SELECT TABLE_NAME FROM USER_TABLES UNION SELECT VIEW_NAME FROM USER_VIEWS ORDER BY 1";
+		else if (kind == Mysql)
+			sql = "SELECT TABLE_NAME FROM information_schema.tables WHERE table_schema = DATABASE() " +
+				"AND table_type IN ('BASE TABLE','VIEW') ORDER BY TABLE_NAME";
+		else
+			sql = "SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY name";
 		try {
 			using var cmd = cn.CreateCommand();
 			cmd.CommandText = sql;
@@ -115,7 +171,7 @@ static class SqlTool {
 		return res;
 	}
 
-	/// <summary>表结构。SQLite 走 PRAGMA table_info，SQL Server 走 INFORMATION_SCHEMA.COLUMNS。</summary>
+	/// <summary>表结构。SQLite 走 PRAGMA table_info，SQL Server / MySQL 走 INFORMATION_SCHEMA.COLUMNS，Oracle 走 USER_TAB_COLUMNS。</summary>
 	public static SqlResult Schema(DbConnection cn, string kind, string table) {
 		var res = new SqlResult();
 		if (cn == null || string.IsNullOrEmpty(table)) {
@@ -145,6 +201,79 @@ static class SqlTool {
 					for (var i = 0; i < 6; i++) row[i] = text(rd.GetValue(i));
 					res.Rows.Add(row);
 				}
+			}
+			else if (kind == Oracle) {
+				cmd.CommandText = "SELECT COLUMN_ID, COLUMN_NAME, DATA_TYPE, DATA_LENGTH, NULLABLE, DATA_DEFAULT " +
+					"FROM USER_TAB_COLUMNS WHERE TABLE_NAME = :t ORDER BY COLUMN_ID";
+				var p = cmd.CreateParameter();
+				p.ParameterName = "t";
+				p.Value = table;
+				cmd.Parameters.Add(p);
+				res.Columns.Add(Loc.T("sql.schema.no"));
+				res.Columns.Add(Loc.T("sql.schema.name"));
+				res.Columns.Add(Loc.T("sql.schema.type"));
+				res.Columns.Add(Loc.T("sql.schema.len"));
+				res.Columns.Add(Loc.T("sql.schema.null"));
+				res.Columns.Add(Loc.T("sql.schema.def"));
+				using (var rd = cmd.ExecuteReader()) {
+					while (rd.Read()) {
+						res.Rows.Add(new[] {
+							text(rd.GetValue(0)),
+							text(rd.GetValue(1)),
+							text(rd.GetValue(2)),
+							text(rd.GetValue(3)),
+							text(rd.GetValue(4)) == "Y" ? "√" : "",
+							text(rd.GetValue(5)),
+						});
+					}
+				}
+				// 建表语句：DBMS_METADATA 需要权限，取不到就算了
+				try {
+					using var cmd2 = cn.CreateCommand();
+					cmd2.CommandText = "SELECT DBMS_METADATA.GET_DDL('TABLE', :t) FROM DUAL";
+					var p2 = cmd2.CreateParameter();
+					p2.ParameterName = "t";
+					p2.Value = table;
+					cmd2.Parameters.Add(p2);
+					using var rd2 = cmd2.ExecuteReader();
+					if (rd2.Read()) res.Note = rd2.GetString(0) ?? "";
+				}
+				catch { res.Note = ""; }
+			}
+			else if (kind == Mysql) {
+				cmd.CommandText = "SELECT ORDINAL_POSITION, COLUMN_NAME, COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH, " +
+					"IS_NULLABLE, COLUMN_DEFAULT FROM information_schema.columns " +
+					"WHERE table_schema = DATABASE() AND table_name = @t ORDER BY ORDINAL_POSITION";
+				var p = cmd.CreateParameter();
+				p.ParameterName = "@t";
+				p.Value = table;
+				cmd.Parameters.Add(p);
+				res.Columns.Add(Loc.T("sql.schema.no"));
+				res.Columns.Add(Loc.T("sql.schema.name"));
+				res.Columns.Add(Loc.T("sql.schema.type"));
+				res.Columns.Add(Loc.T("sql.schema.len"));
+				res.Columns.Add(Loc.T("sql.schema.null"));
+				res.Columns.Add(Loc.T("sql.schema.def"));
+				using (var rd = cmd.ExecuteReader()) {
+					while (rd.Read()) {
+						res.Rows.Add(new[] {
+							text(rd.GetValue(0)),
+							text(rd.GetValue(1)),
+							text(rd.GetValue(2)),
+							text(rd.GetValue(3)),
+							text(rd.GetValue(4)) == "YES" ? "√" : "",
+							text(rd.GetValue(5)),
+						});
+					}
+				}
+				// 建表语句：SHOW CREATE TABLE
+				try {
+					using var cmd2 = cn.CreateCommand();
+					cmd2.CommandText = "SHOW CREATE TABLE " + quote(kind, table);
+					using var rd2 = cmd2.ExecuteReader();
+					if (rd2.Read() && rd2.FieldCount > 1) res.Note = text(rd2.GetValue(1));
+				}
+				catch { res.Note = ""; }
 			}
 			else {
 				cmd.CommandText = "PRAGMA table_info(" + quote(kind, table) + ")";
@@ -188,13 +317,15 @@ static class SqlTool {
 	public static string TableSql(string kind, string table, int top) {
 		var q = quote(kind, table);
 		if (kind == Mssql) return top > 0 ? $"SELECT TOP ({top}) * FROM {q}" : $"SELECT * FROM {q}";
+		if (kind == Oracle) return top > 0 ? $"SELECT * FROM {q} WHERE ROWNUM <= {top}" : $"SELECT * FROM {q}";
 		return top > 0 ? $"SELECT * FROM {q} LIMIT {top}" : $"SELECT * FROM {q}";
 	}
 
-	static string quote(string kind, string name) =>
-		kind == Mssql
-			? "[" + (name ?? "").Replace("]", "]]") + "]"
-			: "\"" + (name ?? "").Replace("\"", "\"\"") + "\"";
+	static string quote(string kind, string name) {
+		if (kind == Mssql) return "[" + (name ?? "").Replace("]", "]]") + "]";
+		if (kind == Mysql) return "`" + (name ?? "").Replace("`", "``") + "`";
+		return "\"" + (name ?? "").Replace("\"", "\"\"") + "\"";
+	}
 
 	static string unique(string name, int index, Dictionary<string, int> seen) {
 		if (string.IsNullOrWhiteSpace(name)) name = "col" + (index + 1);
@@ -215,8 +346,15 @@ static class SqlTool {
 	static string text(object v) {
 		if (v == null || v is DBNull) return "NULL";
 		if (v is byte[] b) return $"<{b.Length} bytes>";
-		if (v is DateTime dt) return dt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
-		if (v is DateTimeOffset dto) return dto.ToString("yyyy-MM-dd HH:mm:sszzz", CultureInfo.InvariantCulture);
+		// 时间部分是 0 就只给日期，免得纯日期列全带一串 00:00:00
+		if (v is DateTime dt)
+			return dt.TimeOfDay == TimeSpan.Zero
+				? dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+				: dt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+		if (v is DateTimeOffset dto)
+			return dto.TimeOfDay == TimeSpan.Zero
+				? dto.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+				: dto.ToString("yyyy-MM-dd HH:mm:sszzz", CultureInfo.InvariantCulture);
 		if (v is bool bo) return bo ? "1" : "0";
 		return Convert.ToString(v, CultureInfo.InvariantCulture);
 	}

@@ -35,6 +35,18 @@ static class NativeRuntime {
 	const string SevenLibVer = "26.3.0";
 	const string SqlitePkg = "SQLitePCLRaw.lib.e_sqlite3";
 	const string SqliteVer = "2.1.10";
+	const string SqliteManagedPkg = "microsoft.data.sqlite.core";
+	const string SqliteManagedVer = "8.0.11";
+	const string SqliteCorePkg = "sqlitepclraw.core";
+	const string SqliteBundlePkg = "sqlitepclraw.bundle_e_sqlite3";
+	const string SqliteProviderPkg = "sqlitepclraw.provider.dynamic_cdecl";
+	const string SqlitePclVer = "2.1.10";
+	const string MysqlPkg = "mysqlconnector";
+	const string MysqlVer = "2.5.0";
+	const string OraclePkg = "oracle.manageddataaccess";
+	const string OracleVer = "21.15.0";
+	const string Asn1Pkg = "system.formats.asn1";
+	const string Asn1Ver = "8.0.0";
 	const string BogusDll = "Bogus.dll";
 	const string BogusPkg = "Bogus";
 	const string BogusVer = "35.6.5";
@@ -99,6 +111,10 @@ static class NativeRuntime {
 	public static long SkiaSizeHint => 11L * 1024 * 1024;
 	public static long PdfiumSizeHint => 6L * 1024 * 1024;
 	public static long SherpaSizeHint => 5L * 1024 * 1024;
+	public static long OracleSizeHint => 4750952L;
+	public static long MysqlSizeHint => 855400L;
+	/// <summary>SQLite 驱动整套（托管 + 原生）。</summary>
+	public static long SqliteDriverSizeHint => SqliteSizeHint + 172072 + 51200 + 11776 + 66048;
 
 	// ───────── 确保（缺失则弹窗提示安装，不静默下载） ─────────
 
@@ -187,12 +203,47 @@ static class NativeRuntime {
 			log, progress, ct, SevenZipSizeHint).ConfigureAwait(false);
 	}
 
+	/// <summary>SQLite 驱动：原生 e_sqlite3 + Microsoft.Data.Sqlite 与 SQLitePCLRaw 托管库。</summary>
 	public static async Task InstallSqlite(
 		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		await extractfromnupkg(
 			SqlitePkg, SqliteVer,
 			new[] { ("runtimes/win-x64/native/" + SqliteDll, SqliteDll) },
 			log, progress, ct, SqliteSizeHint).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(SqliteManagedPkg, SqliteManagedVer,
+			new[] { ("lib/netstandard2.0/" + DbDriver.SqliteManaged, Path.Combine(BaseDir, DbDriver.SqliteManaged)) },
+			log, progress, ct, 180 * 1024).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(SqliteCorePkg, SqlitePclVer,
+			new[] { ("lib/netstandard2.0/SQLitePCLRaw.core.dll", Path.Combine(BaseDir, "SQLitePCLRaw.core.dll")) },
+			log, progress, ct, 60 * 1024).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(SqliteBundlePkg, SqlitePclVer,
+			new[] { ("lib/net461/SQLitePCLRaw.batteries_v2.dll", Path.Combine(BaseDir, "SQLitePCLRaw.batteries_v2.dll")) },
+			log, progress, ct, 20 * 1024).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(SqliteProviderPkg, SqlitePclVer,
+			new[] {
+				("lib/netstandard2.0/SQLitePCLRaw.provider.dynamic_cdecl.dll",
+					Path.Combine(BaseDir, "SQLitePCLRaw.provider.dynamic_cdecl.dll")),
+			},
+			log, progress, ct, 80 * 1024).ConfigureAwait(false);
+	}
+
+	/// <summary>Oracle 驱动：Oracle.ManagedDataAccess（21.x 的 net462 版）与它依赖的 System.Formats.Asn1。</summary>
+	/// <summary>MySQL 驱动：MySqlConnector 纯托管库（依赖的 Microsoft.Extensions.* 随本应用已带）。</summary>
+	public static async Task InstallMysql(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await FeatureInstaller.InstallNuGetFiles(MysqlPkg, MysqlVer,
+			new[] { ("lib/net48/" + DbDriver.MysqlManaged, Path.Combine(BaseDir, DbDriver.MysqlManaged)) },
+			log, progress, ct, MysqlSizeHint).ConfigureAwait(false);
+	}
+
+	public static async Task InstallOracle(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await FeatureInstaller.InstallNuGetFiles(OraclePkg, OracleVer,
+			new[] { ("lib/net462/" + DbDriver.OracleManaged, Path.Combine(BaseDir, DbDriver.OracleManaged)) },
+			log, progress, ct, OracleSizeHint).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(Asn1Pkg, Asn1Ver,
+			new[] { ("lib/net462/" + DbDriver.Asn1, Path.Combine(BaseDir, DbDriver.Asn1)) },
+			log, progress, ct, 110 * 1024).ConfigureAwait(false);
 	}
 
 	public static async Task InstallBogus(
@@ -276,7 +327,7 @@ static class NativeRuntime {
 		deletefiles(log, SevenZipDll, "SharpSevenZip.dll");
 
 	public static void UninstallSqlite(IProgress<string> log = null) =>
-		deletefiles(log, SqliteDll);
+		DbDriver.Uninstall(DbKind.Sqlite, log);
 
 	public static void UninstallBogus(IProgress<string> log = null) =>
 		deletefiles(log, BogusDll);

@@ -150,7 +150,11 @@ static class FeaturePick {
 		leaf("sharpcompress", "feat.pick.sharpcompress", "feat.pick.sharpcompress.detail",
 			FeatureKind.SharpCompress),
 		leaf("7za", "feat.pick.7za", "feat.pick.7za.detail", FeatureKind.Native7za),
-		leaf("sqlite", "feat.pick.sqlite", "feat.pick.sqlite.detail", FeatureKind.NativeSqlite),
+		group("db", "feat.pick.db", "feat.pick.db.detail",
+			leaf("sqlite", "feat.pick.sqlite", "feat.pick.sqlite.detail", FeatureKind.NativeSqlite),
+			leaf("db.mysql", "feat.pick.db.mysql", "feat.pick.db.mysql.detail", FeatureKind.DbMysql),
+			leaf("db.oracle", "feat.pick.db.oracle", "feat.pick.db.oracle.detail", FeatureKind.DbOracle),
+			builtin("db.mssql", "feat.pick.db.mssql", "feat.pick.db.mssql.detail", FeatureKind.DbMssql)),
 		group("tools", "feat.pick.tools", "feat.pick.tools.detail",
 			leaf("bogus", "feat.pick.bogus", "feat.pick.bogus.detail", FeatureKind.Bogus),
 			leaf("pinyin", "feat.pick.pinyin", "feat.pick.pinyin.detail", FeatureKind.NPinyin)),
@@ -304,7 +308,7 @@ static class FeaturePick {
 	}
 
 	static bool builtin(FeatureKind k) =>
-		k is FeatureKind.MediaFoundation or FeatureKind.Mjpeg;
+		k is FeatureKind.MediaFoundation or FeatureKind.Mjpeg or FeatureKind.DbMssql;
 
 	static FeaturePickNode builtin(string id, string titleKey, string detailKey, FeatureKind kind) {
 		var n = leaf(id, titleKey, detailKey, kind);

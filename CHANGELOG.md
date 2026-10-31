@@ -58,6 +58,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SOAP debugger: read a WSDL, edit parameters from its XSD, call SOAP 1.1/1.2 operations, and run a local mock service with per-operation responses and request logs.
 - Window manager: pick a window, browse its tree and properties, edit title/rect/style bits, run quick actions, send custom messages, and repeat mouse clicks
 - Database query: open a SQLite file by dropping it in, or connect to SQL Server; list tables and views, view rows and schema, and run any SQL
+- Database query: connect to MySQL and Oracle; their drivers install on demand and are left out of the slim package.
+- Database query: save frequently used connections and apply one with a click.
 
 #### Changed
 
@@ -79,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 3D plots now take their size from the content's projected extent at the default view, so implicit surfaces such as x^2+y^2+z^2=9 are no longer cropped, and rotating or tilting the view no longer changes the size or the x/y/z proportions.
 - 3D wheel zoom now magnifies the picture instead of resampling a narrower range, so zooming no longer changes the x/y/z proportions either.
 - The 3D sampling plane now takes the canvas aspect ratio, so surfaces are drawn across the width instead of only in the middle; a single world scale is used, so x/y/z stay in proportion and the mesh cells stay square.
+- Database query: a datetime whose time part is zero is shown as a date only.
 
 #### Fixed
 
@@ -106,6 +109,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SOAP 接口调试：读取 WSDL、按 XSD 编辑参数并调用 SOAP 1.1/1.2 接口，另带本地模拟服务和请求日志。
 - 窗口管理：可取窗、查看窗口树和完整属性，改标题/位置尺寸/样式位，快捷操作，发自定义消息，连续鼠标点击
 - 数据库查询：拖入 SQLite 文件即可打开，也能连 SQL Server；列出表和视图，看内容与表结构，执行任意 SQL
+- 数据库查询：可连接 MySQL 和 Oracle，驱动按需安装、不进精简包。
+- 数据库查询：常用连接可保存，选中即套用。
 
 #### 变更
 
@@ -127,6 +132,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维函数图像改成按内容在默认视角下的投影大小定比例：x^2+y^2+z^2=9 这类曲面不再被画布上下裁掉，转动视角时大小和 xyz 比例也不再跟着变。
 - 三维滚轮改成放大画面，不再改成采更小的范围，缩放时 xyz 比例同样保持不变。
 - 三维采样平面改成跟画布同宽高比：曲面不再只画在中间一小块，左右空白明显收窄；xyz 用同一把尺，比例不变，网格格子也是方的。
+- 数据库查询：日期时间的时间部分为 0 时只显示日期。
 
 #### 修复
 

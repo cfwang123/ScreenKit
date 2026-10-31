@@ -278,6 +278,12 @@
       <_SlimRoot Remove="$(OutputPath)SharpCompress.dll" />
       <_SlimRoot Remove="$(OutputPath)SharpSevenZip.dll" />
       <_SlimRoot Remove="$(OutputPath)e_sqlite3.dll" />
+      <!-- 数据库驱动按需安装：SQLite（Microsoft.Data.Sqlite + SQLitePCLRaw）、MySQL、Oracle 都不进精简包 -->
+      <_SlimRoot Remove="$(OutputPath)Microsoft.Data.Sqlite.dll" />
+      <_SlimRoot Remove="$(OutputPath)SQLitePCLRaw.*.dll" />
+      <_SlimRoot Remove="$(OutputPath)MySqlConnector.dll" />
+      <_SlimRoot Remove="$(OutputPath)Oracle.ManagedDataAccess.dll" />
+      <_SlimRoot Remove="$(OutputPath)System.Formats.Asn1.dll" />
       <_SlimRoot Remove="$(OutputPath)Bogus.dll" />
       <_SlimRoot Remove="$(OutputPath)NPinyin.dll" />
       <_SlimRoot Remove="$(OutputPath)libSkiaSharp.dll" />
@@ -348,6 +354,7 @@
       <_SlimJunk Include="$(_SlimOut)\OpenCvSharpExtern.dll;$(_SlimOut)\libSkiaSharp.dll;$(_SlimOut)\pdfium.dll;$(_SlimOut)\sherpa-onnx-c-api.dll" />
       <_SlimJunk Include="$(_SlimOut)\opencv_videoio_ffmpeg*.dll" />
       <_SlimJunk Include="$(_SlimOut)\ZXing.dll;$(_SlimOut)\SharpCompress.dll;$(_SlimOut)\SharpSevenZip.dll;$(_SlimOut)\e_sqlite3.dll;$(_SlimOut)\Bogus.dll;$(_SlimOut)\NPinyin.dll" />
+      <_SlimJunk Include="$(_SlimOut)\Microsoft.Data.Sqlite.dll;$(_SlimOut)\SQLitePCLRaw.*.dll;$(_SlimOut)\MySqlConnector.dll;$(_SlimOut)\Oracle.ManagedDataAccess.dll;$(_SlimOut)\System.Formats.Asn1.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\web\jname-s.txt;$(_SlimOut)\web\jname-g.txt" />
