@@ -85,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments
 - All JSON parsing, writing and the JSON DOM now run on the built-in JSONF parser; the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
 - PdfSharp and PDFtoImage now install on demand; the slim package no longer ships them and they come with the PDF runtime.
+- The WeText ITN runtime (speech text normalization) now installs on demand and is no longer part of the slim package.
 
 #### Fixed
 
@@ -139,6 +140,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释
 - JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
 - PdfSharp 与 PDFtoImage 改为按需安装，精简包不再附带，随 PDF 运行库一起安装和卸载。
+- WeText ITN（语音文本归一化）改为按需安装，精简包不再附带。
 
 #### 修复
 

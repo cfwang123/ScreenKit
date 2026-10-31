@@ -23,6 +23,8 @@ public enum FeatureKind {
 	AsrWhisperTiny,
 	AsrWhisperBase,
 	AsrSileroVad,
+	/// <summary>WeText C++ ITN（语音文本归一化，wetext\ 目录，约 3.4MB）。</summary>
+	WetextItn,
 	CudaGpu,
 	DirectMl,
 	/// <summary>CPU 推理 ORT（onnxcpu64，约 16MB，未装 GPU/核显时 OCR 需要）。</summary>
@@ -145,6 +147,11 @@ static class FeatureInstaller {
 	const long TRANSLATE7Z_BYTES = 1028366964L;
 	const string FFMPEG7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ffmpeg.7z";
 	const long FFMPEG7Z_BYTES = 34126488L;
+	/// <summary>WeText C++ ITN（processor_pipe.exe + 中文 FST），自打包，随 dict-db 标签发布。</summary>
+	const string WETEXT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/wetext.7z";
+	const long WETEXT7Z_BYTES = 338408L;
+	/// <summary>解压后占用的磁盘空间（exe + FST）。</summary>
+	const long WETEXT_DISK_BYTES = 3447224L;
 	static readonly string[] FaceBuffaloLFiles = [
 		"det_10g.onnx", "w600k_r50.onnx", "genderage.onnx", "2d106det.onnx", "1k3d68.onnx",
 	];
@@ -240,6 +247,7 @@ static class FeatureInstaller {
 			make(FeatureKind.AsrWhisperTiny, "asr"),
 			make(FeatureKind.AsrWhisperBase, "asr"),
 			make(FeatureKind.AsrSileroVad, "asr"),
+			make(FeatureKind.WetextItn, "asr"),
 			make(FeatureKind.TranslateOnnx, "translate"),
 			make(FeatureKind.FaceInsight, "face"),
 			make(FeatureKind.DictDb, "dict"),
@@ -304,6 +312,7 @@ static class FeatureInstaller {
 		FeatureKind.AsrWhisperTiny => 78L * 1024 * 1024,
 		FeatureKind.AsrWhisperBase => 148L * 1024 * 1024,
 		FeatureKind.AsrSileroVad => 2L * 1024 * 1024,
+		FeatureKind.WetextItn => WETEXT_DISK_BYTES,
 		// 完整 CUDA 重发行库很大；仅 EP 约数十 MB
 		FeatureKind.CudaGpu => 1200L * 1024 * 1024,
 		FeatureKind.DirectMl => ORT_DML_NUPKG_BYTES + DML_NUPKG_BYTES,
@@ -395,6 +404,7 @@ static class FeatureInstaller {
 				var p = Path.Combine(AsrModelsDir, "silero_vad.onnx");
 				return File.Exists(p) ? new FileInfo(p).Length : 0;
 			}
+			case FeatureKind.WetextItn: return dirsize(WetextDir);
 			case FeatureKind.CudaGpu: return dirsize(OnnxGpuDir);
 			case FeatureKind.DirectMl: return dirsize(OnnxDmlDir);
 			case FeatureKind.OrtCpu: return dirsize(OnnxCpuDir);
@@ -501,6 +511,8 @@ static class FeatureInstaller {
 		case FeatureKind.AsrSileroVad:
 			return File.Exists(Path.Combine(AsrModelsDir, "silero_vad.onnx"))
 				? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.WetextItn:
+			return probewetext();
 		case FeatureKind.CudaGpu:
 			return probecuda();
 		case FeatureKind.DirectMl:
@@ -711,6 +723,9 @@ static class FeatureInstaller {
 		case FeatureKind.AsrSileroVad:
 			await installsilero(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.WetextItn:
+			await installwetext(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.CudaGpu:
 			installcuda(log, progress);
 			break;
@@ -812,6 +827,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.AsrSileroVad:
 			deletefile(Path.Combine(AsrModelsDir, "silero_vad.onnx"), log);
+			break;
+		case FeatureKind.WetextItn:
+			uninstallwetext(log);
 			break;
 		case FeatureKind.CudaGpu:
 			deletedir(OnnxGpuDir, log);
@@ -1506,7 +1524,83 @@ arabic_dict.txt
 		removelegacydicts(log);
 	}
 
+	// ───────── WeText ITN（语音文本归一化） ─────────
+
+	static string WetextDir => Path.Combine(BaseDir, "wetext");
+
+	static FeatureInstallState probewetext() {
+		var exe = Path.Combine(WetextDir, "processor_pipe.exe");
+		var tagger = Path.Combine(WetextDir, "zh", "itn", "zh_itn_tagger.fst");
+		var verb = Path.Combine(WetextDir, "zh", "itn", "zh_itn_verbalizer.fst");
+		if (!File.Exists(exe)) return FeatureInstallState.Missing;
+		if (!File.Exists(tagger) || !File.Exists(verb)) return FeatureInstallState.Partial;
+		return FeatureInstallState.Installed;
+	}
+
+	static async Task installwetext(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		if (probewetext() == FeatureInstallState.Installed) {
+			log?.Report("wetext 已存在，跳过");
+			reportprog(progress, 1, note: "已存在");
+			return;
+		}
+		// 管道进程若在跑，先停掉，否则删不掉旧目录
+		try { WetextItn.Shutdown(); } catch { }
+		Directory.CreateDirectory(CacheDir);
+		var arc = Path.Combine(CacheDir, "wetext.7z");
+		if (File.Exists(arc)) {
+			long have = 0;
+			try { have = new FileInfo(arc).Length; } catch { }
+			if (have != WETEXT7Z_BYTES) {
+				try { File.Delete(arc); } catch { }
+			}
+		}
+		await downloadfirst(ExpandUrls(WETEXT7Z_URL), arc, log, progress, ct,
+			expectedTotal: WETEXT7Z_BYTES, overallWeight: 0.9).ConfigureAwait(false);
+		var unpack = Path.Combine(CacheDir, "wetext-unpack");
+		if (Directory.Exists(unpack)) {
+			try { Directory.Delete(unpack, true); } catch { }
+		}
+		Directory.CreateDirectory(unpack);
+		log?.Report("解压 wetext.7z …");
+		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : WETEXT7Z_BYTES;
+		reportprog(progress, 0.92, zlen, zlen, "wetext.7z", "解压中…");
+		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
+		extract7z(arc, unpack, log);
+		string exe = null;
+		try {
+			exe = Directory.GetFiles(unpack, "processor_pipe.exe", SearchOption.AllDirectories).FirstOrDefault();
+		}
+		catch { }
+		if (string.IsNullOrEmpty(exe))
+			throw new InvalidOperationException("wetext.7z 里没有 processor_pipe.exe");
+		var srcDir = Path.GetDirectoryName(exe);
+		var dest = WetextDir;
+		if (Directory.Exists(dest)) {
+			try { Directory.Delete(dest, true); } catch { }
+		}
+		Directory.CreateDirectory(dest);
+		foreach (var f in Directory.GetFiles(srcDir, "*", SearchOption.AllDirectories)) {
+			var rel = f.Substring(srcDir.Length).TrimStart('\\', '/');
+			var to = Path.Combine(dest, rel);
+			var toDir = Path.GetDirectoryName(to);
+			if (!string.IsNullOrEmpty(toDir)) Directory.CreateDirectory(toDir);
+			File.Copy(f, to, true);
+		}
+		try { Directory.Delete(unpack, true); } catch { }
+		if (probewetext() != FeatureInstallState.Installed)
+			throw new InvalidOperationException("wetext 安装不完整（缺 zh/itn 下的 FST）");
+		reportprog(progress, 1, zlen, zlen, "wetext", "完成");
+		log?.Report("wetext ITN 完成 (" + FormatBytes(dirsize(dest)) + ")");
+	}
+
+	static void uninstallwetext(IProgress<string> log) {
+		try { WetextItn.Shutdown(); } catch { }
+		deletedir(WetextDir, log);
+	}
+
 	// ───────── 中英双向 ONNX 翻译模型 ─────────
+
 
 	static FeatureInstallState probetranslate() {
 		var zhEn = Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx");
