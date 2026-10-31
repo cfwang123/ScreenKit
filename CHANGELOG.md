@@ -71,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - QR captions now use the desktop spacing: the bottom quiet zone is cropped, the font is width/18 (at least 16 px), and the caption sits half a line below the code.
 - Byte viewer: float rows now show the value as m x 2^e; tables are no longer click-to-copy and their text can be selected.
 - English conjugation examples show complete sentences instead of trailing ellipses.
+- Byte viewer: the hex field auto-groups input as XX XX, Backspace/Delete removes a whole byte, typing at the caret overwrites the nibble there, and the field starts with 01 00 00 00.
 
 #### Fixed
 
@@ -110,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 二维码文字改为桌面版的间距：裁掉底部静区，字号取宽度/18（最小 16），文字离码约半行字高。
 - 字节解读：浮点行增加 m × 2^e 表示；表格不再点击复制，改为可手动选中文字。
 - 英语词形变化的示例句改为完整句子，不再用省略号。
+- 字节解读：十六进制输入框自动按 XX XX 分组，退格/删除一次去掉一个字节，光标在中间时按半字节覆盖输入；打开时预填 01 00 00 00。
 
 #### 修复
 

@@ -19,10 +19,10 @@
 			var i;
 			for (i = 0; i < CONT.length; i++) types.push({ x: "option", value: CONT[i], c: CONT[i] });
 			return [
-				F.CreateDOM(t, { x: "p.hint", "data-k": "web.bytes.hint", c: "输入或粘贴十六进制字节，空格、逗号、0x 都行；下面按整数、浮点和文本实时解读，可直接选中文字。" }),
+				F.CreateDOM(t, { x: "p.hint", "data-k": "web.bytes.hint", c: "输入十六进制字节，自动按 XX XX 分组，退格一次删一个字节；粘贴时带空格、逗号、0x 也可以。下面按整数、浮点和文本实时解读，可直接选中文字。" }),
 				F.CreateDOM(t, { x: "label", c: [
 					{ x: "span", "data-k": "web.bytes.hex", c: "十六进制字节" },
-					{ x: "textarea#by-hex.by-hex", name: "byHex", rows: "3", spellcheck: "false", value: DEFHEX, placeholder: "DE AD BE EF" }
+					{ x: "textarea#by-hex.by-hex", name: "byHex", rows: "3", spellcheck: "false", placeholder: "DE AD BE EF" }
 				] }),
 				F.CreateDOM(t, { x: "div.byopts", c: [
 					{ x: "label", c: [
@@ -69,6 +69,7 @@
 			page.doms.byEndian.onchange = refresh;
 			page.doms.byStart.oninput = refresh;
 			page.doms.byType.onchange = refresh;
+			if (!page.doms.byHex.value) page.doms.byHex.value = DEFHEX;
 			refresh();
 		},
 		run: function(){
@@ -126,7 +127,10 @@
 	// 光标落在空格或末尾时，输入从下一个字节的高半字节开始；在末尾则新增字节。
 
 	function hexdigits(s){
-		return String(s == null ? "" : s).replace(/[^0-9a-fA-F]/g, "").toUpperCase();
+		var t = String(s == null ? "" : s);
+		t = t.replace(/0[xX](?=[0-9a-fA-F])/g, "");
+		t = t.replace(/\\x(?=[0-9a-fA-F])/gi, "");
+		return t.replace(/[^0-9a-fA-F]/g, "").toUpperCase();
 	}
 
 	function hexformat(d){
@@ -172,12 +176,20 @@
 		var digits = hexdigits(el.value);
 		var sel = hexsel(el);
 		var c;
+		var fresh = false;
 		if (sel) {
 			digits = digits.slice(0, sel.s * 2) + digits.slice(sel.e * 2);
 			c = sel.s * 2;
+			fresh = true;
 		}
 		else c = Math.min(hexdigitpos(el.selectionStart), digits.length);
-		if (c >= digits.length) {
+		if (fresh && c < digits.length) {
+			// 替换选中的字节：先插入一个新字节，等下一个半字节补满。
+			if (digits.length >= MAXBYTES * 2) return;
+			digits = digits.slice(0, c) + ch + "0" + digits.slice(c);
+			c++;
+		}
+		else if (c >= digits.length) {
 			if (digits.length >= MAXBYTES * 2) return;
 			digits += ch + "0";
 			c = digits.length - 1;
