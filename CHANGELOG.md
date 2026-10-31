@@ -82,6 +82,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 3D wheel zoom now magnifies the picture instead of resampling a narrower range, so zooming no longer changes the x/y/z proportions either.
 - The 3D sampling plane now takes the canvas aspect ratio, so surfaces are drawn across the width instead of only in the middle; a single world scale is used, so x/y/z stay in proportion and the mesh cells stay square.
 - Database query: a datetime whose time part is zero is shown as a date only.
+- Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments
 
 #### Fixed
 
@@ -133,6 +134,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维滚轮改成放大画面，不再改成采更小的范围，缩放时 xyz 比例同样保持不变。
 - 三维采样平面改成跟画布同宽高比：曲面不再只画在中间一小块，左右空白明显收窄；xyz 用同一把尺，比例不变，网格格子也是方的。
 - 数据库查询：日期时间的时间部分为 0 时只显示日期。
+- 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释
 
 #### 修复
 
