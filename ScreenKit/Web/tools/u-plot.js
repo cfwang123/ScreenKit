@@ -1400,7 +1400,7 @@
 		tris.push({ a: a, b: b, c: c, d: (p0.d + p1.d + p2.d) / 3 });
 	}
 
-	function drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
+	function drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi, box){
 		function proj(x, y, z){
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit));
 		}

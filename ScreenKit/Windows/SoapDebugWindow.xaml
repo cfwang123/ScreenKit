@@ -101,7 +101,8 @@
 
 		<TabControl x:Name="tabs" Margin="12">
 			<!-- ==================== Tab1：接口调试 ==================== -->
-			<TabItem x:Name="tabDebug" Header="接口调试">
+			<TabItem x:Name="tabDebug" Header="接口调试"
+					 AutomationProperties.AutomationId="soapdbg.tab.debug">
 				<Grid Margin="0,8,0,0">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="240" MinWidth="150" />
@@ -233,7 +234,8 @@
 			</TabItem>
 
 			<!-- ==================== Tab2：接口模拟 ==================== -->
-			<TabItem x:Name="tabMock" Header="接口模拟">
+			<TabItem x:Name="tabMock" Header="接口模拟"
+					 AutomationProperties.AutomationId="soapdbg.tab.mock">
 				<Grid Margin="0,8,0,0">
 					<Grid.RowDefinitions>
 						<RowDefinition Height="Auto" />
