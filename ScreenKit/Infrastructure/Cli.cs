@@ -60,7 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
@@ -360,6 +360,8 @@ static class Cli {
 					return testsysinfo();
 				case "--test-usbdesc":
 					return testusbdesc();
+				case "--test-tls":
+					return testtls(args);
 				case "--test-systool":
 					return SysTool.Test(Out, Err);
 				case "--test-fileprobe":
@@ -6136,6 +6138,31 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return 0;
 	}
 
+	static int testtls(string[] args) {
+		Out("=== TLS 证书检查 --test-tls ===");
+		var bad = 0;
+		void ok(string s) => Out(s);
+		void err(string s) { Err(s); bad++; }
+		// 可选：test-tls <host:port> 直接查一个真实站点
+		for (var i = 0; i < args.Length - 1; i++) {
+			if (!string.Equals(args[i], "--test-tls", StringComparison.OrdinalIgnoreCase)) continue;
+			var target = args[i + 1];
+			if (target.StartsWith("--", StringComparison.Ordinal)) break;
+			var tp = new List<TlsPair>();
+			var tc = new List<TlsCertRow>();
+			var tn = new List<string>();
+			using (var cts = new CancellationTokenSource(TlsCheck.TIMEOUT_MS * 3))
+				TlsCheck.Run(target, cts.Token, tp, tc, tn);
+			foreach (var one in tp) Out($"  {one.Name}: {one.Value}");
+			foreach (var one in tc) Out($"  证书[{one.Index}] {one.Subject} | {one.State} | {one.Fingerprint}");
+			foreach (var one in tn) Out("  " + one);
+			Out("=== " + (tc.Count > 0 ? "OK" : "FAIL") + "：目标 " + target + " ===");
+			return tc.Count > 0 ? 0 : 1;
+		}
+		var code = TlsCheck.Test(ok, err);
+		return code == 0 && bad == 0 ? 0 : 1;
+	}
+
 	static int testusbdesc() {
 		Out("=== USB 描述符 --test-usbdesc ===");
 		List<UsbDescDev> list;
@@ -8237,6 +8264,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
       --test-sysinfo  只读检查系统信息及各类设备扫描
       --test-usbdesc  经集线器只读读取设备/配置/字符串描述符与管道，并打印一台设备
+      --test-tls  目标地址解析 8 项，并对本机自签名证书做一次完整握手
       --test-systool  只读检查进程、环境变量、已安装程序、服务、商店应用和 txt 关联，并查一个被本进程占用的临时文件
       --test-fileprobe  用临时文件检查魔数、UTF-8、GBK，以及 exe/dll 的节、导入导出和签名
       --test-perfmon  采样 CPU、内存、网络和磁盘速率，并检查小窗开关能保存
@@ -9203,5 +9231,10 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		try { log?.WriteLine("[ERR] " + s); } catch { }
 	}
 }
+
+
+
+
+
 
 

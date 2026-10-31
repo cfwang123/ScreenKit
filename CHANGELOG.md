@@ -63,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: show row numbers in the data grid
 - System info: new USB descriptors page reads device/configuration/string descriptors, interfaces and pipes through the USB hub read-only IOCTL, plus HID usage and report layout
 - MQTT debugger: hand-written TCP client and broker, no third-party library
+- TLS certificate check: connect to host:port, show TLS version, cipher, certificate chain, validity, SAN, thumbprint and PEM, view only
 
 #### Changed
 
@@ -125,6 +126,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：数据表格增加行号列
 - 系统信息：新增 USB 描述符页，经 USB 集线器只读 IOCTL 读取设备/配置/字符串描述符、接口与管道，并列出 HID 用途和报文结构
 - MQTT 调试：纯 TCP 自实现的客户端和服务端，不依赖第三方库
+- TLS 证书检查：连 host:port 查看 TLS 版本、加密套件、证书链、有效期、SAN、指纹和 PEM，只查看不改设置
 
 #### 变更
 

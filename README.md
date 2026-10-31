@@ -90,6 +90,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Password generator**: Generate passwords from a length and character classes, or hand a sentence to a configured LLM and spell the translation out.
 - **Network**: Diagnostics, IP scan, and port scan, covering Ping, DNS, Wake-on-LAN, trace route, and more.
 - **Ports in use**: Lists the TCP and UDP ports in use and the process behind each, and can open that folder.
+- **TLS certificate check**: Enter `host:port` to connect once and see the TLS version, cipher suite, and full chain with validity, SAN, and thumbprint; copy it as PEM.
 - **System info**: System, USB, serial ports, printers, sound, fonts, displays, cameras, Bluetooth, disks, and other devices. A separate **USB descriptors** page read-only shows device and configuration descriptors, interfaces, endpoints, strings, and HID report layout.
 - **System tools**: Read-only lists of processes, environment variables, startup items, installed programs, services, hotfixes, and Store apps, plus file locks and file associations.
 - **Performance**: A borderless window with CPU, GPU, memory, network, and disk, with a pin and an update interval.
@@ -238,4 +239,5 @@ The items below do not automatically use this repository’s MIT license. Each l
 - **Korean.** A derivative of the National Institute of Korean Language dictionary. The license is CC BY-SA 2.0 KR.
 
 Step-by-step use, the API, and the build are in the [full guide](docs/archive/README.md). The phone app is in [android/README.md](android/README.md).
+
 
