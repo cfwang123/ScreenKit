@@ -75,56 +75,108 @@
 		im.src = src;
 	}
 
+	// 与 WPF 版 QrMake.withcaption 一致：裁掉底部静区，字号取宽/18，文字离墨迹约半行字高。
 	function qrcompose(im, text){
 		var w = im.naturalWidth || im.width;
 		var h = im.naturalHeight || im.height;
 		if (!w || !h) return im.src;
-		var fs = Math.round(Math.max(12, Math.min(30, w * 0.048)));
-		var lh = Math.round(fs * 1.32);
-		var pad = Math.round(fs * 0.55);
-		var font = fs + "px 'Microsoft YaHei UI', 'Segoe UI', sans-serif";
 		var canvas = F.el("canvas");
-		var ctx = F.ctx(canvas);
-		ctx.font = font;
-		var lines = qrwrap(ctx, text, w * 0.88, 3);
 		canvas.width = w;
-		canvas.height = h + pad * 2 + lines.length * lh;
+		canvas.height = h;
+		var ctx = F.ctx(canvas);
+		ctx.drawImage(im, 0, 0, w, h);
+		var contentH = Math.max(1, h - qrquiet(ctx, w, h));
+		var fs = Math.max(16, w / 18);
+		var font = qrfont(fs);
+		var line = qrline(ctx, text, font, w);
+		var ink = qrink(line, font, fs, w);
+		var gap = Math.round(fs * 0.66);
+		var bot = 8;
+		canvas.width = w;
+		canvas.height = contentH + gap + ink.height + bot;
 		ctx = F.ctx(canvas);
 		ctx.fillStyle = "#fff";
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.drawImage(im, 0, 0, w, h);
+		ctx.drawImage(im, 0, 0, w, contentH);
 		ctx.fillStyle = "#111";
 		ctx.font = font;
 		ctx.textAlign = "center";
-		ctx.textBaseline = "middle";
-		var i;
-		for (i = 0; i < lines.length; i++)
-			ctx.fillText(lines[i], w / 2, h + pad + lh * (i + 0.5));
+		ctx.textBaseline = "alphabetic";
+		ctx.fillText(line, w / 2, contentH + gap - ink.top + fs);
 		return canvas.toDataURL("image/png");
 	}
 
-	// 按画布宽度断行，最多几行；放不下的部分在最后一行用省略号收尾。
-	function qrwrap(ctx, text, maxw, maxlines){
-		var lines = [];
-		var line = "";
-		var i;
-		var ch;
-		for (i = 0; i < text.length; i++) {
-			ch = text.charAt(i);
-			if (line && ctx.measureText(line + ch).width > maxw) {
-				if (lines.length === maxlines - 1) {
-					var rest = line + text.substring(i);
-					while (rest.length && ctx.measureText(rest + "…").width > maxw) rest = rest.substring(0, rest.length - 1);
-					lines.push(rest + "…");
-					return lines;
+	function qrfont(fs){
+		return fs + "px 'Microsoft YaHei UI', 'Segoe UI', sans-serif";
+	}
+
+	// 底部连续近白的行数。ZXing 留的静区算在里面，墨迹行不算。
+	function qrquiet(ctx, w, h){
+		var data;
+		try { data = ctx.getImageData(0, 0, w, h).data; }
+		catch (e) { return 0; }
+		var rows = 0;
+		var x;
+		var y;
+		for (y = h - 1; y >= 0; y--) {
+			var white = true;
+			for (x = 0; x < w; x++) {
+				var i = (y * w + x) * 4;
+				if (data[i] < 250 || data[i + 1] < 250 || data[i + 2] < 250) {
+					white = false;
+					break;
 				}
-				lines.push(line);
-				line = ch;
 			}
-			else line += ch;
+			if (!white) break;
+			rows++;
 		}
-		if (line) lines.push(line);
-		return lines;
+		return rows;
+	}
+
+	// 单行显示，放不下就在末尾用省略号。
+	function qrline(ctx, text, font, w){
+		ctx.font = font;
+		if (ctx.measureText(text).width <= w) return text;
+		var line = text;
+		while (line.length && ctx.measureText(line + "…").width > w) line = line.substring(0, line.length - 1);
+		return line + "…";
+	}
+
+	// 文字墨迹在行框里的位置，用来把墨迹顶部对齐到指定间距，避免行框顶部空白把间隔撑大。
+	function qrink(line, font, fs, w){
+		var cw = Math.max(1, Math.ceil(w));
+		var ch = Math.ceil(fs * 2.2);
+		var c = F.el("canvas");
+		c.width = cw;
+		c.height = ch;
+		var ctx = F.ctx(c);
+		ctx.fillStyle = "#000";
+		ctx.font = font;
+		ctx.textAlign = "center";
+		ctx.textBaseline = "alphabetic";
+		ctx.fillText(line, cw / 2, fs);
+		var data;
+		try { data = ctx.getImageData(0, 0, cw, ch).data; }
+		catch (e) { return { top: Math.round(fs * 0.8), height: Math.round(fs * 0.8) }; }
+		var top = -1;
+		var bottom = -1;
+		var x;
+		var y;
+		for (y = 0; y < ch; y++) {
+			var ink = false;
+			for (x = 0; x < cw; x++) {
+				if (data[(y * cw + x) * 4 + 3] > 0) {
+					ink = true;
+					break;
+				}
+			}
+			if (ink) {
+				if (top < 0) top = y;
+				bottom = y;
+			}
+		}
+		if (top < 0) return { top: Math.round(fs * 0.8), height: Math.round(fs * 0.8) };
+		return { top: top, height: bottom + 1 - top };
 	}
 
 	var qrsPic = null;

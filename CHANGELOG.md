@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Screenshot history in the tray and main menus now opens the history window instead of the screenshots folder.
 - HTTP request debugger keeps the URL and query parameters in sync and fills Content-Type from the POST body type.
 - QR generator uses radio buttons for the encoding, regenerates 200 ms after typing or toggling the caption, and draws the caption inside the image.
+- QR captions now use the desktop spacing: the bottom quiet zone is cropped, the font is width/18 (at least 16 px), and the caption sits half a line below the code.
 
 #### Fixed
 
@@ -102,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 托盘和主菜单的「截图历史」改为打开截图历史窗口，不再只是打开 screenshots 文件夹。
 - HTTP 请求调试的地址与查询参数互相同步，并按 POST 正文类型自动填写 Content-Type。
 - 二维码生成的编码改为单选按钮，输入文字或切换「带文字」后 200ms 自动生成，文字直接画在图片里。
+- 二维码文字改为桌面版的间距：裁掉底部静区，字号取宽度/18（最小 16），文字离码约半行字高。
 
 #### 修复
 

@@ -1378,8 +1378,10 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 }
 .bytab th { color: var(--muted); font-weight: 600; }
 .bytab th:first-child, .bytab td:first-child { width: 88px; white-space: nowrap; }
-.bytab tbody tr { cursor: pointer; }
-.bytab tbody tr:hover { background: #f4f4f5; }
+/* 表格只用于查看：不提供点击复制，格子里的文字可以直接拖选。 */
+.bytab tbody { user-select: text; -webkit-user-select: text; }
+.bytab td { cursor: text; }
+.bytab tbody tr:hover { background: #f7f7f8; }
 .by-type { white-space: nowrap; font-family: Consolas, "Cascadia Mono", monospace; }
 .by-dim { color: var(--muted); font-family: Consolas, "Cascadia Mono", monospace; font-size: 12px; }
 .by-text { font-family: Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; word-break: break-all; }

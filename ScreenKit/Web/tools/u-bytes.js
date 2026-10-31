@@ -18,7 +18,7 @@
 			var i;
 			for (i = 0; i < CONT.length; i++) types.push({ x: "option", value: CONT[i], c: CONT[i] });
 			return [
-				F.CreateDOM(t, { x: "p.hint", "data-k": "web.bytes.hint", c: "输入或粘贴十六进制字节，空格、逗号、0x 都行；下面按整数、浮点和文本实时解读。点一行可复制值。" }),
+				F.CreateDOM(t, { x: "p.hint", "data-k": "web.bytes.hint", c: "输入或粘贴十六进制字节，空格、逗号、0x 都行；下面按整数、浮点和文本实时解读，可直接选中文字。" }),
 				F.CreateDOM(t, { x: "label", c: [
 					{ x: "span", "data-k": "web.bytes.hex", c: "十六进制字节" },
 					{ x: "textarea#by-hex.by-hex", name: "byHex", rows: "3", spellcheck: "false", placeholder: "DE AD BE EF" }
@@ -66,8 +66,6 @@
 			page.doms.byEndian.onchange = refresh;
 			page.doms.byStart.oninput = refresh;
 			page.doms.byType.onchange = refresh;
-			page.doms.byTable.onclick = copyrow;
-			page.doms.byList.onclick = copyrow;
 			refresh();
 		},
 		run: function(){
@@ -122,50 +120,21 @@
 
 	function singlerow(name, bytes, at, little){
 		var n = WIDTH[name];
-		var show;
-		var copy;
 		if (n) {
 			var v = valueof(name, bytes, at, little);
-			if (v === null) return rowhtml(name, "—", "—");
+			if (v === null) return rowhtml(name, "—");
 			var u = readu(bytes, at, n, little);
-			if (name === "fp16" || name === "bf16" || name === "fp32" || name === "fp64") {
-				show = fmtfloat(v) + " " + dim("0x" + hexwidth(u, n * 8));
-				copy = fmtfloat(v);
-			}
-			else {
-				show = String(v) + " " + dim("0x" + hexwidth(u, n * 8));
-				copy = String(v);
-			}
-			return rowhtml(name, show, copy);
+			var shown;
+			if (isfloat(name)) shown = fmtfloat(v) + " " + dim("0x" + hexwidth(u, n * 8)) + expohtml(name, u);
+			else shown = String(v) + " " + dim("0x" + hexwidth(u, n * 8));
+			return rowhtml(name, shown);
 		}
-		if (name === "ascii") {
-			copy = asciiof(bytes, at);
-			show = dimify(copy);
-			return rowhtml(name, show, copy);
-		}
-		if (name === "utf8") {
-			copy = utf8of(bytes, at);
-			show = dimify(copy);
-			return rowhtml(name, show, copy);
-		}
-		if (name === "latin1") {
-			copy = latin1of(bytes, at);
-			show = dimify(copy);
-			return rowhtml(name, show, copy);
-		}
-		if (name === "base64") {
-			copy = base64of(bytes, at);
-			show = dimify(copy);
-			return rowhtml(name, show, copy);
-		}
-		if (name === "bin") {
-			copy = binof(bytes, at);
-			show = dimify(copy);
-			return rowhtml(name, show, copy);
-		}
-		copy = hexof(bytes, at);
-		show = dimify(copy);
-		return rowhtml(name, show, copy);
+		if (name === "ascii") return rowhtml(name, dimify(asciiof(bytes, at)));
+		if (name === "utf8") return rowhtml(name, dimify(utf8of(bytes, at)));
+		if (name === "latin1") return rowhtml(name, dimify(latin1of(bytes, at)));
+		if (name === "base64") return rowhtml(name, dimify(base64of(bytes, at)));
+		if (name === "bin") return rowhtml(name, dimify(binof(bytes, at)));
+		return rowhtml(name, dimify(hexof(bytes, at)));
 	}
 
 	function listrows(type, bytes, at, little){
@@ -178,16 +147,9 @@
 			var u = readu(bytes, i, n, little);
 			var v = valueof(type, bytes, i, little);
 			var show;
-			var copy;
-			if (type === "fp16" || type === "bf16" || type === "fp32" || type === "fp64") {
-				show = fmtfloat(v) + " " + dim("0x" + hexwidth(u, n * 8));
-				copy = fmtfloat(v);
-			}
-			else {
-				show = String(v) + " " + dim("0x" + hexwidth(u, n * 8));
-				copy = String(v);
-			}
-			html.push('<tr data-copy="' + escattr(copy) + '"><td>' + padhex(i, 8)
+			if (isfloat(type)) show = fmtfloat(v) + " " + dim("0x" + hexwidth(u, n * 8)) + expohtml(type, u);
+			else show = String(v) + " " + dim("0x" + hexwidth(u, n * 8));
+			html.push("<tr><td>" + padhex(i, 8)
 				+ "</td><td>" + bytehex(bytes, i, n) + "</td><td>" + show + "</td></tr>");
 			count++;
 		}
@@ -196,8 +158,8 @@
 		return { html: html.join(""), cut: count >= MAXROWS && at + count * n < bytes.length };
 	}
 
-	function rowhtml(name, show, copy){
-		return '<tr data-copy="' + escattr(copy) + '"><td class="by-type">' + esc(name) + "</td><td>" + show + "</td></tr>";
+	function rowhtml(name, show){
+		return '<tr><td class="by-type">' + esc(name) + "</td><td>" + show + "</td></tr>";
 	}
 
 	function renderempty(){
@@ -206,17 +168,6 @@
 			+ esc(tx("web.bytes.empty", "等待输入")) + "</td></tr>";
 		page.doms.byListBody.innerHTML = '<tr><td colspan="3" class="by-none">'
 			+ esc(tx("web.bytes.empty", "等待输入")) + "</td></tr>";
-	}
-
-	function copyrow(ev){
-		var el = ev.target;
-		while (el && el !== ev.currentTarget) {
-			if (el.getAttribute && F.attr(el, "data-copy") != null) {
-				SK.copytext(F.attr(el, "data-copy"), "by-msg");
-				return;
-			}
-			el = el.parentNode;
-		}
 	}
 
 	function setmsg(text, bad){
@@ -312,6 +263,57 @@
 		var s = String(v);
 		if (s.indexOf("e") < 0 && s.length > 21) s = v.toPrecision(17);
 		return s;
+	}
+
+	function isfloat(name){
+		return name === "fp16" || name === "bf16" || name === "fp32" || name === "fp64";
+	}
+
+	// 从位模式拆出规格化的尾数和指数：值 = m × 2^e，1 ≤ |m| < 2。零、无穷和 NaN 没有这种写法。
+	function exponentof(name, u){
+		var bits = WIDTH[name] * 8;
+		var k = name === "fp16" ? 10 : name === "bf16" ? 7 : name === "fp32" ? 23 : 52;
+		var bias = name === "fp16" ? 15 : name === "fp64" ? 1023 : 127;
+		var one = BigInt(1);
+		var val = BigInt(u);
+		var sign = (val >> BigInt(bits - 1)) & one;
+		var ebits = bits - 1 - k;
+		var field = (val >> BigInt(k)) & ((one << BigInt(ebits)) - one);
+		var frac = val & ((one << BigInt(k)) - one);
+		var m;
+		var e;
+		if (field === (one << BigInt(ebits)) - one) return null;
+		if (field === BigInt(0)) {
+			if (frac === BigInt(0)) return null;
+			var lead = 0;
+			var rest = frac;
+			while (rest > one) {
+				rest >>= one;
+				lead++;
+			}
+			m = Number(frac) / Math.pow(2, lead);
+			e = 1 - bias - k + lead;
+		}
+		else {
+			m = 1 + Number(frac) / Math.pow(2, k);
+			e = Number(field) - bias;
+		}
+		if (sign) m = -m;
+		return { m: m, e: e };
+	}
+
+	function fmtexp(name, u){
+		var d = exponentof(name, u);
+		if (!d) return "";
+		var m = d.m;
+		// fp32 尾数只有 24 位有效，取 9 位有效数字就够，免得带出没意义的尾数。
+		if (name === "fp32") m = parseFloat(m.toPrecision(9));
+		return String(m) + " × 2^" + String(d.e);
+	}
+
+	function expohtml(name, u){
+		var s = fmtexp(name, u);
+		return s ? " " + dim("= " + s) : "";
 	}
 
 	function hexwidth(v, bits){
@@ -427,14 +429,10 @@
 			.replace(/"/g, "&quot;");
 	}
 
-	function escattr(s){
-		return esc(s);
-	}
-
 	function trimtext(s){
 		return String(s == null ? "" : s).replace(/^\s+|\s+$/g, "");
 	}
 
 	// 调试和自检用。
-	SK.bytes = { parse: parsehex, value: valueof, half: halfof, bf16: bfloatof, int: intof };
+	SK.bytes = { parse: parsehex, value: valueof, half: halfof, bf16: bfloatof, int: intof, exp: exponentof, eform: fmtexp };
 })();
