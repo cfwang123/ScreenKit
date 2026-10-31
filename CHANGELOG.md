@@ -73,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English conjugation examples show complete sentences instead of trailing ellipses.
 - Byte viewer: the hex field auto-groups input as XX XX, Backspace/Delete removes a whole byte, typing at the caret overwrites the nibble there, and the field starts with 01 00 00 00.
 - Password generator remembers the last options (length, count, character classes, custom set); changes are written to localStorage 2 seconds after the last edit and restored on open.
+- 3D plots now fit the canvas by projected extent: implicit surfaces such as x^2+y^2+z^2=9 are scaled like explicit ones instead of being cropped at the top and bottom.
 
 #### Fixed
 
@@ -83,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Russian short passive participles keep ё only in the masculine form (говорён, but говорена/говорено/говорены)
 - 3D plots now fit the canvas and keep a stable size while rotating; implicit surface poles are no longer flattened
 - Web tools: sound from other tools no longer crashes when the 8-bit synthesizer page was never opened.
+- The coordinate axes were missing on 3D surfaces of the form z=f(x,y); they are drawn at the origin again.
 
 ### 中文
 
@@ -114,6 +116,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词形变化的示例句改为完整句子，不再用省略号。
 - 字节解读：十六进制输入框自动按 XX XX 分组，退格/删除一次去掉一个字节，光标在中间时按半字节覆盖输入；打开时预填 01 00 00 00。
 - 密码生成器记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
+- 三维函数图像改成按投影范围适配画布：x^2+y^2+z^2=9 这类隐式曲面和显式曲面一样缩放居中，不再上下被裁掉。
 
 #### 修复
 
@@ -124,6 +127,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复俄语 -ённый 短尾分词，只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
 - 三维函数图像按画布自适应，旋转时大小保持稳定；隐式曲面极点不再被削平
 - web 工具：没打开过 8bit 合成器时，其它工具调用音效不再报错。
+- z=f(x,y) 的三维曲面不显示坐标轴；现在重新画在原点。
 
 ## v1.0.31 (2026-10-29)
 
