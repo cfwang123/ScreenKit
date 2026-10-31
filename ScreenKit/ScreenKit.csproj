@@ -101,6 +101,7 @@
   <!-- .NET Framework 程序集引用 -->
   <ItemGroup>
     <Reference Include="System.Speech" />
+    <Reference Include="System.Data" />
     <Reference Include="UIAutomationClient" />
     <Reference Include="UIAutomationTypes" />
     <Reference Include="System.Management" />

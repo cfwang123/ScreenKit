@@ -268,6 +268,9 @@
 					<MenuItem x:Name="mnwintop" Header="窗口管理(_W)…"
 					          AutomationProperties.AutomationId="menu.wintop"
 					          ToolTip="取窗看属性，改标题位置和样式位，置顶、发消息、连续点击"/>
+					<MenuItem x:Name="mnsql" Header="数据库查询(_D)…"
+					          AutomationProperties.AutomationId="menu.sql"
+					          ToolTip="拖入 SQLite 文件或连 SQL Server，看表、结构和执行 SQL"/>
 					<MenuItem x:Name="mnautokey" Header="自动按键(_K)…"
 					          AutomationProperties.AutomationId="menu.autokey"
 					          ToolTip="按快捷键开始或停止，连续向前台窗口发送按键或鼠标点击"/>

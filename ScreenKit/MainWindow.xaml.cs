@@ -120,6 +120,7 @@ public partial class MainWindow : Window {
 	WinCalWindow winCalWin;
 	JpYomiWindow jpYomiWin;
 	WinTopWindow winTopWin;
+	SqlWindow sqlWin;
 	AutoKeyWindow autoKeyWin;
 	FastCopyWindow fastCopyWin;
 	GlyphModWindow glyphModWin;
@@ -1865,6 +1866,7 @@ public partial class MainWindow : Window {
 		mnwincal.Click += (_, _) => openwincal();
 		mnjpyomi.Click += (_, _) => openjpyomi();
 		mnwintop.Click += (_, _) => openwintop();
+		mnsql.Click += (_, _) => opensql();
 		mnautokey.Click += (_, _) => openautokey();
 		mnfastcopy.Click += (_, _) => openfastcopy();
 		mnglyphmod.Click += (_, _) => openglyphmod();
@@ -2073,6 +2075,8 @@ public partial class MainWindow : Window {
 			mnjpyomi.ToolTip = Loc.T("menu.jpyomi.tip");
 			mnwintop.Header = Loc.T("menu.wintop");
 			mnwintop.ToolTip = Loc.T("menu.wintop.tip");
+			mnsql.Header = Loc.T("menu.sql");
+			mnsql.ToolTip = Loc.T("menu.sql.tip");
 			mnautokey.Header = Loc.T("menu.autokey");
 			mnautokey.ToolTip = Loc.T("menu.autokey.tip");
 			mnfastcopy.Header = Loc.T("menu.fastcopy");
@@ -4853,6 +4857,9 @@ public partial class MainWindow : Window {
 	void openwintop() =>
 		opentoolwin(ref winTopWin, () => new WinTopWindow(), "menu.wintop");
 
+	void opensql() =>
+		opentoolwin(ref sqlWin, () => new SqlWindow(), "menu.sql");
+
 	void openautokey() {
 		opentoolwin(ref autoKeyWin, () => new AutoKeyWindow(opt, autokeytoggle, registerhotkey), "menu.autokey");
 		var err = bindautokeyhotkey();
@@ -5015,6 +5022,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(winCalWin, w)) winCalWin = null;
 				else if (ReferenceEquals(jpYomiWin, w)) jpYomiWin = null;
 				else if (ReferenceEquals(winTopWin, w)) winTopWin = null;
+				else if (ReferenceEquals(sqlWin, w)) sqlWin = null;
 				else if (ReferenceEquals(autoKeyWin, w)) {
 					autoKeyWin = null;
 					autokeystop();

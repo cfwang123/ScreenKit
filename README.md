@@ -103,6 +103,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Desktop note**: A borderless translucent note for text or a to-do list; content and position are remembered. The pin in the title bar keeps it above other windows, and that too is remembered.
 - **RTSP test server**: Encodes a bouncing picture to H.264 and serves an RTSP address on the chosen port.
 - **Auto key**: Sends keys or clicks in a row to the foreground window; the default F6 starts and stops it while the window is open.
+- **Database query**: Drop a SQLite file in to open it, or connect to SQL Server. The left side lists tables and views; double-click one for its rows, click Schema for columns and the CREATE statement, or run any SQL with F5 or Ctrl+Enter.
 - **Window manager**: Lists top-level windows (hidden ones too, if you like) and frames the target you pick. Shows the window tree plus HWND, class, process, rect, and style bits; edits the title and rect, pins, shows or hides, enables or disables, sends custom messages, and repeats mouse clicks at client-area coordinates.
 
 ### Web tools

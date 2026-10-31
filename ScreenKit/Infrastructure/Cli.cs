@@ -63,7 +63,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
+				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -379,6 +379,8 @@ static class Cli {
 					return testjpyomi();
 				case "--test-wintop":
 					return testwintop();
+				case "--test-sql":
+					return testsql();
 				case "--test-autokey":
 					return testautokey();
 				case "--test-fastcopy":
@@ -6331,6 +6333,102 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return bad == 0 ? 0 : 1;
 	}
 
+	static int testsql() {
+		Out("=== 数据库查询 --test-sql ===");
+		var bad = 0;
+		var db = Path.Combine(Path.GetTempPath(), "sk-sql-test-" + Environment.TickCount + ".db");
+		System.Data.Common.DbConnection cn = null;
+		try {
+			cn = SqlTool.Connect(SqlTool.Sqlite, SqlTool.SqliteConn(db), out var err);
+			if (cn == null) {
+				Err("FAIL: open " + err);
+				bad++;
+			}
+			else {
+				var rc = SqlTool.Run(cn, "CREATE TABLE t (id INTEGER PRIMARY KEY, name TEXT NOT NULL, note TEXT)", 0);
+				if (rc.Error.Length > 0) {
+					Err("FAIL: create " + rc.Error);
+					bad++;
+				}
+				var ri = SqlTool.Run(cn, "INSERT INTO t (name, note) VALUES ('a', NULL), ('b', 'x')", 0);
+				if (ri.Error.Length > 0) {
+					Err("FAIL: insert " + ri.Error);
+					bad++;
+				}
+				var rs = SqlTool.Run(cn, "SELECT id, name, note FROM t ORDER BY id", 100);
+				if (rs.Error.Length > 0 || rs.Columns.Count != 3 || rs.Rows.Count != 2) {
+					Err($"FAIL: select {rs.Columns.Count}/{rs.Rows.Count} {rs.Error}");
+					bad++;
+				}
+				else if (rs.Rows[0][1] != "a" || rs.Rows[1][2] != "x" || rs.Rows[0][2] != "NULL") {
+					Err("FAIL: select values " + string.Join("|", rs.Rows[0]));
+					bad++;
+				}
+				var rt = SqlTool.Run(cn, "SELECT * FROM t", 1);
+				if (rt.Rows.Count != 1 || rt.Note.Length == 0) {
+					Err("FAIL: truncate rows=" + rt.Rows.Count);
+					bad++;
+				}
+				var tables = SqlTool.Tables(cn, SqlTool.Sqlite, out var terr);
+				if (terr.Length > 0 || !tables.Contains("t")) {
+					Err("FAIL: tables " + terr);
+					bad++;
+				}
+				var sc = SqlTool.Schema(cn, SqlTool.Sqlite, "t");
+				if (sc.Error.Length > 0 || sc.Rows.Count != 3) {
+					Err($"FAIL: schema rows={sc.Rows.Count} {sc.Error}");
+					bad++;
+				}
+				else if (sc.Rows[0][1] != "id" || sc.Rows[0][5] == "" || !sc.Note.Contains("CREATE TABLE")) {
+					Err("FAIL: schema content");
+					bad++;
+				}
+				var ts = SqlTool.TableSql(SqlTool.Sqlite, "t", 5);
+				if (ts != "SELECT * FROM \"t\" LIMIT 5") {
+					Err("FAIL: tablesql " + ts);
+					bad++;
+				}
+				var miss = SqlTool.Connect(SqlTool.Sqlite,
+					SqlTool.SqliteConn(Path.Combine(Path.GetTempPath(), "sk-no-such-dir-" + Environment.TickCount, "x.db")),
+					out var e2);
+				if (miss != null) {
+					Err("FAIL: opened missing file");
+					bad++;
+					miss.Dispose();
+				}
+				else if (e2.Length == 0) {
+					Err("FAIL: missing file without error");
+					bad++;
+				}
+			}
+			var m1 = SqlTool.MssqlConn("h", "d", "", "");
+			if (!m1.Contains("Integrated Security=True")) {
+				Err("FAIL: integrated security " + m1);
+				bad++;
+			}
+			var m2 = SqlTool.MssqlConn("h", "d", "u", "p");
+			if (!m2.Contains("User ID=u") || !m2.Contains("Password=p")) {
+				Err("FAIL: user password " + m2);
+				bad++;
+			}
+			var ms = SqlTool.TableSql(SqlTool.Mssql, "a]b", 10);
+			if (!ms.Contains("[a]]b]") || !ms.Contains("TOP (10)")) {
+				Err("FAIL: mssql sql " + ms);
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		finally {
+			try { cn?.Dispose(); } catch { }
+			try { File.Delete(db); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：数据库查询 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static int testcast() {
 		Out("=== 投屏 --test-cast ===");
 		var bad = 0;
@@ -7959,6 +8057,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-wincal  农历甲辰正月与 2023 闰二月
       --test-jpyomi  東京 的系统读音
       --test-wintop  枚举顶层窗口，并对探测窗改标题/位置/样式位、显隐和发送消息
+      --test-sql     SQLite 建表、写入、查询、表结构和表名，SQL Server 连接串
       --test-autokey  解析按键与间隔，并向探测窗发送一次 F13 和一次左键点击
       --test-fastcopy  复制、跳过、重命名、同分区剪切、硬链接、统计大小，以及多选合并
       --test-glyphmod  点阵按行按列打包，并给 Segoe UI 的 A 和空格生成 C 数组
