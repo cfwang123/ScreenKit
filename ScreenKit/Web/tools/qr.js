@@ -90,14 +90,16 @@
 		var font = qrfont(fs);
 		var line = qrline(ctx, text, font, w);
 		var ink = qrink(line, font, fs, w);
-		var gap = Math.round(fs * 0.66);
+		// 间隔取文字墨迹高度的一半，看起来就是「半行字」的距离。
+		var gap = Math.max(4, Math.round(ink.height / 2));
 		var bot = 8;
 		canvas.width = w;
 		canvas.height = contentH + gap + ink.height + bot;
 		ctx = F.ctx(canvas);
 		ctx.fillStyle = "#fff";
 		ctx.fillRect(0, 0, canvas.width, canvas.height);
-		ctx.drawImage(im, 0, 0, w, contentH);
+		// 只画到墨迹为止：源矩形按 contentH 裁掉底部静区，别把整图压扁。
+		ctx.drawImage(im, 0, 0, w, contentH, 0, 0, w, contentH);
 		ctx.fillStyle = "#111";
 		ctx.font = font;
 		ctx.textAlign = "center";
