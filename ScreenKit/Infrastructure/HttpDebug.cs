@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -39,6 +40,14 @@ sealed class HttpDbgBook {
 	public bool Seeded { get; set; }
 }
 
+/// <summary>导出/导入的一组请求。导入时也接受整本 httpdbg.json。</summary>
+sealed class HttpDbgFile {
+	public string Format { get; set; } = "screenkit-httpdbg";
+	public int Version { get; set; } = 1;
+	public string Group { get; set; } = "";
+	public List<HttpDbgItem> Items { get; set; } = new();
+}
+
 sealed class HttpDbgResult {
 	public bool Ok { get; set; }
 	public int Status { get; set; }
@@ -66,6 +75,14 @@ static class HttpDebug {
 		WriteIndented = true,
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+	};
+	/// <summary>导出文件只留有效字段，空的 id、分组和参数不写进去。</summary>
+	static readonly JsonSerializerOptions FileOpt = new() {
+		WriteIndented = true,
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
+		Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
 	};
 	static string uacache;
 
@@ -110,6 +127,119 @@ static class HttpDebug {
 			File.Replace(tmp, path, null);
 		}
 		else File.Move(tmp, path);
+	}
+
+	/// <summary>把一组请求写成 JSON 文本。组名一起带上，导入时据此还原分组。</summary>
+	public static string ExportGroup(HttpDbgBook book, string groupId) {
+		var g = book?.Groups.FirstOrDefault(x => x.Id == groupId);
+		var file = new HttpDbgFile { Group = g?.Name ?? "" };
+		if (book?.Items != null) {
+			foreach (var it in book.Items) {
+				if (it.Group != groupId) continue;
+				file.Items.Add(copyitem(it));
+			}
+		}
+		return JsonSerializer.Serialize(file, FileOpt);
+	}
+
+	/// <summary>导出用副本：id、分组和空字段留 null，写文件时整项省略。</summary>
+	static HttpDbgItem copyitem(HttpDbgItem src) => new() {
+		Id = null,
+		Group = null,
+		Name = nz(src.Name),
+		Method = src.Method,
+		Url = nz(src.Url),
+		Query = nz(src.Query),
+		Headers = nz(src.Headers),
+		Form = nz(src.Form),
+		Json = nz(src.Json),
+		Xml = nz(src.Xml),
+		Raw = nz(src.Raw),
+		Mime = nz(src.Mime),
+		Body = src.Body,
+	};
+
+	static string nz(string s) => string.IsNullOrEmpty(s) ? null : s;
+
+	/// <summary>
+	/// 读入导出文件（或整本 httpdbg.json），按组名并入：已有同名分组就加进去，没有就新建。
+	/// 返回导入的请求数；文件不认识返回 -1，error 给原因。firstGroup 是首个请求落到的新组 id。
+	/// </summary>
+	public static int ImportInto(HttpDbgBook book, string json, string fallbackGroup, out string firstGroup, out string error) {
+		error = "";
+		firstGroup = null;
+		if (book == null || string.IsNullOrWhiteSpace(json)) {
+			error = "badformat";
+			return -1;
+		}
+		JsonDocument doc;
+		try { doc = JsonDocument.Parse(json); }
+		catch (Exception ex) { error = ex.Message; return -1; }
+		using (doc) {
+			var root = doc.RootElement;
+			if (root.ValueKind != JsonValueKind.Object) { error = "badformat"; return -1; }
+			var byname = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+			foreach (var g in book.Groups) {
+				var name = (g.Name ?? "").Trim();
+				if (name.Length > 0 && !byname.ContainsKey(name)) byname[name] = g.Id;
+			}
+			var hasgroups = root.TryGetProperty("groups", out var groups) && groups.ValueKind == JsonValueKind.Array;
+			var map = new Dictionary<string, string>(StringComparer.Ordinal);
+			if (hasgroups) {
+				foreach (var g in groups.EnumerateArray()) {
+					if (g.ValueKind != JsonValueKind.Object) continue;
+					var oldid = g.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
+						? (idEl.GetString() ?? "") : "";
+					var name = g.TryGetProperty("name", out var nmEl) && nmEl.ValueKind == JsonValueKind.String
+						? (nmEl.GetString() ?? "").Trim() : "";
+					if (name.Length == 0) name = oldid.Trim();
+					var target = groupfor(book, byname, name);
+					if (oldid.Length > 0) map[oldid] = target;
+				}
+			}
+			var single = !string.IsNullOrEmpty(fallbackGroup) && book.Groups.Any(g => g.Id == fallbackGroup)
+				? fallbackGroup : groupfor(book, byname, "");
+			if (!hasgroups && root.TryGetProperty("group", out var grpEl) && grpEl.ValueKind == JsonValueKind.String) {
+				var name = (grpEl.GetString() ?? "").Trim();
+				if (name.Length > 0) single = groupfor(book, byname, name);
+			}
+			if (!root.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array) {
+				error = "badformat";
+				return -1;
+			}
+			var added = 0;
+			foreach (var el in items.EnumerateArray()) {
+				if (el.ValueKind != JsonValueKind.Object) continue;
+				HttpDbgItem it;
+				try { it = el.Deserialize<HttpDbgItem>(Opt); }
+				catch { continue; }
+				if (it == null) continue;
+				var gid = single;
+				if (hasgroups && !string.IsNullOrEmpty(it.Group) && map.TryGetValue(it.Group, out var mapped)) gid = mapped;
+				it.Id = newid("r");
+				it.Group = gid;
+				book.Items.Add(it);
+				firstGroup ??= gid;
+				added++;
+			}
+			return added;
+		}
+	}
+
+	/// <summary>按名字找分组，没有就新建；空名字落到第一个分组。</summary>
+	static string groupfor(HttpDbgBook book, Dictionary<string, string> byname, string name) {
+		name = (name ?? "").Trim();
+		if (name.Length == 0) {
+			if (book.Groups.Count > 0) return book.Groups[0].Id;
+			var id0 = newid("g");
+			book.Groups.Add(new HttpDbgGroup { Id = id0, Name = DEFAULT_GROUP });
+			return id0;
+		}
+		if (byname.TryGetValue(name, out var hit) && book.Groups.Any(g => g.Id == hit)) return hit;
+		var id = newid("g");
+		book.Groups.Add(new HttpDbgGroup { Id = id, Name = name });
+		byname[name] = id;
+		return id;
 	}
 
 	public static List<(string Key, string Value)> ParseLines(string text) {
@@ -524,6 +654,31 @@ static class HttpDebug {
 			var kept = Load(freshPath, "未分组", out _);
 			if (kept.Groups.Any(g => g.Id == SELF_GROUP) || kept.Items.Any(it => it.Id == "self-usb"))
 				fail("seed returned");
+			var expbook = new HttpDbgBook { Seeded = true };
+			normalize(expbook, "未分组");
+			var exported = ExportGroup(back, "g1");
+			log(exported);
+			if (exported.IndexOf("\"format\"", StringComparison.Ordinal) < 0
+				|| exported.IndexOf("\"接口\"", StringComparison.Ordinal) < 0)
+				fail("export json " + exported);
+			var nimp = ImportInto(expbook, exported, DEFAULT_GROUP, out var firstg, out var imperr);
+			if (!string.IsNullOrEmpty(imperr) || nimp != 1) fail("import " + imperr + " " + nimp);
+			if (!expbook.Groups.Any(g => g.Name == "接口") || expbook.Items.Count != 1) fail("import group");
+			var impitem = expbook.Items[0];
+			if (impitem.Json != "{\"a\":1}" || impitem.Headers != "X-Test: 1"
+				|| impitem.Group != expbook.Groups.First(g => g.Name == "接口").Id
+				|| firstg != impitem.Group)
+				fail("import item");
+			if (ImportInto(expbook, exported, DEFAULT_GROUP, out _, out _) != 1 || expbook.Items.Count != 2
+				|| expbook.Groups.Count != 2)
+				fail("import twice");
+			if (ImportInto(expbook, "{}", DEFAULT_GROUP, out _, out var e1) != -1 || e1 != "badformat")
+				fail("import bad");
+			if (ImportInto(expbook, "{", DEFAULT_GROUP, out _, out _) != -1) fail("import broken json");
+			var wholebook = new HttpDbgBook { Seeded = true };
+			if (ImportInto(wholebook, JsonSerializer.Serialize(back, Opt), DEFAULT_GROUP, out _, out var wher) != 1
+				|| !string.IsNullOrEmpty(wher) || wholebook.Groups.Count != 2)
+				fail("import whole " + wher + " " + wholebook.Groups.Count);
 			var port = freeport();
 			lis = new HttpListener();
 			lis.Prefixes.Add($"http://127.0.0.1:{port}/");

@@ -38,14 +38,18 @@
 			<TextBlock x:Name="lbreq" Grid.Row="3" Text="请求" Margin="0,0,0,6"/>
 			<ListBox x:Name="ereqs" Grid.Row="4" BorderBrush="{StaticResource BorderSoft}"
 			         AutomationProperties.AutomationId="httpdbg.reqs"/>
-			<StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,8,0,0">
-				<Button x:Name="bnew" Style="{StaticResource ToolBtnSm}"
+			<WrapPanel Grid.Row="5" Orientation="Horizontal" Margin="0,8,0,0">
+				<Button x:Name="bnew" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,4"
 				        AutomationProperties.AutomationId="httpdbg.new"/>
-				<Button x:Name="bsave" Style="{StaticResource ToolBtnSm}"
+				<Button x:Name="bsave" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,4"
 				        AutomationProperties.AutomationId="httpdbg.save"/>
-				<Button x:Name="bdel" Style="{StaticResource ToolBtnSm}"
+				<Button x:Name="bdel" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,4"
 				        AutomationProperties.AutomationId="httpdbg.del"/>
-			</StackPanel>
+				<Button x:Name="bexport" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,4"
+				        AutomationProperties.AutomationId="httpdbg.export"/>
+				<Button x:Name="bimport" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,4"
+				        AutomationProperties.AutomationId="httpdbg.import"/>
+			</WrapPanel>
 		</Grid>
 		<Grid Grid.Column="2">
 			<Grid.RowDefinitions>

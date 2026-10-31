@@ -52,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Show hit count and elapsed time next to Copy in the selection popup
 - HTTP request debugger can edit request headers, one name: value per line.
 - HTTP request debugger fills a Chrome User-Agent when the request has none.
+- HTTP request debugger can export a group of requests to JSON and import it back.
 
 #### Changed
 
@@ -83,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 划词浮窗查词后，在「复制」右边显示结果条数和用时
 - HTTP 请求调试可以编辑请求头，一行一个 名称: 值。
 - HTTP 请求调试在请求没有 User-Agent 时自动补一个 Chrome 的 UA。
+- HTTP 请求调试可以把一组请求导出为 JSON，也能导入回来。
 
 #### 变更
 

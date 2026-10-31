@@ -7873,7 +7873,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-systool  只读检查进程、环境变量、已安装程序、服务、商店应用和 txt 关联，并查一个被本进程占用的临时文件
       --test-fileprobe  用临时文件检查魔数、UTF-8、GBK，以及 exe/dll 的节、导入导出和签名
       --test-perfmon  采样 CPU、内存、网络和磁盘速率，并检查小窗开关能保存
-      --test-httpdbg  参数拼进地址、地址与参数互转、请求头解析与 Content-Type 覆盖、默认 UA、表单编码、JSON 检查、XML 与自定义 MIME、保存往返，并向本机临时端口发 GET 和 POST
+      --test-httpdbg  参数拼进地址、地址与参数互转、请求头解析与 Content-Type 覆盖、默认 UA、分组导出导入往返、表单编码、JSON 检查、XML 与自定义 MIME、保存往返，并向本机临时端口发 GET 和 POST
       --test-update-notes  更新说明的中英文拆分、版本列表和简单 Markdown
       --test-update-url  向自建更新地址取 9.9.9 测试包、中文说明并下载 zip
       --test-zhconv  LCMapStringEx 简繁（国发 / 软件）

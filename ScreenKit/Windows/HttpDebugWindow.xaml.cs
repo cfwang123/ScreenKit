@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace ScreenKit;
 
 /// <summary>工具 → HTTP 请求调试。</summary>
@@ -63,6 +65,8 @@ public partial class HttpDebugWindow : Window {
 		bnew.Click += (_, _) => newitem();
 		bsave.Click += (_, _) => saveitem();
 		bdel.Click += (_, _) => delitem();
+		bexport.Click += (_, _) => exportgroup();
+		bimport.Click += (_, _) => importgroup();
 		bsend.Click += (_, _) => { _ = sendasync(); };
 		bstop.Click += (_, _) => { try { cts?.Cancel(); } catch { } };
 		bcopy.Click += (_, _) => copyout();
@@ -106,6 +110,8 @@ public partial class HttpDebugWindow : Window {
 		ToolBtnUi.Set(bsend, ToolBtnUi.Play, Loc.T("httpdbg.send"));
 		ToolBtnUi.Set(bstop, ToolBtnUi.Cancel, Loc.T("httpdbg.stop"));
 		ToolBtnUi.Set(bcopy, ToolBtnUi.Copy, Loc.T("httpdbg.copy"));
+		ToolBtnUi.Set(bexport, ToolBtnUi.SaveAs, Loc.T("httpdbg.export"));
+		ToolBtnUi.Set(bimport, ToolBtnUi.Folder, Loc.T("httpdbg.import"));
 		ToolBtnUi.Set(bclose, ToolBtnUi.Close, Loc.T("imgconv.close"));
 	}
 
@@ -245,8 +251,75 @@ public partial class HttpDebugWindow : Window {
 		lbstat.Text = Loc.T("httpdbg.saved");
 	}
 
-	void addgroup() {
-		var name = asktext(Loc.T("httpdbg.group.new"), Loc.T("httpdbg.group.name"), "");
+	/// <summary>把当前分组连同组名导出一个 JSON 文件。</summary>
+	void exportgroup() {
+		var gid = groupid();
+		var count = book.Items.Count(x => x.Group == gid);
+		if (count == 0) {
+			lbstat.Text = Loc.T("httpdbg.exportempty");
+			return;
+		}
+		var name = filefor(groupidname(gid)) + ".json";
+		var dlg = new Microsoft.Win32.SaveFileDialog {
+			Title = Loc.T("httpdbg.exporttitle"),
+			Filter = "JSON (*.json)|*.json|*.*|*.*",
+			FileName = name,
+			DefaultExt = ".json",
+			AddExtension = true,
+		};
+		if (dlg.ShowDialog(this) != true) return;
+		try {
+			File.WriteAllText(dlg.FileName, HttpDebug.ExportGroup(book, gid), new UTF8Encoding(false));
+			lbstat.Text = Loc.T("httpdbg.exported", count);
+		}
+		catch (Exception ex) {
+			lbstat.Text = Loc.T("httpdbg.fail", ex.Message);
+		}
+	}
+
+	/// <summary>导入一个导出文件或整本 httpdbg.json，按组名并入后切到第一个导入的分组。</summary>
+	void importgroup() {
+		var dlg = new Microsoft.Win32.OpenFileDialog {
+			Title = Loc.T("httpdbg.importtitle"),
+			Filter = "JSON (*.json)|*.json|*.*|*.*",
+			CheckFileExists = true,
+		};
+		if (dlg.ShowDialog(this) != true) return;
+		string json;
+		try { json = File.ReadAllText(dlg.FileName, Encoding.UTF8); }
+		catch (Exception ex) {
+			lbstat.Text = Loc.T("httpdbg.importfail", ex.Message);
+			return;
+		}
+		if (!askdirty()) return;
+		var n = HttpDebug.ImportInto(book, json, groupid(), out var gid, out var err);
+		if (n < 0) {
+			lbstat.Text = err == "badformat"
+				? Loc.T("httpdbg.badjson")
+				: Loc.T("httpdbg.importfail", err ?? "");
+			return;
+		}
+		if (n == 0) {
+			lbstat.Text = Loc.T("httpdbg.imported", 0);
+			return;
+		}
+		if (!write()) return;
+		fillgroups(string.IsNullOrEmpty(gid) ? groupid() : gid);
+		lbstat.Text = Loc.T("httpdbg.imported", n);
+	}
+
+	string groupidname(string id) =>
+		book.Groups.FirstOrDefault(x => x.Id == id)?.Name ?? Loc.T("httpdbg.noname");
+
+	/// <summary>分组名去掉文件名非法字符，空名字给一个默认的。</summary>
+	static string filefor(string name) {
+		name = (name ?? "").Trim();
+		if (name.Length == 0) return "requests";
+		foreach (var ch in Path.GetInvalidFileNameChars()) name = name.Replace(ch, '_');
+		return name;
+	}
+
+	void addgroup() {		var name = asktext(Loc.T("httpdbg.group.new"), Loc.T("httpdbg.group.name"), "");
 		if (string.IsNullOrEmpty(name)) return;
 		var id = "g" + Guid.NewGuid().ToString("N").Substring(0, 12);
 		book.Groups.Add(new HttpDbgGroup { Id = id, Name = name });
