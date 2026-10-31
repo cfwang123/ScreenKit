@@ -798,6 +798,29 @@
 		return { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
 	}
 
+	// 三维点投影：x、y 按采样范围等比归一，z 按 zfit 归一，再按 yaw 旋转、pitch 俯仰。
+	// 返回 view3 缩放前的 ux、uz，以及用来排序前后遮挡的深度 d。
+	function proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit){
+		var fit = Math.max(cam.xspan, cam.yspan);
+		var X = (x - cam.cx) / cam.xspan * fit;
+		var Y = (y - cam.cy) / cam.yspan * fit;
+		var Z = (z - zmid) * zfit;
+		var x1 = X * cyaw - Y * syaw;
+		var y1 = X * syaw + Y * cyaw;
+		return { ux: x1, uz: y1 * sp + Z * cp, d: y1 * cp - Z * sp };
+	}
+
+	function boxone3(box, x, y, z, cyaw, syaw, cp, sp){
+		var p = proj3(x, y, z, cyaw, syaw, cp, sp, 0, 1);
+		boxone(box, p.ux, p.uz);
+	}
+
+	function scr3(p){
+		p.x = view3.ox + p.ux * view3.s;
+		p.y = view3.oy - p.uz * view3.s;
+		return p;
+	}
+
 	function draw3(ctx, w, h){
 		if (implicit) {
 			draw3implicit(ctx, w, h);
@@ -874,19 +897,18 @@
 	}
 
 	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
-	// 再按样式画成填充面、网格线、点阵或水平等高线。
+	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
 	function draw3implicit(ctx, w, h){
 		var fit = Math.max(cam.xspan, cam.yspan);
-		var scale = Math.min(w, h) * 0.42 / fit;
 		var n = drag ? 46 : (style === "dots" ? 88 : 72);
 		var m = drag ? 46 : 80;
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var cw = n + 1;
-		var gap = 2 * fit * scale / n;
 		var cols = new Array(cw * cw);
+		var box = newbox();
 		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
-		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, X, Y, x1, y1, y2, z2;
+		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, gap;
 		for (j = 0; j <= n; j++) {
 			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
 			for (i = 0; i <= n; i++) {
@@ -921,39 +943,41 @@
 							}
 						}
 						zz = (lo + hi) / 2;
-						X = (x - cam.cx) / cam.xspan * fit;
-						Y = (y - cam.cy) / cam.yspan * fit;
-						x1 = X * cyaw - Y * syaw;
-						y1 = X * syaw + Y * cyaw;
-						y2 = y1 * cp - zz * sp;
-						z2 = y1 * sp + zz * cp;
-						list.push({
-							x: w / 2 + x1 * scale,
-							y: h / 2 - z2 * scale,
-							d: y2,
-							t: (zz - z0) / (z1 - z0),
-							z: zz,
-							wx: x,
-							wy: y
-						});
+						p = proj3(x, y, zz, cyaw, syaw, cp, sp, 0, 1);
+						list.push({ ux: p.ux, uz: p.uz, d: p.d, t: (zz - z0) / (z1 - z0), z: zz });
+						boxone(box, p.ux, p.uz);
 					}
 					f0 = f1;
 				}
-				// 两层解在相切处几乎重合，合并成一个点，网格线就能连上。
-				for (k = 0; k + 1 < list.length; k++) {
-					if (Math.abs(list[k + 1].x - list[k].x) + Math.abs(list[k + 1].y - list[k].y) < gap) {
-						var mm = {
-							x: (list[k].x + list[k + 1].x) / 2,
-							y: (list[k].y + list[k + 1].y) / 2,
-							d: (list[k].d + list[k + 1].d) / 2,
-							t: 0.5,
-							z: (list[k].z + list[k + 1].z) / 2
-						};
-						list[k] = mm;
-						list[k + 1] = mm;
-					}
-				}
 				cols[j * cw + i] = list;
+			}
+		}
+		// 坐标轴的轴尖也算进范围，免得贴边被裁掉。
+		boxone3(box, cam.xspan * 0.85, 0, 0, cyaw, syaw, cp, sp);
+		boxone3(box, 0, cam.yspan * 0.85, 0, cyaw, syaw, cp, sp);
+		boxone3(box, 0, 0, z1, cyaw, syaw, cp, sp);
+		fit3(w, h, box);
+		gap = 2 * fit * view3.s / n;
+		var row;
+		for (i = 0; i < cols.length; i++) {
+			row = cols[i];
+			for (k = 0; k < row.length; k++) {
+				row[k].x = view3.ox + row[k].ux * view3.s;
+				row[k].y = view3.oy - row[k].uz * view3.s;
+			}
+			// 两层解在相切处几乎重合，合并成一个点，网格线就能连上。
+			for (k = 0; k + 1 < row.length; k++) {
+				if (Math.abs(row[k + 1].x - row[k].x) + Math.abs(row[k + 1].y - row[k].y) < gap) {
+					var mm = {
+						x: (row[k].x + row[k + 1].x) / 2,
+						y: (row[k].y + row[k + 1].y) / 2,
+						d: (row[k].d + row[k + 1].d) / 2,
+						t: 0.5,
+						z: (row[k].z + row[k + 1].z) / 2
+					};
+					row[k] = mm;
+					row[k + 1] = mm;
+				}
 			}
 		}
 		ctx.save();
@@ -962,12 +986,12 @@
 		ctx.clip();
 		if (style === "grid") {
 			impgrid(ctx, cols, n, cw, gap);
-			implevelzero(ctx, w, h, fit, scale, cyaw, syaw, cp, sp);
+			implevelzero(ctx, cyaw, syaw, cp, sp);
 		}
 		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
-		else if (style === "level") implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp);
+		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp);
 		else impfill(ctx, cols, n, cw, gap);
-		drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, 0, 1, z0, z1);
+		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, z1);
 		ctx.restore();
 	}
 
@@ -1054,17 +1078,13 @@
 	}
 
 	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
-	function implevelzero(ctx, w, h, fit, scale, cyaw, syaw, cp, sp){
+	function implevelzero(ctx, cyaw, syaw, cp, sp){
 		var gn = drag ? 30 : 52;
 		var gw = gn + 1;
 		var vals = new Float64Array(gw * gw);
 		var i, j, x, y, v00, v10, v11, v01, ps, k;
 		function proj0(x, y){
-			var X = (x - cam.cx) / cam.xspan * fit;
-			var Y = (y - cam.cy) / cam.yspan * fit;
-			var a = X * cyaw - Y * syaw;
-			var b = X * syaw + Y * cyaw;
-			return { x: w / 2 + a * scale, y: h / 2 - (b * sp) * scale };
+			return scr3(proj3(x, y, 0, cyaw, syaw, cp, sp, 0, 1));
 		}
 		for (j = 0; j <= gn; j++) {
 			y = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
@@ -1137,18 +1157,12 @@
 	}
 
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
-	function implevels(ctx, w, h, fit, scale, z0, z1, cyaw, syaw, cp, sp){
+	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp){
 		var levels = drag ? 6 : 12;
 		var gn = drag ? 30 : 52;
 		var segs = [];
 		function proj(x, y, z){
-			var X = (x - cam.cx) / cam.xspan * fit;
-			var Y = (y - cam.cy) / cam.yspan * fit;
-			var x1 = X * cyaw - Y * syaw;
-			var y1 = X * syaw + Y * cyaw;
-			var y2 = y1 * cp - z * sp;
-			var z2 = y1 * sp + z * cp;
-			return { x: w / 2 + x1 * scale, y: h / 2 - z2 * scale, d: y2 };
+			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, 0, 1));
 		}
 		function add(xa, ya, xb, yb, z, t){
 			var p = proj(xa, ya, z);
@@ -1358,16 +1372,9 @@
 		tris.push({ a: a, b: b, c: c, d: (p0.d + p1.d + p2.d) / 3 });
 	}
 
-	function drawaxes(ctx, w, h, scale, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
+	function drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi){
 		function proj(x, y, z){
-			var fit = Math.max(cam.xspan, cam.yspan);
-			var X = (x - cam.cx) / cam.xspan * fit;
-			var Y = (y - cam.cy) / cam.yspan * fit;
-			var Z = (z - zmid) * zfit;
-			var x1 = X * cyaw - Y * syaw;
-			var y1 = X * syaw + Y * cyaw;
-			var z2 = y1 * sp + Z * cp;
-			return { x: w / 2 + x1 * scale, y: h / 2 - z2 * scale };
+			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit));
 		}
 		var o = proj(0, 0, 0);
 		var ax = proj(cam.xspan * 0.85, 0, 0);
