@@ -311,6 +311,9 @@
       <!-- 界面语言脚本启动时按 lang/*.toml 重新合成，不进精简包 -->
       <_SlimWeb Remove="$(OutputPath)web\L.js" />
       <_SlimLang Include="$(OutputPath)lang\*.toml" Condition="Exists('$(OutputPath)lang')" />
+      <!-- USB AOA 驱动与 SOAP 调试示例 WSDL：随包发布（net48 输出已有） -->
+      <_SlimInf Include="$(OutputPath)winusb-aoa.inf" Condition="Exists('$(OutputPath)winusb-aoa.inf')" />
+      <_SlimSoap Include="$(OutputPath)soapmock\**\*.*" Condition="Exists('$(OutputPath)soapmock')" />
     </ItemGroup>
     <Copy SourceFiles="@(_SlimRoot)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_SlimAssets)"
@@ -347,6 +350,10 @@
           Condition="'@(_SlimLang)' != ''" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\pinyin.toml;$(MSBuildProjectDirectory)\pinyin.user.toml" DestinationFolder="$(_SlimOut)"
           SkipUnchangedFiles="true" />
+    <!-- USB AOA 驱动：复制到精简包根目录（UsbHost.cs 运行时读取） -->
+    <Copy SourceFiles="@(_SlimInf)" DestinationFolder="$(_SlimOut)" SkipUnchangedFiles="true" Condition="'@(_SlimInf)' != ''" />
+    <!-- SOAP 调试示例 WSDL：整目录复制到 soapmock\ -->
+    <Copy SourceFiles="@(_SlimSoap)" DestinationFiles="@(_SlimSoap->'$(_SlimOut)\soapmock\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="'@(_SlimSoap)' != ''" />
     <!-- 若上次发布残留按需库/junk，删掉以免误带进压缩包 -->
     <ItemGroup>
       <_SlimJunk Include="$(_SlimOut)\*.lib;$(_SlimOut)\*.pdb" />
