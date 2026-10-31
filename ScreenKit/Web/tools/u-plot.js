@@ -846,21 +846,30 @@
 		return p;
 	}
 
+	// 网格列数按采样平面的宽高比来取，格子才接近正方形。
+	function gridcount(rows){
+		var nx = Math.round(rows * cam.xspan / cam.yspan);
+		if (!(nx >= rows)) nx = rows;
+		if (nx > rows * 4) nx = rows * 4;
+		return nx;
+	}
+
 	function draw3(ctx, w, h){
 		if (implicit) {
 			draw3implicit(ctx, w, h);
 			return;
 		}
-		var n = 46;
-		var grid = n + 1;
-		var zraw = new Array(grid * grid);
+		var ny = 46;
+		var nx = gridcount(ny);
+		var gw = nx + 1, gh = ny + 1;
+		var zraw = new Array(gw * gh);
 		var i, j, x, y, z, finite = [];
-		for (j = 0; j < grid; j++) {
-			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
-			for (i = 0; i < grid; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
+		for (j = 0; j < gh; j++) {
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / ny;
+			for (i = 0; i < gw; i++) {
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / nx;
 				z = fn ? ev(fn, x, y) : NaN;
-				zraw[j * grid + i] = z;
+				zraw[j * gw + i] = z;
 				if (isFinite(z)) finite.push(z);
 			}
 		}
@@ -875,15 +884,15 @@
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
 		var zfit = cam.yspan / (hi - lo);
-		var pts = new Array(grid * grid);
+		var pts = new Array(gw * gh);
 		var box = newbox();
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		for (j = 0; j < grid; j++) {
-			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
-			for (i = 0; i < grid; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
-				z = zraw[j * grid + i];
+		for (j = 0; j < gh; j++) {
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / ny;
+			for (i = 0; i < gw; i++) {
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / nx;
+				z = zraw[j * gw + i];
 				var ok = isFinite(z);
 				if (ok) {
 					if (z < lo - pad) z = lo - pad;
@@ -894,7 +903,7 @@
 				var Z = ok ? (z - zmid) * zfit : 0;
 				var x1 = X * cyaw - Y * syaw;
 				var y1 = X * syaw + Y * cyaw;
-				pts[j * grid + i] = {
+				pts[j * gw + i] = {
 					ux: x1,
 					uz: y1 * sp + Z * cp,
 					d: y1 * cp - Z * sp,
@@ -911,14 +920,15 @@
 		for (i = 0; i < pts.length; i++) {
 			pts[i].x = view3.ox + pts[i].ux * view3.s;
 			pts[i].y = view3.oy - pts[i].uz * view3.s;
-		}		ctx.save();
+		}
+		ctx.save();
 		ctx.beginPath();
 		ctx.rect(0, 0, w, h);
 		ctx.clip();
-		if (style === "grid") drawGrid(ctx, pts, n, grid);
+		if (style === "grid") drawGrid(ctx, pts, nx, ny, gw);
 		else if (style === "dots") drawDots(ctx, pts);
-		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
-		else drawFill(ctx, pts, n, grid);
+		else if (style === "level") drawLevels(ctx, pts, zraw, nx, ny, gw, lo, hi);
+		else drawFill(ctx, pts, nx, ny, gw);
 		drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi, box);
 		ctx.restore();
 	}
@@ -930,16 +940,17 @@
 		var m = drag ? 46 : 80;
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		var cw = n + 1;
-		var cols = new Array(cw * cw);
+		var nx = gridcount(n);
+		var cw = nx + 1;
+		var cols = new Array(cw * (n + 1));
 		var box = newbox();
 		var all = [];
 		var z0 = -cam.yspan, z1 = cam.yspan, dz = (z1 - z0) / m;
 		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, gap;
 		for (j = 0; j <= n; j++) {
 			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
-			for (i = 0; i <= n; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / n;
+			for (i = 0; i <= nx; i++) {
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / nx;
 				var list = [];
 				f0 = ev(fn, x, y, z0);
 				for (k = 1; k <= m; k++) {
@@ -1012,12 +1023,12 @@
 		ctx.rect(0, 0, w, h);
 		ctx.clip();
 		if (style === "grid") {
-			impgrid(ctx, cols, n, cw, gap);
+			impgrid(ctx, cols, nx, n, cw, gap);
 			implevelzero(ctx, cyaw, syaw, cp, sp);
 		}
-		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
+		else if (style === "dots") impdots(ctx, cols, nx, n, cw, gap);
 		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp);
-		else impfill(ctx, cols, n, cw, gap);
+		else impfill(ctx, cols, nx, n, cw, gap);
 		// z 轴只画到曲面顶端，免得轴尖和标签被画布切掉。
 		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, box.z1 > 0 ? Math.min(z1, box.z1) : z1, box);
 		ctx.restore();
@@ -1044,11 +1055,11 @@
 	}
 
 	// 所有解点按深度排序后画成实心圆盘，叠起来就是曲面，不会把锥面连成柱面。
-	function impfill(ctx, cols, n, cw, gap){
+	function impfill(ctx, cols, nx, ny, cw, gap){
 		var pts = [];
 		var i, j, r, rad = Math.max(2.4, gap * 1.6);
-		for (j = 0; j <= n; j++) {
-			for (i = 0; i <= n; i++) {
+		for (j = 0; j <= ny; j++) {
+			for (i = 0; i <= nx; i++) {
 				var list = cols[j * cw + i];
 				for (r = 0; r < list.length; r++) pts.push(list[r]);
 			}
@@ -1075,7 +1086,7 @@
 		tris.push({ p0: p0, p1: p1, p2: p2, d: (p0.d + p1.d + p2.d) / 3 });
 	}
 
-	function impgrid(ctx, cols, n, cw, gap){
+	function impgrid(ctx, cols, nx, ny, cw, gap){
 		var segs = [];
 		var i, j, r, a, cnt;
 		function add(p, q){
@@ -1085,11 +1096,11 @@
 			cnt = Math.min(p.length, q.length);
 			for (r = 0; r < cnt; r++) add(p[r], q[r]);
 		}
-		for (j = 0; j <= n; j++) {
-			for (i = 0; i <= n; i++) {
+		for (j = 0; j <= ny; j++) {
+			for (i = 0; i <= nx; i++) {
 				a = cols[j * cw + i];
-				if (i < n) link(a, cols[j * cw + i + 1]);
-				if (j < n) link(a, cols[(j + 1) * cw + i]);
+				if (i < nx) link(a, cols[j * cw + i + 1]);
+				if (j < ny) link(a, cols[(j + 1) * cw + i]);
 			}
 		}
 		segs.sort(function(u, v){ return v.d - u.d; });
@@ -1107,17 +1118,18 @@
 
 	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
 	function implevelzero(ctx, cyaw, syaw, cp, sp){
-		var gn = drag ? 30 : 52;
-		var gw = gn + 1;
-		var vals = new Float64Array(gw * gw);
+		var gy = drag ? 30 : 52;
+		var gx = gridcount(gy);
+		var gw = gx + 1;
+		var vals = new Float64Array(gw * (gy + 1));
 		var i, j, x, y, v00, v10, v11, v01, ps, k;
 		function proj0(x, y){
 			return scr3(proj3(x, y, 0, cyaw, syaw, cp, sp, 0, 1));
 		}
-		for (j = 0; j <= gn; j++) {
-			y = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
-			for (i = 0; i <= gn; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+		for (j = 0; j <= gy; j++) {
+			y = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+			for (i = 0; i <= gx; i++) {
+				x = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
 				vals[j * gw + i] = ev(fn, x, y, 0);
 			}
 		}
@@ -1126,12 +1138,12 @@
 		ctx.lineJoin = "round";
 		ctx.lineCap = "round";
 		ctx.beginPath();
-		for (j = 0; j < gn; j++) {
-			var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
-			var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gn;
-			for (i = 0; i < gn; i++) {
-				var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
-				var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gn;
+		for (j = 0; j < gy; j++) {
+			var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+			var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gy;
+			for (i = 0; i < gx; i++) {
+				var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+				var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gx;
 				v00 = vals[j * gw + i];
 				v10 = vals[j * gw + i + 1];
 				v11 = vals[(j + 1) * gw + i + 1];
@@ -1163,11 +1175,11 @@
 		ctx.stroke();
 	}
 
-	function impdots(ctx, cols, n, cw, gap){
+	function impdots(ctx, cols, nx, ny, cw, gap){
 		var pts = [];
 		var i, j, r;
-		for (j = 0; j <= n; j++) {
-			for (i = 0; i <= n; i++) {
+		for (j = 0; j <= ny; j++) {
+			for (i = 0; i <= nx; i++) {
 				var list = cols[j * cw + i];
 				for (r = 0; r < list.length; r++) pts.push(list[r]);
 			}
@@ -1187,7 +1199,8 @@
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
 	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp){
 		var levels = drag ? 6 : 12;
-		var gn = drag ? 30 : 52;
+		var gy = drag ? 30 : 52;
+		var gx = gridcount(gy);
 		var segs = [];
 		function proj(x, y, z){
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, 0, 1));
@@ -1197,24 +1210,24 @@
 			var q = proj(xb, yb, z);
 			segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: t });
 		}
-		var L, i, j, zc, t, gw = gn + 1, vals, v00, v10, v11, v01, ps, vc;
+		var L, i, j, zc, t, gw = gx + 1, vals, v00, v10, v11, v01, ps, vc;
 		for (L = 1; L < levels; L++) {
 			zc = z0 + (z1 - z0) * L / levels;
 			t = (zc - z0) / (z1 - z0);
-			vals = new Float64Array(gw * gw);
-			for (j = 0; j <= gn; j++) {
-				var yv = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
-				for (i = 0; i <= gn; i++) {
-					var xv = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
+			vals = new Float64Array(gw * (gy + 1));
+			for (j = 0; j <= gy; j++) {
+				var yv = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+				for (i = 0; i <= gx; i++) {
+					var xv = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
 					vals[j * gw + i] = ev(fn, xv, yv, zc);
 				}
 			}
-			for (j = 0; j < gn; j++) {
-				var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gn;
-				var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gn;
-				for (i = 0; i < gn; i++) {
-					var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gn;
-					var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gn;
+			for (j = 0; j < gy; j++) {
+				var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+				var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gy;
+				for (i = 0; i < gx; i++) {
+					var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+					var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gx;
 					v00 = vals[j * gw + i];
 					v10 = vals[j * gw + i + 1];
 					v11 = vals[(j + 1) * gw + i + 1];
@@ -1254,14 +1267,14 @@
 		}
 	}
 
-	function drawFill(ctx, pts, n, grid){
+	function drawFill(ctx, pts, nx, ny, gw){
 		var tris = [];
 		var i, j, a, b, c, d, p0, p1, p2;
-		for (j = 0; j < n; j++) {
-			for (i = 0; i < n; i++) {
-				a = j * grid + i;
+		for (j = 0; j < ny; j++) {
+			for (i = 0; i < nx; i++) {
+				a = j * gw + i;
 				b = a + 1;
-				c = a + grid;
+				c = a + gw;
 				d = c + 1;
 				pushtri(tris, pts, a, c, b);
 				pushtri(tris, pts, c, d, b);
@@ -1282,14 +1295,14 @@
 		}
 	}
 
-	function drawGrid(ctx, pts, n, grid){
+	function drawGrid(ctx, pts, nx, ny, gw){
 		var segs = [];
 		var i, j, a;
-		for (j = 0; j < grid; j++) {
-			for (i = 0; i < grid; i++) {
-				a = j * grid + i;
-				if (i + 1 < grid) pushseg(segs, pts, a, a + 1);
-				if (j + 1 < grid) pushseg(segs, pts, a, a + grid);
+		for (j = 0; j <= ny; j++) {
+			for (i = 0; i <= nx; i++) {
+				a = j * gw + i;
+				if (i < nx) pushseg(segs, pts, a, a + 1);
+				if (j < ny) pushseg(segs, pts, a, a + gw);
 			}
 		}
 		strokeSegs(ctx, segs, 1);
@@ -1309,7 +1322,7 @@
 		}
 	}
 
-	function drawLevels(ctx, pts, zraw, n, grid, lo, hi){
+	function drawLevels(ctx, pts, zraw, nx, ny, gw, lo, hi){
 		var bands = 8;
 		var segs = [];
 		var k, level, i, j, a, z00, z10, z11, z01, p00, p10, p11, p01, e0, e1, e2, e3, hit;
@@ -1317,17 +1330,17 @@
 		if (!(span > 0)) return;
 		for (k = 1; k < bands; k++) {
 			level = lo + span * k / bands;
-			for (j = 0; j < n; j++) {
-				for (i = 0; i < n; i++) {
-					a = j * grid + i;
+			for (j = 0; j < ny; j++) {
+				for (i = 0; i < nx; i++) {
+					a = j * gw + i;
 					z00 = zraw[a];
 					z10 = zraw[a + 1];
-					z01 = zraw[a + grid];
-					z11 = zraw[a + grid + 1];
+					z01 = zraw[a + gw];
+					z11 = zraw[a + gw + 1];
 					p00 = pts[a];
 					p10 = pts[a + 1];
-					p01 = pts[a + grid];
-					p11 = pts[a + grid + 1];
+					p01 = pts[a + gw];
+					p11 = pts[a + gw + 1];
 					e0 = crossZ(p00, p10, z00, z10, level);
 					e1 = crossZ(p10, p11, z10, z11, level);
 					e2 = crossZ(p11, p01, z11, z01, level);
@@ -1705,6 +1718,13 @@
 	function isletter(c){ return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"); }
 	function isdigit(c){ return c >= "0" && c <= "9"; }
 })();
+
+
+
+
+
+
+
 
 
 
