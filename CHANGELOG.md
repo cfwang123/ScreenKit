@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
 - Screenshot history in the tray and main menus now opens the history window instead of the screenshots folder.
 - HTTP request debugger keeps the URL and query parameters in sync and fills Content-Type from the POST body type.
+- QR generator uses radio buttons for the encoding, regenerates 200 ms after typing or toggling the caption, and draws the caption inside the image.
 
 #### Fixed
 
@@ -100,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
 - 托盘和主菜单的「截图历史」改为打开截图历史窗口，不再只是打开 screenshots 文件夹。
 - HTTP 请求调试的地址与查询参数互相同步，并按 POST 正文类型自动填写 Content-Type。
+- 二维码生成的编码改为单选按钮，输入文字或切换「带文字」后 200ms 自动生成，文字直接画在图片里。
 
 #### 修复
 

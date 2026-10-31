@@ -1,16 +1,17 @@
 (function(){
+	var timer = null;
+	var seq = 0;
+
 	function qrcaptext(text){
 		return String(text || "").replace(/\r|\n/g, " ").trim();
 	}
 
-	function setqrcap(text){
-		var cap = SK.doms.qrCap;
-		if (!cap) return;
-		var line = qrcaptext(text);
-		cap.textContent = line;
-		cap.title = line;
-		cap.hidden = !line || !qrcapon();
-		if (cap.hidden) cap.style.marginTop = "";
+	function qrenc(){
+		var gbk = F.id("qrEncGbk");
+		var hex = F.id("qrEncHex");
+		if (gbk && gbk.checked) return "gbk";
+		if (hex && hex.checked) return "hex";
+		return "utf8";
 	}
 
 	function qrcapon(){
@@ -18,70 +19,112 @@
 		return !box || box.checked;
 	}
 
-	function onqrcap(){
-		var img = SK.doms.qrImg;
-		if (!img || img.hidden) return;
-		setqrcap(SK.doms.qrIn.value);
-		if (!SK.doms.qrCap.hidden) F.raf(qrgap);
-	}
-
-	function qrgap(){
-		var img = SK.doms.qrImg;
-		var cap = SK.doms.qrCap;
-		if (!img || !cap || cap.hidden || !img.naturalWidth) return;
-		var w = img.naturalWidth;
-		var h = img.naturalHeight;
-		var canvas = F.el("canvas");
-		canvas.width = w;
-		canvas.height = h;
-		var ctx = F.ctx(canvas);
-		var bottom = 0;
-		try {
-			ctx.drawImage(img, 0, 0);
-			var data = ctx.getImageData(0, 0, w, h).data;
-			var y;
-			var x;
-			for (y = h - 1; y >= 0; y--) {
-				var white = true;
-				for (x = 0; x < w; x++) {
-					var i = (y * w + x) * 4;
-					if (data[i] < 250 || data[i + 1] < 250 || data[i + 2] < 250) {
-						white = false;
-						break;
-					}
-				}
-				if (!white) break;
-				bottom++;
-			}
-		}
-		catch (e) { bottom = 0; }
-		var shown = img.clientWidth > 0 ? bottom * (img.clientWidth / w) : bottom;
-		var half = parseFloat(window.getComputedStyle(cap).fontSize) / 2;
-		if (isNaN(half)) half = 8;
-		cap.style.marginTop = (half - shown) + "px";
+	// 输入或切换选项后等 200ms 再生成，连续打字只发最后一次请求。
+	function qrschedule(){
+		if (timer) clearTimeout(timer);
+		timer = setTimeout(qrmake, 200);
 	}
 
 	function qrmake(){
+		if (timer) {
+			clearTimeout(timer);
+			timer = null;
+		}
+		var img = SK.doms.qrImg;
 		var text = SK.doms.qrIn.value;
+		if (!text) {
+			seq++;
+			F.unset(img, "src");
+			img.hidden = true;
+			SK.msg("qr-msg", "");
+			return;
+		}
+		var mine = ++seq;
 		SK.post("/api/qrmake", {
 			text: text,
 			format: SK.doms.qrFmt.value,
-			encoding: SK.doms.qrEnc.value,
+			encoding: qrenc(),
 		}, function(data){
-			var img = SK.doms.qrImg;
+			if (mine !== seq) return;
 			if (!data || !data.png) {
 				F.unset(img, "src");
 				img.hidden = true;
-				setqrcap("");
 				SK.msg("qr-msg", "没有图片", true);
 				return;
 			}
-			img.onload = function(){ F.raf(qrgap); };
-			img.src = "data:image/png;base64," + data.png;
-			img.hidden = false;
-			setqrcap(text);
+			qrshow("data:image/png;base64," + data.png, text, mine);
 			SK.msg("qr-msg", "已生成");
 		}, "qr-msg");
+	}
+
+	// 带文字时把文字画进图片底部，不用页面上的说明文字。
+	function qrshow(src, text, mine){
+		var im = new Image();
+		im.onload = function(){
+			if (mine !== seq) return;
+			var out = src;
+			var cap = qrcaptext(text);
+			if (qrcapon() && cap) {
+				try { out = qrcompose(im, cap); }
+				catch (e) { out = src; }
+			}
+			var img = SK.doms.qrImg;
+			img.src = out;
+			img.hidden = false;
+		};
+		im.src = src;
+	}
+
+	function qrcompose(im, text){
+		var w = im.naturalWidth || im.width;
+		var h = im.naturalHeight || im.height;
+		if (!w || !h) return im.src;
+		var fs = Math.round(Math.max(12, Math.min(30, w * 0.048)));
+		var lh = Math.round(fs * 1.32);
+		var pad = Math.round(fs * 0.55);
+		var font = fs + "px 'Microsoft YaHei UI', 'Segoe UI', sans-serif";
+		var canvas = F.el("canvas");
+		var ctx = F.ctx(canvas);
+		ctx.font = font;
+		var lines = qrwrap(ctx, text, w * 0.88, 3);
+		canvas.width = w;
+		canvas.height = h + pad * 2 + lines.length * lh;
+		ctx = F.ctx(canvas);
+		ctx.fillStyle = "#fff";
+		ctx.fillRect(0, 0, canvas.width, canvas.height);
+		ctx.drawImage(im, 0, 0, w, h);
+		ctx.fillStyle = "#111";
+		ctx.font = font;
+		ctx.textAlign = "center";
+		ctx.textBaseline = "middle";
+		var i;
+		for (i = 0; i < lines.length; i++)
+			ctx.fillText(lines[i], w / 2, h + pad + lh * (i + 0.5));
+		return canvas.toDataURL("image/png");
+	}
+
+	// 按画布宽度断行，最多几行；放不下的部分在最后一行用省略号收尾。
+	function qrwrap(ctx, text, maxw, maxlines){
+		var lines = [];
+		var line = "";
+		var i;
+		var ch;
+		for (i = 0; i < text.length; i++) {
+			ch = text.charAt(i);
+			if (line && ctx.measureText(line + ch).width > maxw) {
+				if (lines.length === maxlines - 1) {
+					var rest = line + text.substring(i);
+					while (rest.length && ctx.measureText(rest + "…").width > maxw) rest = rest.substring(0, rest.length - 1);
+					lines.push(rest + "…");
+					return lines;
+				}
+				lines.push(line);
+				line = ch;
+			}
+			else line += ch;
+		}
+		if (line) lines.push(line);
+		return lines;
 	}
 
 	var qrsPic = null;
@@ -155,12 +198,22 @@
 	}
 
 	SK.doms.qrsFile.onchange = onqrsfile;
-	SK.doms.qrCapon.onchange = onqrcap;
+	SK.doms.qrIn.oninput = qrschedule;
+	SK.doms.qrCapon.onchange = qrschedule;
+	SK.doms.qrFmt.onchange = qrschedule;
+	var encids = ["qrEncUtf8", "qrEncGbk", "qrEncHex"];
+	var ei;
+	for (ei = 0; ei < encids.length; ei++) {
+		var enc = F.id(encids[ei]);
+		if (!enc) continue;
+		enc.name = "qrEnc";
+		enc.onchange = qrschedule;
+	}
 	F.on(document, "paste", onqrpaste);
 
 	SK.qrcaptext = qrcaptext;
-	SK.setqrcap = setqrcap;
-	SK.qrgap = qrgap;
 	SK.qrmake = qrmake;
+	SK.qrschedule = qrschedule;
+	SK.qrcompose = qrcompose;
 	SK.qrscan = qrscan;
 })();

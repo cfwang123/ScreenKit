@@ -2428,15 +2428,11 @@
 						x:"label",
 						c:[
 						{x:"span","data-k":"web.f.enc",c:"编码"},
-						{
-							x:"select#qr-enc",
-							name:"qrEnc",
-							c:[
-							{x:"option","value":"utf8",c:"UTF-8"},
-							{x:"option","value":"gbk",c:"GBK"},
-							{x:"option","value":"hex",c:"Hex"}
-						]
-						}
+						{x:"div.qrencs",c:[
+							{x:"label.check",c:[{x:"input#qrEncUtf8",type:"radio",value:"utf8",checked:true},"UTF-8"]},
+							{x:"label.check",c:[{x:"input#qrEncGbk",type:"radio",value:"gbk"},"GBK"]},
+							{x:"label.check",c:[{x:"input#qrEncHex",type:"radio",value:"hex"},"Hex"]}
+						]}
 					]
 					}
 				]

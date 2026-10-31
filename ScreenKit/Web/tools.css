@@ -1384,3 +1384,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .by-dim { color: var(--muted); font-family: Consolas, "Cascadia Mono", monospace; font-size: 12px; }
 .by-text { font-family: Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; word-break: break-all; }
 .by-none { color: var(--muted); }
+
+/* 二维码生成的编码单选 */
+.qrencs { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.qrencs label.check { margin: 0; }
