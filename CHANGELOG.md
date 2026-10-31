@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP request debugger fills a Chrome User-Agent when the request has none.
 - HTTP request debugger can export a group of requests to JSON and import it back.
 - Web tools add a byte decoder that reads consecutive bytes as int8 through fp64, fp16/bf16, ASCII and UTF-8, with selectable byte order.
+- Byte viewer also decodes FP8 E4M3 and E5M2.
 
 #### Changed
 
@@ -91,6 +92,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - HTTP 请求调试在请求没有 User-Agent 时自动补一个 Chrome 的 UA。
 - HTTP 请求调试可以把一组请求导出为 JSON，也能导入回来。
 - web 工具新增字节解读，可把连续字节按 int8 到 fp64、fp16/bf16、ASCII、UTF-8 等格式解读，大小端可选。
+- 字节解读新增 FP8（E4M3、E5M2）解码。
 
 #### 变更
 

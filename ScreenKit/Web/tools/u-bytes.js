@@ -2,11 +2,11 @@
 	var page = null;
 	// 单值表里各格式的顺序和显示名。文本、位串和 hex 不是定宽数值，单独处理。
 	var SINGLE = ["i8", "u8", "i16", "u16", "i32", "u32", "i64", "u64",
-		"fp16", "bf16", "fp32", "fp64", "ascii", "utf8", "latin1", "base64", "bin", "hex"];
+		"fp8e4m3", "fp8e5m2", "fp16", "bf16", "fp32", "fp64", "ascii", "utf8", "latin1", "base64", "bin", "hex"];
 	var CONT = ["u8", "i8", "u16", "i16", "u32", "i32", "u64", "i64",
-		"fp16", "bf16", "fp32", "fp64"];
+		"fp8e4m3", "fp8e5m2", "fp16", "bf16", "fp32", "fp64"];
 	var WIDTH = { i8: 1, u8: 1, i16: 2, u16: 2, i32: 4, u32: 4, i64: 8, u64: 8,
-		fp16: 2, bf16: 2, fp32: 4, fp64: 8 };
+		fp8e4m3: 1, fp8e5m2: 1, fp16: 2, bf16: 2, fp32: 4, fp64: 8 };
 	var MAXBYTES = 65536;
 	var MAXROWS = 400;
 
@@ -193,6 +193,7 @@
 		var n = WIDTH[name];
 		if (!n || at < 0 || at + n > bytes.length) return null;
 		var u = readu(bytes, at, n, little);
+		if (name === "fp8e4m3" || name === "fp8e5m2") return fp8of(name, u);
 		if (name === "fp16") return halfof(u);
 		if (name === "bf16") return bfloatof(u);
 		if (name === "fp32" || name === "fp64") return floatof(bytes, at, n, little);
@@ -249,6 +250,23 @@
 		return dv.getFloat32(0);
 	}
 
+	// FP8：E4M3 指数 4 位、尾数 3 位，偏置 7，没有无穷（0x7F/0xFF 是 NaN），最大 448；
+	// E5M2 指数 5 位、尾数 2 位，偏置 15，和 IEEE 半精度一样有 ±Inf 和 NaN。
+	function fp8of(name, u){
+		var k = name === "fp8e4m3" ? 3 : 2;
+		var bias = name === "fp8e4m3" ? 7 : 15;
+		var s = (u >> 7) & 1;
+		var field = (u >> k) & ((1 << (7 - k)) - 1);
+		var frac = u & ((1 << k) - 1);
+		var sign = s ? -1 : 1;
+		if (name === "fp8e4m3") {
+			if (field === 15 && frac === 7) return NaN;
+		}
+		else if (field === 31) return frac ? NaN : sign * Infinity;
+		if (field === 0) return sign * frac * Math.pow(2, 1 - bias - k);
+		return sign * (1 + frac / Math.pow(2, k)) * Math.pow(2, field - bias);
+	}
+
 	function floatof(bytes, at, n, little){
 		var dv = new DataView(new ArrayBuffer(n));
 		var i;
@@ -266,23 +284,32 @@
 	}
 
 	function isfloat(name){
-		return name === "fp16" || name === "bf16" || name === "fp32" || name === "fp64";
+		return name === "fp8e4m3" || name === "fp8e5m2" || name === "fp16" || name === "bf16"
+			|| name === "fp32" || name === "fp64";
 	}
 
 	// 从位模式拆出规格化的尾数和指数：值 = m × 2^e，1 ≤ |m| < 2。零、无穷和 NaN 没有这种写法。
 	function exponentof(name, u){
 		var bits = WIDTH[name] * 8;
-		var k = name === "fp16" ? 10 : name === "bf16" ? 7 : name === "fp32" ? 23 : 52;
-		var bias = name === "fp16" ? 15 : name === "fp64" ? 1023 : 127;
+		var k = name === "fp8e4m3" ? 3 : name === "fp8e5m2" ? 2
+			: name === "fp16" ? 10 : name === "bf16" ? 7 : name === "fp32" ? 23 : 52;
+		var bias = name === "fp8e4m3" ? 7 : name === "fp8e5m2" ? 15
+			: name === "fp16" ? 15 : name === "fp64" ? 1023 : 127;
 		var one = BigInt(1);
 		var val = BigInt(u);
 		var sign = (val >> BigInt(bits - 1)) & one;
 		var ebits = bits - 1 - k;
-		var field = (val >> BigInt(k)) & ((one << BigInt(ebits)) - one);
-		var frac = val & ((one << BigInt(k)) - one);
+		var full = (one << BigInt(ebits)) - one;
+		var maxfrac = (one << BigInt(k)) - one;
+		var field = (val >> BigInt(k)) & full;
+		var frac = val & maxfrac;
 		var m;
 		var e;
-		if (field === (one << BigInt(ebits)) - one) return null;
+		// E4M3 没有无穷，只有指数和尾数全 1 才是 NaN，最大指数的其余位型仍是普通数（最大 448）。
+		if (name === "fp8e4m3") {
+			if (field === full && frac === maxfrac) return null;
+		}
+		else if (field === full) return null;
 		if (field === BigInt(0)) {
 			if (frac === BigInt(0)) return null;
 			var lead = 0;
@@ -434,5 +461,5 @@
 	}
 
 	// 调试和自检用。
-	SK.bytes = { parse: parsehex, value: valueof, half: halfof, bf16: bfloatof, int: intof, exp: exponentof, eform: fmtexp };
+	SK.bytes = { parse: parsehex, value: valueof, half: halfof, bf16: bfloatof, fp8: fp8of, int: intof, exp: exponentof, eform: fmtexp };
 })();

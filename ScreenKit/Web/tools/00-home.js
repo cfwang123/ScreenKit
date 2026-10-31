@@ -442,7 +442,7 @@
 						"type":"button",
 						"data-tool":"u-bytes",
 						"data-cat":"calc",
-						"data-name":"字节 十六进制 hex 二进制 解读 int8 uint8 int16 uint16 int32 uint32 int64 uint64 浮点 fp16 fp32 fp64 bf16 ascii unicode utf8 端序 小端 大端 大小端 内存",
+						"data-name":"字节 十六进制 hex 二进制 解读 int8 uint8 int16 uint16 int32 uint32 int64 uint64 浮点 fp8 fp16 fp32 fp64 bf16 e4m3 e5m2 float8 ascii unicode utf8 端序 小端 大端 大小端 内存",
 						"title":"把连续字节按各种整数、浮点和文本格式解读，大小端可选",
 						c:[
 						{x:"i.fa-solid.fa-microchip"},
@@ -2483,7 +2483,7 @@
 				{x:"p.kicker",c:"ZXing"},
 				{x:"h1",c:"二维码识别"},
 				{
-					x:"div.row",
+					x:"div.row.qrsrow",
 					c:[
 					{
 						x:"label",
