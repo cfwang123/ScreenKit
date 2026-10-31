@@ -63,7 +63,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
+				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -403,6 +403,8 @@ static class Cli {
 					return testscicalc();
 				case "--test-note":
 					return testdesknote();
+				case "--test-mqtt":
+					return testmqtt();
 				case "--fc-copy":
 				case "--fc-cut":
 				case "--fc-delete":
@@ -6156,7 +6158,8 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				return 1;
 			}
 			if (d.Text.IndexOf("Device Descriptor:", StringComparison.Ordinal) >= 0) withdev++;
-			if (d.Text.IndexOf("String Descriptor [", StringComparison.Ordinal) >= 0) withstr++;
+			if (d.Text.IndexOf("Product String [", StringComparison.Ordinal) >= 0
+				|| d.Text.IndexOf("Manufacturer String [", StringComparison.Ordinal) >= 0) withstr++;
 			if (d.Text.IndexOf("PIPE0 Description:", StringComparison.Ordinal) >= 0) withpipe++;
 		}
 		Out($"devdesc={withdev} strdesc={withstr} pipes={withpipe}");
@@ -6168,9 +6171,19 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Err("没有任何设备读到管道");
 			return 1;
 		}
+		if (withstr == 0) {
+			Err("没有任何设备读到字符串描述符");
+			return 1;
+		}
 		var sample = list[0];
 		Out("--- " + sample.Name + " | " + sample.VidPid + " | " + sample.Node + " ---");
 		Out(sample.Text);
+		foreach (var d in list) {
+			if (ReferenceEquals(d, sample) || d.Node.StartsWith("Hub", StringComparison.Ordinal)) continue;
+			Out("--- " + d.Name + " | " + d.VidPid + " | " + d.Node + " ---");
+			Out(d.Text);
+			break;
+		}
 		Out("=== OK：USB 描述符 ===");
 		return 0;
 	}
@@ -6373,6 +6386,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		Out(bad == 0 ? "=== OK：窗口管理 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	static int testmqtt() {
+		Out("=== MQTT --test-mqtt ===");
+		return MqttBroker.Test(Out, Err);
 	}
 
 	static int testsql() {

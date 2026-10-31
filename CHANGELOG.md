@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: connect to MySQL and Oracle; their drivers install on demand and are left out of the slim package.
 - Database query: save frequently used connections and apply one with a click.
 - Database query: show row numbers in the data grid
+- System info: new USB descriptors page reads device/configuration/string descriptors, interfaces and pipes through the USB hub read-only IOCTL, plus HID usage and report layout
 
 #### Changed
 
@@ -120,6 +121,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：可连接 MySQL 和 Oracle，驱动按需安装、不进精简包。
 - 数据库查询：常用连接可保存，选中即套用。
 - 数据库查询：数据表格增加行号列
+- 系统信息：新增 USB 描述符页，经 USB 集线器只读 IOCTL 读取设备/配置/字符串描述符、接口与管道，并列出 HID 用途和报文结构
 
 #### 变更
 

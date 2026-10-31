@@ -46,6 +46,9 @@ static class UsbDesc {
 			var key = (dev.DriverKey ?? "").Trim();
 			if (key.Length > 0 && !map.ContainsKey(key)) map[key] = dev;
 		}
+		Dictionary<string, List<string>> hid;
+		try { hid = UsbHid.Collect(); }
+		catch { hid = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase); }
 		var list = new List<UsbDescDev>();
 		var hub = GHub;
 		var h = SetupDiGetClassDevsGuid(ref hub, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
@@ -57,7 +60,7 @@ static class UsbDesc {
 				if (!SetupDiEnumDeviceInterfaces(h, IntPtr.Zero, ref hub, i, ref ifd)) break;
 				var path = detail(h, ref ifd);
 				if (path.Length == 0) continue;
-				scanhub(list, path, map);
+				scanhub(list, path, map, hid);
 			}
 		}
 		finally { SetupDiDestroyDeviceInfoList(h); }
@@ -65,7 +68,8 @@ static class UsbDesc {
 		return list;
 	}
 
-	static void scanhub(List<UsbDescDev> list, string hubpath, Dictionary<string, UsbDev> map) {
+	static void scanhub(List<UsbDescDev> list, string hubpath, Dictionary<string, UsbDev> map,
+		Dictionary<string, List<string>> hid) {
 		var h = CreateFileW(hubpath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
 		if (h == new IntPtr(-1)) return;
 		try {
@@ -73,14 +77,15 @@ static class UsbDesc {
 			if (!DeviceIoControl(h, IOCTL_GET_NODE_INFO, ni, ni.Length, ni, ni.Length, out var ret, IntPtr.Zero)) return;
 			var ports = ni[6];
 			for (var port = 1; port <= ports; port++) {
-				var row = readport(h, hubpath, port, map);
+				var row = readport(h, hubpath, port, map, hid);
 				if (row != null) list.Add(row);
 			}
 		}
 		finally { CloseHandle(h); }
 	}
 
-	static UsbDescDev readport(IntPtr hub, string hubpath, int port, Dictionary<string, UsbDev> map) {
+	static UsbDescDev readport(IntPtr hub, string hubpath, int port, Dictionary<string, UsbDev> map,
+		Dictionary<string, List<string>> hid) {
 		var buf = new byte[4096];
 		BitConverter.GetBytes((uint)port).CopyTo(buf, 0);
 		if (!DeviceIoControl(hub, IOCTL_GET_NODE_CONN_INFO_EX, buf, 35, buf, buf.Length, out var ret, IntPtr.Zero))
@@ -158,7 +163,7 @@ static class UsbDesc {
 				lines.Add("Configuration: " + cfg[5] + (cfg[6] > 0 ? "" : " (iConfiguration=0)"));
 			}
 		}
-		lines.Add("Speed (Low, Full, High): " + speedname(speed));
+		lines.Add("Speed (Low, Full, High): " + speedname(speed, dd));
 
 		// 管道：配置描述符里的端点优先，读不到时退回集线器给的管道表
 		var eps = cfg == null ? new List<string>() : endpoints(cfg);
@@ -183,16 +188,16 @@ static class UsbDesc {
 			foreach (var line in ifacelines(cfg)) lines.Add("Interface [" + n++ + "]: " + line);
 		}
 
-		// 字符串描述符
-		var langid = langid(hub, port);
-		var idx = new[] { 1, 2, 3 };
-		foreach (var i in idx) {
-			var s = strdesc(hub, port, i, langid);
+		// 字符串描述符：1 厂商、2 产品、3 序列号；设备没写的项读不到属正常
+		var lid = langid(hub, port);
+		var labels = new[] { "", "Manufacturer", "Product", "Serial Number" };
+		for (var i = 1; i <= 3; i++) {
+			var s = strdesc(hub, port, i, lid);
 			if (s == null) {
-				if (errs.Count == 0) errs.Add("String Descriptor [" + i + "]: " + lasterr());
-				else errs.Add("String Descriptor [" + i + "]: " + lasterr());
+				if (i < 3) errs.Add($"{labels[i]} String [{i}]: {lasterr()}");
+				continue;
 			}
-			else if (s.Length > 0) lines.Add("String Descriptor [" + i + "]: " + s);
+			if (s.Length > 0) lines.Add($"{labels[i]} String [{i}]: {s}");
 		}
 
 		// 原始字节，便于核对
@@ -200,8 +205,11 @@ static class UsbDesc {
 		if (cfg != null && cfg.Length > 0) lines.Add("Config Descriptor: " + hex(cfg));
 		foreach (var e in errs) lines.Add(e);
 
+		if (dev != null && hid.Count > 0 && hid.TryGetValue(dev.InstanceId ?? "", out var hseg))
+			lines.AddRange(hseg);
+
 		var name = head;
-		if (string.IsNullOrWhiteSpace(name)) name = strdesc(hub, port, 2, langid);
+		if (string.IsNullOrWhiteSpace(name)) name = strdesc(hub, port, 2, lid);
 		if (string.IsNullOrWhiteSpace(name)) name = $"USB {vid:X4}:{pid:X4}";
 		var vidpid = $"{vid:X4}:{pid:X4}";
 		var sb = new StringBuilder();
@@ -260,13 +268,23 @@ static class UsbDesc {
 		return string.Format(CultureInfo.InvariantCulture, "Device Class: 0x{0:X2}{1} · SubClass 0x{2:X2} · Protocol 0x{3:X2}", cls, name, sub, prot);
 	}
 
-	static string speedname(byte speed) => speed switch {
-		0 => "Low",
-		1 => "Full",
-		2 => "High",
-		3 => "Super",
-		_ => "Unknown (" + speed + ")",
-	};
+	/// <summary>
+	/// USB 2.0 集线器的速度字段只有 Low/Full/High 三档，SuperSpeed 设备也报 High。
+	/// 描述符里 bcdUSB ≥ 3.0 且端点 0 最大包长为 9 是 SuperSpeed 的硬标志，优先按它判断。
+	/// </summary>
+	static string speedname(byte speed, byte[] dd) {
+		if (dd != null && dd.Length >= 18) {
+			var bcdusb = BitConverter.ToUInt16(dd, 2);
+			if (bcdusb >= 0x0300 && dd[7] == 9) return "Super";
+		}
+		return speed switch {
+			0 => "Low",
+			1 => "Full",
+			2 => "High",
+			3 => "Super",
+			_ => "Unknown (" + speed + ")",
+		};
+	}
 
 	static string pipekind(byte attr) => (attr & 0x03) switch {
 		0 => "Control",
