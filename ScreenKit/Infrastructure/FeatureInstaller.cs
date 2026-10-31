@@ -300,7 +300,7 @@ static class FeatureInstaller {
 		FeatureKind.DbMssql => 0,
 		FeatureKind.Bogus => NativeRuntime.BogusSizeHint,
 		FeatureKind.NPinyin => NativeRuntime.NPinyinSizeHint,
-		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint,
+		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint + NativeRuntime.SkiaManagedSizeHint,
 		FeatureKind.NativePdfium => NativeRuntime.PdfiumSizeHint,
 		FeatureKind.PdfManaged => NativeRuntime.PdfManagedSizeHint,
 		FeatureKind.NativeSherpa => NativeRuntime.SherpaSizeHint,
@@ -386,7 +386,8 @@ static class FeatureInstaller {
 			case FeatureKind.NPinyin:
 				return filesize(Path.Combine(BaseDir, "NPinyin.dll"));
 			case FeatureKind.NativeSkia:
-				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"));
+				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"))
+					+ filesize(Path.Combine(BaseDir, "SkiaSharp.dll"));
 			case FeatureKind.NativePdfium:
 				return filesize(Path.Combine(BaseDir, "pdfium.dll"));
 			case FeatureKind.PdfManaged:
@@ -479,7 +480,8 @@ static class FeatureInstaller {
 		case FeatureKind.NPinyin:
 			return NativeRuntime.HasNPinyin() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSkia:
-			return NativeRuntime.HasSkia() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+			if (!NativeRuntime.HasSkia()) return FeatureInstallState.Missing;
+			return NativeRuntime.HasSkiaManaged() ? FeatureInstallState.Installed : FeatureInstallState.Partial;
 		case FeatureKind.NativePdfium:
 			return NativeRuntime.HasPdfium() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.PdfManaged:

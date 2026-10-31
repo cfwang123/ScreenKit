@@ -17,6 +17,9 @@ static class NativeRuntime {
 	const string OpencvVer = "4.11.0.20250507";
 	const string SkiaPkg = "skiasharp.nativeassets.win32";
 	const string SkiaVer = "3.119.0";
+	/// <summary>SkiaSharp 托管绑定（与原生 libSkiaSharp 同属 Skia 运行库）。</summary>
+	const string SkiaManagedPkg = "skiasharp";
+	const string SkiaManagedVer = "3.119.0";
 	const string PdfiumPkg = "bblanchon.pdfium.win32";
 	const string PdfiumVer = "139.0.7215";
 	const string PdfSharpPkg = "pdfsharp";
@@ -58,6 +61,7 @@ static class NativeRuntime {
 	const string NPinyinPkg = "NPinyin";
 	const string NPinyinVer = "0.2.6321.26573";
 	const string LibSkia = "libSkiaSharp.dll";
+	const string SkiaSharpDll = "SkiaSharp.dll";
 	const string Pdfium = "pdfium.dll";
 	const string PdfToImageDll = "PDFtoImage.dll";
 	/// <summary>PDF 用的托管库（PdfSharp 6 拆成多个程序集 + PDFtoImage），随 PDF 功能一起装。</summary>
@@ -101,6 +105,9 @@ static class NativeRuntime {
 		File.Exists(Path.Combine(BaseDir, LibSkia))
 		|| File.Exists(Path.Combine(BaseDir, "x64", LibSkia));
 
+	/// <summary>SkiaSharp 托管绑定（PDFtoImage 依赖）。</summary>
+	public static bool HasSkiaManaged() => File.Exists(Path.Combine(BaseDir, SkiaSharpDll));
+
 	public static bool HasPdfium() =>
 		File.Exists(Path.Combine(BaseDir, Pdfium))
 		|| File.Exists(Path.Combine(BaseDir, "x64", Pdfium));
@@ -112,8 +119,8 @@ static class NativeRuntime {
 	public static bool HasPdfManaged() =>
 		PdfManagedDlls.All(n => File.Exists(Path.Combine(BaseDir, n)));
 
-	/// <summary>PDF 整套就绪：原生 Skia / PDFium + 托管 PdfSharp / PDFtoImage。</summary>
-	public static bool HasPdfReady() => HasSkiaPdf() && HasPdfManaged();
+	/// <summary>PDF 整套就绪：原生 Skia / PDFium + 托管 SkiaSharp / PdfSharp / PDFtoImage。</summary>
+	public static bool HasPdfReady() => HasSkiaPdf() && HasSkiaManaged() && HasPdfManaged();
 
 	public static bool HasSherpa() =>
 		File.Exists(Path.Combine(BaseDir, SherpaCApi))
@@ -127,6 +134,7 @@ static class NativeRuntime {
 	public static long BogusSizeHint => 2429952L;
 	public static long NPinyinSizeHint => 76288L;
 	public static long SkiaSizeHint => 11L * 1024 * 1024;
+	public static long SkiaManagedSizeHint => 747072L;
 	public static long PdfiumSizeHint => 6L * 1024 * 1024;
 	/// <summary>PdfSharp 9 个程序集 + PDFtoImage，合计约 1.6MB。</summary>
 	public static long PdfManagedSizeHint => PdfSharpSizeHint + PdfToImageSizeHint;
@@ -301,6 +309,10 @@ static class NativeRuntime {
 			},
 			log, progress, ct, SkiaSizeHint).ConfigureAwait(false);
 		copybeside(LibSkia, "x64");
+		// SkiaSharp 托管绑定（PDFtoImage 依赖），与原生库一起装
+		await FeatureInstaller.InstallNuGetFiles(SkiaManagedPkg, SkiaManagedVer,
+			new[] { ("lib/net462/" + SkiaSharpDll, Path.Combine(BaseDir, SkiaSharpDll)) },
+			log, progress, ct, SkiaManagedSizeHint).ConfigureAwait(false);
 		pdfOk = HasPdfReady();
 	}
 
@@ -375,7 +387,8 @@ static class NativeRuntime {
 	public static void UninstallSkia(IProgress<string> log = null) {
 		deletefiles(log, LibSkia,
 			Path.Combine("x64", LibSkia),
-			Path.Combine("runtimes", "win-x64", "native", LibSkia));
+			Path.Combine("runtimes", "win-x64", "native", LibSkia),
+			SkiaSharpDll);
 		pdfOk = false;
 	}
 
@@ -531,6 +544,7 @@ static class NativeRuntime {
 		sb.AppendLine($"Bogus: {(HasBogus() ? "OK" : "缺失")}  ({BogusDll})");
 		sb.AppendLine($"NPinyin: {(HasNPinyin() ? "OK" : "缺失")}  ({NPinyinDll})");
 		sb.AppendLine($"libSkiaSharp: {(HasSkia() ? "OK" : "缺失")}  ({LibSkia})");
+		sb.AppendLine($"SkiaSharp: {(HasSkiaManaged() ? "OK" : "缺失")}  ({SkiaSharpDll})");
 		sb.AppendLine($"pdfium: {(HasPdfium() ? "OK" : "缺失")}  ({Pdfium})");
 		sb.AppendLine($"PdfSharp / PDFtoImage: {(HasPdfManaged() ? "OK" : "缺失")}  ({PdfManagedDlls.Length} 个托管库)");
 		sb.AppendLine($"sherpa-onnx-c-api: {(HasSherpa() ? "OK" : "缺失")}  ({SherpaCApi})");
