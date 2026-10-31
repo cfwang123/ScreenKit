@@ -10,7 +10,6 @@ static class Net {
 	public const int TIMEOUT = 30000;
 
 	public static bool TrustAllCerts = true;
-	public static NetworkCredential Credential;
 
 	public static void init() {
 		try { ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12; } catch { }
@@ -31,10 +30,6 @@ static class Net {
 		req.AllowAutoRedirect = true;
 		req.Proxy = ScreenKit.HttpProxy.Instance;
 		if (TrustAllCerts) req.ServerCertificateValidationCallback = (_, _, _, _) => true;
-		if (Credential != null) {
-			req.Credentials = Credential;
-			req.PreAuthenticate = true;
-		}
 		return req;
 	}
 

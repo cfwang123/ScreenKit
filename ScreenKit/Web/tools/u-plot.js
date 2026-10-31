@@ -919,7 +919,7 @@
 		else if (style === "dots") drawDots(ctx, pts);
 		else if (style === "level") drawLevels(ctx, pts, zraw, n, grid, lo, hi);
 		else drawFill(ctx, pts, n, grid);
-		drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi);
+		drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi, box);
 		ctx.restore();
 	}
 
@@ -1019,7 +1019,7 @@
 		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp);
 		else impfill(ctx, cols, n, cw, gap);
 		// z 轴只画到曲面顶端，免得轴尖和标签被画布切掉。
-		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, box.z1 > 0 ? Math.min(z1, box.z1) : z1);
+		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, box.z1 > 0 ? Math.min(z1, box.z1) : z1, box);
 		ctx.restore();
 	}
 
@@ -1705,5 +1705,6 @@
 	function isletter(c){ return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"); }
 	function isdigit(c){ return c >= "0" && c <= "9"; }
 })();
+
 
 

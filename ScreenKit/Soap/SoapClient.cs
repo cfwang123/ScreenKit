@@ -46,7 +46,7 @@ class CallResult {
 /// <summary>直接基于 HttpWebRequest 的 SOAP 调用（不依赖任何 SOAP/WCF 库）。</summary>
 static class SoapClient {
 	public static CallResult call(Operation op, string address, string body, string soapAction, string contentType,
-		int timeoutMs, string extraHeaders, NetworkCredential credential) {
+		int timeoutMs, string extraHeaders) {
 		var result = new CallResult { Url = address, RequestBody = body };
 		var sw = Stopwatch.StartNew();
 		try {
@@ -71,10 +71,6 @@ static class SoapClient {
 			if (!is12 && !string.IsNullOrEmpty(soapAction)) req.Headers["SOAPAction"] = soapAction;
 			req.Proxy = ScreenKit.HttpProxy.Instance;
 			if (Net.TrustAllCerts) req.ServerCertificateValidationCallback = (_, _, _, _) => true;
-			if (credential != null) {
-				req.Credentials = credential;
-				req.PreAuthenticate = true;
-			}
 			if (!string.IsNullOrWhiteSpace(extraHeaders)) applyHeaders(req, extraHeaders);
 
 			byte[] payload = new UTF8Encoding(false).GetBytes(body ?? "");

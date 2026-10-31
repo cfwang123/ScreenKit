@@ -20,6 +20,7 @@ public partial class SoapDebugWindow : Window {
 	readonly ObservableCollection<MockOpEntry> mockOps = new();
 	MockOpEntry currentMockOp;
 	bool mockdirty;
+	bool mockcustom;
 	bool loading;
 	int nextsync;
 
@@ -206,6 +207,10 @@ public partial class SoapDebugWindow : Window {
 	}
 
 	void applySession(WsdlSession s, string location) {
+		currentOp = null;
+		currentMockOp = null;
+		mockcustom = false;
+		currentParts.Clear();
 		session = s;
 		addRecent(location);
 		mockcfg = new MockConfig();
@@ -213,9 +218,6 @@ public partial class SoapDebugWindow : Window {
 		if (!cfgLoaded && SampleWsdl.isSample(location)) seedDemoResponses();
 		rebuildMethodTree();
 		rebuildMockOps();
-
-		currentOp = null;
-		currentParts.Clear();
 		lbMethod.Text = Loc.T("soapdbg.nomethod");
 		eSoapAction.Text = "";
 		eAddress.Text = "";
@@ -375,7 +377,7 @@ public partial class SoapDebugWindow : Window {
 		Net.TrustAllCerts = cTrust.IsChecked == true;
 		bInvoke.IsEnabled = false;
 		setstatus(Loc.T("soapdbg.calling"));
-		Task.Factory.StartNew(() => SoapClient.call(op, address, body, action, null, timeout, headers, null))
+		Task.Factory.StartNew(() => SoapClient.call(op, address, body, action, null, timeout, headers))
 			.ContinueWith(t => onCalled(t), TaskScheduler.FromCurrentSynchronizationContext());
 	}
 
@@ -447,6 +449,7 @@ public partial class SoapDebugWindow : Window {
 		bMockDefault.Click += (_, _) => {
 			if (currentMockOp == null || session == null) return;
 			setmocktext(session.defaultResponseInner(currentMockOp.Op));
+			mockcustom = true;
 			mockdirty = true;
 			nextsync = Environment.TickCount + 400;
 		};
@@ -454,6 +457,7 @@ public partial class SoapDebugWindow : Window {
 			if (currentMockOp == null) return;
 			mockcfg.set(currentMockOp.Op.Name, null);
 			setmocktext(session?.defaultResponseInner(currentMockOp.Op) ?? "");
+			mockcustom = false;
 			mockdirty = false;
 			mock.Resolver = name => mockcfg.get(name);
 			setstatus(Loc.T("soapdbg.reverted"));
@@ -468,6 +472,7 @@ public partial class SoapDebugWindow : Window {
 		};
 		eMockResponse.TextChanged += (_, _) => {
 			if (loading) return;
+			mockcustom = true;
 			mockdirty = true;
 			nextsync = Environment.TickCount + 400;
 		};
@@ -499,7 +504,7 @@ public partial class SoapDebugWindow : Window {
 	void applyMockResponse() {
 		if (currentMockOp == null) return;
 		string xml = eMockResponse.Text;
-		mockcfg.set(currentMockOp.Op.Name, string.IsNullOrWhiteSpace(xml) ? null : xml);
+		mockcfg.set(currentMockOp.Op.Name, mockcustom && !string.IsNullOrWhiteSpace(xml) ? xml : null);
 		mock.Resolver = name => mockcfg.get(name);
 	}
 
@@ -516,6 +521,7 @@ public partial class SoapDebugWindow : Window {
 		currentMockOp = entry;
 		lbMockOp.Text = entry.Op.Name;
 		string custom = mockcfg.get(entry.Op.Name);
+		mockcustom = custom != null;
 		setmocktext(custom ?? session?.defaultResponseInner(entry.Op) ?? "");
 		mockdirty = false;
 	}
@@ -585,8 +591,11 @@ public partial class SoapDebugWindow : Window {
 		mockcfg = cfg;
 		ePort.Text = cfg.Port.ToString();
 		mock.Resolver = name => mockcfg.get(name);
-		if (currentMockOp != null)
-			setmocktext(mockcfg.get(currentMockOp.Op.Name) ?? session?.defaultResponseInner(currentMockOp.Op) ?? "");
+		if (currentMockOp != null) {
+			string custom = mockcfg.get(currentMockOp.Op.Name);
+			mockcustom = custom != null;
+			setmocktext(custom ?? session?.defaultResponseInner(currentMockOp.Op) ?? "");
+		}
 		setstatus(Loc.T("soapdbg.imported", cfg.Count, dlg.FileName));
 		if (!string.IsNullOrEmpty(cfg.WsdlLocation) && session == null) {
 			eUrl.Text = cfg.WsdlLocation;

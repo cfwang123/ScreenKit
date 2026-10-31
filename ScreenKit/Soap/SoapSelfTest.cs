@@ -70,12 +70,12 @@ static class SoapSelfTest {
 				mock.Resolver = name => string.Equals(name, "Add", StringComparison.OrdinalIgnoreCase)
 					? SampleWsdl.defaultResponses()["Add"]
 					: null;
-				var r = SoapClient.call(add, url, request, add.SoapAction, null, 5000, "", null);
+				var r = SoapClient.call(add, url, request, add.SoapAction, null, 5000, "");
 				check("模拟调用 HTTP 200", r.StatusCode == 200, r.Error ?? "");
 				check("模拟调用返回 7", r.ResponseBody.Contains(">7<"), r.ResponseBody);
 
 				mock.Resolver = null;
-				var r2 = SoapClient.call(add, url, request, add.SoapAction, null, 5000, "", null);
+				var r2 = SoapClient.call(add, url, request, add.SoapAction, null, 5000, "");
 				check("默认响应可用", r2.StatusCode == 200 && r2.ResponseBody.Contains("AddResponse"), r2.ResponseBody);
 
 				string wsdl = Net.readText(mock.BaseUrl + "/demo.wsdl");
