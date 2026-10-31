@@ -257,7 +257,7 @@
 	}
 
 	function inst(){
-		var el = page.doms.bitInst;
+		var el = page && page.doms ? page.doms.bitInst : null;
 		var id = el ? el.value : "sq";
 		var i;
 		for (i = 0; i < INST.length; i++) if (INST[i].id === id) return INST[i];
@@ -271,7 +271,7 @@
 	}
 
 	function volnow(){
-		var el = page.doms.bitVol;
+		var el = page && page.doms ? page.doms.bitVol : null;
 		var v = el ? Number(el.value) : 100;
 		if (!(v >= 0)) v = 100;
 		return v / 100;
@@ -423,7 +423,7 @@
 	}
 
 	function say(text){
-		var el = page.doms.bitMsg;
+		var el = page && page.doms ? page.doms.bitMsg : null;
 		if (el) el.textContent = text;
 	}
 

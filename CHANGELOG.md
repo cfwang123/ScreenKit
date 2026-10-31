@@ -75,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English pronoun usage examples follow the person, and be no longer labels am/is/are as third-person singular
 - Russian short passive participles keep ё only in the masculine form (говорён, but говорена/говорено/говорены)
 - 3D plots now fit the canvas and keep a stable size while rotating; implicit surface poles are no longer flattened
+- Web tools: sound from other tools no longer crashes when the 8-bit synthesizer page was never opened.
 
 ### 中文
 
@@ -108,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复英语代词用法例句按人称生成，be 的 am/is/are 不再标成第三人称单数
 - 修复俄语 -ённый 短尾分词，只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
 - 三维函数图像按画布自适应，旋转时大小保持稳定；隐式曲面极点不再被削平
+- web 工具：没打开过 8bit 合成器时，其它工具调用音效不再报错。
 
 ## v1.0.31 (2026-10-29)
 
