@@ -5024,6 +5024,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(netToolWin, w)) netToolWin = null;
 				else if (ReferenceEquals(sysWin, w)) sysWin = null;
 				else if (ReferenceEquals(httpDbgWin, w)) httpDbgWin = null;
+				else if (ReferenceEquals(mqttWin, w)) mqttWin = null;
 				else if (ReferenceEquals(soapDbgWin, w)) soapDbgWin = null;
 				else if (ReferenceEquals(zhConvWin, w)) zhConvWin = null;
 				else if (ReferenceEquals(winCalWin, w)) winCalWin = null;

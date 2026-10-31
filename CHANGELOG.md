@@ -103,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tools: sound from other tools no longer crashes when the 8-bit synthesizer page was never opened.
 - The coordinate axes were missing on 3D surfaces of the form z=f(x,y); they are drawn at the origin again.
 - Slim release package now ships the USB AOA driver (winusb-aoa.inf) and the SOAP debugger sample WSDLs (soapmock); previously these were missing from the published package, breaking USB screen-cast driver install and the SOAP debugger samples.
+- MQTT window could not be reopened after closing it
 
 ### 中文
 
@@ -164,6 +165,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具：没打开过 8bit 合成器时，其它工具调用音效不再报错。
 - z=f(x,y) 的三维曲面不显示坐标轴；现在重新画在原点。
 - 精简发布包现在随包包含 USB AOA 驱动（winusb-aoa.inf）与 SOAP 调试器示例 WSDL（soapmock）；此前发布包缺这两项，会导致 USB 投屏无法安装驱动、SOAP 调试器无示例可用。
+- MQTT 调试：关闭窗口后无法再次打开
 
 ## v1.0.31 (2026-10-29)
 
