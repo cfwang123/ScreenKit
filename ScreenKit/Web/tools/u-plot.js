@@ -41,7 +41,7 @@
 		{ g: "eq3", mode: "3", fn: "x^2+y^2-z^2=-1" },
 		{ g: "eq3", mode: "3", fn: "(x^2+9/4*y^2+z^2-1)^3-x^2*z^3-9/80*y^2*z^3=0" }
 	];
-	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
+	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65, zoom: 1 };
 	var view3 = { s: 1, ox: 0, oy: 0 };
 	var canvas = null;
 	var watch = null;
@@ -247,6 +247,7 @@
 			cam.cy = 0;
 			cam.xspan = 4;
 			cam.yspan = 4;
+			cam.zoom = 1;
 			cam.yaw = -0.6;
 			cam.pitch = 0.65;
 			return;
@@ -344,7 +345,7 @@
 		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		if (mode === "3")
-			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom;
 		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1;
 	}
 
@@ -424,8 +425,8 @@
 		var xonly = ev.ctrlKey && !ev.shiftKey;
 		var yonly = ev.shiftKey && !ev.ctrlKey;
 		if (mode === "3") {
-			if (!yonly) setspan("xspan", factor);
-			if (!xonly) setspan("yspan", factor);
+			// 三维是相机缩放：只放大画面，采样范围不变。
+			setzoom(cam.zoom * (delta > 0 ? 1 / 1.12 : 1.12));
 			paint();
 			return;
 		}
@@ -455,11 +456,11 @@
 		paint();
 	}
 
-	function setspan(key, factor){
-		var v = cam[key] * factor;
+	function setzoom(v){
+		if (!isFinite(v) || !(v > 0)) return;
 		if (v < 0.05) v = 0.05;
-		if (v > 1000) v = 1000;
-		cam[key] = v;
+		if (v > 20) v = 20;
+		cam.zoom = v;
 	}
 
 	function hideRead(){
@@ -768,38 +769,50 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
-	// 三维按内容实际投影范围等比铺满画布，左右和上下都尽量用满。
-	function fit3(w, h, box){
-		var pad = 14;
-		var bw = box.x1 - box.x0, bh = box.y1 - box.y0;
-		if (!(bw > 1e-9) || !(bh > 1e-9)) {
-			var s0 = Math.min(w, h) * 0.42 / Math.max(0.001, Math.max(cam.xspan, cam.yspan));
-			view3.s = s0;
-			view3.ox = w / 2;
-			view3.oy = h / 2;
-			return;
+	// 三维按内容的外接球定比例：球半径跟视角无关，所以转动、俯仰时画面大小和 xyz 比例都不变，
+	// 同时又不会因为换个角度就超出画布。居中用内容中心投影后的位置。
+	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
+		var cx = (box.x0 + box.x1) / 2;
+		var cy = (box.y0 + box.y1) / 2;
+		var cz = (box.z0 + box.z1) / 2;
+		var r = 0, i, p, dx, dy, dz, d2;
+		if (isFinite(cx) && isFinite(cy) && isFinite(cz)) {
+			for (i = 0; i < list.length; i++) {
+				p = list[i];
+				if (!p || !p.ok) continue;
+				dx = p.wx - cx;
+				dy = p.wy - cy;
+				dz = p.wz - cz;
+				d2 = dx * dx + dy * dy + dz * dz;
+				if (d2 > r) r = d2;
+			}
+			r = Math.sqrt(r);
 		}
-		var s = Math.min((w - pad * 2) / bw, (h - pad * 2) / bh);
-		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / Math.max(0.001, bw);
+		if (!(r > 1e-9) || !isFinite(r)) r = Math.max(0.001, Math.max(cam.xspan, cam.yspan));
+		var pad = 14;
+		var s = (Math.min(w, h) - pad * 2) / (r * 2) * cam.zoom;
+		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / r;
 		view3.s = s;
-		view3.ox = w / 2 - (box.x0 + box.x1) / 2 * s;
-		view3.oy = h / 2 + (box.y0 + box.y1) / 2 * s;
+		view3.ox = w / 2 - (cx * cyaw - cy * syaw) * s;
+		view3.oy = h / 2 + ((cx * syaw + cy * cyaw) * sp + cz * cp) * s;
 	}
 
-	function boxone(box, u, v){
-		if (!isFinite(u) || !isFinite(v)) return;
-		if (u < box.x0) box.x0 = u;
-		if (u > box.x1) box.x1 = u;
-		if (v < box.y0) box.y0 = v;
-		if (v > box.y1) box.y1 = v;
+	function boxone(box, x, y, z){
+		if (!isFinite(x) || !isFinite(y) || !isFinite(z)) return;
+		if (x < box.x0) box.x0 = x;
+		if (x > box.x1) box.x1 = x;
+		if (y < box.y0) box.y0 = y;
+		if (y > box.y1) box.y1 = y;
+		if (z < box.z0) box.z0 = z;
+		if (z > box.z1) box.z1 = z;
 	}
 
 	function newbox(){
-		return { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+		return { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity, z0: Infinity, z1: -Infinity };
 	}
 
 	// 三维点投影：x、y 按采样范围等比归一，z 按 zfit 归一，再按 yaw 旋转、pitch 俯仰。
-	// 返回 view3 缩放前的 ux、uz，以及用来排序前后遮挡的深度 d。
+	// 返回 view3 缩放前的 ux、uz、用来排序前后遮挡的深度 d，以及归一后的三维坐标。
 	function proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit){
 		var fit = Math.max(cam.xspan, cam.yspan);
 		var X = (x - cam.cx) / cam.xspan * fit;
@@ -807,12 +820,7 @@
 		var Z = (z - zmid) * zfit;
 		var x1 = X * cyaw - Y * syaw;
 		var y1 = X * syaw + Y * cyaw;
-		return { ux: x1, uz: y1 * sp + Z * cp, d: y1 * cp - Z * sp };
-	}
-
-	function boxone3(box, x, y, z, cyaw, syaw, cp, sp){
-		var p = proj3(x, y, z, cyaw, syaw, cp, sp, 0, 1);
-		boxone(box, p.ux, p.uz);
+		return { ux: x1, uz: y1 * sp + Z * cp, d: y1 * cp - Z * sp, wx: X, wy: Y, wz: Z };
 	}
 
 	function scr3(p){
@@ -875,12 +883,15 @@
 					uz: y1 * sp + Z * cp,
 					d: y1 * cp - Z * sp,
 					ok: ok,
-					t: ok ? (z - lo) / (hi - lo) : 0
+					t: ok ? (z - lo) / (hi - lo) : 0,
+					wx: X,
+					wy: Y,
+					wz: Z
 				};
-				if (ok) boxone(box, x1, y1 * sp + Z * cp);
+				if (ok) boxone(box, X, Y, Z);
 			}
 		}
-		fit3(w, h, box);
+		fit3(w, h, box, pts, cyaw, syaw, cp, sp);
 		for (i = 0; i < pts.length; i++) {
 			pts[i].x = view3.ox + pts[i].ux * view3.s;
 			pts[i].y = view3.oy - pts[i].uz * view3.s;
@@ -907,6 +918,7 @@
 		var cw = n + 1;
 		var cols = new Array(cw * cw);
 		var box = newbox();
+		var all = [];
 		var z0 = -fit, z1 = fit, dz = (z1 - z0) / m;
 		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, gap;
 		for (j = 0; j <= n; j++) {
@@ -944,19 +956,19 @@
 						}
 						zz = (lo + hi) / 2;
 						p = proj3(x, y, zz, cyaw, syaw, cp, sp, 0, 1);
-						list.push({ ux: p.ux, uz: p.uz, d: p.d, t: (zz - z0) / (z1 - z0), z: zz });
-						boxone(box, p.ux, p.uz);
+						p.t = (zz - z0) / (z1 - z0);
+						p.z = zz;
+						p.ok = true;
+						list.push(p);
+						all.push(p);
+						boxone(box, p.wx, p.wy, p.wz);
 					}
 					f0 = f1;
 				}
 				cols[j * cw + i] = list;
 			}
 		}
-		// 坐标轴的轴尖也算进范围，免得贴边被裁掉。
-		boxone3(box, cam.xspan * 0.85, 0, 0, cyaw, syaw, cp, sp);
-		boxone3(box, 0, cam.yspan * 0.85, 0, cyaw, syaw, cp, sp);
-		boxone3(box, 0, 0, z1, cyaw, syaw, cp, sp);
-		fit3(w, h, box);
+		fit3(w, h, box, all, cyaw, syaw, cp, sp);
 		gap = 2 * fit * view3.s / n;
 		var row;
 		for (i = 0; i < cols.length; i++) {
@@ -991,7 +1003,8 @@
 		else if (style === "dots") impdots(ctx, cols, n, cw, gap);
 		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp);
 		else impfill(ctx, cols, n, cw, gap);
-		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, z1);
+		// z 轴只画到曲面顶端，免得轴尖和标签被画布切掉。
+		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, box.z1 > 0 ? Math.min(z1, box.z1) : z1);
 		ctx.restore();
 	}
 

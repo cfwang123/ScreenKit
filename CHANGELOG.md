@@ -73,7 +73,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English conjugation examples show complete sentences instead of trailing ellipses.
 - Byte viewer: the hex field auto-groups input as XX XX, Backspace/Delete removes a whole byte, typing at the caret overwrites the nibble there, and the field starts with 01 00 00 00.
 - Password generator remembers the last options (length, count, character classes, custom set); changes are written to localStorage 2 seconds after the last edit and restored on open.
-- 3D plots now fit the canvas by projected extent: implicit surfaces such as x^2+y^2+z^2=9 are scaled like explicit ones instead of being cropped at the top and bottom.
+- 3D plots now take their size from the content's bounding sphere, so implicit surfaces such as x^2+y^2+z^2=9 are no longer cropped, and rotating the view no longer changes the size or the x/y/z proportions.
+- 3D wheel zoom now magnifies the picture instead of resampling a narrower range, so zooming no longer changes the x/y/z proportions either.
 
 #### Fixed
 
@@ -116,7 +117,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词形变化的示例句改为完整句子，不再用省略号。
 - 字节解读：十六进制输入框自动按 XX XX 分组，退格/删除一次去掉一个字节，光标在中间时按半字节覆盖输入；打开时预填 01 00 00 00。
 - 密码生成器记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
-- 三维函数图像改成按投影范围适配画布：x^2+y^2+z^2=9 这类隐式曲面和显式曲面一样缩放居中，不再上下被裁掉。
+- 三维函数图像改成按内容的外接球定比例：x^2+y^2+z^2=9 这类曲面不再被画布上下裁掉，转动视角时大小和 xyz 比例也不再跟着变。
+- 三维滚轮改成放大画面，不再改成采更小的范围，缩放时 xyz 比例同样保持不变。
 
 #### 修复
 
