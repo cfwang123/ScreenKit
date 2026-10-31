@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 using System.Windows.Threading;
 using System.IO;
@@ -60,7 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-cam" or "--test-scicalc" or "--test-note"
@@ -358,6 +358,8 @@ static class Cli {
 					return testusb();
 				case "--test-sysinfo":
 					return testsysinfo();
+				case "--test-usbdesc":
+					return testusbdesc();
 				case "--test-systool":
 					return SysTool.Test(Out, Err);
 				case "--test-fileprobe":
@@ -6132,8 +6134,48 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return 0;
 	}
 
-	static bool checkdev(string tag, Func<List<UsbDev>> scan, bool needOne) {
-		List<UsbDev> list;
+	static int testusbdesc() {
+		Out("=== USB 描述符 --test-usbdesc ===");
+		List<UsbDescDev> list;
+		try { list = UsbDesc.Scan(); }
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+		Out("count=" + list.Count);
+		if (list.Count == 0) {
+			Err("没有枚举到带描述符的设备");
+			return 1;
+		}
+		var withdev = 0;
+		var withstr = 0;
+		var withpipe = 0;
+		foreach (var d in list) {
+			if (string.IsNullOrEmpty(d.Text) || string.IsNullOrEmpty(d.Node)) {
+				Err("设备缺少描述符文本或节点");
+				return 1;
+			}
+			if (d.Text.IndexOf("Device Descriptor:", StringComparison.Ordinal) >= 0) withdev++;
+			if (d.Text.IndexOf("String Descriptor [", StringComparison.Ordinal) >= 0) withstr++;
+			if (d.Text.IndexOf("PIPE0 Description:", StringComparison.Ordinal) >= 0) withpipe++;
+		}
+		Out($"devdesc={withdev} strdesc={withstr} pipes={withpipe}");
+		if (withdev == 0) {
+			Err("没有任何设备读到设备描述符");
+			return 1;
+		}
+		if (withpipe == 0) {
+			Err("没有任何设备读到管道");
+			return 1;
+		}
+		var sample = list[0];
+		Out("--- " + sample.Name + " | " + sample.VidPid + " | " + sample.Node + " ---");
+		Out(sample.Text);
+		Out("=== OK：USB 描述符 ===");
+		return 0;
+	}
+
+	static bool checkdev(string tag, Func<List<UsbDev>> scan, bool needOne) {		List<UsbDev> list;
 		try { list = scan(); }
 		catch (Exception ex) {
 			Err(tag + " " + ex.Message);
@@ -8176,6 +8218,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-nettool  localhost 解析、ping 127.0.0.1、IP 城市 JSON、MAC 厂家、USB ID、系统定位权限
       --test-usb  只读列出当前 USB 设备，并检查前几项有实例和参数
       --test-sysinfo  只读检查系统信息及各类设备扫描
+      --test-usbdesc  经集线器只读读取设备/配置/字符串描述符与管道，并打印一台设备
       --test-systool  只读检查进程、环境变量、已安装程序、服务、商店应用和 txt 关联，并查一个被本进程占用的临时文件
       --test-fileprobe  用临时文件检查魔数、UTF-8、GBK，以及 exe/dll 的节、导入导出和签名
       --test-perfmon  采样 CPU、内存、网络和磁盘速率，并检查小窗开关能保存
