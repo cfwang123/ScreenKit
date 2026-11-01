@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System info: new USB descriptors page reads device/configuration/string descriptors, interfaces and pipes through the USB hub read-only IOCTL, plus HID usage and report layout
 - MQTT debugger: hand-written TCP client and broker, no third-party library
 - TLS certificate check: connect to host:port, show TLS version, cipher, certificate chain, validity, SAN, thumbprint and PEM, view only
+- Command tools: add a ripgrep (rg) cheat sheet to the Linux, PowerShell, pwsh, and CMD tables, covering rg --files piped into grep or findstr, glob and type filters, context lines, and hidden-file options
 
 #### Changed
 
@@ -135,6 +136,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统信息：新增 USB 描述符页，经 USB 集线器只读 IOCTL 读取设备/配置/字符串描述符、接口与管道，并列出 HID 用途和报文结构
 - MQTT 调试：纯 TCP 自实现的客户端和服务端，不依赖第三方库
 - TLS 证书检查：连 host:port 查看 TLS 版本、加密套件、证书链、有效期、SAN、指纹和 PEM，只查看不改设置
+- 命令工具：Linux、PowerShell、pwsh、CMD 各表补 ripgrep（rg）速查，含 rg --files 接 grep/findstr 筛文件、glob 与类型筛选、上下文和隐藏文件等常见用法
 
 #### 变更
 
