@@ -146,7 +146,7 @@ http_keepalive = 10
 
 ## 4. GET `/` 与 GET `/api`
 
-`GET /` 和 `HEAD /` 返回本机工具页：历法、文本（含简繁和日文注音）、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js`、`/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`）和 `/sk/viewer.min.css`、`/sk/viewer.min.js`，并调用 `/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan`。电脑版文件管理在 `/files`。
+`GET /` 和 `HEAD /` 返回本机工具页：历法、文本（含简繁和日文注音）、二维码和条码。页面加载 `/sk/tools.css`、`/sk/tools.js`、`/sk/fa.css`（Font Awesome，字体 `/sk/fa-solid-900.woff2`）和 `/sk/viewer.min.css`、`/sk/viewer.min.js`，并调用 `/api/zhconv`、`/api/pinyin`、`/api/calendar`、`/api/jpyomi`、`/api/text`、`/api/fx`、`/api/qrmake`、`/api/qrscan`。日本人名工具会取 `/sk/jname-s.txt`、`/sk/jname-g.txt`，第一次请求时从 `dict-db` 发布下载 `jname.7z` 解到 `web/`。电脑版文件管理在 `/files`。
 
 `GET /api` 返回服务名称、简表 `endpoints`，以及 `apis`。`apis` 每一项有 `method`（GET、POST 或 GET/POST）、`path`、`summary`（介绍）、`params`（参数名和说明）。这些文字与主窗口 HTTP 接口页的模板说明相同。`?lang=zh|en|ja|ko` 选择说明语言；省略时用程序当前界面语言，不改界面语言。关掉的模块不会出现。`langs` 是可选语言。
 
@@ -396,7 +396,7 @@ ScreenKit --jpyomi "東京" --mono
 | `q` / `word` | string | 辞书形，如 `食べる`、`하다`、`go`。为空返回 802 |
 | `kind` | string | 日语词性：`1` `2` `3` `ai` `an` `n`；省略时按词尾猜 |
 | `flag` | string | 日语特例：`iku` `kure` `aru` `arunai` `ute` |
-| `sub` | string | 日语 3 类：`suru` `kuru` |
+| `sub` | string | 日语 3 类：`suru` `kuru` `zuru`（信ずる、重んずる 等） |
 | `type` | string | 韩/英的类型或词性：`auto` `v` `a` `n` 等 |
 | `ui` | string | 标签语言，`zh` 开头用中文，否则英文；默认跟随界面语言 |
 

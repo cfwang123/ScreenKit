@@ -8,6 +8,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ## Versions / 版本索引
 
+- [v1.0.32 (2026-10-29 ~ 11-02)](#v1032-2026-10-29--11-02)
 - [v1.0.31 (2026-10-29)](#v1031-2026-10-29)
 - [v1.0.30 (2026-10-27)](#v1030-2026-10-27)
 - [v1.0.29 (2026-10-23)](#v1029-2026-10-23)
@@ -45,6 +46,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Fixed
+
+- The release script builds its 7z -x! excludes from the actual junk directory and file names again; they had been written as source-file paths, so the archive-level filter never matched and the pre-pack cleanup was the only guard.
+
+### 中文
+
+#### 修复
+
+- 发布脚本的 7z -x! 排除项重新按实际的垃圾目录和文件名生成；此前误写成了源码文件路径，打包层的过滤一直没生效，只剩打包前的清理在兜底。
+
+## v1.0.32 (2026-10-29 ~ 11-02)
+
+### English
+
 #### Added
 
 - Dictionary search supports ? as a wildcard for one or more characters
@@ -63,14 +78,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Changed
 
-- Refactored the web tool pages: the skeleton is a page object whose markup is built from DOM nodes declared in JS instead of HTML strings, with elements reached through SK.dom/doms and events written where the node is declared; escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
+- Refactored the web tool pages
 - The password generator now defaults to 10 passwords, regenerates automatically after changing the length, count or character options, and remembers the last options (length, count, character classes, custom set), written to localStorage 2 seconds after the last edit and restored on open.
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
 - Screenshot history in the tray and main menus now opens the history window instead of the screenshots folder.
-- QR generator uses radio buttons for the encoding, regenerates 200 ms after typing or toggling the caption, and draws the caption inside the image with the desktop spacing: the bottom quiet zone is cropped, the font is width/18 (at least 16 px), and the caption sits half a line below the code.
-- English conjugation examples show complete sentences instead of trailing ellipses.
-- 3D plots now take their size from the content's projected extent at the default view, so implicit surfaces such as x^2+y^2+z^2=9 are no longer cropped; rotating, tilting or zooming no longer changes the size or the x/y/z proportions, wheel zoom magnifies the picture instead of resampling a narrower range, and the sampling plane takes the canvas aspect ratio with one world scale, so surfaces are drawn across the width and the mesh cells stay square.
-- Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments; all JSON parsing, writing and the JSON DOM now run on JSONF, so the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
 - Default-disable main UI tabs: HTTP interface and LLM log
 - Korean IME: raise candidate cap from 8 to 200 so single-syllable prefixes can page
 - Chrome TTS pings Google while speaking and stops with an error when it is unreachable
@@ -103,14 +114,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 变更
 
-- 重构 web 工具页：骨架改为页面对象，界面用 JS 声明 DOM 节点生成而不再拼 HTML 字符串，元素统一用 SK.dom/doms 取，事件写在节点定义里；转义、翻译等小函数合并到公共模块，HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件，英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
+- 重构 web 工具页
 - 密码生成器条数默认改为 10，修改长度、数量或字符选项后自动重新生成，并记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
 - 托盘和主菜单的「截图历史」改为打开截图历史窗口，不再只是打开 screenshots 文件夹。
-- 二维码生成的编码改为单选按钮，输入文字或切换「带文字」后 200ms 自动生成，文字直接画在图片里；间距按桌面版：裁掉底部静区，字号取宽度/18（最小 16），文字离码约半行字高。
-- 英语词形变化的示例句改为完整句子，不再用省略号。
-- 三维函数图像改成按内容在默认视角下的投影大小定比例：x^2+y^2+z^2=9 这类曲面不再被画布上下裁掉，转动、倾斜或缩放视角时大小和 xyz 比例也不再跟着变；滚轮改成放大画面而不是采更小的范围；采样平面跟画布同宽高比，xyz 用同一把尺，曲面铺满宽度、网格格子也是方的。
-- 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释；JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
 - 主界面 Tab 的 HTTP 接口、LLM 日志默认禁用
 - 韩语输入法：候选上限由 8 条提到 200 条，单音节前缀可翻页
 - Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错

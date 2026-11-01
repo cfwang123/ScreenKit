@@ -96,6 +96,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
 - **性能监控**：无边框小窗显示 CPU、GPU、内存、网络和磁盘，可置顶和改更新间隔。
 - **文件分析**：按文件头判断类型，看版本、图片、媒体和文本编码。打开 EXE 或 DLL 时多出一页，可看节、导入、导出、签名和 .NET 公开类型。
 - **HTTP 请求调试**：按分组保存请求，参数一行一个 `key=value`，请求头一行一个 `名称: 值`，可发 JSON、XML 或原文；改地址与参数会互相同步，并自动补 Chrome 的 User-Agent 和 Content-Type；分组可导出为 JSON，也能导入回来。
+- **MQTT 调试**：客户端可连任意 MQTT 服务器订阅和发布，支持 `+`、`#` 通配、QoS、保留消息和 HEX 发送；服务端页能在本机起一个 broker，让其它设备连过来收发。
 - **SOAP 接口调试**：读取 WSDL（地址或本地文件），按 XSD 编辑参数、预览报文并调用 SOAP 1.1/1.2 接口；也能启动本地模拟服务，按方法配置返回内容、查看请求日志，配置可导入导出。
 - **MIDI 合成器**：鼠标或电脑键盘弹琴，可打开、修改和保存 MIDI 文件，并显示实时波形。
 - **录音机**：录麦克风、系统声音或两者，停止后播放或另存 WAV。
@@ -172,7 +173,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
   - **日本姓名读法**：查日本姓氏和名字的读法，输入汉字出假名，输入假名反查汉字；输入完整姓名会拆成一姓一名，也可以随机生成一个姓名。姓氏 9.7 万个、名字 12 万个，可按五十音行浏览，一个名字的各种读法竖排列出，每种都可以听；数据不进安装包，第一次使用时自动下载。
   - **英文不规则动词**：查原形、过去式和过去分词，输入任一形式或中文释义都能找到，可按 AAA、ABB 等变化类型筛选
   - **键盘码**：查按键的 event.code、event.key、keyCode 和 Windows VK
-  - **Linux 常用命令**：按文件、软件包、进程、网络等查命令，列表里直接显示带注释的多行示例，另有 Bash 语法速查和 ripgrep（`rg`）速查（含 `rg --files | grep name` 这类找文件、按类型和 glob 筛选、上下文与多行匹配）；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
+  - **Linux 常用命令**：按文件、软件包、进程、网络等查命令，列表里直接显示带注释的多行示例，另有 Bash 语法速查；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
   - **Windows 常用命令**：Windows PowerShell、pwsh、CMD 三套命令，按类别查用法，列表里直接显示带注释的多行示例，另有一组三种命令行的语法帮助；下次打开沿用上次选的命令行
   - **SQL 函数查询**：按字符串、数值、日期、类型转换、聚合、窗口函数、JSON、元数据等查 MySQL、SQL Server、Oracle、SQLite、PostgreSQL 的函数写法；下次打开沿用上次选的数据库
   - **Linux 常用软件**：查 Linux 常用开源软件的包名和安装命令
@@ -239,5 +240,4 @@ Windows 10/11（x64），需要 [.NET Framework 4.8](https://dotnet.microsoft.co
 - **韩语。** 国立国语院词典的衍生数据。许可为 CC BY-SA 2.0 KR。
 
 更细的用法、接口和编译见 [完整说明](docs/archive/README.zh.md)。手机端见 [android/README.md](android/README.md)。
-
 

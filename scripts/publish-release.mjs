@@ -89,11 +89,11 @@ function expandPattern(dir, pattern) {
 function buildExcludes(slimName) {
 	const ex = [];
 	for (const d of junkDirs) {
-		ex.push(`-x!${slimName}\\D:/VS_Projects/AIPrototype/PC/OCR/ScreenKit/Infrastructure/DbConnStore.cs`);
-		ex.push(`-x!${slimName}\\D:/VS_Projects/AIPrototype/PC/OCR/ScreenKit/Infrastructure/DbConnStore.cs\\*`);
+		ex.push(`-x!${slimName}\\${d}`);
+		ex.push(`-x!${slimName}\\${d}\\*`);
 	}
 	for (const f of junkFiles) {
-		ex.push(`-x!${slimName}\\d:/VS_Projects/AIPrototype/PC/OCR/ScreenKit/SendFile/SendFileServer.cs`);
+		ex.push(`-x!${slimName}\\${f}`);
 	}
 	ex.push(`-x!${slimName}\\*.log`);
 	return ex;

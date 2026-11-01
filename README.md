@@ -96,6 +96,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Performance**: A borderless window with CPU, GPU, memory, network, and disk, with a pin and an update interval.
 - **File info**: Reads the header type and shows version, image, media, and text-encoding details. EXE and DLL files get another page for sections, imports, exports, the signature, and public .NET types.
 - **HTTP request debugger**: Requests are saved in groups; parameters are one `key=value` per line, headers are one `name: value` per line, and a POST can be JSON, XML, or raw text. The URL and parameters stay in sync, a Chrome User-Agent and the Content-Type are filled in automatically, and a group can be exported to JSON and imported back.
+- **MQTT debugger**: The client connects to any MQTT broker to subscribe and publish, with `+` and `#` wildcards, QoS, retained messages, and hex send; the server tab runs a broker on this PC for other devices to connect to.
 - **SOAP debugger**: Read a WSDL from a URL or a local file, edit parameters from its XSD, preview the envelope, and call SOAP 1.1/1.2 operations. It can also run a local mock service with per-operation responses, request logs, and importable/exportable config.
 - **MIDI synthesizer**: Play with the mouse or the keyboard, open, change, and save MIDI files, and see a live waveform.
 - **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV.
@@ -172,8 +173,8 @@ This program receives while it is running, and that can be turned off in Setting
   - **Japanese name readings**: Look up how a surname or given name is read, in both directions: kanji to kana, or kana back to kanji. A full name is split into one surname and one given name, and Random can fill in a generated name. 97k surnames and 122k given names, browse by kana row, list every reading of a name in a vertical stack, and play each one; the data is downloaded on first use instead of shipping with the app
   - **English irregular verbs**: Base, past, and past participle; search by any form or meaning, and filter by AAA, ABB, and other patterns
   - **Key codes**: A key's event.code, event.key, keyCode, and Windows VK
-  - **Linux commands**: Commands by file, package, process, network, and more, each shown right in the list with a commented multi-line example, plus Bash syntax help and a ripgrep (`rg`) cheat sheet covering `rg --files | grep name`, type and glob filters, context lines, and multi-line matching; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
-  - **Windows commands**: Windows PowerShell, pwsh, and CMD commands by category, each shown right in the list with a commented multi-line example, plus a syntax-help group for all three shells and the same ripgrep cheat sheet; the last shell is remembered
+  - **Linux commands**: Commands by file, package, process, network, and more, each shown right in the list with a commented multi-line example, plus Bash syntax help, context lines, and multi-line matching; switch between Ubuntu, Debian, Deepin/UOS, RHEL, Fedora, openEuler, Arch, openSUSE, and Alpine, and the last choice is remembered
+  - **Windows commands**: Windows PowerShell, pwsh, and CMD commands by category, each shown right in the list with a commented multi-line example, plus a syntax-help group for all three shells; the last shell is remembered
   - **SQL functions**: Look up functions and syntax for MySQL, SQL Server, Oracle, SQLite, and PostgreSQL, grouped by strings, numbers, dates, casts, aggregation, window functions, JSON, and metadata; the last database is remembered
   - **Linux software**: Open-source Linux packages and install commands for common apps
   - **This browser**: What the browser can read about this device
@@ -239,5 +240,4 @@ The items below do not automatically use this repository’s MIT license. Each l
 - **Korean.** A derivative of the National Institute of Korean Language dictionary. The license is CC BY-SA 2.0 KR.
 
 Step-by-step use, the API, and the build are in the [full guide](docs/archive/README.md). The phone app is in [android/README.md](android/README.md).
-
 
