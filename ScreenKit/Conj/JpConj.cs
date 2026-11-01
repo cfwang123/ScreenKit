@@ -271,8 +271,20 @@ static class JpConj {
 		var rows = pk.rows;
 		if (kind != "ai" && kind != "an" && kind != "n") rows.AddRange(dialectrows(word, kind, pk, L));
 		if (pk.tail != null) rows.AddRange(pk.tail);
+		// 方言统一排在整张表的最后：N5~N0 句型在前，方言在后。
+		dialectlast(L, rows);
 		return new ConjResult { Ok = true, Head = word, Name = name, Rows = rows };
 	}
+
+	static void dialectlast(JpConjLabels L, List<ConjRow> rows) {
+		var dia = rows.FindAll(r => isdialectgroup(L, r.G));
+		if (dia.Count == 0) return;
+		rows.RemoveAll(r => isdialectgroup(L, r.G));
+		rows.AddRange(dia);
+	}
+
+	static bool isdialectgroup(JpConjLabels L, string g) =>
+		g == L.dks || g == L.dky || g == L.dth || g == L.dhi;
 
 	/// <summary>按词尾猜词性，对应 JS 的 guess()；猜不出返回 null。</summary>
 	public static JpConjKind Guess(string word) {

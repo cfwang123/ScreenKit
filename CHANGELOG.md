@@ -104,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome TTS pings Google while speaking and stops with an error when it is unreachable
 - 3D function plots draw the x, y and z axes at the same length, each extending past the surface.
 - 3D function plots sample a square region and zoom by changing that range, so the surface fills the view and the grid spacing stays steady.
+- Japanese conjugation: dialect forms now come after the N5-N0 patterns
 
 #### Fixed
 
@@ -181,6 +182,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错
 - 三维函数图像的 x、y、z 三条坐标轴改成一样长，并都伸出曲面一段。
 - 三维函数图像改为正方形采样，滚轮缩放时跟着改变采样范围，曲面铺满画面，网格间距保持稳定。
+- 日语词形变化：方言说法移到 N5~N0 句型之后
 
 #### 修复
 
