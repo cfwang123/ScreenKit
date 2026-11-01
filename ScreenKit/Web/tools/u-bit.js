@@ -226,9 +226,11 @@
 
 	function paintkeys(){
 		var root = page.doms.bitKeys;
-		var k;
+		var i, ks, k;
 		if (!root) return;
-		root.innerHTML = keys();
+		ks = keys();
+		root.textContent = "";
+		for (i = 0; i < ks.length; i++) root.appendChild(ks[i]);
 		placeblack();
 		for (k in held) paintkey(Number(k), true);
 	}
