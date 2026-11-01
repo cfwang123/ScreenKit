@@ -47,171 +47,101 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Add CLI JSON export for Japanese conjugation tables
 - Dictionary search supports ? as a wildcard for one or more characters
 - Show hit count and elapsed time next to Copy in the selection popup
-- HTTP request debugger can edit request headers, one name: value per line.
-- HTTP request debugger fills a Chrome User-Agent when the request has none.
-- HTTP request debugger can export a group of requests to JSON and import it back.
-- Web tools add a byte decoder that reads consecutive bytes as int8 through fp64, fp16/bf16, ASCII and UTF-8, with selectable byte order.
-- Byte viewer also decodes FP8 E4M3 and E5M2.
+- HTTP request debugger: edit request headers one name: value per line, fill a Chrome User-Agent when the request has none, and export a group of requests to JSON or import it back.
+- Web tools add a byte decoder that reads consecutive bytes as int8 through fp64, fp16/bf16, FP8 E4M3/E5M2, ASCII and UTF-8, with selectable byte order.
 - SOAP debugger: read a WSDL, edit parameters from its XSD, call SOAP 1.1/1.2 operations, and run a local mock service with per-operation responses and request logs.
 - Window manager: pick a window, browse its tree and properties, edit title/rect/style bits, run quick actions, send custom messages, and repeat mouse clicks
-- Database query: open a SQLite file by dropping it in, or connect to SQL Server; list tables and views, view rows and schema, and run any SQL
-- Database query: connect to MySQL and Oracle; their drivers install on demand and are left out of the slim package.
-- Database query: save frequently used connections and apply one with a click.
-- Database query: show row numbers in the data grid
+- Database query: open a SQLite file by dropping it in, or connect to SQL Server, MySQL or Oracle (those drivers install on demand and stay out of the slim package); list tables and views, view rows and schema, run any SQL, show row numbers, and save frequently used connections to apply with a click.
 - System info: new USB descriptors page reads device/configuration/string descriptors, interfaces and pipes through the USB hub read-only IOCTL, plus HID usage and report layout
 - MQTT debugger: hand-written TCP client and broker, no third-party library
 - TLS certificate check: connect to host:port, show TLS version, cipher, certificate chain, validity, SAN, thumbprint and PEM, view only
 - Command tools: add a ripgrep (rg) cheat sheet to the Linux, PowerShell, pwsh, and CMD tables, covering rg --files piped into grep or findstr, glob and type filters, context lines, and hidden-file options
-- Speak with Ctrl+Enter on the TTS tab
-- Proxy settings link on the TTS tab when the Chrome engine is selected
+- TTS tab: Ctrl+Enter speaks, and a proxy settings link appears when the Chrome engine is selected
 - Japanese conjugation: show the colloquial ないです right next to ません
 
 #### Changed
 
-- Refactored the web tools page: escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
-- The web tools page skeleton is now a page object: elements are reached through SK.doms and events are declared in the DOM spec instead of being bound by HTML id.
-- Web tool pages now build their markup from DOM nodes declared in JS instead of HTML strings, so controls are reached through SK.dom/doms and events are attached where the node is declared.
+- Refactored the web tool pages: the skeleton is a page object whose markup is built from DOM nodes declared in JS instead of HTML strings, with elements reached through SK.dom/doms and events written where the node is declared; escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
 - The conjugation JSON export now supports Korean and English via --conj-json ko|en; Russian uses scripts/export-ru-conj.js
-- The password generator regenerates automatically after changing the length, count or character options
-- The password generator now defaults to 10 passwords
+- The password generator now defaults to 10 passwords, regenerates automatically after changing the length, count or character options, and remembers the last options (length, count, character classes, custom set), written to localStorage 2 seconds after the last edit and restored on open.
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
 - Screenshot history in the tray and main menus now opens the history window instead of the screenshots folder.
 - HTTP request debugger keeps the URL and query parameters in sync and fills Content-Type from the POST body type.
-- QR generator uses radio buttons for the encoding, regenerates 200 ms after typing or toggling the caption, and draws the caption inside the image.
-- QR captions now use the desktop spacing: the bottom quiet zone is cropped, the font is width/18 (at least 16 px), and the caption sits half a line below the code.
-- Byte viewer: float rows now show the value as m x 2^e; tables are no longer click-to-copy and their text can be selected.
+- QR generator uses radio buttons for the encoding, regenerates 200 ms after typing or toggling the caption, and draws the caption inside the image with the desktop spacing: the bottom quiet zone is cropped, the font is width/18 (at least 16 px), and the caption sits half a line below the code.
+- Byte viewer: float rows show the value as m x 2^e, the hex field auto-groups input as XX XX, Backspace/Delete removes a whole byte, typing at the caret overwrites the nibble there, and the field starts with 01 00 00 00; tables are no longer click-to-copy and their text can be selected.
 - English conjugation examples show complete sentences instead of trailing ellipses.
-- Byte viewer: the hex field auto-groups input as XX XX, Backspace/Delete removes a whole byte, typing at the caret overwrites the nibble there, and the field starts with 01 00 00 00.
-- Password generator remembers the last options (length, count, character classes, custom set); changes are written to localStorage 2 seconds after the last edit and restored on open.
-- 3D plots now take their size from the content's projected extent at the default view, so implicit surfaces such as x^2+y^2+z^2=9 are no longer cropped, and rotating or tilting the view no longer changes the size or the x/y/z proportions.
-- 3D wheel zoom now magnifies the picture instead of resampling a narrower range, so zooming no longer changes the x/y/z proportions either.
-- The 3D sampling plane now takes the canvas aspect ratio, so surfaces are drawn across the width instead of only in the middle; a single world scale is used, so x/y/z stay in proportion and the mesh cells stay square.
-- Database query: a datetime whose time part is zero is shown as a date only.
-- Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments
-- All JSON parsing, writing and the JSON DOM now run on the built-in JSONF parser; the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
-- PdfSharp and PDFtoImage now install on demand; the slim package no longer ships them and they come with the PDF runtime.
-- The WeText ITN runtime (speech text normalization) now installs on demand and is no longer part of the slim package.
-- SkiaSharp (managed binding) now installs with the Skia runtime instead of shipping in the slim package; stale ZstdSharp and System.Text.Encodings.Web DLLs are dropped from the package.
+- 3D plots now take their size from the content's projected extent at the default view, so implicit surfaces such as x^2+y^2+z^2=9 are no longer cropped; rotating, tilting or zooming no longer changes the size or the x/y/z proportions, wheel zoom magnifies the picture instead of resampling a narrower range, and the sampling plane takes the canvas aspect ratio with one world scale, so surfaces are drawn across the width and the mesh cells stay square.
+- Database query: the database and table are now dropdowns beside the SQL box (SQL Server and MySQL list all databases on connect, and switching one reloads its tables), TOP, Query and Schema are toolbar buttons/dropdowns, and a datetime whose time part is zero is shown as a date only.
+- Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments; all JSON parsing, writing and the JSON DOM now run on JSONF, so the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
+- PdfSharp, PDFtoImage, the WeText ITN runtime (speech text normalization) and the SkiaSharp managed binding now install on demand with their PDF, speech and Skia runtimes instead of shipping in the slim package; stale ZstdSharp and System.Text.Encodings.Web DLLs are dropped from the package.
 - Publish script now strips on-demand components and user-data files from the release package; 7z -x! excludes are auto-generated from the same junk lists to avoid drift.
-- Database query: tables moved to a dropdown that lists every table once on connect; TOP, Query and Schema are now toolbar buttons/dropdown beside the SQL box.
-- Database query: the database is now picked from a dropdown next to the table one instead of being part of the connection; SQL Server and MySQL list all databases on connect, and switching one reloads its tables.
 - Default-disable main UI tabs: HTTP interface and LLM log
 - Korean IME: raise candidate cap from 8 to 200 so single-syllable prefixes can page
 - Install features: the database driver group now sits under Tools instead of its own top-level node.
 - Chrome TTS pings Google while speaking and stops with an error when it is unreachable
-- 3D function plots draw the x, y and z axes at the same length, each extending past the surface.
-- 3D function plots sample a square region and zoom by changing that range, so the surface fills the view and the grid spacing stays steady.
-- Japanese conjugation: dialect forms now come after the N5-N0 patterns
-- Japanese conjugation: the tai row now also lists takatta (tabetakatta)
-- Japanese conjugation: move ていらっしゃい into the honorific group, right after ください
-- Japanese conjugation: merge tagaru and tagaranai into one row
-- Japanese conjugation: noda, kke and mon rows also list the nai forms
-- 3D function plots keep a fixed grid density while zooming, and the x and y axes run to the canvas edge.
-- Japanese conjugation: potential, passive and causative rows also list the nai forms
+- Japanese conjugation: dialect forms come after the N5-N0 patterns, the tai row also lists takatta (tabetakatta), ていらっしゃい moves into the honorific group right after ください, tagaru and tagaranai merge into one row, and the noda, kke, mon, potential, passive and causative rows also list the nai forms.
 
 #### Fixed
 
 - Dragging a file into the file analyzer no longer leaves the Explorer drag image stuck on the window. The drop format is checked once on entry, and UI updates after the drop run after the drag loop returns.
-- Fix the conditional contraction of 買う in Japanese conjugation
-- Korean 살다 now quotes the imperative as 살라고 instead of 사라고
-- English pronoun usage examples follow the person, and be no longer labels am/is/are as third-person singular
-- Russian short passive participles keep ё only in the masculine form (говорён, but говорена/говорено/говорены)
-- 3D plots now fit the canvas and keep a stable size while rotating; implicit surface poles are no longer flattened
-- Web tools: sound from other tools no longer crashes when the 8-bit synthesizer page was never opened.
-- The coordinate axes were missing on 3D surfaces of the form z=f(x,y); they are drawn at the origin again.
+- Word-form fixes: the conditional contraction of 買う in Japanese, the Korean imperative quote of 살다 (살라고, not 사라고), English pronoun examples following the person with be no longer labelling am/is/are as third-person singular, and Russian short passive participles keeping ё only in the masculine form (говорён, but говорена/говорено/говорены)
+- 3D plots now fit the canvas and keep a stable size while rotating; implicit surface poles are no longer flattened, and surfaces of the form z=f(x,y) draw the coordinate axes at the origin again.
+- Web tools: sound from other tools no longer crashes when the 8-bit synthesizer page was never opened, and Alt/Shift octave switching on that page no longer dumps element objects into the keyboard area.
 - Slim release package now ships the USB AOA driver (winusb-aoa.inf) and the SOAP debugger sample WSDLs (soapmock); previously these were missing from the published package, breaking USB screen-cast driver install and the SOAP debugger samples.
 - MQTT window could not be reopened after closing it
-- 8bit synth: Alt/Shift octave switch no longer dumps element objects into the keyboard area
 - Chrome TTS no longer reports a Google failure when speech already started (slow proxies)
-- 3D function plots keep a steady grid spacing while zooming, and the sampled x and y ranges reach the canvas edges.
 
 ### 中文
 
 #### 新增
 
-- 日语词形变化支持 CLI 导出 JSON
 - 词典查词支持 ? 通配符（匹配一个或多个字）
 - 划词浮窗查词后，在「复制」右边显示结果条数和用时
-- HTTP 请求调试可以编辑请求头，一行一个 名称: 值。
-- HTTP 请求调试在请求没有 User-Agent 时自动补一个 Chrome 的 UA。
-- HTTP 请求调试可以把一组请求导出为 JSON，也能导入回来。
-- web 工具新增字节解读，可把连续字节按 int8 到 fp64、fp16/bf16、ASCII、UTF-8 等格式解读，大小端可选。
-- 字节解读新增 FP8（E4M3、E5M2）解码。
+- HTTP 请求调试：可编辑请求头（一行一个「名称: 值」），请求没有 User-Agent 时自动补 Chrome 的 UA，还能把一组请求导出为 JSON 并导入回来。
+- web 工具新增字节解读，可把连续字节按 int8 到 fp64、fp16/bf16、FP8（E4M3、E5M2）、ASCII、UTF-8 等格式解读，大小端可选。
 - SOAP 接口调试：读取 WSDL、按 XSD 编辑参数并调用 SOAP 1.1/1.2 接口，另带本地模拟服务和请求日志。
 - 窗口管理：可取窗、查看窗口树和完整属性，改标题/位置尺寸/样式位，快捷操作，发自定义消息，连续鼠标点击
-- 数据库查询：拖入 SQLite 文件即可打开，也能连 SQL Server；列出表和视图，看内容与表结构，执行任意 SQL
-- 数据库查询：可连接 MySQL 和 Oracle，驱动按需安装、不进精简包。
-- 数据库查询：常用连接可保存，选中即套用。
-- 数据库查询：数据表格增加行号列
+- 数据库查询：拖入 SQLite 文件即可打开，也能连 SQL Server、MySQL、Oracle（后两者驱动按需安装、不进精简包）；列出表和视图，看内容与表结构，执行任意 SQL，表格带行号，常用连接可保存、选中即套用。
 - 系统信息：新增 USB 描述符页，经 USB 集线器只读 IOCTL 读取设备/配置/字符串描述符、接口与管道，并列出 HID 用途和报文结构
 - MQTT 调试：纯 TCP 自实现的客户端和服务端，不依赖第三方库
 - TLS 证书检查：连 host:port 查看 TLS 版本、加密套件、证书链、有效期、SAN、指纹和 PEM，只查看不改设置
 - 命令工具：Linux、PowerShell、pwsh、CMD 各表补 ripgrep（rg）速查，含 rg --files 接 grep/findstr 筛文件、glob 与类型筛选、上下文和隐藏文件等常见用法
-- 语音合成页按 Ctrl+Enter 开始朗读
-- 语音合成页选 Chrome 引擎时显示代理设置文字按钮
+- 语音合成页按 Ctrl+Enter 开始朗读，选 Chrome 引擎时显示代理设置的文字按钮
 - 日语词形变化：「ません」旁边增加口语的「ないです」
 
 #### 变更
 
-- 重构 web 工具页：转义、翻译等小函数合并到公共模块；HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件；英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
-- web 工具页骨架改为页面对象：元素统一用 SK.doms 取，事件写在节点定义里，不再按 HTML id 绑定。
-- web 工具页改为用 JS 声明 DOM 节点生成界面，不再拼 HTML 字符串；控件统一走 SK.dom/doms，事件写在节点定义里。
+- 重构 web 工具页：骨架改为页面对象，界面用 JS 声明 DOM 节点生成而不再拼 HTML 字符串，元素统一用 SK.dom/doms 取，事件写在节点定义里；转义、翻译等小函数合并到公共模块，HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件，英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
 - 变形表 JSON 导出新增韩语和英语（--conj-json ko|en）；俄语用 scripts/export-ru-conj.js
-- 密码生成器修改长度、数量或字符选项后自动重新生成
-- 密码生成器条数默认改为 10
+- 密码生成器条数默认改为 10，修改长度、数量或字符选项后自动重新生成，并记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
 - 托盘和主菜单的「截图历史」改为打开截图历史窗口，不再只是打开 screenshots 文件夹。
 - HTTP 请求调试的地址与查询参数互相同步，并按 POST 正文类型自动填写 Content-Type。
-- 二维码生成的编码改为单选按钮，输入文字或切换「带文字」后 200ms 自动生成，文字直接画在图片里。
-- 二维码文字改为桌面版的间距：裁掉底部静区，字号取宽度/18（最小 16），文字离码约半行字高。
-- 字节解读：浮点行增加 m × 2^e 表示；表格不再点击复制，改为可手动选中文字。
+- 二维码生成的编码改为单选按钮，输入文字或切换「带文字」后 200ms 自动生成，文字直接画在图片里；间距按桌面版：裁掉底部静区，字号取宽度/18（最小 16），文字离码约半行字高。
+- 字节解读：浮点行增加 m × 2^e 表示，十六进制输入框自动按 XX XX 分组，退格/删除一次去掉一个字节，光标在中间时按半字节覆盖输入，打开时预填 01 00 00 00；表格不再点击复制，改为可手动选中文字。
 - 英语词形变化的示例句改为完整句子，不再用省略号。
-- 字节解读：十六进制输入框自动按 XX XX 分组，退格/删除一次去掉一个字节，光标在中间时按半字节覆盖输入；打开时预填 01 00 00 00。
-- 密码生成器记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
-- 三维函数图像改成按内容在默认视角下的投影大小定比例：x^2+y^2+z^2=9 这类曲面不再被画布上下裁掉，转动视角时大小和 xyz 比例也不再跟着变。
-- 三维滚轮改成放大画面，不再改成采更小的范围，缩放时 xyz 比例同样保持不变。
-- 三维采样平面改成跟画布同宽高比：曲面不再只画在中间一小块，左右空白明显收窄；xyz 用同一把尺，比例不变，网格格子也是方的。
-- 数据库查询：日期时间的时间部分为 0 时只显示日期。
-- 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释
-- JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
-- PdfSharp 与 PDFtoImage 改为按需安装，精简包不再附带，随 PDF 运行库一起安装和卸载。
-- WeText ITN（语音文本归一化）改为按需安装，精简包不再附带。
-- SkiaSharp 托管绑定改为随 Skia 运行库安装，不再放进精简包；精简包里 ZstdSharp、System.Text.Encodings.Web 的残留 DLL 一并去掉。
+- 三维函数图像改成按内容在默认视角下的投影大小定比例：x^2+y^2+z^2=9 这类曲面不再被画布上下裁掉，转动、倾斜或缩放视角时大小和 xyz 比例也不再跟着变；滚轮改成放大画面而不是采更小的范围；采样平面跟画布同宽高比，xyz 用同一把尺，曲面铺满宽度、网格格子也是方的。
+- 数据库查询：库和表改为 SQL 框旁的下拉（SQL Server 和 MySQL 连上后列出全部库，切换即重载该库的表），TOP、查询、结构改为工具栏按钮和下拉；日期时间的时间部分为 0 时只显示日期。
+- 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释；JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
+- PdfSharp、PDFtoImage、WeText ITN（语音文本归一化）和 SkiaSharp 托管绑定改为按需安装，随各自的 PDF、语音、Skia 运行库一起装，精简包不再附带；包里残留的 ZstdSharp、System.Text.Encodings.Web DLL 一并去掉。
 - 发布脚本现在从发布包中剔除按需安装的组件（ocrmodels/asrmodels/ttsmodels/facemodels/translatemodels/onnx*/ffmpeg64/wetext）与用户数据（config.toml、sql-conns.json、dict*.db、ime*.db、*.log 等）；7z 的 -x! 排除项改为由同一份 junk 列表自动生成，避免两份规则漂移。
-- 数据库查询：表改为顶部下拉，连接成功后一次性读取全部表；TOP、查询、结构改为 SQL 框旁边的下拉和按钮。
-- 数据库查询：库改在表下拉前的「数据库」下拉里选，不再作为连接配置的一部分；SQL Server 和 MySQL 连上后列出全部库，切换即重载该库的表。
 - 主界面 Tab 的 HTTP 接口、LLM 日志默认禁用
 - 韩语输入法：候选上限由 8 条提到 200 条，单音节前缀可翻页
 - 安装功能：「数据库驱动」节点移到「工具集」下面，不再单独占一个顶层节点。
 - Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错
-- 三维函数图像的 x、y、z 三条坐标轴改成一样长，并都伸出曲面一段。
-- 三维函数图像改为正方形采样，滚轮缩放时跟着改变采样范围，曲面铺满画面，网格间距保持稳定。
-- 日语词形变化：方言说法移到 N5~N0 句型之后
-- 日语词形变化：「たい」一栏补上过去形（食べたかった）
-- 日语词形变化：「ていらっしゃい」并入尊敬语组，排在「ください」右边
-- 日语词形变化：「たがる」「たがらない」合并为一行
-- 日语词形变化：「のです」「っけ」「もん」三栏补上ない形
-- 三维函数图像缩放时网格密度保持不变，x、y 轴画到画布边缘。
-- 日语词形变化：可能形、受身形、使役形补上ない形
+- 日语词形变化：方言说法移到 N5~N0 句型之后，「たい」一栏补上过去形（食べたかった），「ていらっしゃい」并入尊敬语组排在「ください」右边，「たがる」「たがらない」合并为一行，可能形、受身形、使役形与「のです」「っけ」「もん」三栏补上ない形。
 
 #### 修复
 
 - 文件分析拖入文件时不再把资源管理器的拖影留在窗口上。进入时只检查一次数据格式，松手后的界面更新等拖放循环结束后再执行。
-- 修复日语词形变化中「買う」的ば形缩约
-- 修复韩语「살다」的命令引用形，由 사라고 改为 살라고
-- 修复英语代词用法例句按人称生成，be 的 am/is/are 不再标成第三人称单数
-- 修复俄语 -ённый 短尾分词，只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
-- 三维函数图像按画布自适应，旋转时大小保持稳定；隐式曲面极点不再被削平
-- web 工具：没打开过 8bit 合成器时，其它工具调用音效不再报错。
-- z=f(x,y) 的三维曲面不显示坐标轴；现在重新画在原点。
+- 修正词形变化的几处输出：日语「買う」的ば形缩约，韩语「살다」的命令引用形由 사라고 改为 살라고，英语代词用法例句按人称生成、be 的 am/is/are 不再标成第三人称单数，俄语 -ённый 短尾分词只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
+- 三维函数图像按画布自适应，旋转时大小保持稳定；隐式曲面极点不再被削平，z=f(x,y) 的曲面重新在原点画出坐标轴。
+- web 工具：没打开过 8bit 合成器时，其它工具调用音效不再报错；8bit 合成器按 Alt/Shift 换八度不再把 DOM 元素对象当文本塞进琴键区。
 - 精简发布包现在随包包含 USB AOA 驱动（winusb-aoa.inf）与 SOAP 调试器示例 WSDL（soapmock）；此前发布包缺这两项，会导致 USB 投屏无法安装驱动、SOAP 调试器无示例可用。
 - MQTT 调试：关闭窗口后无法再次打开
-- 8bit 合成器：按 Alt/Shift 换八度不再把 DOM 元素对象当文本塞进琴键区
 - Chrome 朗读已出声时不再误报连不上 Google（代理较慢导致）
-- 三维函数图像缩放时网格间距保持不变，x、y 采样范围铺到画布边缘。
 
 ## v1.0.31 (2026-10-29)
 
@@ -2675,7 +2605,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复 PerMonitorV2 DPI 裁剪问题和副屏 DXGI 黑屏/拉伸问题。
 - OCR 忙碌状态不再阻止应用新截取的图片。
 - 修复屏幕录制 WASAPI 静音填充导致的音画不同步。
-
 
 
 
