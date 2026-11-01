@@ -49,11 +49,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Dictionary search supports ? as a wildcard for one or more characters
 - Show hit count and elapsed time next to Copy in the selection popup
-- HTTP request debugger: edit request headers one name: value per line, fill a Chrome User-Agent when the request has none, and export a group of requests to JSON or import it back.
-- Web tools add a byte decoder that reads consecutive bytes as int8 through fp64, fp16/bf16, FP8 E4M3/E5M2, ASCII and UTF-8, with selectable byte order.
+- HTTP request debugger: edit request headers one name: value per line, fill a Chrome User-Agent when the request has none, export a group of requests to JSON or import it back, keep the URL and query parameters in sync, and fill Content-Type from the POST body type.
+- Web tools add a byte decoder that reads consecutive bytes as int8 through fp64, fp16/bf16, FP8 E4M3/E5M2, ASCII and UTF-8 with selectable byte order; float rows also show the value as m x 2^e, the hex field groups input as XX XX (Backspace/Delete drops a whole byte, typing at the caret overwrites the nibble, and it starts with 01 00 00 00), and table text can be selected instead of click-to-copy.
 - SOAP debugger: read a WSDL, edit parameters from its XSD, call SOAP 1.1/1.2 operations, and run a local mock service with per-operation responses and request logs.
 - Window manager: pick a window, browse its tree and properties, edit title/rect/style bits, run quick actions, send custom messages, and repeat mouse clicks
-- Database query: open a SQLite file by dropping it in, or connect to SQL Server, MySQL or Oracle (those drivers install on demand and stay out of the slim package); list tables and views, view rows and schema, run any SQL, show row numbers, and save frequently used connections to apply with a click.
+- Database query: open a SQLite file by dropping it in, or connect to SQL Server, MySQL or Oracle (those drivers install on demand under Tools in Install features and stay out of the slim package); list tables and views, view rows and schema, run any SQL, show row numbers, and save frequently used connections to apply with a click. The database and table are dropdowns beside the SQL box (SQL Server and MySQL list all databases on connect, switching one reloads its tables, TOP/Query/Schema are toolbar controls), and a datetime whose time part is zero is shown as a date only.
 - System info: new USB descriptors page reads device/configuration/string descriptors, interfaces and pipes through the USB hub read-only IOCTL, plus HID usage and report layout
 - MQTT debugger: hand-written TCP client and broker, no third-party library
 - TLS certificate check: connect to host:port, show TLS version, cipher, certificate chain, validity, SAN, thumbprint and PEM, view only
@@ -68,18 +68,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The password generator now defaults to 10 passwords, regenerates automatically after changing the length, count or character options, and remembers the last options (length, count, character classes, custom set), written to localStorage 2 seconds after the last edit and restored on open.
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
 - Screenshot history in the tray and main menus now opens the history window instead of the screenshots folder.
-- HTTP request debugger keeps the URL and query parameters in sync and fills Content-Type from the POST body type.
 - QR generator uses radio buttons for the encoding, regenerates 200 ms after typing or toggling the caption, and draws the caption inside the image with the desktop spacing: the bottom quiet zone is cropped, the font is width/18 (at least 16 px), and the caption sits half a line below the code.
-- Byte viewer: float rows show the value as m x 2^e, the hex field auto-groups input as XX XX, Backspace/Delete removes a whole byte, typing at the caret overwrites the nibble there, and the field starts with 01 00 00 00; tables are no longer click-to-copy and their text can be selected.
 - English conjugation examples show complete sentences instead of trailing ellipses.
 - 3D plots now take their size from the content's projected extent at the default view, so implicit surfaces such as x^2+y^2+z^2=9 are no longer cropped; rotating, tilting or zooming no longer changes the size or the x/y/z proportions, wheel zoom magnifies the picture instead of resampling a narrower range, and the sampling plane takes the canvas aspect ratio with one world scale, so surfaces are drawn across the width and the mesh cells stay square.
-- Database query: the database and table are now dropdowns beside the SQL box (SQL Server and MySQL list all databases on connect, and switching one reloads its tables), TOP, Query and Schema are toolbar buttons/dropdowns, and a datetime whose time part is zero is shown as a date only.
 - Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments; all JSON parsing, writing and the JSON DOM now run on JSONF, so the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
 - PdfSharp, PDFtoImage, the WeText ITN runtime (speech text normalization) and the SkiaSharp managed binding now install on demand with their PDF, speech and Skia runtimes instead of shipping in the slim package; stale ZstdSharp and System.Text.Encodings.Web DLLs are dropped from the package.
 - Publish script now strips on-demand components and user-data files from the release package; 7z -x! excludes are auto-generated from the same junk lists to avoid drift.
 - Default-disable main UI tabs: HTTP interface and LLM log
 - Korean IME: raise candidate cap from 8 to 200 so single-syllable prefixes can page
-- Install features: the database driver group now sits under Tools instead of its own top-level node.
 - Chrome TTS pings Google while speaking and stops with an error when it is unreachable
 - Japanese conjugation: dialect forms come after the N5-N0 patterns, the tai row also lists takatta (tabetakatta), ていらっしゃい moves into the honorific group right after ください, tagaru and tagaranai merge into one row, and the noda, kke, mon, potential, passive and causative rows also list the nai forms.
 
@@ -99,11 +95,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 词典查词支持 ? 通配符（匹配一个或多个字）
 - 划词浮窗查词后，在「复制」右边显示结果条数和用时
-- HTTP 请求调试：可编辑请求头（一行一个「名称: 值」），请求没有 User-Agent 时自动补 Chrome 的 UA，还能把一组请求导出为 JSON 并导入回来。
-- web 工具新增字节解读，可把连续字节按 int8 到 fp64、fp16/bf16、FP8（E4M3、E5M2）、ASCII、UTF-8 等格式解读，大小端可选。
+- HTTP 请求调试：可编辑请求头（一行一个「名称: 值」），请求没有 User-Agent 时自动补 Chrome 的 UA，能把一组请求导出为 JSON 并导入回来；地址与查询参数互相同步，并按 POST 正文类型自动填写 Content-Type。
+- web 工具新增字节解读，可把连续字节按 int8 到 fp64、fp16/bf16、FP8（E4M3、E5M2）、ASCII、UTF-8 等格式解读，大小端可选；浮点行另有 m × 2^e 表示，十六进制输入框自动按 XX XX 分组（退格/删除去掉整个字节、光标在中间时半字节覆盖、打开预填 01 00 00 00），表格文字可直接选中而不再点击复制。
 - SOAP 接口调试：读取 WSDL、按 XSD 编辑参数并调用 SOAP 1.1/1.2 接口，另带本地模拟服务和请求日志。
 - 窗口管理：可取窗、查看窗口树和完整属性，改标题/位置尺寸/样式位，快捷操作，发自定义消息，连续鼠标点击
-- 数据库查询：拖入 SQLite 文件即可打开，也能连 SQL Server、MySQL、Oracle（后两者驱动按需安装、不进精简包）；列出表和视图，看内容与表结构，执行任意 SQL，表格带行号，常用连接可保存、选中即套用。
+- 数据库查询：拖入 SQLite 文件即可打开，也能连 SQL Server、MySQL、Oracle（驱动按需安装、不进精简包，「安装功能」里的节点归到「工具集」下）；列出表和视图，看内容与表结构，执行任意 SQL，表格带行号，常用连接可保存、选中即套用；库和表改为 SQL 框旁的下拉（SQL Server 和 MySQL 连上后列出全部库，切换即重载该库的表，TOP/查询/结构为工具栏控件），时间部分为 0 的日期只显示日期。
 - 系统信息：新增 USB 描述符页，经 USB 集线器只读 IOCTL 读取设备/配置/字符串描述符、接口与管道，并列出 HID 用途和报文结构
 - MQTT 调试：纯 TCP 自实现的客户端和服务端，不依赖第三方库
 - TLS 证书检查：连 host:port 查看 TLS 版本、加密套件、证书链、有效期、SAN、指纹和 PEM，只查看不改设置
@@ -118,18 +114,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 密码生成器条数默认改为 10，修改长度、数量或字符选项后自动重新生成，并记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
 - 托盘和主菜单的「截图历史」改为打开截图历史窗口，不再只是打开 screenshots 文件夹。
-- HTTP 请求调试的地址与查询参数互相同步，并按 POST 正文类型自动填写 Content-Type。
 - 二维码生成的编码改为单选按钮，输入文字或切换「带文字」后 200ms 自动生成，文字直接画在图片里；间距按桌面版：裁掉底部静区，字号取宽度/18（最小 16），文字离码约半行字高。
-- 字节解读：浮点行增加 m × 2^e 表示，十六进制输入框自动按 XX XX 分组，退格/删除一次去掉一个字节，光标在中间时按半字节覆盖输入，打开时预填 01 00 00 00；表格不再点击复制，改为可手动选中文字。
 - 英语词形变化的示例句改为完整句子，不再用省略号。
 - 三维函数图像改成按内容在默认视角下的投影大小定比例：x^2+y^2+z^2=9 这类曲面不再被画布上下裁掉，转动、倾斜或缩放视角时大小和 xyz 比例也不再跟着变；滚轮改成放大画面而不是采更小的范围；采样平面跟画布同宽高比，xyz 用同一把尺，曲面铺满宽度、网格格子也是方的。
-- 数据库查询：库和表改为 SQL 框旁的下拉（SQL Server 和 MySQL 连上后列出全部库，切换即重载该库的表），TOP、查询、结构改为工具栏按钮和下拉；日期时间的时间部分为 0 时只显示日期。
 - 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释；JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
 - PdfSharp、PDFtoImage、WeText ITN（语音文本归一化）和 SkiaSharp 托管绑定改为按需安装，随各自的 PDF、语音、Skia 运行库一起装，精简包不再附带；包里残留的 ZstdSharp、System.Text.Encodings.Web DLL 一并去掉。
 - 发布脚本现在从发布包中剔除按需安装的组件（ocrmodels/asrmodels/ttsmodels/facemodels/translatemodels/onnx*/ffmpeg64/wetext）与用户数据（config.toml、sql-conns.json、dict*.db、ime*.db、*.log 等）；7z 的 -x! 排除项改为由同一份 junk 列表自动生成，避免两份规则漂移。
 - 主界面 Tab 的 HTTP 接口、LLM 日志默认禁用
 - 韩语输入法：候选上限由 8 条提到 200 条，单音节前缀可翻页
-- 安装功能：「数据库驱动」节点移到「工具集」下面，不再单独占一个顶层节点。
 - Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错
 - 日语词形变化：方言说法移到 N5~N0 句型之后，「たい」一栏补上过去形（食べたかった），「ていらっしゃい」并入尊敬语组排在「ください」右边，「たがる」「たがらない」合并为一行，可能形、受身形、使役形与「のです」「っけ」「もん」三栏补上ない形。
 
