@@ -172,7 +172,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
   - **日本姓名读法**：查日本姓氏和名字的读法，输入汉字出假名，输入假名反查汉字；输入完整姓名会拆成一姓一名，也可以随机生成一个姓名。姓氏 9.7 万个、名字 12 万个，可按五十音行浏览，一个名字的各种读法竖排列出，每种都可以听；数据不进安装包，第一次使用时自动下载。
   - **英文不规则动词**：查原形、过去式和过去分词，输入任一形式或中文释义都能找到，可按 AAA、ABB 等变化类型筛选
   - **键盘码**：查按键的 event.code、event.key、keyCode 和 Windows VK
-  - **Linux 常用命令**：按文件、软件包、进程、网络等查命令，列表里直接显示带注释的多行示例，另有 Bash 语法速查；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
+  - **Linux 常用命令**：按文件、软件包、进程、网络等查命令，列表里直接显示带注释的多行示例，另有 Bash 语法速查和 ripgrep（`rg`）速查（含 `rg --files | grep name` 这类找文件、按类型和 glob 筛选、上下文与多行匹配）；可切换 Ubuntu、Debian、Deepin/UOS、RHEL、Fedora、openEuler、Arch、openSUSE、Alpine，下次打开沿用上次选的发行版
   - **Windows 常用命令**：Windows PowerShell、pwsh、CMD 三套命令，按类别查用法，列表里直接显示带注释的多行示例，另有一组三种命令行的语法帮助；下次打开沿用上次选的命令行
   - **SQL 函数查询**：按字符串、数值、日期、类型转换、聚合、窗口函数、JSON、元数据等查 MySQL、SQL Server、Oracle、SQLite、PostgreSQL 的函数写法；下次打开沿用上次选的数据库
   - **Linux 常用软件**：查 Linux 常用开源软件的包名和安装命令
