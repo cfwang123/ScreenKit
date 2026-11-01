@@ -41,7 +41,7 @@
 		{ g: "eq3", mode: "3", fn: "x^2+y^2-z^2=-1" },
 		{ g: "eq3", mode: "3", fn: "(x^2+9/4*y^2+z^2-1)^3-x^2*z^3-9/80*y^2*z^3=0" }
 	];
-	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
+	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65, zoom: 1 };
 	var HOME = { yaw: -0.6, pitch: 0.65 };
 	var YSPAN = 4;
 	var view3 = { s: 1, ox: 0, oy: 0 };
@@ -263,6 +263,7 @@
 			cam.cy = 0;
 			cam.yspan = YSPAN;
 			cam.xspan = YSPAN * stageaspect();
+			cam.zoom = 1;
 			cam.yaw = HOME.yaw;
 			cam.pitch = HOME.pitch;
 			return;
@@ -360,7 +361,7 @@
 		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		if (mode === "3")
-			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom;
 		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1;
 	}
 
@@ -440,12 +441,8 @@
 		var xonly = ev.ctrlKey && !ev.shiftKey;
 		var yonly = ev.shiftKey && !ev.ctrlKey;
 		if (mode === "3") {
-			// 缩小加大采样范围，放大则收窄。x 方向按画布宽高比跟着张开。
-			var span = cam.yspan * factor;
-			if (span >= 0.05 && span <= 1e6) {
-				cam.yspan = span;
-				cam.xspan = span * stageaspect();
-			}
+			// 缩小只把画面缩小，采样范围和网格线数都不变，格子密度才保持不变。
+			setzoom(cam.zoom / factor);
 			paint();
 			return;
 		}
@@ -473,6 +470,13 @@
 			}
 		}
 		paint();
+	}
+
+	function setzoom(v){
+		if (!isFinite(v) || !(v > 0)) return;
+		if (v < 0.05) v = 0.05;
+		if (v > 20) v = 20;
+		cam.zoom = v;
 	}
 
 	function hideRead(){
@@ -781,11 +785,11 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
-	// 一个世界单位在屏幕上占多少像素。按采样范围定：范围越大画面越小，
-	// 格子在屏幕上的间距就不跟着缩放变。换视角只转不缩放。
+	// 一个世界单位在屏幕上占多少像素。缩放只改这个比例，采样范围和网格线数不变，
+	// 格子在屏幕上的间距才保持不变。换视角只转不缩放。
 	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
 		var span = Math.max(0.001, Math.max(cam.xspan, cam.yspan));
-		var s = Math.min(w, h) * 0.92 / (span * 2);
+		var s = Math.min(w, h) * 0.92 / (span * 2) * cam.zoom;
 		if (!(s > 0) || !isFinite(s)) s = 1;
 		view3.s = s;
 		var cx = isFinite(box.x0) ? (box.x0 + box.x1) / 2 : 0;
@@ -826,13 +830,9 @@
 		return p;
 	}
 
-	// 格子数按采样范围来取，格子在屏幕上的间距才不跟着缩放变。
+	// 网格线数固定，不跟着缩放增减，屏幕上的格子密度才不变。
 	function gridrows(base){
-		var span = Math.max(cam.xspan, cam.yspan);
-		var n = Math.round(base * span / YSPAN);
-		if (n < 8) n = 8;
-		if (n > 240) n = 240;
-		return n;
+		return base;
 	}
 
 	// 网格列数按采样平面的宽高比来取，格子才接近正方形。
@@ -848,7 +848,7 @@
 			draw3implicit(ctx, w, h);
 			return;
 		}
-		var ny = gridrows(46);
+		var ny = gridrows(22);
 		var nx = gridcount(ny);
 		var gw = nx + 1, gh = ny + 1;
 		var zraw = new Array(gw * gh);
@@ -925,8 +925,8 @@
 	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
 	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
 	function draw3implicit(ctx, w, h){
-		var n = gridrows(drag ? 46 : (style === "dots" ? 88 : 72));
-		var m = gridrows(drag ? 46 : 80);
+		var n = gridrows(drag ? 22 : (style === "dots" ? 44 : 36));
+		var m = gridrows(drag ? 22 : 40);
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var nx = gridcount(n);
@@ -1407,17 +1407,16 @@
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit));
 		}
 		var o = proj(0, 0, 0);
-		// x、y 轴一样长。采样平面按画布宽高比张开，轴长取较短的一边，避免一边特别长。
-		var arm = Math.min(cam.xspan, cam.yspan) * 0.85;
-		if (box) {
-			var reach = Math.max(box.x1, box.y1);
-			if (reach > arm) arm = reach * 1.12;
-		}
-		var ax = proj(arm, 0, 0);
-		var ay = proj(0, arm, 0);
+		// x、y 轴一直画到画布边缘，取原点到边缘的距离作为轴长。
+		var stage = canvas && canvas.parentElement;
+		var sw = stage && stage.clientWidth > 2 ? stage.clientWidth : 800;
+		var sh = stage && stage.clientHeight > 2 ? stage.clientHeight : 420;
+		var reach = axisedge(o, proj, sw, sh);
+		var ax = proj(reach, 0, 0);
+		var ay = proj(0, reach, 0);
 		// z 轴只画到曲面最高处再多出一截，不按整个采样高度拉满，免得把画面上下撑开。
 		var top = box && isFinite(box.z1) ? zmid + box.z1 / (zfit > 1e-9 ? zfit : 1) : hi;
-		var ztip = top + Math.abs(top - zmid) * 0.12 + arm * 0.05;
+		var ztip = top + Math.abs(top - zmid) * 0.12 + reach * 0.05;
 		var az = proj(0, 0, ztip);
 		ctx.lineWidth = 1.5;
 		ctx.font = '12px "Segoe UI", "Microsoft YaHei UI", sans-serif';
@@ -1425,6 +1424,20 @@
 		axis(ctx, o, ax, "#e11d48", "x");
 		axis(ctx, o, ay, "#16a34a", "y");
 		axis(ctx, o, az, "#2563eb", "z");
+	}
+
+	// 原点沿正方向走到画布边缘需要多长的世界坐标。标签要留在画布内，所以留一点余量。
+	function axisedge(o, proj, w, h){
+		var unit = proj(1, 0, 0);
+		var dx = unit.x - o.x, dy = unit.y - o.y;
+		var per = Math.sqrt(dx * dx + dy * dy);
+		if (!(per > 1e-6)) return 1;
+		var m = 24;
+		var tx = dx > 1e-6 ? (w - m - o.x) / dx : dx < -1e-6 ? (m - o.x) / dx : Infinity;
+		var ty = dy > 1e-6 ? (h - m - o.y) / dy : dy < -1e-6 ? (m - o.y) / dy : Infinity;
+		var t = Math.min(tx, ty);
+		if (!(t > 0) || !isFinite(t)) t = 1;
+		return t;
 	}
 
 	function axis(ctx, a, b, color, name){

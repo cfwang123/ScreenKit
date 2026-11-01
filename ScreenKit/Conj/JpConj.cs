@@ -1000,9 +1000,9 @@ static class JpConj {
 		rows.Add(row(L.tai + " / " + L.takatta + " / " + L.takunai, tai + "、" + cut(tai, 2) + "たかった、" + cut(tai, 2) + "たくない"));
 		rows.Add(row(L.nda, plain + "んだ、" + nai + "んだ"));
 		rows.Add(row(L.tte, plain + "って、" + plain + "んだって、" + nai + "って、" + nai + "んだって"));
-		rows.Add(row(L.noda, plain + "のです、" + plain + "んです"));
-		rows.Add(row(L.kke, ta + "っけ、" + plain + "っけ"));
-		rows.Add(row(L.mon, plain + "もん、" + plain + "んだもん"));
+		rows.Add(row(L.noda, plain + "のです、" + plain + "んです、" + nai + "のです、" + nai + "んです"));
+		rows.Add(row(L.kke, ta + "っけ、" + plain + "っけ、" + cut(nai, 2) + "なかったっけ、" + nai + "っけ"));
+		rows.Add(row(L.mon, plain + "もん、" + plain + "んだもん、" + nai + "もん、" + nai + "んだもん"));
 		rows.AddRange(auxrows(L, plain, masu, te, nai));
 		rows.AddRange(evidrows(L, verbforms(plain, masu, nai, te, ta)));
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
