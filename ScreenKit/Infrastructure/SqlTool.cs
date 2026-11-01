@@ -32,11 +32,11 @@ static class SqlTool {
 		return b.ConnectionString;
 	}
 
+	/// <summary>SQL Server 留空则连登录名的默认库，MySQL 留空则不选库；库在窗口里选。</summary>
 	/// <param name="user">留空则用 Windows 身份验证。</param>
-	public static string MssqlConn(string host, string db, string user, string pw) {
+	public static string MssqlConn(string host, string user, string pw) {
 		var b = new SqlConnectionStringBuilder {
 			DataSource = (host ?? "").Trim(),
-			InitialCatalog = (db ?? "").Trim(),
 			TrustServerCertificate = true,
 			ConnectTimeout = 8,
 		};
@@ -63,11 +63,10 @@ static class SqlTool {
 		return b.ConnectionString;
 	}
 
-	/// <summary>MySQL：<paramref name="host"/> 可带端口（host:3306）。</summary>
-	public static string MysqlConn(string host, string db, string user, string pw) {
+	/// <summary>MySQL：<paramref name="host"/> 可带端口（host:3306）；库连上后再选，不写进连接串。</summary>
+	public static string MysqlConn(string host, string user, string pw) {
 		var b = new DbConnectionStringBuilder {
 			["Server"] = (host ?? "").Trim(),
-			["Database"] = (db ?? "").Trim(),
 			["User ID"] = (user ?? "").Trim(),
 			["Password"] = pw ?? "",
 			["Connection Timeout"] = 8,
@@ -107,6 +106,46 @@ static class SqlTool {
 		Oracle => DbKind.Oracle,
 		_ => DbKind.Sqlite,
 	};
+
+	/// <summary>连上后能切的库。SQLite 只有一个文件、Oracle 只有当前模式，都返回空。</summary>
+	public static List<string> Databases(DbConnection cn, string kind, out string err) {
+		err = "";
+		var list = new List<string>();
+		if (cn == null) return list;
+		string sql;
+		if (kind == Mssql) sql = "SELECT name FROM sys.databases ORDER BY name";
+		else if (kind == Mysql) sql = "SHOW DATABASES";
+		else return list;
+		try {
+			using var cmd = cn.CreateCommand();
+			cmd.CommandText = sql;
+			using var rd = cmd.ExecuteReader();
+			while (rd.Read()) list.Add(Convert.ToString(rd.GetValue(0), CultureInfo.InvariantCulture));
+		}
+		catch (Exception ex) {
+			err = ex.Message;
+		}
+		return list;
+	}
+
+	/// <summary>切库。SQL Server 换当前目录，MySQL 发 USE；SQLite / Oracle 没有库的概念，忽略。</summary>
+	public static bool UseDb(DbConnection cn, string kind, string db, out string err) {
+		err = "";
+		if (cn == null || string.IsNullOrWhiteSpace(db)) return true;
+		try {
+			if (kind == Mssql) cn.ChangeDatabase(db);
+			else if (kind == Mysql) {
+				using var cmd = cn.CreateCommand();
+				cmd.CommandText = "USE " + quote(kind, db);
+				cmd.ExecuteNonQuery();
+			}
+			return true;
+		}
+		catch (Exception ex) {
+			err = ex.Message;
+			return false;
+		}
+	}
 
 	public static List<string> Tables(DbConnection cn, string kind, out string err) {
 		err = "";

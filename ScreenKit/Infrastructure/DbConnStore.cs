@@ -11,7 +11,6 @@ sealed class DbConnItem {
 	public string Kind { get; set; } = SqlTool.Sqlite;
 	public string File { get; set; } = "";
 	public string Host { get; set; } = "";
-	public string Db { get; set; } = "";
 	/// <summary>Oracle 的服务名。</summary>
 	public string Service { get; set; } = "";
 	public string User { get; set; } = "";

@@ -6567,8 +6567,8 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				}
 			}
 			Out("mysql driver: " + (DbDriver.Installed(DbKind.Mysql) ? "OK" : "缺失"));
-			var my1 = SqlTool.MysqlConn("h:3306", "d", "u", "p");
-			if (!my1.Contains("Server=h:3306") || !my1.Contains("Database=d") || !my1.Contains("User ID=u")) {
+			var my1 = SqlTool.MysqlConn("h:3306", "u", "p");
+			if (!my1.Contains("Server=h:3306") || my1.Contains("Database=") || !my1.Contains("User ID=u")) {
 				Err("FAIL: mysql conn " + my1);
 				bad++;
 			}
@@ -6604,7 +6604,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var items = new List<DbConnItem> {
 				new() { Name = "本地", Kind = SqlTool.Sqlite, File = db },
 				new() {
-					Name = "远端", Kind = SqlTool.Mysql, Host = "h:3306", Db = "d", User = "u",
+					Name = "远端", Kind = SqlTool.Mysql, Host = "h:3306", User = "u",
 					Secret = DbConnStore.Protect("p@ss"),
 				},
 			};
@@ -6617,12 +6617,12 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			}
 			else Out("conn store: OK");
 			try { File.Delete(storefile); } catch { }
-			var m1 = SqlTool.MssqlConn("h", "d", "", "");
-			if (!m1.Contains("Integrated Security=True")) {
+			var m1 = SqlTool.MssqlConn("h", "", "");
+			if (!m1.Contains("Integrated Security=True") || m1.Contains("Initial Catalog")) {
 				Err("FAIL: integrated security " + m1);
 				bad++;
 			}
-			var m2 = SqlTool.MssqlConn("h", "d", "u", "p");
+			var m2 = SqlTool.MssqlConn("h", "u", "p");
 			if (!m2.Contains("User ID=u") || !m2.Contains("Password=p")) {
 				Err("FAIL: user password " + m2);
 				bad++;

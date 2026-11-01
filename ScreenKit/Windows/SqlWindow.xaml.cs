@@ -36,7 +36,6 @@ public partial class SqlWindow : Window {
 		lbtype.Text = Loc.T("sql.type");
 		lbfile.Text = Loc.T("sql.file");
 		lbhost.Text = Loc.T("sql.host");
-		lbdb.Text = Loc.T("sql.db");
 		lbuser.Text = Loc.T("sql.user");
 		lbpw.Text = Loc.T("sql.pw");
 		lbohost.Text = Loc.T("sql.oracle.host");
@@ -44,7 +43,6 @@ public partial class SqlWindow : Window {
 		lbouser.Text = Loc.T("sql.user");
 		lbopw.Text = Loc.T("sql.pw");
 		lbmhost.Text = Loc.T("sql.host");
-		lbmdb.Text = Loc.T("sql.db");
 		lbmuser.Text = Loc.T("sql.user");
 		lbmpw.Text = Loc.T("sql.pw");
 		lbconn.Text = Loc.T("sql.conn");
@@ -53,6 +51,7 @@ public partial class SqlWindow : Window {
 		bdelconn.Content = Loc.T("sql.conn.del");
 		ToolBtnUi.Set(bfile, ToolBtnUi.Browse, Loc.T("sql.browse"));
 		bconnect.Content = cn == null ? Loc.T("sql.connect") : Loc.T("sql.disconnect");
+		lbdbdrp.Text = Loc.T("sql.db");
 		lbtables.Text = Loc.T("sql.tables");
 		brefresh.Content = Loc.T("sql.refresh");
 		bdata.Content = Loc.T("sql.query");
@@ -94,11 +93,17 @@ public partial class SqlWindow : Window {
 		etop.Items.Add("20000");
 		etop.SelectedIndex = 1;
 		etables.IsEnabled = false;
+		edbs.IsEnabled = false;
 		// 表下拉里选中一项就直接看内容，跟 sqlconsole 一致，不必再点「查询」
 		etables.SelectionChanged += (_, _) => {
 			if (tablesloading || etables.SelectedItem is not string t) return;
 			etables.ToolTip = t;
 			loadtable();
+		};
+		// 切库：SQL Server / MySQL 换库后重新列表；SQLite、Oracle 下拉一直是灰的
+		edbs.SelectionChanged += (_, _) => {
+			if (tablesloading || edbs.SelectedItem is not string db) return;
+			loaddb(db);
 		};
 		// 拖放回调要尽快返回，格式只在 DragEnter 问一次，否则资源管理器会等在这里
 		bool dropok = false;
@@ -197,7 +202,7 @@ public partial class SqlWindow : Window {
 		_ => 0,
 	};
 
-	/// <summary>选中已保存的连接：只把参数填进表单，连不连由用户按「连接」。</summary>
+	/// <summary>选中已保存的连接：只把参数填进表单，连不连由用户按「连接」。库不在这里填，连上后再选。</summary>
 	void applyconn() {
 		if (connUiLoading) return;
 		if (econn.SelectedItem is not DbConnItem it) return;
@@ -208,13 +213,11 @@ public partial class SqlWindow : Window {
 		if (it.Kind == SqlTool.Sqlite) efile.Text = it.File;
 		else if (it.Kind == SqlTool.Mssql) {
 			ehost.Text = it.Host;
-			edb.Text = it.Db;
 			euser.Text = it.User;
 			epw.Password = pw;
 		}
 		else if (it.Kind == SqlTool.Mysql) {
 			emhost.Text = it.Host;
-			emdb.Text = it.Db;
 			emuser.Text = it.User;
 			empw.Password = pw;
 		}
@@ -229,7 +232,7 @@ public partial class SqlWindow : Window {
 		lbstat.Text = Loc.T("sql.conn.applied", it.Name);
 	}
 
-	/// <summary>把当前表单存成一条连接；同名覆盖。</summary>
+	/// <summary>把当前表单存成一条连接；同名覆盖。库是会话里选的，不存进连接。</summary>
 	void saveconn() {
 		var name = (ecname.Text ?? "").Trim();
 		if (name.Length == 0) {
@@ -244,13 +247,11 @@ public partial class SqlWindow : Window {
 			break;
 		case DbKind.Mssql:
 			it.Host = ehost.Text.Trim();
-			it.Db = edb.Text.Trim();
 			it.User = euser.Text.Trim();
 			it.Secret = DbConnStore.Protect(epw.Password);
 			break;
 		case DbKind.Mysql:
 			it.Host = emhost.Text.Trim();
-			it.Db = emdb.Text.Trim();
 			it.User = emuser.Text.Trim();
 			it.Secret = DbConnStore.Protect(empw.Password);
 			break;
@@ -326,7 +327,7 @@ public partial class SqlWindow : Window {
 				lbstat.Text = Loc.T("sql.nohost");
 				return;
 			}
-			conn = SqlTool.MssqlConn(ehost.Text, edb.Text, euser.Text, epw.Password);
+			conn = SqlTool.MssqlConn(ehost.Text, euser.Text, epw.Password);
 		}
 		else if (k == SqlTool.Mysql) {
 			if (string.IsNullOrWhiteSpace(emhost.Text)) {
@@ -337,7 +338,7 @@ public partial class SqlWindow : Window {
 				lbstat.Text = Loc.T("sql.nouser");
 				return;
 			}
-			conn = SqlTool.MysqlConn(emhost.Text, emdb.Text, emuser.Text, empw.Password);
+			conn = SqlTool.MysqlConn(emhost.Text, emuser.Text, empw.Password);
 		}
 		else {
 			if (string.IsNullOrWhiteSpace(eohost.Text)) {
@@ -368,11 +369,11 @@ public partial class SqlWindow : Window {
 				kind = k;
 				bconnect.Content = Loc.T("sql.disconnect");
 				ecxkind.IsEnabled = efile.IsEnabled = bfile.IsEnabled = false;
-				ehost.IsEnabled = edb.IsEnabled = euser.IsEnabled = epw.IsEnabled = false;
-				emhost.IsEnabled = emdb.IsEnabled = emuser.IsEnabled = empw.IsEnabled = false;
+				ehost.IsEnabled = euser.IsEnabled = epw.IsEnabled = false;
+				emhost.IsEnabled = emuser.IsEnabled = empw.IsEnabled = false;
 				eohost.IsEnabled = eoservice.IsEnabled = eouser.IsEnabled = eopw.IsEnabled = false;
 				lbstat.Text = Loc.T("sql.connected");
-				reloadtables(true);
+				reloaddbs();
 			}));
 		});
 	}
@@ -385,11 +386,15 @@ public partial class SqlWindow : Window {
 		busyset(false, Loc.T("sql.disconnected"));
 		bconnect.Content = Loc.T("sql.connect");
 		ecxkind.IsEnabled = efile.IsEnabled = bfile.IsEnabled = true;
-		ehost.IsEnabled = edb.IsEnabled = euser.IsEnabled = epw.IsEnabled = true;
-		emhost.IsEnabled = emdb.IsEnabled = emuser.IsEnabled = empw.IsEnabled = true;
+		ehost.IsEnabled = euser.IsEnabled = epw.IsEnabled = true;
+		emhost.IsEnabled = emuser.IsEnabled = empw.IsEnabled = true;
 		eohost.IsEnabled = eoservice.IsEnabled = eouser.IsEnabled = eopw.IsEnabled = true;
 		checkdriver(false);
+		tablesloading = true;
+		edbs.ItemsSource = null;
 		etables.ItemsSource = null;
+		tablesloading = false;
+		edbs.IsEnabled = false;
 		dg.ItemsSource = null;
 		dgs.ItemsSource = null;
 		ecreate.Text = "";
@@ -404,12 +409,59 @@ public partial class SqlWindow : Window {
 		bdata.IsEnabled = !on;
 		bschema.IsEnabled = !on;
 		brun.IsEnabled = !on;
+		edbs.IsEnabled = !on && edbs.Items.Count > 0;
 		etables.IsEnabled = !on && etables.Items.Count > 0;
 		if (!string.IsNullOrEmpty(msg)) lbstat.Text = msg;
 	}
 
 	/**
-	 * 表只在连接成功时整批读一次，之后由「刷新」按需重读；下拉里选中即看内容，
+	 * 库只在连接成功时整批读一次，下拉里选一个就切过去并重列该库的表；
+	 * SQLite 与 Oracle 没有可切的库，下拉一直灰着。
+	 */
+	void reloaddbs() {
+		if (cn == null) return;
+		var n = ++gen;
+		Task.Run(() => {
+			var list = SqlTool.Databases(cn, kind, out var err);
+			Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
+				if (n != gen) return;
+				tablesloading = true;
+				edbs.ItemsSource = list;
+				var keep = cn.Database;
+				edbs.SelectedItem = keep != null && list.Contains(keep) ? keep : null;
+				tablesloading = false;
+				edbs.IsEnabled = list.Count > 0;
+				if (err.Length > 0) lbstat.Text = Loc.T("sql.fail", err);
+				reloadtables(true);
+			}));
+		});
+	}
+
+	/// <summary>切到另一个库，成功后重新列表；切不过去就把下拉退回原来那个。</summary>
+	void loaddb(string db) {
+		if (cn == null || busy) return;
+		var n = ++gen;
+		busyset(true, Loc.T("sql.loading"));
+		Task.Run(() => {
+			var ok = SqlTool.UseDb(cn, kind, db, out var err);
+			Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => {
+				if (n != gen) return;
+				busyset(false, "");
+				if (!ok) {
+					lbstat.Text = Loc.T("sql.fail", err);
+					tablesloading = true;
+					edbs.SelectedItem = null;
+					tablesloading = false;
+					return;
+				}
+				lbstat.Text = Loc.T("sql.db.used", db);
+				reloadtables(true);
+			}));
+		});
+	}
+
+	/**
+	 * 表只在连接成功、切库和点「刷新」时整批读；下拉里选中即看内容，
 	 * 免得每次切表都回数据库问一遍表名。
 	 */
 	void reloadtables(bool quiet) {

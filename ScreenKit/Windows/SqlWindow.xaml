@@ -41,6 +41,21 @@
 		<Border Grid.Row="1" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
 		        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
 			<StackPanel>
+			<!-- 连接管理：选已保存的连接，或把当前表单存成一条 -->
+			<WrapPanel VerticalAlignment="Center" Margin="0,0,0,8">
+				<TextBlock x:Name="lbconn" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+				<ComboBox x:Name="econn" Width="260" Height="30" Margin="0,0,10,0" VerticalContentAlignment="Center"
+				          DisplayMemberPath="Name"
+				          AutomationProperties.AutomationId="sql.conns"/>
+				<TextBlock x:Name="lbconnname" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+				<TextBox x:Name="ecname" Width="150" Height="30" Padding="8,4" Margin="0,0,8,0"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         AutomationProperties.AutomationId="sql.conn.name"/>
+				<Button x:Name="bsaveconn" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+				        AutomationProperties.AutomationId="sql.conn.save"/>
+				<Button x:Name="bdelconn" Style="{StaticResource ToolBtn}" Margin="0"
+				        AutomationProperties.AutomationId="sql.conn.del"/>
+			</WrapPanel>
 			<WrapPanel VerticalAlignment="Center">
 				<TextBlock x:Name="lbtype" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
 				<ComboBox x:Name="ecxkind" Width="130" Height="30" Margin="0,0,10,0" VerticalContentAlignment="Center"
@@ -66,10 +81,6 @@
 					<TextBox x:Name="ehost" Width="150" Height="30" Padding="8,4" Margin="0,0,8,0"
 					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 					         AutomationProperties.AutomationId="sql.host"/>
-					<TextBlock x:Name="lbdb" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
-					<TextBox x:Name="edb" Width="130" Height="30" Padding="8,4" Margin="0,0,8,0"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-					         AutomationProperties.AutomationId="sql.db"/>
 					<TextBlock x:Name="lbuser" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
 					<TextBox x:Name="euser" Width="90" Height="30" Padding="8,4" Margin="0,0,8,0"
 					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
@@ -85,10 +96,6 @@
 					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 					         ToolTip="主机:端口，如 192.168.1.10:3306"
 					         AutomationProperties.AutomationId="sql.mysql.host"/>
-					<TextBlock x:Name="lbmdb" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
-					<TextBox x:Name="emdb" Width="120" Height="30" Padding="8,4" Margin="0,0,8,0"
-					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-					         AutomationProperties.AutomationId="sql.mysql.db"/>
 					<TextBlock x:Name="lbmuser" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
 					<TextBox x:Name="emuser" Width="90" Height="30" Padding="8,4" Margin="0,0,8,0"
 					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
@@ -120,20 +127,6 @@
 				<Button x:Name="bconnect" Style="{StaticResource ToolBtn}" Margin="0"
 				        AutomationProperties.AutomationId="sql.connect"/>
 			</WrapPanel>
-			<WrapPanel Margin="0,8,0,0" VerticalAlignment="Center">
-				<TextBlock x:Name="lbconn" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
-				<ComboBox x:Name="econn" Width="260" Height="30" Margin="0,0,10,0" VerticalContentAlignment="Center"
-				          DisplayMemberPath="Name"
-				          AutomationProperties.AutomationId="sql.conns"/>
-				<TextBlock x:Name="lbconnname" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
-				<TextBox x:Name="ecname" Width="150" Height="30" Padding="8,4" Margin="0,0,8,0"
-				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-				         AutomationProperties.AutomationId="sql.conn.name"/>
-				<Button x:Name="bsaveconn" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
-				        AutomationProperties.AutomationId="sql.conn.save"/>
-				<Button x:Name="bdelconn" Style="{StaticResource ToolBtn}" Margin="0"
-				        AutomationProperties.AutomationId="sql.conn.del"/>
-			</WrapPanel>
 			</StackPanel>
 		</Border>
 
@@ -145,8 +138,13 @@
 				<RowDefinition Height="*"/>
 			</Grid.RowDefinitions>
 
-			<!-- 表选择：连接成功后整批读一次，之后只在点「刷新」时重读 -->
+			<!-- 库选择 + 表选择：连接成功后整批读一次，之后只在点「刷新」时重读 -->
 			<WrapPanel Grid.Row="0" Margin="0,0,0,8" VerticalAlignment="Center">
+				<TextBlock x:Name="lbdbdrp" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+				<ComboBox x:Name="edbs" Width="170" Height="30" Margin="0,0,12,0" VerticalContentAlignment="Center"
+				          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+				          MaxDropDownHeight="360"
+				          AutomationProperties.AutomationId="sql.dbs"/>
 				<TextBlock x:Name="lbtables" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
 				<ComboBox x:Name="etables" Width="240" Height="30" Margin="0,0,8,0" VerticalContentAlignment="Center"
 				          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"

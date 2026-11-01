@@ -93,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SkiaSharp (managed binding) now installs with the Skia runtime instead of shipping in the slim package; stale ZstdSharp and System.Text.Encodings.Web DLLs are dropped from the package.
 - Publish script now strips on-demand components and user-data files from the release package; 7z -x! excludes are auto-generated from the same junk lists to avoid drift.
 - Database query: tables moved to a dropdown that lists every table once on connect; TOP, Query and Schema are now toolbar buttons/dropdown beside the SQL box.
+- Database query: the database is now picked from a dropdown next to the table one instead of being part of the connection; SQL Server and MySQL list all databases on connect, and switching one reloads its tables.
 
 #### Fixed
 
@@ -157,6 +158,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SkiaSharp 托管绑定改为随 Skia 运行库安装，不再放进精简包；精简包里 ZstdSharp、System.Text.Encodings.Web 的残留 DLL 一并去掉。
 - 发布脚本现在从发布包中剔除按需安装的组件（ocrmodels/asrmodels/ttsmodels/facemodels/translatemodels/onnx*/ffmpeg64/wetext）与用户数据（config.toml、sql-conns.json、dict*.db、ime*.db、*.log 等）；7z 的 -x! 排除项改为由同一份 junk 列表自动生成，避免两份规则漂移。
 - 数据库查询：表改为顶部下拉，连接成功后一次性读取全部表；TOP、查询、结构改为 SQL 框旁边的下拉和按钮。
+- 数据库查询：库改在表下拉前的「数据库」下拉里选，不再作为连接配置的一部分；SQL Server 和 MySQL 连上后列出全部库，切换即重载该库的表。
 
 #### 修复
 
