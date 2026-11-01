@@ -92,7 +92,7 @@ static class ImeLex {
 			args.Add(("$skip", skip));
 		}
 		var arg = args.ToArray();
-		each(conn, "SELECT text,freq FROM kr_word WHERE " + where + " ORDER BY freq DESC LIMIT 40", r => {
+		each(conn, "SELECT text,freq FROM kr_word WHERE " + where + " ORDER BY freq DESC LIMIT 200", r => {
 			var t = r.GetString(0);
 			map[t] = new Cand { Text = t, Raw = t, Rank = -r.GetInt32(1), Comment = Hanja(t) };
 		}, arg);
@@ -115,7 +115,7 @@ static class ImeLex {
 			if (c != 0) return c;
 			return a.Rank.CompareTo(b.Rank);
 		});
-		if (list.Count > 8) list = list.GetRange(0, 8);
+		if (list.Count > 200) list = list.GetRange(0, 200);
 		return list;
 	}
 

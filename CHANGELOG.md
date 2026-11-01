@@ -95,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: tables moved to a dropdown that lists every table once on connect; TOP, Query and Schema are now toolbar buttons/dropdown beside the SQL box.
 - Database query: the database is now picked from a dropdown next to the table one instead of being part of the connection; SQL Server and MySQL list all databases on connect, and switching one reloads its tables.
 - Default-disable main UI tabs: HTTP interface and LLM log
+- Korean IME: raise candidate cap from 8 to 200 so single-syllable prefixes can page
 
 #### Fixed
 
@@ -162,6 +163,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：表改为顶部下拉，连接成功后一次性读取全部表；TOP、查询、结构改为 SQL 框旁边的下拉和按钮。
 - 数据库查询：库改在表下拉前的「数据库」下拉里选，不再作为连接配置的一部分；SQL Server 和 MySQL 连上后列出全部库，切换即重载该库的表。
 - 主界面 Tab 的 HTTP 接口、LLM 日志默认禁用
+- 韩语输入法：候选上限由 8 条提到 200 条，单音节前缀可翻页
 
 #### 修复
 
