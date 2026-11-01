@@ -727,6 +727,15 @@
 											<Run x:Name="rnttschromepage" Text="Chrome模型安装"/>
 										</Hyperlink>
 									</TextBlock>
+									<TextBlock x:Name="lkttsproxy" DockPanel.Dock="Right"
+									           VerticalAlignment="Center" Margin="12,0,0,0" FontSize="11"
+									           Visibility="Collapsed"
+									           AutomationProperties.AutomationId="tts.chrome.proxy">
+										<Hyperlink x:Name="lkttsproxyset" Foreground="{StaticResource Accent}"
+										           ToolTip="Chrome 的 Google 语音要连 Google，打不开时在这里改代理">
+											<Run x:Name="rnttsproxy" Text="代理设置"/>
+										</Hyperlink>
+									</TextBlock>
 									<ComboBox x:Name="ettslang" MinWidth="140" Height="32" Margin="0,0,8,0"
 									          VerticalContentAlignment="Center"
 									          AutomationProperties.AutomationId="tts.lang"

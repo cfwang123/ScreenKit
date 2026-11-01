@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace ScreenKit;
@@ -176,12 +177,19 @@ public partial class MainWindow {
 		};
 
 		bttsspeak.Click += (_, _) => _ = startttsspeakasync();
+		// Ctrl+Enter 朗读：文本框里换行是普通 Enter，带 Ctrl 时不插入换行，直接开始朗读。
+		tabtts.PreviewKeyDown += (_, e) => {
+			if (e.Key != Key.Enter || (Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
+			e.Handled = true;
+			_ = startttsspeakasync();
+		};
 		bttspause.Click += (_, _) => ttstogglepause();
 		bttsprev.Click += (_, _) => ttsjump(-1);
 		bttsnext.Click += (_, _) => ttsjump(+1);
 		bttsstop.Click += (_, _) => ttsstop();
 		bttsexport.Click += (_, _) => _ = ttsexportasync();
 		lkttschromepage.Click += (_, _) => openchromepage(msg => lbttsstatus.Text = msg);
+		lkttsproxyset.Click += (_, _) => opensettings(tab: "general");
 		bttsreload.Click += (_, _) => {
 			scanttssmodels();
 			rebuildttslangcombo(preserve: true);
@@ -726,6 +734,7 @@ public partial class MainWindow {
 
 		var eng2 = currentttsengine();
 		lkttschromeinstall.Visibility = eng2 == TtsEngineKind.Chrome ? Visibility.Visible : Visibility.Collapsed;
+		lkttsproxy.Visibility = eng2 == TtsEngineKind.Chrome ? Visibility.Visible : Visibility.Collapsed;
 		// Chrome 的 Google 声音是联网合成的，提示可能要开代理
 		ettsengine.ToolTip = eng2 == TtsEngineKind.Chrome ? Loc.T("tts.engine.chrome.tip") : null;
 		if (eng2 == TtsEngineKind.Sherpa) {
@@ -1862,6 +1871,8 @@ public partial class MainWindow {
 		lbttshint.Text = Loc.T("tts.hint");
 		rnttschromepage.Text = Loc.T("tr.chrome.install");
 		lkttschromepage.ToolTip = Loc.T("tr.chrome.install.tip");
+		rnttsproxy.Text = Loc.T("tts.chrome.proxy");
+		lkttsproxyset.ToolTip = Loc.T("tts.chrome.proxy.tip");
 		bttsspeak.ToolTip = Loc.T("tts.speak.tip");
 		bttspause.ToolTip = Loc.T("tts.pause.tip");
 		bttsprev.Content = Loc.T("tts.prev");

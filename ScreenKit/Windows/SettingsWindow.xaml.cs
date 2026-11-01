@@ -91,10 +91,12 @@ public partial class SettingsWindow : Window {
 		loadui(Result);
 	}
 
-	/// <summary>打开后切到指定页：目前支持 "ime"。</summary>
+	/// <summary>打开后切到指定页："ime"、"general"（代理设置所在页）。</summary>
 	public void SelectTab(string name) {
 		if (string.Equals(name, "ime", StringComparison.OrdinalIgnoreCase))
 			tabset.SelectedItem = tabsetime;
+		else if (string.Equals(name, "general", StringComparison.OrdinalIgnoreCase))
+			tabset.SelectedItem = tabsetgen;
 	}
 
 	void inithotkeyui() {
