@@ -1418,15 +1418,17 @@
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit));
 		}
 		var o = proj(0, 0, 0);
-		// 轴不要比曲面还长，免得被画布切掉。
-		var armx = cam.xspan * 0.85, army = cam.yspan * 0.85;
+		// 三条轴一样长，并伸出曲面一截。采样平面的宽高比只决定多画多少，不拉长 x 轴。
+		var arm = cam.yspan * 0.85;
 		if (box) {
-			if (box.x1 > 1e-6 && box.x1 < armx) armx = box.x1;
-			if (box.y1 > 1e-6 && box.y1 < army) army = box.y1;
+			var reach = Math.max(box.x1, box.y1);
+			if (reach > arm) arm = reach * 1.12;
 		}
-		var ax = proj(armx, 0, 0);
-		var ay = proj(0, army, 0);
-		var az = proj(0, 0, hi);
+		var ax = proj(arm, 0, 0);
+		var ay = proj(0, arm, 0);
+		// z 轴走的是被 zfit 压缩过的世界坐标，按同样的长度反算回去，三条轴才一样长。
+		var ztip = zmid + arm / (zfit > 1e-9 ? zfit : 1);
+		var az = proj(0, 0, ztip);
 		ctx.lineWidth = 1.5;
 		ctx.font = '12px "Segoe UI", "Microsoft YaHei UI", sans-serif';
 		ctx.fillStyle = "#44403c";

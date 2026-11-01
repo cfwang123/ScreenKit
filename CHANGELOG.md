@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Command tools: add a ripgrep (rg) cheat sheet to the Linux, PowerShell, pwsh, and CMD tables, covering rg --files piped into grep or findstr, glob and type filters, context lines, and hidden-file options
 - Speak with Ctrl+Enter on the TTS tab
 - Proxy settings link on the TTS tab when the Chrome engine is selected
+- Japanese conjugation: add colloquial nai desu forms (nai desu / nakatta desu / nai desu kedo), and janaidesu for na-adjectives and nouns
 
 #### Changed
 
@@ -101,6 +102,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean IME: raise candidate cap from 8 to 200 so single-syllable prefixes can page
 - Install features: the database driver group now sits under Tools instead of its own top-level node.
 - Chrome TTS pings Google while speaking and stops with an error when it is unreachable
+- 3D function plots draw the x, y and z axes at the same length, each extending past the surface.
 
 #### Fixed
 
@@ -141,6 +143,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 命令工具：Linux、PowerShell、pwsh、CMD 各表补 ripgrep（rg）速查，含 rg --files 接 grep/findstr 筛文件、glob 与类型筛选、上下文和隐藏文件等常见用法
 - 语音合成页按 Ctrl+Enter 开始朗读
 - 语音合成页选 Chrome 引擎时显示代理设置文字按钮
+- 日语词形变化：增加口语「ないです」系列（ないです、なかったです、ないですけど），な形容词和名词的丁宁否定补上「じゃないです」「じゃなかったです」
 
 #### 变更
 
@@ -175,6 +178,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语输入法：候选上限由 8 条提到 200 条，单音节前缀可翻页
 - 安装功能：「数据库驱动」节点移到「工具集」下面，不再单独占一个顶层节点。
 - Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错
+- 三维函数图像的 x、y、z 三条坐标轴改成一样长，并都伸出曲面一段。
 
 #### 修复
 
