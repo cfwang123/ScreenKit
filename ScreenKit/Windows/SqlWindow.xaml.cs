@@ -13,6 +13,7 @@ public partial class SqlWindow : Window {
 	int gen;
 	readonly List<DbConnItem> saved = new();
 	bool connUiLoading;
+	bool tablesloading;
 
 	public SqlWindow() {
 		InitializeComponent();
@@ -75,7 +76,6 @@ public partial class SqlWindow : Window {
 		bdata.Click += (_, _) => loadtable();
 		bschema.Click += (_, _) => showschema();
 		brun.Click += (_, _) => run();
-		lstables.MouseDoubleClick += (_, _) => loadtable();
 		esql.PreviewKeyDown += (_, e) => {
 			if (e.Key == Key.F5 || (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)) {
 				e.Handled = true;
@@ -93,6 +93,13 @@ public partial class SqlWindow : Window {
 		etop.Items.Add("5000");
 		etop.Items.Add("20000");
 		etop.SelectedIndex = 1;
+		etables.IsEnabled = false;
+		// 表下拉里选中一项就直接看内容，跟 sqlconsole 一致，不必再点「查询」
+		etables.SelectionChanged += (_, _) => {
+			if (tablesloading || etables.SelectedItem is not string t) return;
+			etables.ToolTip = t;
+			loadtable();
+		};
 		// 拖放回调要尽快返回，格式只在 DragEnter 问一次，否则资源管理器会等在这里
 		bool dropok = false;
 		DragEnter += (_, e) => {
@@ -382,7 +389,7 @@ public partial class SqlWindow : Window {
 		emhost.IsEnabled = emdb.IsEnabled = emuser.IsEnabled = empw.IsEnabled = true;
 		eohost.IsEnabled = eoservice.IsEnabled = eouser.IsEnabled = eopw.IsEnabled = true;
 		checkdriver(false);
-		lstables.ItemsSource = null;
+		etables.ItemsSource = null;
 		dg.ItemsSource = null;
 		dgs.ItemsSource = null;
 		ecreate.Text = "";
@@ -397,9 +404,14 @@ public partial class SqlWindow : Window {
 		bdata.IsEnabled = !on;
 		bschema.IsEnabled = !on;
 		brun.IsEnabled = !on;
+		etables.IsEnabled = !on && etables.Items.Count > 0;
 		if (!string.IsNullOrEmpty(msg)) lbstat.Text = msg;
 	}
 
+	/**
+	 * 表只在连接成功时整批读一次，之后由「刷新」按需重读；下拉里选中即看内容，
+	 * 免得每次切表都回数据库问一遍表名。
+	 */
 	void reloadtables(bool quiet) {
 		if (cn == null) return;
 		if (busy) return;
@@ -414,13 +426,18 @@ public partial class SqlWindow : Window {
 					lbstat.Text = Loc.T("sql.fail", err);
 					return;
 				}
-				lstables.ItemsSource = list;
+				var keep = etables.SelectedItem as string;
+				tablesloading = true;
+				etables.ItemsSource = list;
+				etables.SelectedItem = list.Contains(keep) ? keep : null;
+				tablesloading = false;
+				etables.IsEnabled = list.Count > 0;
 				if (!quiet) lbstat.Text = Loc.T("sql.tables.count", list.Count);
 			}));
 		});
 	}
 
-	string selectedtable() => lstables.SelectedItem as string;
+	string selectedtable() => etables.SelectedItem as string;
 
 	void loadtable() {
 		if (cn == null) {
@@ -503,8 +520,6 @@ public partial class SqlWindow : Window {
 					dg.ItemsSource = null;
 					lbstat.Text = Loc.T("sql.okaffected", r.Affected, r.Ms);
 				}
-				// 建表、改名、删表后表名有变化，悄悄重列一次
-				Dispatcher.BeginInvoke(DispatcherPriority.Background, new Action(() => reloadtables(true)));
 			}));
 		});
 	}

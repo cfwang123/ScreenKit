@@ -139,96 +139,80 @@
 
 		<!-- 主体 -->
 		<Grid Grid.Row="2">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="280" MinWidth="180"/>
-				<ColumnDefinition Width="8"/>
-				<ColumnDefinition Width="*" MinWidth="420"/>
-			</Grid.ColumnDefinitions>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
 
-			<Border Grid.Column="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
-			        BorderThickness="1" CornerRadius="8" Padding="8">
-				<DockPanel>
-					<TextBlock x:Name="lbtables" DockPanel.Dock="Top" FontWeight="SemiBold" Margin="2,0,0,6"/>
-					<StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0">
-						<Button x:Name="brefresh" Style="{StaticResource ToolBtnSm}"
-						        AutomationProperties.AutomationId="sql.refresh"/>
-						<Button x:Name="bdata" Style="{StaticResource ToolBtnSm}"
-						        AutomationProperties.AutomationId="sql.query"/>
-						<Button x:Name="bschema" Style="{StaticResource ToolBtnSm}" Margin="0"
-						        AutomationProperties.AutomationId="sql.schema"/>
-					</StackPanel>
-					<ListBox x:Name="lstables" BorderThickness="0" Background="Transparent"
-					         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
-					         ScrollViewer.HorizontalScrollBarVisibility="Auto"
-					         VirtualizingPanel.IsVirtualizing="True"
-					         AutomationProperties.AutomationId="sql.tables"/>
-				</DockPanel>
-			</Border>
+			<!-- 表选择：连接成功后整批读一次，之后只在点「刷新」时重读 -->
+			<WrapPanel Grid.Row="0" Margin="0,0,0,8" VerticalAlignment="Center">
+				<TextBlock x:Name="lbtables" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TextMuted}"/>
+				<ComboBox x:Name="etables" Width="240" Height="30" Margin="0,0,8,0" VerticalContentAlignment="Center"
+				          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+				          MaxDropDownHeight="360"
+				          AutomationProperties.AutomationId="sql.tables"/>
+				<Button x:Name="brefresh" Style="{StaticResource ToolBtn}" Margin="0,0,12,0"
+				        AutomationProperties.AutomationId="sql.refresh"/>
+				<TextBlock x:Name="lbtop" VerticalAlignment="Center" Margin="0,0,6,0"
+				           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+				<ComboBox x:Name="etop" Width="92" Height="30" FontSize="12" VerticalContentAlignment="Center"
+				          Margin="0,0,12,0" AutomationProperties.AutomationId="sql.top"/>
+				<Button x:Name="bdata" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+				        AutomationProperties.AutomationId="sql.query"/>
+				<Button x:Name="bschema" Style="{StaticResource ToolBtn}" Margin="0"
+				        AutomationProperties.AutomationId="sql.schema"/>
+			</WrapPanel>
 
-			<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch" Background="Transparent"/>
+			<Grid Grid.Row="1" Margin="0,0,0,8">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBox x:Name="esql" Height="96" Padding="8,6" AcceptsReturn="True" AcceptsTab="True"
+				         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+				         BorderBrush="{StaticResource BorderSoft}" FontFamily="Consolas, Microsoft YaHei UI"
+				         FontSize="12" TextWrapping="NoWrap"
+				         AutomationProperties.AutomationId="sql.sql"/>
+				<Button x:Name="brun" Grid.Column="1" Style="{StaticResource ToolBtn}" Margin="8,0,0,0"
+				        Width="96" VerticalAlignment="Top"
+				        AutomationProperties.AutomationId="sql.run"/>
+			</Grid>
 
-			<Grid Grid.Column="2">
-				<Grid.RowDefinitions>
-					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="*"/>
-				</Grid.RowDefinitions>
-
-				<Grid Grid.Row="0" Margin="0,0,0,8">
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="Auto"/>
-					</Grid.ColumnDefinitions>
-					<TextBox x:Name="esql" Height="96" Padding="8,6" AcceptsReturn="True" AcceptsTab="True"
-					         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-					         BorderBrush="{StaticResource BorderSoft}" FontFamily="Consolas, Microsoft YaHei UI"
-					         FontSize="12" TextWrapping="NoWrap"
-					         AutomationProperties.AutomationId="sql.sql"/>
-					<StackPanel Grid.Column="1" Margin="8,0,0,0">
-						<Button x:Name="brun" Style="{StaticResource ToolBtn}" Margin="0,0,0,6" Width="96"
-						        AutomationProperties.AutomationId="sql.run"/>
-						<StackPanel Orientation="Horizontal">
-							<TextBlock x:Name="lbtop" VerticalAlignment="Center" Margin="0,0,6,0"
-							           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-							<ComboBox x:Name="etop" Width="92" Height="26" FontSize="12" VerticalContentAlignment="Center"/>
+			<TabControl x:Name="tabs" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+			            AutomationProperties.AutomationId="sql.tabs">
+				<TabItem x:Name="tabdata" AutomationProperties.AutomationId="sql.tab.data">
+					<DataGrid x:Name="dg" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
+					          HeadersVisibility="All" GridLinesVisibility="All" BorderThickness="0"
+					          Background="{StaticResource BgPanel}" RowBackground="White"
+					          AlternatingRowBackground="#F7FAFC"
+					          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+					          EnableRowVirtualization="True" EnableColumnVirtualization="True"
+					          ClipboardCopyMode="IncludeHeader" SelectionUnit="Cell"
+					          AutomationProperties.AutomationId="sql.grid"
+					          RowHeaderStyle="{StaticResource RowNumHeader}"/>
+				</TabItem>
+				<TabItem x:Name="tabschema" AutomationProperties.AutomationId="sql.tab.schema">
+					<DockPanel>
+						<StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+							<TextBlock x:Name="lbcreate" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,0,0,4"/>
+							<TextBox x:Name="ecreate" Height="86" Padding="6,4" IsReadOnly="True"
+							         AcceptsReturn="True" TextWrapping="NoWrap"
+							         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
 						</StackPanel>
-					</StackPanel>
-				</Grid>
-
-				<TabControl x:Name="tabs" Grid.Row="1" BorderBrush="{StaticResource BorderSoft}"
-				            AutomationProperties.AutomationId="sql.tabs">
-					<TabItem x:Name="tabdata" AutomationProperties.AutomationId="sql.tab.data">
-						<DataGrid x:Name="dg" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
+						<DataGrid x:Name="dgs" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
 						          HeadersVisibility="All" GridLinesVisibility="All" BorderThickness="0"
 						          Background="{StaticResource BgPanel}" RowBackground="White"
 						          AlternatingRowBackground="#F7FAFC"
 						          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
-						          EnableRowVirtualization="True" EnableColumnVirtualization="True"
 						          ClipboardCopyMode="IncludeHeader" SelectionUnit="Cell"
-						          AutomationProperties.AutomationId="sql.grid"
+						          AutomationProperties.AutomationId="sql.schema.grid"
 						          RowHeaderStyle="{StaticResource RowNumHeader}"/>
-					</TabItem>
-					<TabItem x:Name="tabschema" AutomationProperties.AutomationId="sql.tab.schema">
-						<DockPanel>
-							<StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-								<TextBlock x:Name="lbcreate" Foreground="{StaticResource TextMuted}" FontSize="12" Margin="0,0,0,4"/>
-								<TextBox x:Name="ecreate" Height="86" Padding="6,4" IsReadOnly="True"
-								         AcceptsReturn="True" TextWrapping="NoWrap"
-								         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-								         BorderBrush="{StaticResource BorderSoft}"
-								         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"/>
-							</StackPanel>
-							<DataGrid x:Name="dgs" AutoGenerateColumns="True" IsReadOnly="True" CanUserAddRows="False"
-							          HeadersVisibility="All" GridLinesVisibility="All" BorderThickness="0"
-							          Background="{StaticResource BgPanel}" RowBackground="White"
-							          AlternatingRowBackground="#F7FAFC"
-							          FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
-							          ClipboardCopyMode="IncludeHeader" SelectionUnit="Cell"
-							          AutomationProperties.AutomationId="sql.schema.grid"
-							          RowHeaderStyle="{StaticResource RowNumHeader}"/>
-						</DockPanel>
-					</TabItem>
-				</TabControl>
-			</Grid>
+					</DockPanel>
+				</TabItem>
+			</TabControl>
 		</Grid>
 
 		<TextBlock x:Name="lbstat" Grid.Row="3" Margin="2,8,0,0" TextWrapping="Wrap"

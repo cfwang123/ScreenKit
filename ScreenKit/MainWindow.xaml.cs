@@ -126,6 +126,7 @@ public partial class MainWindow : Window {
 	FastCopyWindow fastCopyWin;
 	GlyphModWindow glyphModWin;
 	PortUseWindow portUseWin;
+	TlsWindow tlsWin;
 	MidiSynthWindow midiWin;
 	VoiceRecWindow voiceRecWin;
 	CamWindow camWin;
@@ -1851,6 +1852,7 @@ public partial class MainWindow : Window {
 		mnrtspsrv.Click += (_, _) => openrtspsrv();
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
+		mntls.Click += (_, _) => opentls();
 		mnmidi.Click += (_, _) => openmidi();
 		mnvoicerec.Click += (_, _) => openvoicerec();
 		mncam.Click += (_, _) => opencam();
@@ -4849,6 +4851,9 @@ public partial class MainWindow : Window {
 	void opensoapdbg() =>
 		opentoolwin(ref soapDbgWin, () => new SoapDebugWindow(), "menu.soapdbg");
 
+	void opentls() =>
+		opentoolwin(ref tlsWin, () => new TlsWindow(), "menu.tls");
+
 	void openzhconv() =>
 		opentoolwin(ref zhConvWin, () => new ZhConvertWindow(), "menu.zhconv");
 
@@ -5048,6 +5053,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(perfMonWin, w)) perfMonWin = null;
 				else if (ReferenceEquals(pinyinWin, w)) pinyinWin = null;
 				else if (ReferenceEquals(portUseWin, w)) portUseWin = null;
+				else if (ReferenceEquals(tlsWin, w)) tlsWin = null;
 				else if (ReferenceEquals(rtspSrvWin, w)) rtspSrvWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};
