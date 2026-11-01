@@ -112,6 +112,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Slim release package now ships the USB AOA driver (winusb-aoa.inf) and the SOAP debugger sample WSDLs (soapmock); previously these were missing from the published package, breaking USB screen-cast driver install and the SOAP debugger samples.
 - MQTT window could not be reopened after closing it
 - 8bit synth: Alt/Shift octave switch no longer dumps element objects into the keyboard area
+- Chrome TTS no longer reports a Google failure when speech already started (slow proxies)
 
 ### 中文
 
@@ -182,6 +183,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 精简发布包现在随包包含 USB AOA 驱动（winusb-aoa.inf）与 SOAP 调试器示例 WSDL（soapmock）；此前发布包缺这两项，会导致 USB 投屏无法安装驱动、SOAP 调试器无示例可用。
 - MQTT 调试：关闭窗口后无法再次打开
 - 8bit 合成器：按 Alt/Shift 换八度不再把 DOM 元素对象当文本塞进琴键区
+- Chrome 朗读已出声时不再误报连不上 Google（代理较慢导致）
 
 ## v1.0.31 (2026-10-29)
 
