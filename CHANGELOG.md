@@ -107,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese conjugation: dialect forms now come after the N5-N0 patterns
 - Japanese conjugation: the tai row now also lists takatta (tabetakatta)
 - Japanese conjugation: move ていらっしゃい into the honorific group, right after ください
+- Japanese conjugation: merge tagaru and tagaranai into one row
 
 #### Fixed
 
@@ -188,6 +189,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语词形变化：方言说法移到 N5~N0 句型之后
 - 日语词形变化：「たい」一栏补上过去形（食べたかった）
 - 日语词形变化：「ていらっしゃい」并入尊敬语组，排在「ください」右边
+- 日语词形变化：「たがる」「たがらない」合并为一行
 
 #### 修复
 
