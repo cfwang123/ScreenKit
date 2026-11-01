@@ -97,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Default-disable main UI tabs: HTTP interface and LLM log
 - Korean IME: raise candidate cap from 8 to 200 so single-syllable prefixes can page
 - Install features: the database driver group now sits under Tools instead of its own top-level node.
+- Chrome TTS pings Google while speaking and stops with an error when it is unreachable
 
 #### Fixed
 
@@ -166,6 +167,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 主界面 Tab 的 HTTP 接口、LLM 日志默认禁用
 - 韩语输入法：候选上限由 8 条提到 200 条，单音节前缀可翻页
 - 安装功能：「数据库驱动」节点移到「工具集」下面，不再单独占一个顶层节点。
+- Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错
 
 #### 修复
 

@@ -85,6 +85,21 @@
 		["text", "head", "查看文件开头，默认 10 行", "head -n 20 app.log"],
 		["text", "tail", "查看文件结尾；-f 持续跟踪", "tail -f app.log"],
 		["text", "grep", "按模式搜索文本；-r 递归、-n 行号", "grep -rn \"ERROR\" ."],
+		["text", "rg", "递归搜索，默认带行号、守 .gitignore、跳过隐藏和二进制", "rg -n \"ERROR\" src/", "ripgrep 多数发行版要另装（apt install ripgrep）。"],
+		["text", "rg --files", "列出会被搜的文件，结果可再交给 rg / grep 过滤", "rg --files | grep -E \"\\.(ts|js)$\""],
+		["text", "rg -g", "-g 按 glob 限定文件，前面加 ! 表示排除", "rg -g \"*.md\" -g \"!CHANGELOG.md\" \"TODO\""],
+		["text", "rg -t", "按文件类型搜；-T 表示排除这类文件", "rg -T js \"panic\"", "rg --type-list 看全部类型名。"],
+		["text", "rg -e", "一个词写多个模式；也可直接用 | 写正则", "rg -e \"TODO\" -e \"FIXME\" src/"],
+		["text", "rg -C", "带上下文行数；-A 只看后几行、-B 只看前几行", "rg -C 2 \"ERROR\" app.log"],
+		["text", "rg -v", "反向匹配，只输出不命中的行", "rg -v \"^#|^$\" app.conf"],
+		["text", "rg -F", "整串按字面匹配，不当正则，搜符号省事", "rg -F \"a.b(c)\" src/"],
+		["text", "rg -l", "只列命中的文件名；-c 只数各文件命中行数", "rg -l \"TODO\" src/"],
+		["text", "rg -o", "只输出命中的那一段，便于再管道加工", "rg -o \"[0-9]+\" access.log | sort -u"],
+		["text", "rg -i", "忽略大小写；默认是智能大小写（含大写才区分）", "rg -i \"error\" app.log"],
+		["text", "rg -n", "强制显示行号（输出被管道接走时默认会省掉）", "rg -n \"panic\" app.log | head"],
+		["text", "rg --hidden", "--hidden 连隐藏文件搜，--no-ignore 忽略规则全关", "rg --hidden --no-ignore \"secret\" .", "点目录和 .gitignore 里的文件默认不搜。"],
+		["text", "rg -U", "多行模式，让正则能跨行匹配", "rg -U \"begin[\\s\\S]*?end\" app.c"],
+		["text", "rg -r", "-r 用 $1 引用分组，做「搜出来顺手改写」的预览", "rg -r \"$2-$1\" \"(\\d{4})-(\\d{2})\" dates.txt"],
 		["text", "sed", "流式编辑；-i 直接修改文件", "sed -i \"s/old/new/g\" file.txt"],
 		["text", "awk", "按列处理文本", "awk '{print $1}' access.log"],
 		["text", "cut", "按分隔符截取列", "cut -d: -f1 /etc/passwd"],
@@ -749,6 +764,128 @@
 			"",
 			"# 忽略大小写并排除目录",
 			"grep -rni --exclude-dir=bin 'error' ."
+		],
+
+		"sh|rg": [
+			"# 递归搜，默认就带 文件:行号:内容，不走 .gitignore 里的东西",
+			"rg -n 'TODO' src/",
+			"",
+			"# 只搜某类文件、忽略大小写、带两行上下文",
+			"rg -i -C 2 -g '*.cs' 'error' .",
+			"",
+			"# 结果太多时只看文件名，再逐个打开",
+			"rg -l 'TODO' | head"
+		],
+
+		"sh|rg --files": [
+			"# 列出会被搜的源文件（已按 .gitignore 过滤）",
+			"rg --files",
+			"",
+			"# 接 grep 按名字筛：找名字带 name 的文件",
+			"rg --files | grep name",
+			"",
+			"# 只留某类文件，再喂给别的命令",
+			"rg --files -g '*.log' | xargs wc -l"
+		],
+
+		"sh|rg -g": [
+			"# 只在 Markdown 里搜",
+			"rg -g '*.md' 'TODO'",
+			"",
+			"# 排除生成目录和备份文件",
+			"rg -g '!bin/' -g '!*.bak' 'config' ."
+		],
+
+		"sh|rg -t": [
+			"# 按语言类型搜，比写 glob 稳",
+			"rg -t py 'def main'",
+			"",
+			"# 排除某类文件和某类目录",
+			"rg -T js -g '!dist/' 'localhost' .",
+			"",
+			"# 类型名查表",
+			"rg --type-list | head"
+		],
+
+		"sh|rg -e": [
+			"# 多个模式，命中任一就输出",
+			"rg -e 'TODO' -e 'FIXME' -e 'HACK' src/",
+			"",
+			"# 等价的正则写法（注意转义）",
+			"rg 'TODO|FIXME|HACK' src/"
+		],
+
+		"sh|rg -C": [
+			"# 前后各 2 行，排查报错最常用",
+			"rg -C 2 'Exception' app.log",
+			"",
+			"# 只要命中行之后 5 行（看堆栈）",
+			"rg -A 5 'Exception' app.log"
+		],
+
+		"sh|rg -v": [
+			"# 去掉注释行和空行，看真正的配置",
+			"rg -v '^\\s*#|^\\s*$' app.conf",
+			"",
+			"# 排除掉已知噪音再看日志",
+			"rg -v 'healthcheck|favicon' access.log | tail"
+		],
+
+		"sh|rg -F": [
+			"# 搜带 . ( ) [ ] 的字面串，不写一堆反斜杠",
+			"rg -F 'a.b(c)' src/",
+			"",
+			"# 搜 IP 段也适用",
+			"rg -F '192.168.1.' app.log"
+		],
+
+		"sh|rg -l": [
+			"# 只列文件名，再配合 xargs 批量处理",
+			"rg -l 'TODO' src/ | xargs sed -n '1p'",
+			"",
+			"# 每个文件命中多少行",
+			"rg -c 'TODO' src/"
+		],
+
+		"sh|rg -o": [
+			"# 只取时间戳，再去重计数",
+			"rg -o '[0-9]{4}-[0-9]{2}-[0-9]{2}' app.log | sort | uniq -c",
+			"",
+			"# 取出所有 IP 并排序",
+			"rg -o '\\d+\\.\\d+\\.\\d+\\.\\d+' access.log | sort -u"
+		],
+
+		"sh|rg -i": ["# 不区分大小写；默认智能大小写，模式里含大写才区分", "rg -i 'error' app.log"],
+
+		"sh|rg -n": [
+			"# 输出接管道时行号默认会省掉，需要就显式加 -n",
+			"rg -n 'panic' app.log | head -n 20",
+			"",
+			"# 想一直带行号也可以写进配置",
+			"# ~/.ripgreprc: --line-number"
+		],
+
+		"sh|rg --hidden": [
+			"# 连 .env、.github 这类隐藏文件一起搜",
+			"rg --hidden -g '!.git/' 'password' .",
+			"",
+			"# 忽略规则也一起关掉（会搜到 node_modules 等）",
+			"rg --no-ignore 'TODO' ."
+		],
+
+		"sh|rg -U": [
+			"# 跨行匹配：从 begin 到 end 之间",
+			"rg -U 'begin[\\s\\S]*?end' app.c",
+			"",
+			"# 多行正则里 . 默认不跨行，用 (?s) 让 . 也跨行",
+			"rg -U '(?s)BEGIN.*?END' app.c"
+		],
+
+		"sh|rg -r": [
+			"# 只预览替换效果，不改文件（$1 $2 是分组）",
+			"rg -r '$2-$1' '(\\d{4})-(\\d{2})' dates.txt",
+			"",
+			"# 确认无误再交给 sed 或其他工具落盘"
 		],
 
 		"sh|sed": [
