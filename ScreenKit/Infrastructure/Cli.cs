@@ -6211,6 +6211,32 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Out(d.Text);
 			break;
 		}
+
+		// 界面「读取描述符」走这条：按选中的设备只读它所在的端口
+		var devs = UsbList.Scan();
+		Out("usbdev=" + devs.Count);
+		var readok = 0;
+		var miss = 0;
+		foreach (var dev in devs) {
+			UsbDescDev one;
+			try { one = UsbDesc.Read(dev); }
+			catch (Exception ex) {
+				Err("按设备读取失败：" + dev.Name + " · " + ex.Message);
+				return 1;
+			}
+			if (one == null) { miss++; Out("miss: " + dev.Name + " | " + dev.InstanceId + " | parent " + dev.Parent); continue; }
+			if (string.IsNullOrEmpty(one.Text) || one.Text.IndexOf("Device Descriptor:", StringComparison.Ordinal) < 0) {
+				Err("按设备读取没有拿到设备描述符：" + dev.Name);
+				return 1;
+			}
+			readok++;
+			if (readok == 1) Out("--- Read(" + dev.Name + " | " + dev.InstanceId + ") ---\n" + one.Text);
+		}
+		Out($"read={readok} miss={miss}");
+		if (readok == 0) {
+			Err("按设备读取一台也没成功");
+			return 1;
+		}
 		Out("=== OK：USB 描述符 ===");
 		return 0;
 	}

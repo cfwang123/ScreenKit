@@ -91,7 +91,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Network**: Diagnostics, IP scan, and port scan, covering Ping, DNS, Wake-on-LAN, trace route, and more.
 - **Ports in use**: Lists the TCP and UDP ports in use and the process behind each, and can open that folder.
 - **TLS certificate check**: Enter `host:port` to connect once and see the TLS version, cipher suite, and full chain with validity, SAN, and thumbprint; copy it as PEM.
-- **System info**: System, USB, serial ports, printers, sound, fonts, displays, cameras, Bluetooth, disks, and other devices. A separate **USB descriptors** page read-only shows device and configuration descriptors, interfaces, endpoints, strings, and HID report layout.
+- **System info**: System, USB, serial ports, printers, sound, fonts, displays, cameras, Bluetooth, disks, and other devices. On the **USB devices** page, select a device and click **Read descriptors** to see its device and configuration descriptors, interfaces, endpoints, strings, and HID report layout (read-only).
 - **System tools**: Read-only lists of processes, environment variables, startup items, installed programs, services, hotfixes, and Store apps, plus file locks and file associations.
 - **Performance**: A borderless window with CPU, GPU, memory, network, and disk, with a pin and an update interval.
 - **File info**: Reads the header type and shows version, image, media, and text-encoding details. EXE and DLL files get another page for sections, imports, exports, the signature, and public .NET types.

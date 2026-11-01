@@ -127,19 +127,47 @@
 							</ListView.View>
 						</ListView>
 						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
-						<ListView x:Name="lvusbprop" Grid.Column="2" BorderBrush="{StaticResource BorderSoft}"
-						          SelectionMode="Single"
-						          FontFamily="Consolas, Microsoft YaHei UI"
-						          AutomationProperties.AutomationId="usb.detail">
-							<ListView.View>
-								<GridView>
-									<GridViewColumn x:Name="colusbprop" Width="120"
-									                DisplayMemberBinding="{Binding Name}"/>
-									<GridViewColumn x:Name="colusbval" Width="360"
-									                DisplayMemberBinding="{Binding Value}"/>
-								</GridView>
-							</ListView.View>
-						</ListView>
+						<Grid Grid.Column="2">
+							<Grid.RowDefinitions>
+								<RowDefinition Height="*" MinHeight="90"/>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="1.15*" MinHeight="110"/>
+							</Grid.RowDefinitions>
+							<ListView x:Name="lvusbprop" BorderBrush="{StaticResource BorderSoft}"
+							          SelectionMode="Single"
+							          FontFamily="Consolas, Microsoft YaHei UI"
+							          AutomationProperties.AutomationId="usb.detail">
+								<ListView.View>
+									<GridView>
+										<GridViewColumn x:Name="colusbprop" Width="120"
+										                DisplayMemberBinding="{Binding Name}"/>
+										<GridViewColumn x:Name="colusbval" Width="360"
+										                DisplayMemberBinding="{Binding Value}"/>
+									</GridView>
+								</ListView.View>
+							</ListView>
+							<GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+							<Grid Grid.Row="2">
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="*"/>
+								</Grid.RowDefinitions>
+								<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+									<Button x:Name="busbdesc" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+									        AutomationProperties.AutomationId="usb.desc"/>
+									<Button x:Name="busbdesccopy" Style="{StaticResource ToolBtn}" Margin="0,0,8,0"
+									        AutomationProperties.AutomationId="usb.desccopy"/>
+									<TextBlock x:Name="lbusbdescstat" VerticalAlignment="Center" FontSize="12"
+									           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"/>
+								</StackPanel>
+								<TextBox x:Name="eusbdesctext" Grid.Row="1" IsReadOnly="True" AcceptsReturn="True"
+								         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+								         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+								         TextWrapping="Wrap"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         AutomationProperties.AutomationId="usb.desc.text"/>
+							</Grid>
+						</Grid>
 					</Grid>
 					<TextBlock x:Name="lbusbstat" Grid.Row="3" Margin="0,8,0,0"
 					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
@@ -448,64 +476,6 @@
 						</ListView.View>
 					</ListView>
 					<TextBlock x:Name="lbfontstat" Grid.Row="3" Margin="0,8,0,0"
-					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
-				</Grid>
-			</TabItem>
-			<TabItem x:Name="tabusbdesc" Header="USB 描述符"
-			         AutomationProperties.AutomationId="sys.tab.usbdesc">
-				<Grid Margin="12">
-					<Grid.RowDefinitions>
-						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="Auto"/>
-						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
-					</Grid.RowDefinitions>
-					<TextBlock x:Name="lbusbdeschint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
-					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-					<Grid Grid.Row="1" Margin="0,0,0,8">
-						<Grid.ColumnDefinitions>
-							<ColumnDefinition Width="Auto"/>
-							<ColumnDefinition Width="*"/>
-							<ColumnDefinition Width="Auto"/>
-							<ColumnDefinition Width="Auto"/>
-						</Grid.ColumnDefinitions>
-						<TextBlock x:Name="lbusbdescfilter" Text="筛选" VerticalAlignment="Center" Margin="0,0,8,0"/>
-						<TextBox x:Name="eusbdescfilter" Grid.Column="1" Height="32" Padding="8,4" Margin="0,0,8,0"
-						         BorderBrush="{StaticResource BorderSoft}"
-						         VerticalContentAlignment="Center"
-						         AutomationProperties.AutomationId="usbdesc.filter"/>
-						<Button x:Name="busbdescrefresh" Grid.Column="2" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
-						        AutomationProperties.AutomationId="usbdesc.refresh"/>
-						<Button x:Name="busbdesccopy" Grid.Column="3" Style="{StaticResource ToolBtn}"
-						        AutomationProperties.AutomationId="usbdesc.copy"/>
-					</Grid>
-					<Grid Grid.Row="2">
-						<Grid.ColumnDefinitions>
-							<ColumnDefinition Width="0.8*" MinWidth="220"/>
-							<ColumnDefinition Width="Auto"/>
-							<ColumnDefinition Width="1.6*" MinWidth="300"/>
-						</Grid.ColumnDefinitions>
-						<ListView x:Name="lvusbdesc" BorderBrush="{StaticResource BorderSoft}"
-						          SelectionMode="Single"
-						          AutomationProperties.AutomationId="usbdesc.list">
-							<ListView.View>
-								<GridView>
-									<GridViewColumn x:Name="colusbdescname" Width="200"
-									                DisplayMemberBinding="{Binding Name}"/>
-									<GridViewColumn x:Name="colusbdescvid" Width="90"
-									                DisplayMemberBinding="{Binding VidPid}"/>
-								</GridView>
-							</ListView.View>
-						</ListView>
-						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
-						<TextBox x:Name="eusbdesctext" Grid.Column="2" IsReadOnly="True" AcceptsReturn="True"
-						         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
-						         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-						         TextWrapping="NoWrap"
-						         BorderBrush="{StaticResource BorderSoft}"
-						         AutomationProperties.AutomationId="usbdesc.text"/>
-					</Grid>
-					<TextBlock x:Name="lbusbdescstat" Grid.Row="3" Margin="0,8,0,0"
 					           VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
 				</Grid>
 			</TabItem>

@@ -17,6 +17,7 @@ static class ToolBtnUi {
 	public const string Save = "\uE74E";
 	public const string SaveAs = "\uE792";
 	public const string Browse = "\uE8A7";
+	public const string Read = "\uE8E5";
 	public const string Play = "\uE768";
 	public const string Cancel = "\uE711";
 	public const string Encode = "\uE8AB";

@@ -40,7 +40,34 @@ static class UsbDesc {
 	static readonly Guid GHub = new Guid("f18a0e88-c30c-11d0-8815-00a0c906bed8");
 
 	/// <summary>列出所有集线器端口上的设备，按拓扑顺序给出描述符文本。</summary>
-	public static List<UsbDescDev> Scan() {
+	public static List<UsbDescDev> Scan() => scan(null);
+
+	/// <summary>
+	/// 只读一台设备的描述符：先在集线器端口上按驱动键找到它所在的端口，再发 GET_DESCRIPTOR。
+	/// 复合设备的子接口自己不是集线器端口上的设备，顺着父设备往上找到它的端口。
+	/// </summary>
+	public static UsbDescDev Read(UsbDev target) {
+		if (target == null) return null;
+		var byid = new Dictionary<string, UsbDev>(StringComparer.OrdinalIgnoreCase);
+		foreach (var dev in UsbList.Scan()) {
+			var id = (dev.InstanceId ?? "").Trim();
+			if (id.Length > 0 && !byid.ContainsKey(id)) byid[id] = dev;
+		}
+		var want = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var cur = target;
+		for (var i = 0; cur != null && i < 8; i++) {
+			var id = (cur.InstanceId ?? "").Trim();
+			if (id.Length == 0) break;
+			want.Add(id);
+			var parent = (cur.Parent ?? "").Trim();
+			cur = parent.Length > 0 && byid.TryGetValue(parent, out var up) ? up : null;
+		}
+		if (want.Count == 0) return null;
+		var one = scan(dev => want.Contains((dev.InstanceId ?? "").Trim()));
+		return one.Count > 0 ? one[0] : null;
+	}
+
+	static List<UsbDescDev> scan(Func<UsbDev, bool> want) {
 		var map = new Dictionary<string, UsbDev>(StringComparer.OrdinalIgnoreCase);
 		foreach (var dev in UsbList.Scan()) {
 			var key = (dev.DriverKey ?? "").Trim();
@@ -60,7 +87,7 @@ static class UsbDesc {
 				if (!SetupDiEnumDeviceInterfaces(h, IntPtr.Zero, ref hub, i, ref ifd)) break;
 				var path = detail(h, ref ifd);
 				if (path.Length == 0) continue;
-				scanhub(list, path, map, hid);
+				scanhub(list, path, map, hid, want);
 			}
 		}
 		finally { SetupDiDestroyDeviceInfoList(h); }
@@ -69,7 +96,7 @@ static class UsbDesc {
 	}
 
 	static void scanhub(List<UsbDescDev> list, string hubpath, Dictionary<string, UsbDev> map,
-		Dictionary<string, List<string>> hid) {
+		Dictionary<string, List<string>> hid, Func<UsbDev, bool> want) {
 		var h = CreateFileW(hubpath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
 		if (h == new IntPtr(-1)) return;
 		try {
@@ -77,7 +104,7 @@ static class UsbDesc {
 			if (!DeviceIoControl(h, IOCTL_GET_NODE_INFO, ni, ni.Length, ni, ni.Length, out var ret, IntPtr.Zero)) return;
 			var ports = ni[6];
 			for (var port = 1; port <= ports; port++) {
-				var row = readport(h, hubpath, port, map, hid);
+				var row = readport(h, hubpath, port, map, hid, want);
 				if (row != null) list.Add(row);
 			}
 		}
@@ -85,7 +112,7 @@ static class UsbDesc {
 	}
 
 	static UsbDescDev readport(IntPtr hub, string hubpath, int port, Dictionary<string, UsbDev> map,
-		Dictionary<string, List<string>> hid) {
+		Dictionary<string, List<string>> hid, Func<UsbDev, bool> want) {
 		var buf = new byte[4096];
 		BitConverter.GetBytes((uint)port).CopyTo(buf, 0);
 		if (!DeviceIoControl(hub, IOCTL_GET_NODE_CONN_INFO_EX, buf, 35, buf, buf.Length, out var ret, IntPtr.Zero))
@@ -100,6 +127,8 @@ static class UsbDesc {
 		var npipes = BitConverter.ToInt32(buf, 27);
 		var devkey = drvkey(hub, port);
 		map.TryGetValue(devkey, out var dev);
+		// 只要一台设备时，没它的端口到此为止，不再发 GET_DESCRIPTOR
+		if (want != null && (dev == null || !want(dev))) return null;
 
 		var lines = new List<string>();
 		var node = $"{(ishub ? "Hub" : "Port")} {port} · {hubname(hubpath)}";

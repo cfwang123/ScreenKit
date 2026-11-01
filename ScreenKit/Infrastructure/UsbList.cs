@@ -17,6 +17,7 @@ public sealed class UsbDev {
 	public string ClassName { get; set; }
 	public string Status { get; set; }
 	public string InstanceId { get; set; }
+	public string Parent { get; set; }
 	public string Filter { get; set; }
 	public List<UsbPair> Props { get; set; }
 	public bool Active { get; set; }
@@ -282,6 +283,7 @@ static class UsbList {
 			ClassName = cls,
 			Status = status,
 			InstanceId = id,
+			Parent = str(h, data, pk(GStat, 8)).Trim(),
 			Props = props,
 			NodeStatus = node,
 			ProblemCode = problem,

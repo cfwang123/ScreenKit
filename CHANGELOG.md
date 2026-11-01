@@ -64,7 +64,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Refactored the web tool pages: the skeleton is a page object whose markup is built from DOM nodes declared in JS instead of HTML strings, with elements reached through SK.dom/doms and events written where the node is declared; escape/translation helpers moved into the shared module, lookup tables share one table component, and the English/Japanese/Korean/Russian conjugation tools share one result renderer. Tool behavior is unchanged.
-- The conjugation JSON export now supports Korean and English via --conj-json ko|en; Russian uses scripts/export-ru-conj.js
 - The password generator now defaults to 10 passwords, regenerates automatically after changing the length, count or character options, and remembers the last options (length, count, character classes, custom set), written to localStorage 2 seconds after the last edit and restored on open.
 - Web tool speak buttons now use the engine, voice and rate configured in Settings - Speech synthesis - Dictionary pronunciation (English is the configured Zira instead of the default male voice).
 - Screenshot history in the tray and main menus now opens the history window instead of the screenshots folder.
@@ -72,20 +71,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English conjugation examples show complete sentences instead of trailing ellipses.
 - 3D plots now take their size from the content's projected extent at the default view, so implicit surfaces such as x^2+y^2+z^2=9 are no longer cropped; rotating, tilting or zooming no longer changes the size or the x/y/z proportions, wheel zoom magnifies the picture instead of resampling a narrower range, and the sampling plane takes the canvas aspect ratio with one world scale, so surfaces are drawn across the width and the mesh cells stay square.
 - Dictionary entries now parse compact JSON with the ported JSONF parser, supporting unquoted keys and comments; all JSON parsing, writing and the JSON DOM now run on JSONF, so the System.Text.Json package is gone and its DLL is no longer in the release or slim package.
-- PdfSharp, PDFtoImage, the WeText ITN runtime (speech text normalization) and the SkiaSharp managed binding now install on demand with their PDF, speech and Skia runtimes instead of shipping in the slim package; stale ZstdSharp and System.Text.Encodings.Web DLLs are dropped from the package.
-- Publish script now strips on-demand components and user-data files from the release package; 7z -x! excludes are auto-generated from the same junk lists to avoid drift.
 - Default-disable main UI tabs: HTTP interface and LLM log
 - Korean IME: raise candidate cap from 8 to 200 so single-syllable prefixes can page
 - Chrome TTS pings Google while speaking and stops with an error when it is unreachable
-- Japanese conjugation: dialect forms come after the N5-N0 patterns, the tai row also lists takatta (tabetakatta), ていらっしゃい moves into the honorific group right after ください, tagaru and tagaranai merge into one row, and the noda, kke, mon, potential, passive and causative rows also list the nai forms.
+- System info: merged the USB descriptors page into the USB devices tab; select a device and click Read descriptors to load it
 
 #### Fixed
 
 - Dragging a file into the file analyzer no longer leaves the Explorer drag image stuck on the window. The drop format is checked once on entry, and UI updates after the drop run after the drag loop returns.
-- Word-form fixes: the conditional contraction of 買う in Japanese, the Korean imperative quote of 살다 (살라고, not 사라고), English pronoun examples following the person with be no longer labelling am/is/are as third-person singular, and Russian short passive participles keeping ё only in the masculine form (говорён, but говорена/говорено/говорены)
-- 3D plots now fit the canvas and keep a stable size while rotating; implicit surface poles are no longer flattened, and surfaces of the form z=f(x,y) draw the coordinate axes at the origin again.
 - Web tools: sound from other tools no longer crashes when the 8-bit synthesizer page was never opened, and Alt/Shift octave switching on that page no longer dumps element objects into the keyboard area.
-- Slim release package now ships the USB AOA driver (winusb-aoa.inf) and the SOAP debugger sample WSDLs (soapmock); previously these were missing from the published package, breaking USB screen-cast driver install and the SOAP debugger samples.
 - MQTT window could not be reopened after closing it
 - Chrome TTS no longer reports a Google failure when speech already started (slow proxies)
 
@@ -110,7 +104,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 重构 web 工具页：骨架改为页面对象，界面用 JS 声明 DOM 节点生成而不再拼 HTML 字符串，元素统一用 SK.dom/doms 取，事件写在节点定义里；转义、翻译等小函数合并到公共模块，HTTP 状态码、MIME 类型、不规则动词、命令与 SQL 函数等速查表统一走同一套表格组件，英/日/韩/俄词形变化工具共用结果区渲染。工具行为不变。
-- 变形表 JSON 导出新增韩语和英语（--conj-json ko|en）；俄语用 scripts/export-ru-conj.js
 - 密码生成器条数默认改为 10，修改长度、数量或字符选项后自动重新生成，并记住上次的选项（长度、条数、字符类别、指定字符集），停止修改 2 秒后写入 localStorage，下次打开时恢复。
 - 网页工具的发音按钮改用「参数设置 → 语音合成 → 词典发音」里该语言配置的引擎、发音人和语速（英文不再固定为默认男声）。
 - 托盘和主菜单的「截图历史」改为打开截图历史窗口，不再只是打开 screenshots 文件夹。
@@ -118,20 +111,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语词形变化的示例句改为完整句子，不再用省略号。
 - 三维函数图像改成按内容在默认视角下的投影大小定比例：x^2+y^2+z^2=9 这类曲面不再被画布上下裁掉，转动、倾斜或缩放视角时大小和 xyz 比例也不再跟着变；滚轮改成放大画面而不是采更小的范围；采样平面跟画布同宽高比，xyz 用同一把尺，曲面铺满宽度、网格格子也是方的。
 - 词典词条改用移植的 JSONF 宽松解析，支持无引号键和注释；JSON 的解析、输出与 DOM 全部改用内置 JSONF，去掉 System.Text.Json 包，发布包与精简包都不再带该 DLL。
-- PdfSharp、PDFtoImage、WeText ITN（语音文本归一化）和 SkiaSharp 托管绑定改为按需安装，随各自的 PDF、语音、Skia 运行库一起装，精简包不再附带；包里残留的 ZstdSharp、System.Text.Encodings.Web DLL 一并去掉。
-- 发布脚本现在从发布包中剔除按需安装的组件（ocrmodels/asrmodels/ttsmodels/facemodels/translatemodels/onnx*/ffmpeg64/wetext）与用户数据（config.toml、sql-conns.json、dict*.db、ime*.db、*.log 等）；7z 的 -x! 排除项改为由同一份 junk 列表自动生成，避免两份规则漂移。
 - 主界面 Tab 的 HTTP 接口、LLM 日志默认禁用
 - 韩语输入法：候选上限由 8 条提到 200 条，单音节前缀可翻页
 - Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错
-- 日语词形变化：方言说法移到 N5~N0 句型之后，「たい」一栏补上过去形（食べたかった），「ていらっしゃい」并入尊敬语组排在「ください」右边，「たがる」「たがらない」合并为一行，可能形、受身形、使役形与「のです」「っけ」「もん」三栏补上ない形。
+- 系统信息：USB 描述符并入「USB 设备」页，选中设备后点「读取描述符」才读取并显示
 
 #### 修复
 
 - 文件分析拖入文件时不再把资源管理器的拖影留在窗口上。进入时只检查一次数据格式，松手后的界面更新等拖放循环结束后再执行。
-- 修正词形变化的几处输出：日语「買う」的ば形缩约，韩语「살다」的命令引用形由 사라고 改为 살라고，英语代词用法例句按人称生成、be 的 am/is/are 不再标成第三人称单数，俄语 -ённый 短尾分词只有阳性保留 ё（говорён，但 говорена/говорено/говорены）
-- 三维函数图像按画布自适应，旋转时大小保持稳定；隐式曲面极点不再被削平，z=f(x,y) 的曲面重新在原点画出坐标轴。
 - web 工具：没打开过 8bit 合成器时，其它工具调用音效不再报错；8bit 合成器按 Alt/Shift 换八度不再把 DOM 元素对象当文本塞进琴键区。
-- 精简发布包现在随包包含 USB AOA 驱动（winusb-aoa.inf）与 SOAP 调试器示例 WSDL（soapmock）；此前发布包缺这两项，会导致 USB 投屏无法安装驱动、SOAP 调试器无示例可用。
 - MQTT 调试：关闭窗口后无法再次打开
 - Chrome 朗读已出声时不再误报连不上 Google（代理较慢导致）
 
