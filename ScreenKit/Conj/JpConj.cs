@@ -993,9 +993,10 @@ static class JpConj {
 		rows.AddRange(nasairows(L, plain, cut(masu, 2)));
 		rows.Add(row(L.stop, plain + "な"));
 		rows.Add(row(L.vol, vol));
-		rows.Add(row(L.pot, pot.Contains("られる") ? pot + "、" + pot.Replace("られる", "れる") : pot));
-		rows.Add(row(L.pas, pas));
-		rows.Add(row(L.cau, cau));
+		var potv = pot.Contains("られる") ? pot + "、" + pot.Replace("られる", "れる") : pot;
+		rows.Add(row(L.pot, potv + "、" + naineg(potv)));
+		rows.Add(row(L.pas, pas + "、" + naineg(pas)));
+		rows.Add(row(L.cau, cau + "、" + naineg(cau)));
 		rows.Add(row(L.cap, cap));
 		rows.Add(row(L.tai + " / " + L.takatta + " / " + L.takunai, tai + "、" + cut(tai, 2) + "たかった、" + cut(tai, 2) + "たくない"));
 		rows.Add(row(L.nda, plain + "んだ、" + nai + "んだ"));
@@ -1021,6 +1022,16 @@ static class JpConj {
 			ren = cut(masu, 2), ta = ta, teiru = te + "いる", stem = cut(masu, 2),
 			neg = nai, negta = cut(nai, 2) + "なかった",
 		};
+	}
+
+	// 可能、受身、使役的否定：食べられる→食べられない，食べさせる→食べさせない。
+	static string naineg(string forms) {
+		var outs = new List<string>();
+		foreach (var one in forms.Split('、')) {
+			if (one.EndsWith("る", StringComparison.Ordinal)) outs.Add(cut(one, 1) + "ない");
+			else if (one.Length > 0) outs.Add(one);
+		}
+		return string.Join("、", outs);
 	}
 
 	// ない 的派生：なさ（名词化）、なさげ、なさすぎる。都是 ない 去掉い再加。

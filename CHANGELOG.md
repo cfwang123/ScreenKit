@@ -109,6 +109,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese conjugation: move ていらっしゃい into the honorific group, right after ください
 - Japanese conjugation: merge tagaru and tagaranai into one row
 - Japanese conjugation: noda, kke and mon rows also list the nai forms
+- 3D function plots keep a fixed grid density while zooming, and the x and y axes run to the canvas edge.
+- Japanese conjugation: potential, passive and causative rows also list the nai forms
 
 #### Fixed
 
@@ -192,6 +194,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语词形变化：「ていらっしゃい」并入尊敬语组，排在「ください」右边
 - 日语词形变化：「たがる」「たがらない」合并为一行
 - 日语词形变化：「のです」「っけ」「もん」三栏补上ない形
+- 三维函数图像缩放时网格密度保持不变，x、y 轴画到画布边缘。
+- 日语词形变化：可能形、受身形、使役形补上ない形
 
 #### 修复
 
