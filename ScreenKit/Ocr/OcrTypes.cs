@@ -372,7 +372,7 @@ public sealed class OcrOptions {
 	public bool TabLlmLogVisible = false;
 	public bool TabTranslateVisible = true;
 	public bool TabFaceVisible = true;
-	public bool TabHttpVisible = true;
+	public bool TabHttpVisible = false;
 	public bool TabSendFileVisible = true;
 	public bool TabCastVisible = true;
 	public bool TabDictVisible = true;

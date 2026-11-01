@@ -319,6 +319,13 @@ sealed class MqttBroker : IDisposable {
 			if (sa == null || sa.Type != MqttProto.SUBACK) { err("mqtt: 没有 SUBACK"); return 1; }
 			log("mqtt: SUBACK OK");
 
+			var online = srv.Clients();
+			if (online.Count != 1 || online[0].id != "A" || online[0].subs != 1) {
+				err("mqtt: 在线客户端列表不对 " + online.Count + (online.Count > 0 ? " " + online[0].id : ""));
+				bad++;
+			}
+			else log("mqtt: 在线客户端 OK A/1");
+
 			b = new TcpClient();
 			if (!b.ConnectAsync(IPAddress.Loopback, port).Wait(3000)) { err("mqtt: B 连不上"); return 1; }
 			var nb = b.GetStream();

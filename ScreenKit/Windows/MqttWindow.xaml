@@ -52,7 +52,6 @@
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="Auto"/>
 						<RowDefinition Height="*"/>
-						<RowDefinition Height="Auto"/>
 					</Grid.RowDefinitions>
 
 					<!-- 连接参数 -->
@@ -113,18 +112,27 @@
 						          AutomationProperties.AutomationId="mqtt.client.retain"/>
 					</Grid>
 
-					<!-- 消息正文 -->
+					<!-- 消息正文：右边就是「发布」 -->
 					<DockPanel Grid.Row="3" Margin="0,0,0,4">
 						<TextBlock x:Name="lbpayload" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
 						<CheckBox x:Name="chexsend" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
 						          AutomationProperties.AutomationId="mqtt.client.hexsend"/>
 					</DockPanel>
-					<TextBox x:Name="epayload" Grid.Row="4" Height="72" AcceptsReturn="True" AcceptsTab="True"
-					         VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
-					         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
-					         Padding="8" Margin="0,0,0,8" BorderBrush="{StaticResource BorderSoft}"
-					         SpellCheck.IsEnabled="False"
-					         AutomationProperties.AutomationId="mqtt.client.payload"/>
+					<Grid Grid.Row="4" Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBox x:Name="epayload" Grid.Column="0" Height="72" AcceptsReturn="True" AcceptsTab="True"
+						         VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+						         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+						         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+						         SpellCheck.IsEnabled="False"
+						         AutomationProperties.AutomationId="mqtt.client.payload"/>
+						<Button x:Name="bcpub" Grid.Column="1" Style="{StaticResource ToolBtn}" Margin="8,0,0,0"
+						        Width="88" VerticalAlignment="Stretch"
+						        AutomationProperties.AutomationId="mqtt.client.publish"/>
+					</Grid>
 
 					<!-- 收发日志 -->
 					<DockPanel Grid.Row="5">
@@ -140,13 +148,6 @@
 						         Padding="8" BorderBrush="{StaticResource BorderSoft}"
 						         AutomationProperties.AutomationId="mqtt.client.log"/>
 					</DockPanel>
-
-					<StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,8,0,0">
-						<Button x:Name="bcpub" Style="{StaticResource ToolBtn}"
-						        AutomationProperties.AutomationId="mqtt.client.publish"/>
-						<Button x:Name="bcclose" Style="{StaticResource ToolBtn}"
-						        AutomationProperties.AutomationId="mqtt.client.close"/>
-					</StackPanel>
 				</Grid>
 			</TabItem>
 

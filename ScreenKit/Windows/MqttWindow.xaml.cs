@@ -57,7 +57,6 @@ public partial class MqttWindow : Window {
 		bcpub.Content = Loc.T("mqtt.publish");
 		bcclear.Content = Loc.T("mqtt.clear");
 		bccopy.Content = Loc.T("mqtt.copy");
-		bcclose.Content = Loc.T("mqtt.disconnect");
 		lbsport.Text = Loc.T("mqtt.port");
 		lbclients.Text = Loc.T("mqtt.clients");
 		lbslog.Text = Loc.T("mqtt.server.log");
@@ -73,7 +72,6 @@ public partial class MqttWindow : Window {
 	void updconnui() {
 		var on = cli.Connected;
 		bcconn.Content = on ? Loc.T("mqtt.disconnect") : Loc.T("mqtt.connect");
-		bcclose.IsEnabled = on;
 		bcsub.IsEnabled = on;
 		bcunsub.IsEnabled = on;
 		bcpub.IsEnabled = on;
@@ -133,10 +131,6 @@ public partial class MqttWindow : Window {
 		bccopy.Click += (_, _) => {
 			try { Clipboard.SetText(elog.Text ?? ""); }
 			catch { }
-		};
-		bcclose.Click += (_, _) => {
-			cli.Disconnect();
-			updconnui();
 		};
 
 		cli.Log += s => enqueue(s);
