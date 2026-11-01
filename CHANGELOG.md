@@ -106,6 +106,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 3D function plots sample a square region and zoom by changing that range, so the surface fills the view and the grid spacing stays steady.
 - Japanese conjugation: dialect forms now come after the N5-N0 patterns
 - Japanese conjugation: the tai row now also lists takatta (tabetakatta)
+- Japanese conjugation: move ていらっしゃい into the honorific group, right after ください
 
 #### Fixed
 
@@ -186,6 +187,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维函数图像改为正方形采样，滚轮缩放时跟着改变采样范围，曲面铺满画面，网格间距保持稳定。
 - 日语词形变化：方言说法移到 N5~N0 句型之后
 - 日语词形变化：「たい」一栏补上过去形（食べたかった）
+- 日语词形变化：「ていらっしゃい」并入尊敬语组，排在「ください」右边
 
 #### 修复
 

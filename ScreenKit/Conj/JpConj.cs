@@ -1832,14 +1832,14 @@ static class JpConj {
 			pushm(rows, L.sonrm, pas, L.gson);
 		}
 		pushk(rows, L.kud, kud, L.gson);
+		// 尊敬语命令：～ていらっしゃい／～てらっしゃい（行ってらっしゃい），跟在 ください 后面。
+		if (!isaru(word)) rows.Add(new ConjRow(L.terasshai, te + "いらっしゃい、" + te + "らっしゃい", L.gson));
 		pushk(rows, L.ken, ken, L.gken);
 		pushm(rows, L.kenm, ken, L.gken);
 		pushk(rows, L.itas, itas, L.gken);
 		pushm(rows, L.itasm, itas, L.gken);
 		pushk(rows, L.tei, tei, L.gtei);
 		pushm(rows, L.teim, tei, L.gtei);
-		// 尊敬语命令：～ていらっしゃい／～てらっしゃい（行ってらっしゃい），和上面的尊敬语同一组。
-		if (!issonkearu(word) && !isaru(word)) rows.Add(new ConjRow(L.terasshai, te + "いらっしゃい、" + te + "らっしゃい", L.gson));
 		return rows;
 	}
 
