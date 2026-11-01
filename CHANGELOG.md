@@ -67,7 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Command tools: add a ripgrep (rg) cheat sheet to the Linux, PowerShell, pwsh, and CMD tables, covering rg --files piped into grep or findstr, glob and type filters, context lines, and hidden-file options
 - Speak with Ctrl+Enter on the TTS tab
 - Proxy settings link on the TTS tab when the Chrome engine is selected
-- Japanese conjugation: add colloquial nai desu forms (nai desu / nakatta desu / nai desu kedo), and janaidesu for na-adjectives and nouns
+- Japanese conjugation: show the colloquial ないです right next to ません
 
 #### Changed
 
@@ -103,6 +103,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Install features: the database driver group now sits under Tools instead of its own top-level node.
 - Chrome TTS pings Google while speaking and stops with an error when it is unreachable
 - 3D function plots draw the x, y and z axes at the same length, each extending past the surface.
+- 3D function plots sample a square region and zoom by changing that range, so the surface fills the view and the grid spacing stays steady.
 
 #### Fixed
 
@@ -143,7 +144,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 命令工具：Linux、PowerShell、pwsh、CMD 各表补 ripgrep（rg）速查，含 rg --files 接 grep/findstr 筛文件、glob 与类型筛选、上下文和隐藏文件等常见用法
 - 语音合成页按 Ctrl+Enter 开始朗读
 - 语音合成页选 Chrome 引擎时显示代理设置文字按钮
-- 日语词形变化：增加口语「ないです」系列（ないです、なかったです、ないですけど），な形容词和名词的丁宁否定补上「じゃないです」「じゃなかったです」
+- 日语词形变化：「ません」旁边增加口语的「ないです」
 
 #### 变更
 
@@ -179,6 +180,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 安装功能：「数据库驱动」节点移到「工具集」下面，不再单独占一个顶层节点。
 - Chrome 朗读时并行探测 Google 是否可访问，连不上直接结束并报错
 - 三维函数图像的 x、y、z 三条坐标轴改成一样长，并都伸出曲面一段。
+- 三维函数图像改为正方形采样，滚轮缩放时跟着改变采样范围，曲面铺满画面，网格间距保持稳定。
 
 #### 修复
 

@@ -41,7 +41,7 @@
 		{ g: "eq3", mode: "3", fn: "x^2+y^2-z^2=-1" },
 		{ g: "eq3", mode: "3", fn: "(x^2+9/4*y^2+z^2-1)^3-x^2*z^3-9/80*y^2*z^3=0" }
 	];
-	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65, zoom: 1 };
+	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65 };
 	var HOME = { yaw: -0.6, pitch: 0.65 };
 	var YSPAN = 4;
 	var view3 = { s: 1, ox: 0, oy: 0 };
@@ -246,14 +246,9 @@
 		el.className = bad ? "hint bad" : "hint";
 	}
 
-	// 三维采样平面按画布宽高比张开：画布越宽 x 方向就多画一些，左右的空白少一点。
+	// 采样平面的 x、y 范围一样大，画面才不会一边被拉宽、另一边缩成中间一小块。
 	function stageaspect(){
-		var stage = canvas && canvas.parentElement;
-		var w = stage && stage.clientWidth > 2 ? stage.clientWidth : 800;
-		var h = stage && stage.clientHeight > 2 ? stage.clientHeight : 420;
-		var r = w / h;
-		if (!(r > 1)) return 1;
-		return r > 4 ? 4 : r;
+		return 1;
 	}
 
 	function resetview(){
@@ -262,7 +257,6 @@
 			cam.cy = 0;
 			cam.yspan = YSPAN;
 			cam.xspan = YSPAN * stageaspect();
-			cam.zoom = 1;
 			cam.yaw = HOME.yaw;
 			cam.pitch = HOME.pitch;
 			return;
@@ -360,7 +354,7 @@
 		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		if (mode === "3")
-			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom;
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch;
 		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1;
 	}
 
@@ -440,8 +434,12 @@
 		var xonly = ev.ctrlKey && !ev.shiftKey;
 		var yonly = ev.shiftKey && !ev.ctrlKey;
 		if (mode === "3") {
-			// 三维是相机缩放：只放大画面，采样范围不变。
-			setzoom(cam.zoom * (delta > 0 ? 1 / 1.12 : 1.12));
+			// 缩小加大采样范围，放大则收窄，画面上的网格间距保持不变。
+			var span = cam.yspan * factor;
+			if (span >= 0.05 && span <= 1e6) {
+				cam.yspan = span;
+				cam.xspan = span;
+			}
 			paint();
 			return;
 		}
@@ -469,13 +467,6 @@
 			}
 		}
 		paint();
-	}
-
-	function setzoom(v){
-		if (!isFinite(v) || !(v > 0)) return;
-		if (v < 0.05) v = 0.05;
-		if (v > 20) v = 20;
-		cam.zoom = v;
 	}
 
 	function hideRead(){
@@ -809,7 +800,6 @@
 		if (x1 > x0 && y1 > y0) s = Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / (y1 - y0));
 		else s = 0;
 		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / Math.max(0.001, Math.max(cam.xspan, cam.yspan));
-		s *= cam.zoom;
 		view3.s = s;
 		view3.ox = w / 2 - (cx * cyaw - cy * syaw) * s;
 		view3.oy = h / 2 + ((cx * syaw + cy * cyaw) * sp + cz * cp) * s;
@@ -846,10 +836,18 @@
 		return p;
 	}
 
+	// 格子数按采样范围来取，格子在屏幕上的间距才不跟着缩放变。
+	function gridrows(base){
+		var n = Math.round(base * cam.yspan / YSPAN);
+		if (n < 8) n = 8;
+		if (n > 240) n = 240;
+		return n;
+	}
+
 	// 网格列数按采样平面的宽高比来取，格子才接近正方形。
 	function gridcount(rows){
 		var nx = Math.round(rows * cam.xspan / cam.yspan);
-		if (!(nx >= rows)) nx = rows;
+		if (!(nx >= 2)) nx = 2;
 		if (nx > rows * 4) nx = rows * 4;
 		return nx;
 	}
@@ -859,7 +857,7 @@
 			draw3implicit(ctx, w, h);
 			return;
 		}
-		var ny = 46;
+		var ny = gridrows(46);
 		var nx = gridcount(ny);
 		var gw = nx + 1, gh = ny + 1;
 		var zraw = new Array(gw * gh);
@@ -936,8 +934,8 @@
 	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
 	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
 	function draw3implicit(ctx, w, h){
-		var n = drag ? 46 : (style === "dots" ? 88 : 72);
-		var m = drag ? 46 : 80;
+		var n = gridrows(drag ? 46 : (style === "dots" ? 88 : 72));
+		var m = gridrows(drag ? 46 : 80);
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var nx = gridcount(n);
@@ -1118,7 +1116,7 @@
 
 	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
 	function implevelzero(ctx, cyaw, syaw, cp, sp){
-		var gy = drag ? 30 : 52;
+		var gy = gridrows(drag ? 30 : 52);
 		var gx = gridcount(gy);
 		var gw = gx + 1;
 		var vals = new Float64Array(gw * (gy + 1));
@@ -1199,7 +1197,7 @@
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
 	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp){
 		var levels = drag ? 6 : 12;
-		var gy = drag ? 30 : 52;
+		var gy = gridrows(drag ? 30 : 52);
 		var gx = gridcount(gy);
 		var segs = [];
 		function proj(x, y, z){
@@ -1418,7 +1416,7 @@
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit));
 		}
 		var o = proj(0, 0, 0);
-		// 三条轴一样长，并伸出曲面一截。采样平面的宽高比只决定多画多少，不拉长 x 轴。
+		// x、y 轴一样长，比曲面多伸出一截。
 		var arm = cam.yspan * 0.85;
 		if (box) {
 			var reach = Math.max(box.x1, box.y1);
@@ -1426,8 +1424,9 @@
 		}
 		var ax = proj(arm, 0, 0);
 		var ay = proj(0, arm, 0);
-		// z 轴走的是被 zfit 压缩过的世界坐标，按同样的长度反算回去，三条轴才一样长。
-		var ztip = zmid + arm / (zfit > 1e-9 ? zfit : 1);
+		// z 轴只画到曲面最高处再多出一截，不按整个采样高度拉满，免得把画面上下撑开。
+		var top = box && isFinite(box.z1) ? zmid + box.z1 : hi;
+		var ztip = top + (hi - lo) * 0.12;
 		var az = proj(0, 0, ztip);
 		ctx.lineWidth = 1.5;
 		ctx.font = '12px "Segoe UI", "Microsoft YaHei UI", sans-serif';

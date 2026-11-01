@@ -37,7 +37,7 @@ sealed class JpConjLabels {
 	public string jane, njane, kayo, nokayo, jyan, jnet, nakune, dato;
 	public string ai, an, nn, badai;
 	public string pol, polneg, polpast, polpastneg, ugoza;
-	public string polnai, nainodesu, nakattadesu, nainodesukedo;
+	public string nainodesu;
 	public string adv, naru, rentai, ume;
 	public string darou, deshou, tarou, dearu;
 	public string nda, nanda, tte;
@@ -477,10 +477,7 @@ static class JpConj {
 			L.badai = "い形容词要以い结尾";
 			L.pol = "丁宁形";
 			L.polneg = "丁宁否定";
-			L.polnai = "口语（ないです）";
-			L.nainodesu = "ないです";
-			L.nakattadesu = "なかったです";
-			L.nainodesukedo = "ないですけど";
+			L.nainodesu = "ないです（口语）";
 			L.ugoza = "丁重（うございます）";
 			L.ume = "め（程度）";
 			L.polpast = "丁宁过去";
@@ -702,10 +699,7 @@ static class JpConj {
 		L.badai = "An i-adjective must end with い";
 			L.pol = "polite";
 			L.polneg = "polite negative";
-		L.polnai = "colloquial (nai desu)";
-		L.nainodesu = "nai desu";
-		L.nakattadesu = "nakatta desu";
-		L.nainodesukedo = "nai desu kedo";
+		L.nainodesu = "nai desu (colloquial)";
 			L.ugoza = "deferential (-u gozaimasu)";
 			L.ume = "-me (rather, on the ... side)";
 		L.polpast = "polite past";
@@ -883,11 +877,11 @@ static class JpConj {
 			row(L.dict, word + "だ"),
 			row(L.pol, word + "です"),
 			row(L.nai, word + "ではない、" + word + "じゃない、" + word + "じゃねえ"),
-			row(L.polneg, word + "ではありません、" + word + "じゃないです"),
+			row(L.polneg, word + "ではありません"),
 			row(L.ta, word + "だった"),
 			row(L.polpast, word + "でした"),
 			row(L.nakatta, word + "ではなかった、" + word + "じゃなかった"),
-			row(L.polpastneg, word + "ではありませんでした、" + word + "じゃなかったです"),
+			row(L.polpastneg, word + "ではありませんでした"),
 			row(L.te, word + "で、" + word + "ではなくて"),
 			row(L.rentai, word + "な、" + word + "でない"),
 			row(L.adv, word + "に"),
@@ -927,11 +921,11 @@ static class JpConj {
 			row(L.dict, word + "だ"),
 			row(L.pol, word + "です"),
 			row(L.nai, word + "ではない、" + word + "じゃない、" + word + "じゃねえ"),
-			row(L.polneg, word + "ではありません、" + word + "じゃないです"),
+			row(L.polneg, word + "ではありません"),
 			row(L.ta, word + "だった"),
 			row(L.polpast, word + "でした"),
 			row(L.nakatta, word + "ではなかった、" + word + "じゃなかった"),
-			row(L.polpastneg, word + "ではありませんでした、" + word + "じゃなかったです"),
+			row(L.polpastneg, word + "ではありませんでした"),
 			row(L.te, word + "で、" + word + "ではなくて"),
 			row(L.rentai, word + "の、" + word + "でない"),
 			row(L.ba, word + "なら、" + word + "なりゃ"),
@@ -967,6 +961,7 @@ static class JpConj {
 			row(L.dict, plain),
 			row(L.masu, masu),
 			row(L.masen, cut(masu, 2) + "ません"),
+			row(L.nainodesu, nai + "です"),
 			row(L.mashita, cut(masu, 2) + "ました"),
 			row(L.masend, cut(masu, 2) + "ませんでした"),
 			row(L.nai, nai + "、" + cut(nai, 2) + "ねえ、" + cut(nai, 2) + "んない"),
@@ -994,7 +989,6 @@ static class JpConj {
 		rows.Add(row(L.noda, plain + "のです、" + plain + "んです"));
 		rows.Add(row(L.kke, ta + "っけ、" + plain + "っけ"));
 		rows.Add(row(L.mon, plain + "もん、" + plain + "んだもん"));
-		rows.AddRange(nainodesurows(L, nai));
 		rows.AddRange(auxrows(L, plain, masu, te, nai));
 		rows.AddRange(evidrows(L, verbforms(plain, masu, nai, te, ta)));
 		rows.AddRange(patternrows(L, verbforms(plain, masu, nai, te, ta), "v"));
@@ -1012,17 +1006,6 @@ static class JpConj {
 			plain = plain, pred = plain, drop = plain, attrib = plain, attribn = plain,
 			ren = cut(masu, 2), ta = ta, teiru = te + "いる", stem = cut(masu, 2),
 			neg = nai, negta = cut(nai, 2) + "なかった",
-		};
-	}
-
-	// 动词否定的丁宁形：行かないです、行かなかったです。比 ません 口语，状态动词（分かる、できる、
-	// 要る）和可能形最自然，动作动词也能说；正式场合仍用 ません。ないですけど 用来软化语气。
-	static List<ConjRow> nainodesurows(JpConjLabels L, string nai) {
-		var s = cut(nai, 2);
-		return new List<ConjRow> {
-			new(L.nainodesu, nai + "です", L.polnai),
-			new(L.nakattadesu, s + "なかったです", L.polnai),
-			new(L.nainodesukedo, nai + "ですけど", L.polnai),
 		};
 	}
 
