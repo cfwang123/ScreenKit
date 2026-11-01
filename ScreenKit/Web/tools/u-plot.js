@@ -246,9 +246,15 @@
 		el.className = bad ? "hint bad" : "hint";
 	}
 
-	// 采样平面的 x、y 范围一样大，画面才不会一边被拉宽、另一边缩成中间一小块。
+	// 采样平面按画布宽高比张开，x、y 方向都铺到画布边缘。
 	function stageaspect(){
-		return 1;
+		var stage = canvas && canvas.parentElement;
+		var w = stage && stage.clientWidth > 2 ? stage.clientWidth : 800;
+		var h = stage && stage.clientHeight > 2 ? stage.clientHeight : 420;
+		var r = w / h;
+		if (!(r > 0)) return 1;
+		if (r < 0.25) return 0.25;
+		return r > 4 ? 4 : r;
 	}
 
 	function resetview(){
@@ -434,11 +440,11 @@
 		var xonly = ev.ctrlKey && !ev.shiftKey;
 		var yonly = ev.shiftKey && !ev.ctrlKey;
 		if (mode === "3") {
-			// 缩小加大采样范围，放大则收窄，画面上的网格间距保持不变。
+			// 缩小加大采样范围，放大则收窄。x 方向按画布宽高比跟着张开。
 			var span = cam.yspan * factor;
 			if (span >= 0.05 && span <= 1e6) {
 				cam.yspan = span;
-				cam.xspan = span;
+				cam.xspan = span * stageaspect();
 			}
 			paint();
 			return;
@@ -775,32 +781,16 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
-	// 三维画面大小按内容在初始视角下的投影范围定：换任何视角都只转不缩放，
-	// 外接球留的余量也一起去掉，采样平面有多宽就尽量画多宽。
+	// 一个世界单位在屏幕上占多少像素。按采样范围定：范围越大画面越小，
+	// 格子在屏幕上的间距就不跟着缩放变。换视角只转不缩放。
 	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
-		var cx = (box.x0 + box.x1) / 2;
-		var cy = (box.y0 + box.y1) / 2;
-		var cz = (box.z0 + box.z1) / 2;
-		var hy = Math.cos(HOME.yaw), hx = Math.sin(HOME.yaw);
-		var hp = Math.cos(HOME.pitch), hs = Math.sin(HOME.pitch);
-		var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-		var i, p, u, v;
-		for (i = 0; i < list.length; i++) {
-			p = list[i];
-			if (!p || !p.ok) continue;
-			u = p.wx * hy - p.wy * hx;
-			v = (p.wx * hx + p.wy * hy) * hs + p.wz * hp;
-			if (u < x0) x0 = u;
-			if (u > x1) x1 = u;
-			if (v < y0) y0 = v;
-			if (v > y1) y1 = v;
-		}
-		var pad = 14;
-		var s;
-		if (x1 > x0 && y1 > y0) s = Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / (y1 - y0));
-		else s = 0;
-		if (!(s > 0) || !isFinite(s)) s = Math.min(w, h) * 0.42 / Math.max(0.001, Math.max(cam.xspan, cam.yspan));
+		var span = Math.max(0.001, Math.max(cam.xspan, cam.yspan));
+		var s = Math.min(w, h) * 0.92 / (span * 2);
+		if (!(s > 0) || !isFinite(s)) s = 1;
 		view3.s = s;
+		var cx = isFinite(box.x0) ? (box.x0 + box.x1) / 2 : 0;
+		var cy = isFinite(box.y0) ? (box.y0 + box.y1) / 2 : 0;
+		var cz = isFinite(box.z0) ? (box.z0 + box.z1) / 2 : 0;
 		view3.ox = w / 2 - (cx * cyaw - cy * syaw) * s;
 		view3.oy = h / 2 + ((cx * syaw + cy * cyaw) * sp + cz * cp) * s;
 	}
@@ -838,7 +828,8 @@
 
 	// 格子数按采样范围来取，格子在屏幕上的间距才不跟着缩放变。
 	function gridrows(base){
-		var n = Math.round(base * cam.yspan / YSPAN);
+		var span = Math.max(cam.xspan, cam.yspan);
+		var n = Math.round(base * span / YSPAN);
 		if (n < 8) n = 8;
 		if (n > 240) n = 240;
 		return n;
@@ -881,7 +872,7 @@
 		}
 		var pad = (hi - lo) * 0.35;
 		var zmid = (lo + hi) / 2;
-		var zfit = cam.yspan / (hi - lo);
+		var zfit = 1;
 		var pts = new Array(gw * gh);
 		var box = newbox();
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
@@ -1416,8 +1407,8 @@
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, zmid, zfit));
 		}
 		var o = proj(0, 0, 0);
-		// x、y 轴一样长，比曲面多伸出一截。
-		var arm = cam.yspan * 0.85;
+		// x、y 轴一样长。采样平面按画布宽高比张开，轴长取较短的一边，避免一边特别长。
+		var arm = Math.min(cam.xspan, cam.yspan) * 0.85;
 		if (box) {
 			var reach = Math.max(box.x1, box.y1);
 			if (reach > arm) arm = reach * 1.12;
@@ -1425,8 +1416,8 @@
 		var ax = proj(arm, 0, 0);
 		var ay = proj(0, arm, 0);
 		// z 轴只画到曲面最高处再多出一截，不按整个采样高度拉满，免得把画面上下撑开。
-		var top = box && isFinite(box.z1) ? zmid + box.z1 : hi;
-		var ztip = top + (hi - lo) * 0.12;
+		var top = box && isFinite(box.z1) ? zmid + box.z1 / (zfit > 1e-9 ? zfit : 1) : hi;
+		var ztip = top + Math.abs(top - zmid) * 0.12 + arm * 0.05;
 		var az = proj(0, 0, ztip);
 		ctx.lineWidth = 1.5;
 		ctx.font = '12px "Segoe UI", "Microsoft YaHei UI", sans-serif';

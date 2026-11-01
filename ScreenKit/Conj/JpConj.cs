@@ -10,7 +10,7 @@ sealed class JpConjLabels {
 	public string nai, nakatta, nakute, naide;
 	public string te, ta, tara, ba;
 	public string cmd, nasai, na, tamae, stop, vol, pot;
-	public string pas, cau, cap, tai, takunai;
+	public string pas, cau, cap, tai, takatta, takunai;
 	public string c1, c2, c3s, c3k, c3z;
 	public string iku;
 	public string gson, gken, gtei;
@@ -374,6 +374,7 @@ static class JpConj {
 			L.cau = "使役形";
 			L.cap = "使役受身";
 			L.tai = "たい";
+			L.takatta = "たかった";
 			L.takunai = "たくない";
 			L.c1 = "1类（五段）";
 			L.c2 = "2类（一段）";
@@ -596,6 +597,7 @@ static class JpConj {
 		L.cau = "causative";
 		L.cap = "causative-passive";
 		L.tai = "tai";
+		L.takatta = "takatta";
 		L.takunai = "takunai";
 		L.c1 = "group 1 (godan)";
 		L.c2 = "group 2 (ichidan)";
@@ -995,7 +997,7 @@ static class JpConj {
 		rows.Add(row(L.pas, pas));
 		rows.Add(row(L.cau, cau));
 		rows.Add(row(L.cap, cap));
-		rows.Add(row(L.tai + " / " + L.takunai, tai + "、" + cut(tai, 2) + "たくない"));
+		rows.Add(row(L.tai + " / " + L.takatta + " / " + L.takunai, tai + "、" + cut(tai, 2) + "たかった、" + cut(tai, 2) + "たくない"));
 		rows.Add(row(L.nda, plain + "んだ、" + nai + "んだ"));
 		rows.Add(row(L.tte, plain + "って、" + plain + "んだって、" + nai + "って、" + nai + "んだって"));
 		rows.Add(row(L.noda, plain + "のです、" + plain + "んです"));

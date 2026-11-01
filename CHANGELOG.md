@@ -105,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 3D function plots draw the x, y and z axes at the same length, each extending past the surface.
 - 3D function plots sample a square region and zoom by changing that range, so the surface fills the view and the grid spacing stays steady.
 - Japanese conjugation: dialect forms now come after the N5-N0 patterns
+- Japanese conjugation: the tai row now also lists takatta (tabetakatta)
 
 #### Fixed
 
@@ -120,6 +121,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MQTT window could not be reopened after closing it
 - 8bit synth: Alt/Shift octave switch no longer dumps element objects into the keyboard area
 - Chrome TTS no longer reports a Google failure when speech already started (slow proxies)
+- 3D function plots keep a steady grid spacing while zooming, and the sampled x and y ranges reach the canvas edges.
 
 ### 中文
 
@@ -183,6 +185,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维函数图像的 x、y、z 三条坐标轴改成一样长，并都伸出曲面一段。
 - 三维函数图像改为正方形采样，滚轮缩放时跟着改变采样范围，曲面铺满画面，网格间距保持稳定。
 - 日语词形变化：方言说法移到 N5~N0 句型之后
+- 日语词形变化：「たい」一栏补上过去形（食べたかった）
 
 #### 修复
 
@@ -198,6 +201,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MQTT 调试：关闭窗口后无法再次打开
 - 8bit 合成器：按 Alt/Shift 换八度不再把 DOM 元素对象当文本塞进琴键区
 - Chrome 朗读已出声时不再误报连不上 Google（代理较慢导致）
+- 三维函数图像缩放时网格间距保持不变，x、y 采样范围铺到画布边缘。
 
 ## v1.0.31 (2026-10-29)
 
