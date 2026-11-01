@@ -142,7 +142,8 @@ static class FeatureInstaller {
 	const string DICT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/dict3.7z";
 	const long DICT7Z_BYTES = 279822816L;
 	const string IME7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ime.7z";
-	const long IME7Z_BYTES = 6242584L;
+	/// <summary>ime.7z 约 19 MB；下载进度优先用 Content-Length，这个值只作没有响应头时的参考。</summary>
+	const long IME7Z_BYTES = 19L * 1024 * 1024;
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
 	const long TRANSLATE7Z_BYTES = 1028366964L;
 	const string FFMPEG7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ffmpeg.7z";
@@ -1465,9 +1466,10 @@ arabic_dict.txt
 		Directory.CreateDirectory(CacheDir);
 		var arc = Path.Combine(CacheDir, "ime.7z");
 		if (File.Exists(arc)) {
+			// 体积只是粗略参考，差得多才当坏包删掉
 			long have = 0;
 			try { have = new FileInfo(arc).Length; } catch { }
-			if (have != IME7Z_BYTES) {
+			if (Math.Abs(have - IME7Z_BYTES) > 3L * 1024 * 1024) {
 				try { File.Delete(arc); } catch { }
 			}
 		}
