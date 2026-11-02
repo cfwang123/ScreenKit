@@ -34,47 +34,47 @@ partial class InstallFeaturesWindow {
 	string chromekind() =>
 		echromekind.SelectedItem is ComboBoxItem it ? it.Tag as string ?? "" : "";
 
-	void openchromemodel() {
+	// 用模型页那份配置打开 Chrome。模型装在程序自己的配置目录里，直接起 chrome.exe 会用用户默认
+	// Profile，看不到装好的模型；也不该把装模型的配置暴露给日常窗口。
+	void openinpageprofile(string url, string titlekey) {
 		var o = new OcrOptions();
 		try { AppConfig.LoadInto(o); } catch { }
 		var exe = ChromeTts.FindExe(o.ChromeExe);
 		if (string.IsNullOrEmpty(exe)) {
-			MessageBox.Show(this, Loc.T("inst.chrome.need"), Title,
+			MessageBox.Show(this, Loc.T("inst.chrome.need"), Loc.T(titlekey),
 				MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
+		var profile = ChromeTts.PageProfileDir();
+		var px = HttpProxy.ChromeArgs();
 		try {
-			Process.Start(new ProcessStartInfo {
+			ChromeTts.StopPage();
+			var left = 80;
+			var top = 60;
+			var width = 1100;
+			var height = 760;
+			var args = $"--user-data-dir=\"{profile}\" --remote-debugging-address=127.0.0.1 --remote-debugging-port=0 --new-window --no-first-run --no-default-browser-check --disable-sync --disable-session-crashed-bubble --hide-crash-restore-bubble --disable-features=UseSystemProxyResolver --window-position={left},{top} --window-size={width},{height} {px}\"{url}\"";
+			var proc = Process.Start(new ProcessStartInfo {
 				FileName = exe,
-				Arguments = "chrome://on-device-internals",
+				Arguments = args,
 				UseShellExecute = false,
 			});
+			var pid = 0;
+			try { if (proc != null) pid = proc.Id; } catch { }
+			ChromeHost.NudgeVisible(pid, left, top, width, height);
 		}
 		catch (Exception ex) {
-			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+			MessageBox.Show(this, ex.Message, Loc.T(titlekey), MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
 	}
+
+	void openchromemodel() =>
+		openinpageprofile("chrome://on-device-internals", "inst.chrome.model");
 
 	void openchromepage() {
 		var o = new OcrOptions();
 		try { AppConfig.LoadInto(o); } catch { }
-		var exe = ChromeTts.FindExe(o.ChromeExe);
-		if (string.IsNullOrEmpty(exe)) {
-			MessageBox.Show(this, Loc.T("inst.chrome.need"), Title,
-				MessageBoxButton.OK, MessageBoxImage.Information);
-			return;
-		}
-		var url = "http://127.0.0.1:" + HttpOcrServer.PagePort(o) + "/chrome";
-		try {
-			Process.Start(new ProcessStartInfo {
-				FileName = exe,
-				Arguments = "\"" + url + "\"",
-				UseShellExecute = false,
-			});
-		}
-		catch (Exception ex) {
-			MessageBox.Show(this, ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-		}
+		openinpageprofile("http://127.0.0.1:" + HttpOcrServer.PagePort(o) + "/chrome", "inst.chrome.page");
 	}
 
 	async Task loadchrome() {
