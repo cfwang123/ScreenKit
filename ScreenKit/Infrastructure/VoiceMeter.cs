@@ -32,6 +32,7 @@ sealed class VoiceMeter : IDisposable {
 			lp = new WasapiLoopbackCapture();
 			loopFmt = lp.WaveFormat;
 			lp.DataAvailable += onsys;
+			lp.RecordingStopped += onsysstopped;
 			lp.StartRecording();
 		}
 		catch {
@@ -49,6 +50,7 @@ sealed class VoiceMeter : IDisposable {
 		loop = null;
 		if (lp != null) {
 			try { lp.DataAvailable -= onsys; } catch { }
+			try { lp.RecordingStopped -= onsysstopped; } catch { }
 			try { lp.StopRecording(); } catch { }
 			try { lp.Dispose(); } catch { }
 		}
@@ -83,6 +85,7 @@ sealed class VoiceMeter : IDisposable {
 			c = new WasapiCapture(d);
 			capFmt = c.WaveFormat;
 			c.DataAvailable += onmic;
+			c.RecordingStopped += onmicstopped;
 			c.StartRecording();
 		}
 		catch {
@@ -104,6 +107,7 @@ sealed class VoiceMeter : IDisposable {
 		cap = null;
 		if (c != null) {
 			try { c.DataAvailable -= onmic; } catch { }
+			try { c.RecordingStopped -= onmicstopped; } catch { }
 			try { c.StopRecording(); } catch { }
 			try { c.Dispose(); } catch { }
 		}
@@ -134,6 +138,19 @@ sealed class VoiceMeter : IDisposable {
 		var f = capFmt;
 		if (f == null || e.BytesRecorded <= 0) return;
 		micLv = VoiceRec.LevelOf(peak(e.Buffer, e.BytesRecorded, f));
+	}
+
+	/// <summary>设备被拔出或独占时采集会自己停，标记成关闭让窗口重开或显示不可用。</summary>
+	void onsysstopped(object sender, StoppedEventArgs e) {
+		if (e.Exception == null || !ReferenceEquals(sender, loop)) return;
+		sysOpen = false;
+		sysLv = 0;
+	}
+
+	void onmicstopped(object sender, StoppedEventArgs e) {
+		if (e.Exception == null || !ReferenceEquals(sender, cap)) return;
+		micOpen = false;
+		micLv = 0;
 	}
 
 	static float peak(byte[] buf, int bytes, WaveFormat fmt) {

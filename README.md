@@ -99,7 +99,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **MQTT debugger**: The client connects to any MQTT broker to subscribe and publish, with `+` and `#` wildcards, QoS, retained messages, and hex send; the server tab runs a broker on this PC for other devices to connect to.
 - **SOAP debugger**: Read a WSDL from a URL or a local file, edit parameters from its XSD, preview the envelope, and call SOAP 1.1/1.2 operations. It can also run a local mock service with per-operation responses, request logs, and importable/exportable config.
 - **MIDI synthesizer**: Play with the mouse or the keyboard, open, change, and save MIDI files, and see a live waveform.
-- **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV.
+- **Sound recorder**: Record a microphone, system sound, or both, then play it or save a WAV. Level blocks show the current input device and the system sound in real time, even before recording starts.
 - **Camera**: Preview a camera, take photos and videos, and scan QR codes and barcodes. Double-click the picture for fullscreen; double-click again or press Esc to leave it.
 - **Scientific calculator**: A borderless keypad calculator with trigonometry, logarithms, powers, roots, factorial, and memory.
 - **Desktop note**: A borderless translucent note for text or a to-do list; content and position are remembered. The pin in the title bar keeps it above other windows, and that too is remembered.

@@ -49,6 +49,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Tray Tools menu now also offers MQTT, SOAP, TLS certificate check and database query, matching the main window's Tools menu.
+- Sound recorder: show the current input device and live level blocks for the microphone and system sound, which keep moving even before recording
 
 #### Changed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 托盘的「工具」补上 MQTT 调试、SOAP 接口调试、TLS 证书检查和数据库查询，与主窗口工具菜单一致。
+- 录音机：显示当前录音设备，以及麦克风和系统声音的实时电平块，未开始录音时也随声音波动
 
 #### 变更
 

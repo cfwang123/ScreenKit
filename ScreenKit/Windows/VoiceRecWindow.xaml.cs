@@ -212,6 +212,8 @@ public partial class VoiceRecWindow : Window {
 			string before = meter.SysName;
 			meter.RefreshSys();
 			if (meter.SysName != before) syncnames();
+			var dev = edev.SelectedItem as VoiceRec.Dev;
+			if (cmic.IsChecked == true && dev != null && !meter.MicOpen) meter.StartMic(dev.Id);
 		}
 		meters();
 		if (mode == "play" && unchecked(Environment.TickCount - playat) > 200 && session.PlayEnded()) {
@@ -230,7 +232,8 @@ public partial class VoiceRecWindow : Window {
 		sysshow = follow(sysshow, ts);
 		pmic.Value = micshow;
 		psys.Value = sysshow;
-		showstate(lbmicstate, dotmic, meter.MicOpen, micshow, "vrec.micoff");
+		bool micwant = cmic.IsChecked == true && edev.SelectedItem != null;
+		showstate(lbmicstate, dotmic, meter.MicOpen, micshow, micwant ? "vrec.nocap" : "vrec.micoff");
 		showstate(lbsysstate, dotsys, meter.SysOpen, sysshow, "vrec.nocap");
 	}
 

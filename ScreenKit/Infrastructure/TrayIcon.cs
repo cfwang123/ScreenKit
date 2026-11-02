@@ -731,13 +731,15 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	static string catalogjs() {
+		// 页面只加载合并后的 tools.js。旧版本留在 web/tools 里的各工具脚本可能已经过时，
+		// 菜单目录要以 tools.js 为准，否则会出现菜单和页面对不上。
+		if (SendFileWebPages.TryLoad("tools.js", out var bytes) && bytes != null && bytes.Length > 0)
+			return Encoding.UTF8.GetString(bytes);
 		try {
 			var home = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", "tools", "00-home.js");
 			if (File.Exists(home)) return File.ReadAllText(home);
 		}
 		catch { }
-		if (SendFileWebPages.TryLoad("tools.js", out var bytes) && bytes != null && bytes.Length > 0)
-			return Encoding.UTF8.GetString(bytes);
 		return "";
 	}
 
