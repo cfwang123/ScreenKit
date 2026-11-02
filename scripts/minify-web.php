@@ -6,7 +6,8 @@
  *   php scripts/minify-web.php <web目录>                          生成 *.min.js / *.min.css（源文件较新才做）
  *   php scripts/minify-web.php --slim <web目录>                   精简包：原地换成压缩内容，删掉 *.min.* 副本
  *
- * 压缩用 PATH 上的 minify.exe。L.js 由程序运行时按语言包生成，跳过。
+ * 压缩用 PATH 上的 minify.exe，找不到就不压缩、直接跳过（不算失败）。
+ * L.js 由程序运行时按语言包生成，跳过。
  */
 
 const SKIP_NAMES = ['l.js'];
@@ -46,11 +47,31 @@ function newer(string $src, string $dst): bool {
 	return filemtime($src) > filemtime($dst);
 }
 
+/** PATH 上的 minify 命令路径；没有就返回 null。 */
+function minifytool(): ?string {
+	static $tool = null, $checked = false;
+	if ($checked) return $tool;
+	$checked = true;
+	$names = ['minify'];
+	if (DIRECTORY_SEPARATOR === '\\') $names = ['minify.exe', 'minify.cmd', 'minify.bat', 'minify'];
+	foreach (explode(PATH_SEPARATOR, (string)getenv('PATH')) as $dir) {
+		$dir = trim($dir, " \t\"");
+		if ($dir === '') continue;
+		foreach ($names as $name) {
+			$p = $dir . DIRECTORY_SEPARATOR . $name;
+			if (is_file($p)) return $tool = $p;
+		}
+	}
+	return null;
+}
+
 function minify(string $src, string $dst): void {
+	$tool = minifytool();
+	if ($tool === null) return;
 	$tmp = $dst . '.tmp';
 	if (is_file($tmp)) @unlink($tmp);
 	$lines = [];
-	exec('minify -o ' . escapeshellarg($tmp) . ' ' . escapeshellarg($src) . ' 2>&1', $lines, $rc);
+	exec(escapeshellarg($tool) . ' -o ' . escapeshellarg($tmp) . ' ' . escapeshellarg($src) . ' 2>&1', $lines, $rc);
 	if ($rc !== 0 || !is_file($tmp) || filesize($tmp) === 0) {
 		@unlink($tmp);
 		fail('minify failed: ' . basename($src) . PHP_EOL . implode(PHP_EOL, $lines));
@@ -155,6 +176,10 @@ if ($mode === 'join') {
 
 $dir = $args[0] ?? '';
 if ($dir === '' || !is_dir($dir)) fail('web dir not found: ' . $dir);
+if (minifytool() === null) {
+	echo 'minify not found in PATH, skip web minify' . PHP_EOL;
+	exit(0);
+}
 if ($mode === 'slim')
 	doslim($dir);
 else

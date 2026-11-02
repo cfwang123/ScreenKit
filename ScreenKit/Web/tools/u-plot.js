@@ -831,10 +831,6 @@
 	}
 
 	// 网格线数固定，不跟着缩放增减，屏幕上的格子密度才不变。
-	function gridrows(base){
-		return base;
-	}
-
 	// 网格列数按采样平面的宽高比来取，格子才接近正方形。
 	function gridcount(rows, xs, ys){
 		if (!(xs > 0)) xs = cam.xspan;
@@ -851,7 +847,7 @@
 			return;
 		}
 		// 网格线和点阵要多画些才看得出曲面起伏；曲面和等高线用少一点，渐变就够细了。
-		var ny = gridrows(style === "dots" ? 34 : style === "grid" ? 30 : 24);
+		var ny = style === "dots" ? 34 : style === "grid" ? 30 : 24;
 		var nx = gridcount(ny);
 		var gw = nx + 1, gh = ny + 1;
 		var zraw = new Array(gw * gh);
@@ -1177,9 +1173,9 @@
 	}
 
 	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
-	function implevelzero(ctx, cyaw, syaw, cp, sp){
-		var gy = gridrows(drag ? 30 : 52);
-		var gx = gridcount(gy);
+	function implevelzero(ctx, cyaw, syaw, cp, sp, area, rows){
+		var gy = drag ? 30 : Math.max(44, Math.round(rows * 1.3));
+		var gx = gridcount(gy, area.x1 - area.x0, area.y1 - area.y0);
 		var gw = gx + 1;
 		var vals = new Float64Array(gw * (gy + 1));
 		var i, j, x, y, v00, v10, v11, v01, ps, k;
@@ -1187,9 +1183,9 @@
 			return scr3(proj3(x, y, 0, cyaw, syaw, cp, sp, 0, 1));
 		}
 		for (j = 0; j <= gy; j++) {
-			y = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+			y = area.y0 + (area.y1 - area.y0) * j / gy;
 			for (i = 0; i <= gx; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+				x = area.x0 + (area.x1 - area.x0) * i / gx;
 				vals[j * gw + i] = ev(fn, x, y, 0);
 			}
 		}
@@ -1199,11 +1195,11 @@
 		ctx.lineCap = "round";
 		ctx.beginPath();
 		for (j = 0; j < gy; j++) {
-			var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
-			var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gy;
+			var y0 = area.y0 + (area.y1 - area.y0) * j / gy;
+			var y1 = area.y0 + (area.y1 - area.y0) * (j + 1) / gy;
 			for (i = 0; i < gx; i++) {
-				var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
-				var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gx;
+				var x0 = area.x0 + (area.x1 - area.x0) * i / gx;
+				var x1 = area.x0 + (area.x1 - area.x0) * (i + 1) / gx;
 				v00 = vals[j * gw + i];
 				v10 = vals[j * gw + i + 1];
 				v11 = vals[(j + 1) * gw + i + 1];
@@ -1257,10 +1253,10 @@
 	}
 
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
-	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp){
+	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp, area, rows){
 		var levels = drag ? 6 : 12;
-		var gy = gridrows(drag ? 30 : 52);
-		var gx = gridcount(gy);
+		var gy = drag ? 30 : Math.max(44, Math.round(rows * 1.1));
+		var gx = gridcount(gy, area.x1 - area.x0, area.y1 - area.y0);
 		var segs = [];
 		function proj(x, y, z){
 			return scr3(proj3(x, y, z, cyaw, syaw, cp, sp, 0, 1));
@@ -1276,18 +1272,18 @@
 			t = (zc - z0) / (z1 - z0);
 			vals = new Float64Array(gw * (gy + 1));
 			for (j = 0; j <= gy; j++) {
-				var yv = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
+				var yv = area.y0 + (area.y1 - area.y0) * j / gy;
 				for (i = 0; i <= gx; i++) {
-					var xv = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
+					var xv = area.x0 + (area.x1 - area.x0) * i / gx;
 					vals[j * gw + i] = ev(fn, xv, yv, zc);
 				}
 			}
 			for (j = 0; j < gy; j++) {
-				var y0 = cam.cy - cam.yspan + cam.yspan * 2 * j / gy;
-				var y1 = cam.cy - cam.yspan + cam.yspan * 2 * (j + 1) / gy;
+				var y0 = area.y0 + (area.y1 - area.y0) * j / gy;
+				var y1 = area.y0 + (area.y1 - area.y0) * (j + 1) / gy;
 				for (i = 0; i < gx; i++) {
-					var x0 = cam.cx - cam.xspan + cam.xspan * 2 * i / gx;
-					var x1 = cam.cx - cam.xspan + cam.xspan * 2 * (i + 1) / gx;
+					var x0 = area.x0 + (area.x1 - area.x0) * i / gx;
+					var x1 = area.x0 + (area.x1 - area.x0) * (i + 1) / gx;
 					v00 = vals[j * gw + i];
 					v10 = vals[j * gw + i + 1];
 					v11 = vals[(j + 1) * gw + i + 1];
