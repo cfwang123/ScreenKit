@@ -836,8 +836,10 @@
 	}
 
 	// 网格列数按采样平面的宽高比来取，格子才接近正方形。
-	function gridcount(rows){
-		var nx = Math.round(rows * cam.xspan / cam.yspan);
+	function gridcount(rows, xs, ys){
+		if (!(xs > 0)) xs = cam.xspan;
+		if (!(ys > 0)) ys = cam.yspan;
+		var nx = Math.round(rows * xs / ys);
 		if (!(nx >= 2)) nx = 2;
 		if (nx > rows * 4) nx = rows * 4;
 		return nx;
@@ -848,7 +850,8 @@
 			draw3implicit(ctx, w, h);
 			return;
 		}
-		var ny = gridrows(22);
+		// 网格线和点阵要多画些才看得出曲面起伏；曲面和等高线用少一点，渐变就够细了。
+		var ny = gridrows(style === "dots" ? 34 : style === "grid" ? 30 : 24);
 		var nx = gridcount(ny);
 		var gw = nx + 1, gh = ny + 1;
 		var zraw = new Array(gw * gh);
@@ -922,25 +925,32 @@
 		ctx.restore();
 	}
 
-	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
-	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
-	function draw3implicit(ctx, w, h){
-		var n = gridrows(drag ? 22 : (style === "dots" ? 44 : 36));
-		var m = gridrows(drag ? 22 : 40);
-		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
-		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		var nx = gridcount(n);
+	// 隐式曲面的整片采样范围。z 一律按 y 的采样范围取，不跟着缩放变。
+	function fullarea(){
+		return {
+			x0: cam.cx - cam.xspan, x1: cam.cx + cam.xspan,
+			y0: cam.cy - cam.yspan, y1: cam.cy + cam.yspan
+		};
+	}
+
+	// 在 area 范围内按 x、y 网格竖着扫一遍 F(x,y,z)=0 的零点，每一列得到若干个 z 解。
+	function impscan(area, rows, zsteps){
+		var n = Math.max(2, Math.round(rows));
+		var m = Math.max(4, Math.round(zsteps));
+		var nx = gridcount(n, area.x1 - area.x0, area.y1 - area.y0);
 		var cw = nx + 1;
 		var cols = new Array(cw * (n + 1));
 		var box = newbox();
 		var all = [];
+		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
+		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var z0 = -cam.yspan, z1 = cam.yspan, dz = (z1 - z0) / m;
-		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, gap;
+		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, list;
 		for (j = 0; j <= n; j++) {
-			y = cam.cy - cam.yspan + cam.yspan * 2 * j / n;
+			y = area.y0 + (area.y1 - area.y0) * j / n;
 			for (i = 0; i <= nx; i++) {
-				x = cam.cx - cam.xspan + cam.xspan * 2 * i / nx;
-				var list = [];
+				x = area.x0 + (area.x1 - area.x0) * i / nx;
+				list = [];
 				f0 = ev(fn, x, y, z0);
 				for (k = 1; k <= m; k++) {
 					z = z0 + dz * k;
@@ -973,19 +983,80 @@
 						p = proj3(x, y, zz, cyaw, syaw, cp, sp, 0, 1);
 						p.t = (zz - z0) / (z1 - z0);
 						p.z = zz;
+						p.gx = x;
+						p.gy = y;
 						p.ok = true;
 						list.push(p);
 						all.push(p);
-						boxone(box, p.wx, p.wy, p.wz);
+						boxone(box, x, y, zz);
 					}
 					f0 = f1;
 				}
 				cols[j * cw + i] = list;
 			}
 		}
-		fit3(w, h, box, all, cyaw, syaw, cp, sp);
-		gap = 2 * cam.yspan * view3.s / n;
-		var row;
+		return { nx: nx, ny: n, cw: cw, cols: cols, all: all, box: box, area: area };
+	}
+
+	// 按粗扫到的范围往外放一格多点。曲面常常只占采样范围里的一小块，
+	// 只在这一块上细扫，同样的计算量能多画出好几倍网格线。
+	function fitarea(pre, full){
+		if (!pre.all.length || !isFinite(pre.box.x0)) return full;
+		var dx = (full.x1 - full.x0) / Math.max(1, pre.nx) * 1.2;
+		var dy = (full.y1 - full.y0) / Math.max(1, pre.ny) * 1.2;
+		var a = {
+			x0: pre.box.x0 - dx, x1: pre.box.x1 + dx,
+			y0: pre.box.y0 - dy, y1: pre.box.y1 + dy
+		};
+		if (a.x0 < full.x0) a.x0 = full.x0;
+		if (a.x1 > full.x1) a.x1 = full.x1;
+		if (a.y0 < full.y0) a.y0 = full.y0;
+		if (a.y1 > full.y1) a.y1 = full.y1;
+		if (!(a.x1 - a.x0 > 1e-9) || !(a.y1 - a.y0 > 1e-9)) return full;
+		return a;
+	}
+
+	// 细扫出来的点贴到范围边上，说明范围取小了，得退回整片范围重扫。
+	// 范围被夹到整片范围的地方本来就有曲面，那些边不算裁。
+	function areaedge(res, full){
+		var a = res.area;
+		var dx = (a.x1 - a.x0) / Math.max(1, res.nx) * 1.5;
+		var dy = (a.y1 - a.y0) / Math.max(1, res.ny) * 1.5;
+		var left = a.x0 > full.x0 + 1e-9, right = a.x1 < full.x1 - 1e-9;
+		var bottom = a.y0 > full.y0 + 1e-9, top = a.y1 < full.y1 - 1e-9;
+		var i, p;
+		for (i = 0; i < res.all.length; i++) {
+			p = res.all[i];
+			if (left && p.gx - a.x0 < dx) return true;
+			if (right && a.x1 - p.gx < dx) return true;
+			if (bottom && p.gy - a.y0 < dy) return true;
+			if (top && a.y1 - p.gy < dy) return true;
+		}
+		return false;
+	}
+
+	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
+	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
+	function draw3implicit(ctx, w, h){
+		var rows = drag ? 22 : (style === "dots" ? 60 : 48);
+		var zsteps = drag ? 24 : 44;
+		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
+		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+		var full = fullarea();
+		var res;
+		if (drag) res = impscan(full, rows, zsteps);
+		else {
+			// 先用粗网格扫一遍看曲面实际占多大，再只在这一块上细扫。
+			var pre = impscan(full, 20, 22);
+			var area = fitarea(pre, full);
+			res = impscan(area, rows, zsteps);
+			if (!res.all.length || (area !== full && areaedge(res, full))) res = impscan(full, rows, zsteps);
+		}
+		var cols = res.cols, nx = res.nx, ny = res.ny, cw = res.cw, box = res.box;
+		var z0 = -cam.yspan, z1 = cam.yspan;
+		var i, k, row, gap;
+		fit3(w, h, box, res.all, cyaw, syaw, cp, sp);
+		gap = (res.area.y1 - res.area.y0) * view3.s / ny;
 		for (i = 0; i < cols.length; i++) {
 			row = cols[i];
 			for (k = 0; k < row.length; k++) {
@@ -1012,12 +1083,12 @@
 		ctx.rect(0, 0, w, h);
 		ctx.clip();
 		if (style === "grid") {
-			impgrid(ctx, cols, nx, n, cw, gap);
-			implevelzero(ctx, cyaw, syaw, cp, sp);
+			impgrid(ctx, cols, nx, ny, cw, gap);
+			implevelzero(ctx, cyaw, syaw, cp, sp, res.area, rows);
 		}
-		else if (style === "dots") impdots(ctx, cols, nx, n, cw, gap);
-		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp);
-		else impfill(ctx, cols, nx, n, cw, gap);
+		else if (style === "dots") impdots(ctx, cols, nx, ny, cw, gap);
+		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp, res.area, rows);
+		else impfill(ctx, cols, nx, ny, cw, gap);
 		// z 轴只画到曲面顶端，免得轴尖和标签被画布切掉。
 		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, box.z1 > 0 ? Math.min(z1, box.z1) : z1, box);
 		ctx.restore();

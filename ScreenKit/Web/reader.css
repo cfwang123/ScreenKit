@@ -268,6 +268,7 @@ button, input, select { font: inherit; }
 .rd-dict-list .hit-txt b, .rd-dict-list .hit-txt span {
 	display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.rd-dict-list .hit-txt b { font-weight: 400; }
 .rd-dict-list .hit-txt span { color: #666; font-weight: 400; }
 .spk { flex: none; width: 28px; height: 28px; border: 0; background: transparent; color: #2878be; cursor: pointer; }
 .rd-dict-detail {
