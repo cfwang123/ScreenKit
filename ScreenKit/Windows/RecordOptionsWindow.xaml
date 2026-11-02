@@ -95,7 +95,8 @@
 
 				<!-- 声音 -->
 				<TextBlock Text="声音" FontWeight="SemiBold" Margin="0,0,0,6"/>
-				<CheckBox x:Name="eauden" Content="录制声音" Margin="0,0,0,8" IsChecked="True"/>
+				<CheckBox x:Name="eauden" Content="录制声音" Margin="0,0,0,8" IsChecked="True"
+				          AutomationProperties.AutomationId="opt.record.auden"/>
 				<Grid Margin="0,0,0,8">
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="Auto" MinWidth="108"/>
@@ -110,6 +111,7 @@
 					<ComboBox x:Name="eaudsrc" Grid.Column="1" Height="32"
 					          VerticalContentAlignment="Center" Margin="0,0,10,0"
 					          ToolTip="扬声器=系统正在播放的声音（环回）"
+					          AutomationProperties.AutomationId="opt.record.audsrc"
 					          IsEnabled="{Binding ElementName=eauden, Path=IsChecked}">
 						<ComboBoxItem Content="扬声器(听到的内容)" Tag="Speakers" IsSelected="True"/>
 						<ComboBoxItem Content="麦克风" Tag="Mic"/>

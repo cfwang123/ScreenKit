@@ -219,17 +219,19 @@
 					            Margin="0,0,8,0">
 						<TextBlock x:Name="lbmiccap" Text="麦克风" FontSize="11" Foreground="#111"
 						           VerticalAlignment="Center" Margin="0,0,3,0"/>
-						<Border BorderBrush="#99000000" BorderThickness="1" CornerRadius="1.5"
-						        Padding="1" VerticalAlignment="Center" ToolTip="麦克风电平">
-							<local:VLevelBlocks x:Name="pmic" Width="6" Height="14"/>
+						<Border Background="#0B0D10" BorderBrush="#000000" BorderThickness="1"
+						        CornerRadius="2" Padding="1,1,1,1" VerticalAlignment="Center"
+						        ToolTip="麦克风电平">
+							<local:VLevelBlocks x:Name="pmic" Width="3.5" Height="14" Dark="True"/>
 						</Border>
 					</StackPanel>
 					<StackPanel x:Name="psysgrp" Orientation="Horizontal" VerticalAlignment="Center">
 						<TextBlock x:Name="lbsyscap" Text="系统" FontSize="11" Foreground="#111"
 						           VerticalAlignment="Center" Margin="0,0,3,0"/>
-						<Border BorderBrush="#99000000" BorderThickness="1" CornerRadius="1.5"
-						        Padding="1" VerticalAlignment="Center" ToolTip="系统声音电平">
-							<local:VLevelBlocks x:Name="psys" Width="6" Height="14"/>
+						<Border Background="#0B0D10" BorderBrush="#000000" BorderThickness="1"
+						        CornerRadius="2" Padding="1,1,1,1" VerticalAlignment="Center"
+						        ToolTip="系统声音电平">
+							<local:VLevelBlocks x:Name="psys" Width="3.5" Height="14" Dark="True"/>
 						</Border>
 					</StackPanel>
 				</StackPanel>

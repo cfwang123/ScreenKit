@@ -51,6 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tray Tools menu now also offers MQTT, SOAP, TLS certificate check and database query, matching the main window's Tools menu.
 - Sound recorder: show the current input device and live level blocks for the microphone and system sound, which keep moving even before recording
 - Hidden dev switch in config.toml (default false). When false, startup removes the pre-merge tool scripts under web/tools and the old flattened copies in web/; local dev builds set it to true
+- Screen record options: pick the microphone (system default entry included) and watch inline level bars for the microphone and system sound; the HUD bar shows the same live meters instead of the audio-source text
 
 #### Changed
 
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 托盘的「工具」补上 MQTT 调试、SOAP 接口调试、TLS 证书检查和数据库查询，与主窗口工具菜单一致。
 - 录音机：显示当前录音设备，以及麦克风和系统声音的实时电平块，未开始录音时也随声音波动
 - config.toml 新增隐藏的 dev 开关（默认 false）。为 false 时启动自动清理 web/tools 里合并前的工具脚本和旧版摊平在 web/ 的副本；本地开发目录设为 true 保留
+- 录屏选项：可单独选择麦克风（含「系统默认（当前设备）」），并显示麦克风和系统声音的行内电平条；录屏控制条也用同样的实时电平条代替声音来源文字
 
 #### 变更
 
