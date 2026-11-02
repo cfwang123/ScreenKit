@@ -1545,6 +1545,8 @@ public partial class MainWindow {
 		var rate = ettsrate.Value;
 		var vol = ettsvol.Value / 100.0;
 		var triedInstall = false;
+		var t0 = Environment.TickCount;
+		var spoke = 0;
 		var i = 0;
 		while (i < segments.Count) {
 			ct.ThrowIfCancellationRequested();
@@ -1562,6 +1564,7 @@ public partial class MainWindow {
 				await ensurechromevoice(lang, exe, ct);
 				await Task.Run(() => ChromeTts.Speak(part, name, lang, rate, vol, exe, idle, ct));
 			}
+			spoke++;
 			if (ttsSkipDelta != 0) {
 				var next = i + ttsSkipDelta;
 				ttsSkipDelta = 0;
@@ -1571,8 +1574,9 @@ public partial class MainWindow {
 			}
 			i++;
 		}
+		// 读完要把状态换掉，别停在「朗读中 n/n」。
 		if (!ct.IsCancellationRequested)
-			lbttsstatus.Text = $"Chrome · {segments.Count}";
+			lbttsstatus.Text = $"Chrome 完成 · {spoke} 段 · 合计 {formatms(Math.Max(0, Environment.TickCount - t0))}";
 	}
 
 	static bool chromevoicemiss(Exception ex) =>

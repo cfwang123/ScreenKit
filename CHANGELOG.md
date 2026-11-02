@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The release script builds its 7z -x! excludes from the actual junk directory and file names again; they had been written as source-file paths, so the archive-level filter never matched and the pre-pack cleanup was the only guard.
 - Fix tool menu: Japanese name reading entry opened the Korean conjugation page because the card-name regex ran past the card into the next entry.
 - Install features: the Chrome model buttons now open Chrome with the same profile as the speech-synthesis and translation pages, instead of the user's default Chrome profile.
+- Chrome TTS: the status no longer stays on 'speaking n/n' after playback ends. Chrome's speechSynthesis does not always fire onend, so a watchdog estimated from the text length now closes the job.
 
 ### 中文
 
@@ -75,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 发布脚本的 7z -x! 排除项重新按实际的垃圾目录和文件名生成；此前误写成了源码文件路径，打包层的过滤一直没生效，只剩打包前的清理在兜底。
 - 修复工具菜单：「日本姓名读法」点开后进入韩语词形变化，原因是卡片名字的正则跨过卡片边界取到了下一张卡片的键。
 - 安装功能里打开 Chrome 模型改为和语音合成、翻译页一致，用程序自己的模型页配置，不再打开用户默认 Chrome 配置。
+- Chrome 朗读：读完不再停在「朗读中 n/n」。Chrome 的 speechSynthesis 不一定触发 onend，现在按文本长度估一个上限兜底收尾。
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 
