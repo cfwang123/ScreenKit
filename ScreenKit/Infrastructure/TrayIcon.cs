@@ -295,7 +295,6 @@ sealed class TrayIcon : IDisposable {
 		miCatImage.DropDownItems.Add(miCast);
 		miInfo = new Forms.ToolStripMenuItem(Loc.T("tray.info"));
 		miInfo.DropDownItems.Add(miDict);
-		miInfo.DropDownItems.Add(miSys);
 		miCatTalk = new Forms.ToolStripMenuItem(Loc.T("web.cat.talk"));
 		miNetGroup = new Forms.ToolStripMenuItem(Loc.T("tray.netgroup"));
 		miNetGroup.DropDownItems.Add(miNet);
@@ -310,6 +309,7 @@ sealed class TrayIcon : IDisposable {
 		miCatFile.DropDownItems.Add(miFastCopy);
 		miCatFile.DropDownItems.Add(miFileProbe);
 		miCatSys = new Forms.ToolStripMenuItem(Loc.T("menu.cat.sys"));
+		miCatSys.DropDownItems.Add(miSys);
 		miCatSys.DropDownItems.Add(miSysTool);
 		miCatSys.DropDownItems.Add(miPerfMon);
 		miCatSys.DropDownItems.Add(miWinTop);

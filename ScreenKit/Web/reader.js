@@ -953,80 +953,290 @@
 		return out.join("");
 	}
 
+	// 正文解析：与 WPF 版 md 阅读器（MdRead.cs）保持一致。这里只生成 HTML，
+	// 句子切分交给 spans()，朗读和句子高亮仍按 span.rs 走。
 	function mdhtml(src){
 		var lines = String(src || "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
 		var out = [];
 		var n = 0;
 		var i = 0;
+		// 开头的 YAML front matter 不当正文
+		if (lines.length && lines[0].trim() === "---") {
+			var j = 1;
+			while (j < lines.length && j < 80 && lines[j].trim() !== "---") j++;
+			if (j < lines.length && lines[j].trim() === "---") i = j + 1;
+		}
 		while (i < lines.length) {
+			if (!lines[i].trim()) { i++; continue; }
 			var line = lines[i];
-			if (!line.trim()) { i++; continue; }
-			if (line.indexOf("```") === 0) {
-				var buf = [];
-				i++;
-				while (i < lines.length && lines[i].indexOf("```") !== 0) { buf.push(lines[i]); i++; }
-				if (i < lines.length) i++;
-				out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+			var mk = fenceopen(line);
+			if (mk) { i = addcode(out, lines, i, mk); continue; }
+			var hd = isheading(line);
+			if (hd) { heading(out, hd.level, hd.title, ++n); i++; continue; }
+			if (i + 1 < lines.length && setextlevel(lines[i + 1]) && !blockstart(line)) {
+				heading(out, setextlevel(lines[i + 1]), line.trim(), ++n);
+				i += 2;
 				continue;
 			}
-			var hm = /^(#{1,6})\s+(.*)$/.exec(line);
-			if (hm) {
-				var lv = hm[1].length;
-				var title = hm[2].replace(/\s+#+\s*$/, "");
-				var id = "rdc" + n++;
-				out.push("<h" + lv + ' id="' + id + '">' + spans(title, inline) + "</h" + lv + ">");
-				if (lv <= 3) st.chap.push({ id: id, text: title });
-				i++;
-				continue;
-			}
-			if (/^>\s?/.test(line)) {
-				var quote = [];
-				while (i < lines.length && /^>\s?/.test(lines[i])) {
-					quote.push(lines[i].replace(/^>\s?/, ""));
-					i++;
-				}
-				out.push("<blockquote><p>" + spans(quote.join(" "), inline) + "</p></blockquote>");
-				continue;
-			}
-			if (/^\s*[-*+]\s+/.test(line)) {
-				out.push("<ul>");
-				while (i < lines.length && /^\s*[-*+]\s+/.test(lines[i])) {
-					out.push("<li>" + spans(lines[i].replace(/^\s*[-*+]\s+/, ""), inline) + "</li>");
-					i++;
-				}
-				out.push("</ul>");
-				continue;
-			}
-			if (/^\s*\d+[.)]\s+/.test(line)) {
-				out.push("<ol>");
-				while (i < lines.length && /^\s*\d+[.)]\s+/.test(lines[i])) {
-					out.push("<li>" + spans(lines[i].replace(/^\s*\d+[.)]\s+/, ""), inline) + "</li>");
-					i++;
-				}
-				out.push("</ol>");
-				continue;
-			}
-			if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
-				out.push("<hr>");
-				i++;
-				continue;
-			}
-			var para = [line];
-			i++;
-			while (i < lines.length && lines[i].trim() && !blockstart(lines[i])) {
-				para.push(lines[i]);
-				i++;
-			}
-			out.push("<p>" + spans(para.join(" "), inline) + "</p>");
+			if (ishr(line)) { out.push("<hr>"); i++; continue; }
+			if (istable(lines, i)) { i = addtable(out, lines, i); continue; }
+			if (line.replace(/^\s+/, "").indexOf(">") === 0) { i = addquote(out, lines, i); continue; }
+			if (listline(line)) { i = addlist(out, lines, i); continue; }
+			i = addpara(out, lines, i);
 		}
 		if (!out.length) return '<p class="rd-empty">' + esc(L("web.reader.blank", "这篇是空的。")) + "</p>";
 		return out.join("");
 	}
 
+	function addcode(out, lines, i, mk){
+		var buf = [];
+		i++;
+		while (i < lines.length && !fenceclose(lines[i], mk)) { buf.push(lines[i]); i++; }
+		if (i < lines.length) i++;
+		out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+		return i;
+	}
+
+	function heading(out, level, title, seq){
+		if (level < 1) level = 1;
+		if (level > 6) level = 6;
+		var id = "rdc" + (seq - 1);
+		out.push("<h" + level + ' id="' + id + '">' + spans(title, inline) + "</h" + level + ">");
+		if (level <= 3) st.chap.push({ id: id, text: title });
+	}
+
+	function addquote(out, lines, i){
+		var buf = [];
+		while (i < lines.length && lines[i].replace(/^\s+/, "").indexOf(">") === 0) {
+			var s = lines[i].replace(/^\s+/, "").substring(1);
+			if (s.charAt(0) === " ") s = s.substring(1);
+			buf.push(s);
+			i++;
+		}
+		out.push("<blockquote>" + mdhtml(buf.join("\n")) + "</blockquote>");
+		return i;
+	}
+
+	function addlist(out, lines, i){
+		var cur = listline(lines[i]);
+		if (!cur) return i;
+		var start = i;
+		out.push(cur.ordered ? "<ol>" : "<ul>");
+		while (i < lines.length) {
+			if (!lines[i].trim()) {
+				var k = i + 1;
+				while (k < lines.length && !lines[k].trim()) k++;
+				var nxt = k < lines.length ? listline(lines[k]) : null;
+				if (nxt && nxt.indent >= cur.indent) { i = k; continue; }
+				break;
+			}
+			var it = listline(lines[i]);
+			if (!it || it.indent !== cur.indent || it.ordered !== cur.ordered) break;
+			var item = it.item;
+			out.push("<li>");
+			// 任务列表 - [ ] / - [x]
+			if (!cur.ordered && item.length >= 4 && item.charAt(0) === "[" && item.charAt(2) === "]"
+				&& item.charAt(3) === " " && " xX".indexOf(item.charAt(1)) >= 0) {
+				out.push(item.charAt(1) === " "
+					? '<input type="checkbox" disabled> '
+					: '<input type="checkbox" disabled checked> ');
+				item = item.substring(4);
+			}
+			out.push(spans(item.replace(/\s+$/, ""), inline));
+			var n2 = i + 1;
+			var sub = n2 < lines.length ? listline(lines[n2]) : null;
+			if (sub && sub.indent > cur.indent) n2 = addlist(out, lines, n2);
+			else {
+				// 列表项的续行：缩进比项目深，且不是新的块
+				while (n2 < lines.length && lines[n2].trim() && !listline(lines[n2])
+					&& !blockstart(lines[n2]) && indentof(lines[n2]) > cur.indent) {
+					out.push("<br>" + spans(lines[n2].trim(), inline));
+					n2++;
+				}
+			}
+			out.push("</li>");
+			i = n2;
+			if (i === start) break;
+		}
+		out.push(cur.ordered ? "</ol>" : "</ul>");
+		if (i === start) i++;
+		return i;
+	}
+
+	function addtable(out, lines, i){
+		var head = splitrow(lines[i]);
+		var sep = splitrow(lines[i + 1]);
+		out.push('<div class="tbl"><table><thead><tr>');
+		for (var c = 0; c < head.length; c++) {
+			var al = c < sep.length ? alignof(sep[c]) : "";
+			out.push("<th" + (al ? ' style="text-align:' + al + '"' : "") + ">" + spans(head[c], inline) + "</th>");
+		}
+		out.push("</tr></thead><tbody>");
+		i += 2;
+		while (i < lines.length && lines[i].trim() && lines[i].indexOf("|") >= 0) {
+			var cells = splitrow(lines[i]);
+			out.push("<tr>");
+			for (var c2 = 0; c2 < head.length; c2++) {
+				var al2 = c2 < sep.length ? alignof(sep[c2]) : "";
+				out.push("<td" + (al2 ? ' style="text-align:' + al2 + '"' : "") + ">"
+					+ (c2 < cells.length ? spans(cells[c2], inline) : "") + "</td>");
+			}
+			out.push("</tr>");
+			i++;
+		}
+		out.push("</tbody></table></div>");
+		return i;
+	}
+
+	function addpara(out, lines, i){
+		var buf = [];
+		var brs = [];
+		while (i < lines.length && !stoppara(lines, i)) {
+			var raw = lines[i];
+			var br = /\s\s$/.test(raw) || /\\$/.test(raw);
+			if (br) raw = raw.replace(/\\$/, "").replace(/\s+$/, "");
+			buf.push(raw.trim());
+			brs.push(br);
+			i++;
+		}
+		if (!buf.length) return i + 1;
+		var html = "";
+		for (var k = 0; k < buf.length; k++) {
+			html += spans(buf[k], inline);
+			if (k + 1 < buf.length) html += brs[k] ? "<br>" : " ";
+		}
+		out.push("<p>" + html + "</p>");
+		return i;
+	}
+
+	function stoppara(lines, i){
+		if (i >= lines.length || !lines[i].trim()) return true;
+		if (blockstart(lines[i])) return true;
+		if (istable(lines, i)) return true;
+		if (i + 1 < lines.length && setextlevel(lines[i + 1])) return true;
+		return false;
+	}
+
 	function blockstart(line){
-		return line.indexOf("```") === 0 || /^(#{1,6})\s+/.test(line) || /^>\s?/.test(line)
-			|| /^\s*[-*+]\s+/.test(line) || /^\s*\d+[.)]\s+/.test(line)
-			|| /^\s*([-*_])\1{2,}\s*$/.test(line);
+		if (!line.trim()) return true;
+		if (fenceopen(line)) return true;
+		if (isheading(line)) return true;
+		if (ishr(line)) return true;
+		if (line.replace(/^\s+/, "").indexOf(">") === 0) return true;
+		if (listline(line)) return true;
+		return false;
+	}
+
+	function fenceopen(line){
+		var t = line.trim();
+		if (t.indexOf("```") === 0) return "```";
+		if (t.indexOf("~~~") === 0) return "~~~";
+		return "";
+	}
+
+	function fenceclose(line, mk){
+		var t = line.trim();
+		if (t.indexOf(mk) !== 0) return false;
+		return t.replace(/[`~ \t]/g, "").length === 0;
+	}
+
+	function isheading(line){
+		var t = line.trim();
+		var level = 0;
+		while (level < t.length && level < 6 && t.charAt(level) === "#") level++;
+		if (!level) return null;
+		var nxt = t.charAt(level);
+		if (nxt !== " " && nxt !== "\t") return null;
+		var title = t.substring(level).replace(/\s+$/, "");
+		while (title.charAt(title.length - 1) === "#") title = title.substring(0, title.length - 1).replace(/\s+$/, "");
+		return { level: level, title: title };
+	}
+
+	// setext 标题（下一行是 === 或 ---）。返回 0 表示不是。
+	function setextlevel(line){
+		var t = line.trim();
+		if (t.length < 3) return 0;
+		if (t.replace(/=/g, "").length === 0) return 1;
+		if (t.indexOf("|") < 0 && t.replace(/-/g, "").length === 0) return 2;
+		return 0;
+	}
+
+	function ishr(line){
+		var t = line.trim();
+		if (t.length < 3 || t.indexOf("|") >= 0) return false;
+		var c = t.charAt(0);
+		if (c !== "-" && c !== "*" && c !== "_") return false;
+		var cnt = 0;
+		for (var i = 0; i < t.length; i++) {
+			var ch = t.charAt(i);
+			if (ch === c) { cnt++; continue; }
+			if (ch !== " " && ch !== "\t") return false;
+		}
+		return cnt >= 3;
+	}
+
+	function istable(lines, i){
+		if (i + 1 >= lines.length) return false;
+		if (lines[i].indexOf("|") < 0) return false;
+		return tablesep(lines[i + 1]);
+	}
+
+	function tablesep(line){
+		if (line.indexOf("-") < 0) return false;
+		var cells = splitrow(line);
+		if (!cells.length) return false;
+		for (var i = 0; i < cells.length; i++) {
+			var c = cells[i].trim();
+			if (!c.length) return false;
+			if (/[^\-: \t]/.test(c)) return false;
+			if (c.indexOf("-") < 0) return false;
+		}
+		return true;
+	}
+
+	function splitrow(line){
+		var s = line.trim();
+		if (s.charAt(0) === "|") s = s.substring(1);
+		if (s.charAt(s.length - 1) === "|") s = s.substring(0, s.length - 1);
+		var parts = s.split("|");
+		for (var i = 0; i < parts.length; i++) parts[i] = parts[i].trim();
+		return parts;
+	}
+
+	function alignof(cell){
+		var c = cell.trim();
+		var left = c.charAt(0) === ":";
+		var right = c.charAt(c.length - 1) === ":";
+		if (left && right) return "center";
+		if (right) return "right";
+		if (left) return "left";
+		return "";
+	}
+
+	// 列表行：indent 为按 4 格补空格的缩进列，不是行首字符数。
+	function listline(line){
+		var ind = indentof(line);
+		var s = line.replace(/^[ \t]*/, "");
+		if (s.indexOf("- ") === 0 || s.indexOf("* ") === 0 || s.indexOf("+ ") === 0
+			|| s.indexOf("● ") === 0 || s.indexOf("• ") === 0)
+			return { indent: ind, ordered: false, item: s.substring(2) };
+		var j = 0;
+		while (j < s.length && /[0-9]/.test(s.charAt(j))) j++;
+		if (j > 0 && (s.charAt(j) === "." || s.charAt(j) === ")") && s.charAt(j + 1) === " ")
+			return { indent: ind, ordered: true, item: s.substring(j + 2) };
+		return null;
+	}
+
+	function indentof(line){
+		var col = 0;
+		var n = 0;
+		while (n < line.length) {
+			var c = line.charAt(n);
+			if (c === " ") { col++; n++; continue; }
+			if (c === "\t") { col += 4 - (col % 4); n++; continue; }
+			break;
+		}
+		return col;
 	}
 
 	function spans(text, fmt){
@@ -1060,55 +1270,173 @@
 		return out;
 	}
 
+	// 行内解析：与 MdRead.cs 的 inlineat 一致。返回 HTML，调用方再交给 spans() 切句。
 	function inline(raw){
-		var s = String(raw);
+		return inlines(String(raw == null ? "" : raw), 0);
+	}
+
+	function inlines(text, depth){
+		if (depth > 8) return esc(text);
 		var out = "";
 		var i = 0;
-		while (i < s.length) {
-			if (s.charAt(i) === "`") {
-				var j = s.indexOf("`", i + 1);
-				if (j > i) {
-					out += "<code>" + esc(s.slice(i + 1, j)) + "</code>";
-					i = j + 1;
+		while (i < text.length) {
+			var c = text.charAt(i);
+			// 反斜杠转义
+			if (c === "\\" && i + 1 < text.length) {
+				out += esc(text.charAt(i + 1));
+				i += 2;
+				continue;
+			}
+			// 行内代码
+			if (c === "`") {
+				var ce = text.indexOf("`", i + 1);
+				if (ce > i) {
+					out += "<code>" + esc(text.substring(i + 1, ce)) + "</code>";
+					i = ce + 1;
 					continue;
 				}
 			}
-			if (s.substr(i, 2) === "**") {
-				var j2 = s.indexOf("**", i + 2);
-				if (j2 > i) {
-					out += "<strong>" + inline(s.slice(i + 2, j2)) + "</strong>";
-					i = j2 + 2;
+			// 图片
+			if (c === "!" && text.charAt(i + 1) === "[") {
+				var im = trylink(text, i + 1);
+				if (im) {
+					out += '<img alt="' + esc(im.label) + '" src="' + esc(im.dest) + '">';
+					i = im.next;
 					continue;
 				}
 			}
-			if (s.charAt(i) === "*") {
-				var j3 = s.indexOf("*", i + 1);
-				if (j3 > i) {
-					out += "<em>" + inline(s.slice(i + 1, j3)) + "</em>";
-					i = j3 + 1;
+			// 链接
+			if (c === "[") {
+				var lk = trylink(text, i);
+				if (lk) {
+					if (lk.dest) out += '<a href="' + esc(lk.dest) + '" target="_blank" rel="noopener">'
+						+ inlines(lk.label, depth + 1) + "</a>";
+					else out += inlines(lk.label, depth + 1);
+					i = lk.next;
 					continue;
 				}
 			}
-			if (s.charAt(i) === "[") {
-				var m = /^\[([^\]]+)\]\(([^)\s]+)\)/.exec(s.slice(i));
-				if (m && /^https?:\/\//i.test(m[2])) {
-					out += '<a href="' + esc(m[2]) + '" target="_blank" rel="noopener">' + inline(m[1]) + "</a>";
-					i += m[0].length;
+			// 尖括号裸地址
+			if (c === "<") {
+				var ag = tryangle(text, i);
+				if (ag) {
+					out += '<a href="' + esc(ag.url) + '" target="_blank" rel="noopener">' + esc(ag.url) + "</a>";
+					i = ag.next;
 					continue;
 				}
 			}
-			var n = s.length;
-			for (var k = i + 1; k < s.length; k++) {
-				var c = s.charAt(k);
-				if (c === "`" || c === "*" || c === "[") {
-					n = k;
-					break;
+			// 粗体 / 删除线 / 斜体
+			var b = trymark(text, i, "**") || trymark(text, i, "__");
+			if (b) {
+				out += "<strong>" + inlines(text.substring(i + 2, b), depth + 1) + "</strong>";
+				i = b + 2;
+				continue;
+			}
+			var d = trymark(text, i, "~~");
+			if (d) {
+				out += "<del>" + inlines(text.substring(i + 2, d), depth + 1) + "</del>";
+				i = d + 2;
+				continue;
+			}
+			if (c === "*" || c === "_") {
+				var e = trymark(text, i, c);
+				if (e) {
+					out += "<em>" + inlines(text.substring(i + 1, e), depth + 1) + "</em>";
+					i = e + 1;
+					continue;
 				}
 			}
-			out += esc(s.slice(i, n));
-			i = n;
+			// 裸 http(s) 地址
+			var u = tryurl(text, i);
+			if (u) {
+				out += '<a href="' + esc(u.url) + '" target="_blank" rel="noopener">' + esc(u.url) + "</a>";
+				i = u.next;
+				continue;
+			}
+			out += esc(c);
+			i++;
 		}
 		return out;
+	}
+
+	function trylink(text, i){
+		if (text.charAt(i) !== "[") return null;
+		var rb = text.indexOf("]", i + 1);
+		if (rb < 0 || text.charAt(rb + 1) !== "(") return null;
+		var close = text.indexOf(")", rb + 2);
+		if (close < 0) return null;
+		return {
+			label: text.substring(i + 1, rb),
+			dest: safeurl(splitdest(text.substring(rb + 2, close))),
+			next: close + 1
+		};
+	}
+
+	function splitdest(raw){
+		raw = String(raw || "").trim();
+		if (raw.charAt(0) === "<") {
+			var gt = raw.indexOf(">");
+			if (gt > 0) return raw.substring(1, gt).trim();
+		}
+		if (raw.length > 2) {
+			var q = raw.charAt(raw.length - 1);
+			if (q === "\"" || q === "'") {
+				var a = raw.lastIndexOf(q, raw.length - 2);
+				if (a > 0 && raw.charAt(a - 1) === " ") raw = raw.substring(0, a).replace(/\s+$/, "");
+			}
+		}
+		return raw.trim();
+	}
+
+	// 只放行能安全打开的地址：网页、邮件、页内锚点。其余（javascript: 等）丢掉。
+	function safeurl(url){
+		url = String(url || "").trim();
+		if (!url) return "";
+		if (/^(https?:|mailto:|file:)/i.test(url)) return url;
+		if (url.charAt(0) === "#") return url;
+		return "";
+	}
+
+	function tryangle(text, i){
+		var j = text.indexOf(">", i + 1);
+		if (j < 0) return null;
+		var inner = text.substring(i + 1, j).trim();
+		if (!/^(https?:|mailto:)/i.test(inner)) return null;
+		return { url: inner, next: j + 1 };
+	}
+
+	function tryurl(text, i){
+		if (text.substr(i, 7) !== "http://" && text.substr(i, 8) !== "https://") return null;
+		var j = i;
+		while (j < text.length) {
+			var ch = text.charAt(j);
+			if (/\s/.test(ch) || ch === "<" || ch === "\"" || ch === ")") break;
+			j++;
+		}
+		while (j > i) {
+			var last = text.charAt(j - 1);
+			if (last !== "." && last !== "," && last !== ";" && last !== ":" && last !== "!") break;
+			j--;
+		}
+		if (j <= i) return null;
+		return { url: text.substring(i, j), next: j };
+	}
+
+	// 找配对标记。返回结束位置，找不到返回 0。
+	function trymark(text, i, mark){
+		if (!text.startsWith(mark, i)) return 0;
+		if (mark.charAt(0) === "_" && i > 0) {
+			var pb = text.charAt(i - 1);
+			if (/[A-Za-z0-9_]/.test(pb)) return 0;
+		}
+		var n = i + mark.length;
+		if (n >= text.length || /\s/.test(text.charAt(n))) return 0;
+		var j = text.indexOf(mark, n);
+		if (j <= n) return 0;
+		if (/\s/.test(text.charAt(j - 1))) return 0;
+		if (mark.charAt(0) === "_" && j + mark.length < text.length
+			&& /[A-Za-z0-9_]/.test(text.charAt(j + mark.length))) return 0;
+		return j;
 	}
 
 	function ischap(line){
