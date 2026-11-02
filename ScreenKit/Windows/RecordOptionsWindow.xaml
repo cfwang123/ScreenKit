@@ -146,8 +146,7 @@
 					<ComboBox x:Name="emicdev" Grid.Column="1" Height="32"
 					          VerticalContentAlignment="Center"
 					          ToolTip="录屏使用的麦克风；「系统默认」跟随 Windows 设置"
-					          AutomationProperties.AutomationId="opt.record.micdev"
-					          IsEnabled="{Binding ElementName=eauden, Path=IsChecked}"/>
+					          AutomationProperties.AutomationId="opt.record.micdev"/>
 				</Grid>
 
 				<Grid Margin="0,0,0,10"

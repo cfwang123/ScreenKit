@@ -9,6 +9,7 @@ public partial class RecordOptionsWindow : Window {
 	double micshow;
 	double sysshow;
 	int nextretry;
+	bool micavailable;
 
 	public RecordOptions Result { get; private set; }
 	public bool Applied { get; private set; }
@@ -27,6 +28,8 @@ public partial class RecordOptionsWindow : Window {
 		WindowEsc.Attach(this, () => { Applied = false; Close(); });
 		ecodec.SelectionChanged += (_, _) => synccodec();
 		emicdev.SelectionChanged += (_, _) => syncmic();
+		eauden.Checked += (_, _) => syncaudioenabled();
+		eauden.Unchecked += (_, _) => syncaudioenabled();
 		Closed += (_, _) => {
 			try { timer.Stop(); } catch { }
 			try { meter.Dispose(); } catch { }
@@ -43,26 +46,31 @@ public partial class RecordOptionsWindow : Window {
 		loadui(Result);
 		meter.StartSys();
 		syncmic();
+		syncaudioenabled();
 		nextretry = Environment.TickCount;
 		timer.Tick += (_, _) => tick();
 		timer.Start();
 	}
 
-	/// <summary>「系统默认（当前设备名）」放第一项，后面才是能指定到具体设备的项。</summary>
+	/// <summary>和录音机窗口同一份麦克风列表；一个都没有时不显示假的默认设备。</summary>
 	void fillmic() {
 		emicdev.Items.Clear();
-		string name = VoiceRec.DefaultMicName();
-		emicdev.Items.Add(new ComboBoxItem {
-			Content = name.Length == 0 ? "系统默认" : $"系统默认（{name}）",
-			Tag = "",
-		});
-		try {
-			foreach (var d in VoiceRec.Devices())
-				emicdev.Items.Add(new ComboBoxItem { Content = d.Name, Tag = d.Id });
+		micavailable = false;
+		var devs = new List<VoiceRec.Dev>();
+		try { devs = VoiceRec.Devices(); } catch { }
+		if (devs.Count == 0) {
+			emicdev.Items.Add(new ComboBoxItem { Content = "没有可用的麦克风", Tag = "", IsEnabled = false });
+			emicdev.SelectedIndex = 0;
+			return;
 		}
-		catch { }
+		micavailable = true;
+		emicdev.Items.Add(new ComboBoxItem { Content = $"系统默认（{devs[0].Name}）", Tag = "" });
+		foreach (var d in devs)
+			emicdev.Items.Add(new ComboBoxItem { Content = d.Name, Tag = d.Id });
 		emicdev.SelectedIndex = 0;
 	}
+
+	void syncaudioenabled() => emicdev.IsEnabled = eauden.IsChecked == true && micavailable;
 
 	void selectmic(string id) {
 		id = (id ?? "").Trim();
@@ -77,7 +85,7 @@ public partial class RecordOptionsWindow : Window {
 
 	void syncmic() {
 		string id = (emicdev.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
-		if (id.Length == 0) id = VoiceRec.DefaultMicId();
+		if (id.Length == 0) id = VoiceRec.DefaultMicDeviceId();
 		if (id.Length == 0) meter.StopMic();
 		else meter.StartMic(id);
 	}

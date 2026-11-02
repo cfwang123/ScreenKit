@@ -150,17 +150,18 @@ sealed class AudioCapture : IDisposable {
 				? wavPath
 				: Path.Combine(dir ?? ".", baseName + "_mic.wav");
 			try {
-				if (micId.Length > 0) {
-					micEn = new MMDeviceEnumerator();
-					micDev = micEn.GetDevice(micId);
-					mic = new WasapiCapture(micDev);
-				}
-				else
-					mic = new WasapiCapture();
+				// 空值 = 本程序默认麦克风（与选项窗口第一项一致），不能用系统默认采集端点：
+				// 那可能是不在麦克风列表里的立体声混音。
+				string dev = micId.Length > 0 ? micId : VoiceRec.DefaultMicDeviceId();
+				if (dev.Length == 0)
+					throw new InvalidOperationException("没有可用的麦克风");
+				micEn = new MMDeviceEnumerator();
+				micDev = micEn.GetDevice(dev);
+				mic = new WasapiCapture(micDev);
 				fmtMic = mic.WaveFormat;
 				RecordLog.Step("mic_open",
 					$"fmt={fmtMic} rate={fmtMic.SampleRate} ch={fmtMic.Channels} queue={QueuePcm} " +
-					$"dev={(micId.Length == 0 ? "default" : micId)} path={pathMic}");
+					$"dev={dev} path={pathMic}");
 				if (!QueuePcm)
 					writerMic = WavPlace.Create(pathMic, fmtMic);
 				mic.DataAvailable += (_, e) => ondata(1, ref bytesMic, writerMic, fmtMic, e, "mic");

@@ -267,7 +267,7 @@ public partial class RecordHud : Window {
 			return;
 		}
 		if (UsesMic) {
-			string id = string.IsNullOrWhiteSpace(recOpt.MicDevice) ? VoiceRec.DefaultMicId() : recOpt.MicDevice;
+			string id = string.IsNullOrWhiteSpace(recOpt.MicDevice) ? VoiceRec.DefaultMicDeviceId() : recOpt.MicDevice;
 			if (id.Length == 0) meter.StopMic();
 			else meter.StartMic(id);
 		}
