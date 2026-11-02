@@ -1,23 +1,32 @@
+using System.Windows.Shapes;
+
 namespace ScreenKit;
 
 /// <summary>工具 → 录音机。</summary>
 public partial class VoiceRecWindow : Window {
 	readonly VoiceRec.Session session = new();
-	readonly System.Windows.Threading.DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(100) };
+	readonly VoiceMeter meter = new();
+	readonly System.Windows.Threading.DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(50) };
 	string mode = "idle";
 	int playat;
+	int nextsys;
+	double micshow;
+	double sysshow;
 
 	public VoiceRecWindow() {
 		InitializeComponent();
-		session.Level += onlevel;
 		session.Error += onerror;
 		applylang();
 		filldev();
-		cmic.Checked += (_, _) => paint();
-		cmic.Unchecked += (_, _) => paint();
+		meter.StartSys();
+		syncmic();
+		syncnames();
+		cmic.Checked += (_, _) => { syncmic(); paint(); };
+		cmic.Unchecked += (_, _) => { syncmic(); paint(); };
 		csys.Checked += (_, _) => paint();
 		csys.Unchecked += (_, _) => paint();
-		bdev.Click += (_, _) => filldev();
+		edev.SelectionChanged += (_, _) => { syncmic(); syncnames(); paint(); };
+		bdev.Click += (_, _) => { filldev(); syncnames(); };
 		brec.Click += (_, _) => rec();
 		bpause.Click += (_, _) => pause();
 		bstop.Click += (_, _) => stop();
@@ -30,8 +39,10 @@ public partial class VoiceRecWindow : Window {
 		WindowEsc.Attach(this);
 		Closed += (_, _) => {
 			try { timer.Stop(); } catch { }
+			try { meter.Dispose(); } catch { }
 			try { session.Dispose(); } catch { }
 		};
+		nextsys = Environment.TickCount;
 		timer.Tick += (_, _) => tick();
 		timer.Start();
 		paint();
@@ -42,6 +53,8 @@ public partial class VoiceRecWindow : Window {
 		lbhint.Text = Loc.T("vrec.hint");
 		cmic.Content = Loc.T("vrec.dev");
 		csys.Content = Loc.T("vrec.sys");
+		lbmiccap.Text = Loc.T("vrec.dev");
+		lbsyscap.Text = Loc.T("vrec.syscap");
 		ToolBtnUi.Set(bdev, ToolBtnUi.Swap, Loc.T("vrec.refresh"));
 		paint();
 	}
@@ -56,6 +69,8 @@ public partial class VoiceRecWindow : Window {
 		foreach (var d in list) edev.Items.Add(d);
 		if (list.Count == 0) {
 			cmic.IsChecked = false;
+			syncmic();
+			syncnames();
 			paint();
 			return;
 		}
@@ -67,7 +82,23 @@ public partial class VoiceRecWindow : Window {
 		}
 		edev.SelectedIndex = pick;
 		if (wasEmpty) cmic.IsChecked = true;
+		syncmic();
+		syncnames();
 		paint();
+	}
+
+	/// <summary>只让电平表跟着当前勾选和选中的设备走，录音时另开的一路共享采集互不影响。</summary>
+	void syncmic() {
+		var dev = edev.SelectedItem as VoiceRec.Dev;
+		if (cmic.IsChecked == true && dev != null) meter.StartMic(dev.Id);
+		else meter.StopMic();
+	}
+
+	void syncnames() {
+		var dev = edev.SelectedItem as VoiceRec.Dev;
+		lbmicdev.Text = dev == null ? Loc.T("vrec.nodev") : dev.Name;
+		string sys = meter.SysName;
+		lbsysdev.Text = sys.Length == 0 ? Loc.T("vrec.noplay") : sys;
 	}
 
 	void rec() {
@@ -83,7 +114,6 @@ public partial class VoiceRecWindow : Window {
 			if (mode == "pause") session.Resume(id, useSys);
 			else session.StartNew(id, useSys);
 			mode = "rec";
-			plevel.Value = 0;
 		}
 		catch (Exception ex) {
 			mode = "idle";
@@ -98,7 +128,6 @@ public partial class VoiceRecWindow : Window {
 		if (mode == "rec") {
 			session.Pause();
 			mode = "pause";
-			plevel.Value = 0;
 			paint();
 			return;
 		}
@@ -109,7 +138,6 @@ public partial class VoiceRecWindow : Window {
 		session.Pause();
 		session.StopPlay();
 		mode = "idle";
-		plevel.Value = 0;
 		paint();
 	}
 
@@ -122,7 +150,6 @@ public partial class VoiceRecWindow : Window {
 			session.Play();
 			mode = "play";
 			playat = Environment.TickCount;
-			plevel.Value = 0;
 		}
 		catch (Exception ex) {
 			mode = "idle";
@@ -171,7 +198,6 @@ public partial class VoiceRecWindow : Window {
 			var pcm = VoiceRec.LoadPcm(path, out var rate, out var ch);
 			session.Load(pcm, rate, ch);
 			mode = "idle";
-			plevel.Value = 0;
 			paint();
 			lbstat.Text = Loc.T("vrec.opened", path);
 		}
@@ -181,6 +207,13 @@ public partial class VoiceRecWindow : Window {
 	}
 
 	void tick() {
+		if (Environment.TickCount - nextsys >= 2000) {
+			nextsys = Environment.TickCount;
+			string before = meter.SysName;
+			meter.RefreshSys();
+			if (meter.SysName != before) syncnames();
+		}
+		meters();
 		if (mode == "play" && unchecked(Environment.TickCount - playat) > 200 && session.PlayEnded()) {
 			session.StopPlay();
 			mode = "idle";
@@ -188,6 +221,36 @@ public partial class VoiceRecWindow : Window {
 			return;
 		}
 		showtime();
+	}
+
+	void meters() {
+		int tm = meter.MicOpen ? meter.MicLevel : 0;
+		int ts = meter.SysOpen ? meter.SysLevel : 0;
+		micshow = follow(micshow, tm);
+		sysshow = follow(sysshow, ts);
+		pmic.Value = micshow;
+		psys.Value = sysshow;
+		showstate(lbmicstate, dotmic, meter.MicOpen, micshow, "vrec.micoff");
+		showstate(lbsysstate, dotsys, meter.SysOpen, sysshow, "vrec.nocap");
+	}
+
+	/// <summary>电平上升立刻跟随，下降按每 50ms 七格回落，避免方块跳动。</summary>
+	static double follow(double cur, int target) {
+		if (target >= cur) return target;
+		double next = cur - 7;
+		if (next < target) next = target;
+		return next < 0 ? 0 : next;
+	}
+
+	void showstate(TextBlock lb, Ellipse dot, bool open, double level, string offkey) {
+		if (!open) {
+			lb.Text = Loc.T(offkey);
+			dot.Fill = (Brush)FindResource("BorderSoft");
+			return;
+		}
+		bool sound = level >= 6;
+		lb.Text = Loc.T(sound ? "vrec.sound" : "vrec.silent");
+		dot.Fill = (Brush)FindResource(sound ? "Success" : "BorderSoft");
 	}
 
 	void showtime() {
@@ -230,15 +293,6 @@ public partial class VoiceRecWindow : Window {
 		showtime();
 	}
 
-	void onlevel(int peak) {
-		if (!Dispatcher.CheckAccess()) {
-			Dispatcher.BeginInvoke(() => onlevel(peak));
-			return;
-		}
-		if (mode != "rec") return;
-		plevel.Value = peak;
-	}
-
 	void onerror(string message) {
 		if (!Dispatcher.CheckAccess()) {
 			Dispatcher.BeginInvoke(() => onerror(message));
@@ -246,7 +300,6 @@ public partial class VoiceRecWindow : Window {
 		}
 		try { session.Pause(); } catch { }
 		mode = "idle";
-		plevel.Value = 0;
 		paint();
 		lbstat.Text = Loc.T("vrec.fail", message ?? "");
 	}

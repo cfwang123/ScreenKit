@@ -210,6 +210,7 @@ static class ChromePack {
 				throw;
 			}
 			if (state == FeatureInstallState.Installed) {
+				lock (idbGate) idbLangs = null;
 				remember(lang, true);
 				progress?.Invoke(Loc.T("tts.chrome.voice.done"), 1, 0, 0);
 				return;
@@ -230,6 +231,7 @@ static class ChromePack {
 			}
 			wasmProbed = true;
 			wasmHave = true;
+			lock (idbGate) idbLangs = null;
 			remember(lang, true);
 			progress?.Invoke(Loc.T("tts.chrome.voice.done"), 1, expect, expect);
 		}
@@ -448,6 +450,7 @@ static class ChromePack {
 				done++;
 				progress?.Invoke(done / (double)total);
 			}
+			lock (idbGate) idbLangs = null;
 		}
 		raisechanged();
 	}
@@ -518,13 +521,16 @@ static class ChromePack {
 		}
 		ct.ThrowIfCancellationRequested();
 		var on = installedset(out var known);
+		var idb = idbvoices();
 		foreach (var it in list) {
 			if (!known) {
-				var cached = installedof(it.Lang);
-				if (cached == true) it.State = FeatureInstallState.Installed;
+				if (installedof(it.Lang) == true || idb.Contains(it.Lang)) {
+					it.State = FeatureInstallState.Installed;
+					remember(it.Lang, true);
+				}
 				continue;
 			}
-			var hit = on.Contains(it.Lang);
+			var hit = on.Contains(it.Lang) || idb.Contains(it.Lang);
 			it.State = hit ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 			remember(it.Lang, hit);
 		}
@@ -1069,9 +1075,83 @@ static class ChromePack {
 		if (string.IsNullOrWhiteSpace(lang)) return null;
 		lock (voiceOp) {
 			loadvoice();
-			if (!voiceKnown.TryGetValue(lang, out var on)) return null;
-			return on;
+			var known = voiceKnown.TryGetValue(lang, out var on);
+			if (known && on) return true;
+			if (idbvoices().Contains(lang)) return true;
+			return known ? false : null;
 		}
+	}
+
+	static readonly object idbGate = new();
+	static HashSet<string> idbLangs;
+
+	/// <summary>
+	/// 新版 Chrome 把下好的语音放在扩展自己的 IndexedDB 里，chrome.storage 的
+	/// installedTimestamps 未必跟着更新。这里按语音清单里的 id 在 IndexedDB 的文件里
+	/// 找一遍，找到就算这一语言已经装过。
+	/// </summary>
+	static HashSet<string> idbvoices() {
+		lock (idbGate) {
+			if (idbLangs != null) return idbLangs;
+			var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+			idbLangs = set;
+			var ids = voiceids();
+			if (ids.Count == 0) return set;
+			var all = new StringBuilder();
+			foreach (var ext in new[] { TTS_EXT, TTS_EXT_OLD }) {
+				var dir = Path.Combine(ChromeTts.ProfileDir(), "Default", "IndexedDB",
+					$"chrome-extension_{ext}_0.indexeddb.leveldb");
+				string[] files;
+				try { files = Directory.GetFiles(dir); }
+				catch { continue; }
+				foreach (var file in files) {
+					var name = Path.GetFileName(file);
+					if (name.Equals("LOCK", StringComparison.OrdinalIgnoreCase)) continue;
+					if (name.Equals("CURRENT", StringComparison.OrdinalIgnoreCase)) continue;
+					if (name.Equals("LOG", StringComparison.OrdinalIgnoreCase)) continue;
+					if (name.Equals("LOG.old", StringComparison.OrdinalIgnoreCase)) continue;
+					try {
+						using var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+						if (fs.Length <= 0 || fs.Length > 32 * 1024 * 1024) continue;
+						var buf = new byte[fs.Length];
+						var n = 0;
+						while (n < buf.Length) {
+							var got = fs.Read(buf, n, buf.Length - n);
+							if (got <= 0) break;
+							n += got;
+						}
+						all.Append(Encoding.ASCII.GetString(buf, 0, n));
+					}
+					catch { }
+				}
+			}
+			var text = all.ToString();
+			if (text.Length == 0) return set;
+			foreach (var kv in ids) {
+				if (text.IndexOf(kv.Key, StringComparison.OrdinalIgnoreCase) >= 0)
+					set.Add(kv.Value);
+			}
+			return set;
+		}
+	}
+
+	/// <summary>语音清单里每条语音的 id 和语言。id 不带版本号，跨 Chrome 版本稳定。</summary>
+	static Dictionary<string, string> voiceids() {
+		var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+		var path = findvoices();
+		if (path == null) return map;
+		JSONF doc;
+		try { doc = JSONF.Parse(File.ReadAllText(path)); }
+		catch { return map; }
+		if (!doc.IsArray) return map;
+		foreach (var v in doc) {
+			var id = v.tryget("id", out var idEl) ? idEl.Value ?? "" : "";
+			if (id.Length < 4) continue;
+			var lang = VoiceLang(id);
+			if (lang.Length == 0) continue;
+			map[id] = lang;
+		}
+		return map;
 	}
 
 	static void remember(string lang, bool on) {

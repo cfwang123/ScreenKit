@@ -393,6 +393,27 @@ static class VoiceRec {
 	/// <summary>采集端点里只留麦克风和听筒，耳机、扬声器、线路、立体声混音都不算。</summary>
 	public static bool IsMicForm(int formFactor) => formFactor == FORM_MIC || formFactor == FORM_HANDSET;
 
+	/// <summary>峰值（0..1）按 -60..0 dB 映射成 0..100 的电平，安静时看不出底噪。</summary>
+	public static int LevelOf(float peak) {
+		if (peak <= 0f) return 0;
+		double db = 20.0 * Math.Log10(peak);
+		if (double.IsNaN(db) || double.IsInfinity(db)) return 0;
+		double v = (db + 60.0) / 60.0;
+		if (v <= 0) return 0;
+		if (v >= 1) return 100;
+		return (int)Math.Round(v * 100);
+	}
+
+	/// <summary>默认播放设备名，系统环回就录它。</summary>
+	public static string DefaultRenderName() {
+		try {
+			using var en = new MMDeviceEnumerator();
+			using var d = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
+			return (d?.FriendlyName ?? "").Trim();
+		}
+		catch { return ""; }
+	}
+
 	public static float MixClamp(float a, float b) {
 		float s = a + b;
 		if (s > 1f) return 1f;
@@ -574,6 +595,53 @@ static class VoiceRec {
 		}
 		catch (Exception ex) { fail("devices " + ex.Message); }
 		log(bad == 0 ? "voicerec OK" : "voicerec FAIL " + bad);
+		return bad == 0 ? 0 : 1;
+	}
+
+	/// <summary>实时电平探针：确认麦克风和系统环回能持续读出峰值，开着电平时也能录音。</summary>
+	public static int MeterTest(Action<string> log) {
+		int bad = 0;
+		void fail(string m) { bad++; log("FAIL: " + m); }
+		log($"level 0={LevelOf(0f)} -60dB={LevelOf(0.001f)} 0dB={LevelOf(1f)}");
+		if (LevelOf(0f) != 0) fail("level silent");
+		if (LevelOf(1f) != 100) fail("level full");
+		if (LevelOf(0.001f) > 1) fail("level floor " + LevelOf(0.001f));
+		string outname = DefaultRenderName();
+		log("playback " + (outname.Length == 0 ? "(none)" : outname));
+		var devs = Devices();
+		using var meter = new VoiceMeter();
+		meter.StartSys();
+		log($"sys open={meter.SysOpen} name={meter.SysName}");
+		if (!meter.SysOpen) fail("sys capture");
+		if (devs.Count > 0) {
+			meter.StartMic(devs[0].Id);
+			log($"mic open={meter.MicOpen} {devs[0].Name}");
+			if (!meter.MicOpen) fail("mic capture");
+		}
+		else log("mic none");
+		int maxsys = 0, maxmic = 0;
+		for (int i = 0; i < 20; i++) {
+			Thread.Sleep(100);
+			if (meter.SysLevel > maxsys) maxsys = meter.SysLevel;
+			if (meter.MicLevel > maxmic) maxmic = meter.MicLevel;
+			if (i % 5 == 4) log($"meter sys={meter.SysLevel}% mic={meter.MicLevel}%");
+		}
+		log($"peak sys={maxsys}% mic={maxmic}%");
+		Session rec = null;
+		try {
+			rec = new Session();
+			rec.StartNew(devs.Count > 0 ? devs[0].Id : null, true);
+			Thread.Sleep(600);
+			int bytes = rec.ByteCount;
+			log($"record-with-meter bytes={bytes}");
+			if (bytes < 2) fail("record while meter");
+		}
+		catch (Exception ex) { fail("record with meter " + ex.Message); }
+		finally {
+			try { rec?.Pause(); } catch { }
+			try { rec?.Dispose(); } catch { }
+		}
+		log(bad == 0 ? "vmeter OK" : "vmeter FAIL " + bad);
 		return bad == 0 ? 0 : 1;
 	}
 
