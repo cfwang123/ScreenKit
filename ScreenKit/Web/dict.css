@@ -117,7 +117,7 @@ button, input, select { font: inherit; }
 #detail .lab { color: #285aaa; }
 #detail .exlab { color: #148246; }
 #detail .ex { color: #2d784b; }
-#detail .gap { height: 8px; }
+#detail .gap { height: 1.5em; }
 .dtabs {
 	display: flex;
 	gap: 4px;

@@ -283,7 +283,7 @@ button, input, select { font: inherit; }
 .rd-dict-detail .lab { color: #285aaa; }
 .rd-dict-detail .exlab { color: #148246; }
 .rd-dict-detail .ex { color: #2d784b; }
-.rd-dict-detail .gap { height: 8px; }
+.rd-dict-detail .gap { height: 1.5em; }
 .rd-dict-detail button.link {
 	border: 0; padding: 0; background: transparent; color: #285aaa; cursor: pointer; font: inherit;
 }

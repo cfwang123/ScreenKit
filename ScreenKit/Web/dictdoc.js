@@ -22,6 +22,8 @@
 		if (ln[0]) el.style.marginLeft = "16px";
 		if (ln[1]) el.style.marginBottom = ln[1] + "px";
 		var runs = ln[2] || [];
+		// 空行留出一行高度，和 WPF 的空段落一样看得见
+		if (!runs.length) el.className = "gap";
 		for (var i = 0; i < runs.length; i++) run(el, runs[i], opt);
 		box.appendChild(el);
 	}

@@ -34,6 +34,7 @@
 	};
 	var dcur = null;
 	var dgen = 0;
+	var dseek = 0;
 	var maxbox = null;
 	var scrollever = 0;
 	var dbp = null;
@@ -2711,9 +2712,29 @@
 			$("rd-dict-q").value = q;
 			dictsearch(q);
 		});
+		// 输入停 200ms 就查，不用等回车
+		var qtimer = 0;
+		$("rd-dict-q").oninput = function(){
+			if (qtimer) clearTimeout(qtimer);
+			qtimer = setTimeout(function(){
+				qtimer = 0;
+				var q = $("rd-dict-q").value.trim();
+				if (q) {
+					dictsearch(q);
+					return;
+				}
+				dseek++;
+				dgen++;
+				dcur = null;
+				$("rd-dict-status").textContent = "";
+				$("rd-dict-list").innerHTML = "";
+				$("rd-dict-detail").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.dictempty", "输入词语查词典，也可以在正文里划选文字。")) + "</p>";
+			}, 200);
+		};
 		$("rd-dict-q").onkeydown = function(ev){
 			if (ev.key === "Enter") {
 				ev.preventDefault();
+				if (qtimer) { clearTimeout(qtimer); qtimer = 0; }
 				dictsearch($("rd-dict-q").value);
 			}
 			else if (ev.key === "Escape") $("rd-dict").hidden = true;
@@ -2910,12 +2931,14 @@
 		q = String(q == null ? "" : q).trim();
 		if (q.length > 64) q = q.slice(0, 64);
 		if (!q) return;
+		var mine = ++dseek;
 		var url = "/api/dict?limit=" + (limit || 40) + "&dict=" + encodeURIComponent(usedictlang()) + "&q=" + encodeURIComponent(q);
 		fetchjson(url).then(function(j){
 			if (cb) {
 				cb(j && j.code === 100 ? ((j.data && j.data.hits) || []) : null, j && j.code === 100 ? "" : errtext(j));
 				return;
 			}
+			if (mine !== dseek) return;
 			if (!j || j.code !== 100) {
 				$("rd-dict-list").innerHTML = '<p class="rd-empty">' + esc(errtext(j)) + "</p>";
 				$("rd-dict-detail").innerHTML = "";
@@ -2925,6 +2948,7 @@
 		}).catch(function(e){
 			var msg = e && e.message ? e.message : "网络错误";
 			if (cb) { cb(null, msg); return; }
+			if (mine !== dseek) return;
 			$("rd-dict-list").innerHTML = '<p class="rd-empty">' + esc(msg) + "</p>";
 		});
 	}

@@ -48,6 +48,10 @@
 	var canvas = null;
 	var watch = null;
 	var drag = null;
+	// 拖动中先画粗样本，松手后再画细的。缓存键要看这个，否则松手后还会用拖动时那张图。
+	var dragging = false;
+	// 上一次定稿时曲面占的范围，拖动时接着用，免得一拖就退回整片范围、线突然变稀。
+	var imparea = null;
 	var ARITY = {
 		sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, atan2: 2,
 		sqrt: 1, abs: 1, ln: 1, log: 1, log10: 1, log2: 1, exp: 1,
@@ -282,6 +286,7 @@
 		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		implicit = false;
+		imparea = null;
 		try {
 			var norm = normalize(src);
 			var zpre = /^\s*z\s*=/i.test(src);
@@ -361,8 +366,8 @@
 		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		if (mode === "3")
-			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom;
-		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1;
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom + (dragging ? "|d" : "");
+		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1 + (dragging ? "|d" : "");
 	}
 
 	function down(ev){
@@ -396,6 +401,7 @@
 		}
 		var dx = ev.clientX - drag.x;
 		var dy = ev.clientY - drag.y;
+		dragging = true;
 		if (mode === "3") {
 			var pan = drag.shift || drag.button === 2 || drag.button === 1 || ev.shiftKey;
 			if (pan) {
@@ -428,6 +434,7 @@
 	function up(){
 		var was = drag && (implicit || crossOn);
 		drag = null;
+		dragging = false;
 		if (canvas) canvas.className = "";
 		if (was) paint();
 	}
@@ -787,10 +794,14 @@
 
 	// 一个世界单位在屏幕上占多少像素。缩放只改这个比例，采样范围和网格线数不变，
 	// 格子在屏幕上的间距才保持不变。换视角只转不缩放。
-	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
+	function viewscale(w, h){
 		var span = Math.max(0.001, Math.max(cam.xspan, cam.yspan));
 		var s = Math.min(w, h) * 0.92 / (span * 2) * cam.zoom;
-		if (!(s > 0) || !isFinite(s)) s = 1;
+		return s > 0 && isFinite(s) ? s : 1;
+	}
+
+	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
+		var s = viewscale(w, h);
 		view3.s = s;
 		var cx = isFinite(box.x0) ? (box.x0 + box.x1) / 2 : 0;
 		var cy = isFinite(box.y0) ? (box.y0 + box.y1) / 2 : 0;
@@ -1031,22 +1042,41 @@
 		return false;
 	}
 
+	// 网格线数按曲面在屏幕上的大小来定：画得大就多画几条，画得小就少画几条，
+	// 屏幕上的格子大约就是一个固定像素宽，不会稀得只剩几根，也不会密成一块色块。
+	function improws(w, h, area){
+		var px = Math.max(area.x1 - area.x0, area.y1 - area.y0) * viewscale(w, h);
+		var cell = style === "dots" ? 5 : style === "fill" ? 9 : 7;
+		var rows = Math.round(px / cell);
+		if (dragging) rows = Math.round(rows * 0.7);
+		if (!(rows >= 12)) rows = 12;
+		if (rows > 72) rows = 72;
+		return rows;
+	}
+
 	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
 	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
 	function draw3implicit(ctx, w, h){
-		var rows = drag ? 22 : (style === "dots" ? 60 : 48);
-		var zsteps = drag ? 24 : 44;
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var full = fullarea();
-		var res;
-		if (drag) res = impscan(full, rows, zsteps);
+		var zsteps = dragging ? 26 : 44;
+		var res, area;
+		if (dragging) {
+			// 拖动时沿用上次定稿的范围，不然一拖就退回整片范围，线会突然变稀。
+			area = imparea && drag && cam.cx === drag.cx && cam.cy === drag.cy ? imparea : full;
+			res = impscan(area, improws(w, h, area), zsteps);
+		}
 		else {
-			// 先用粗网格扫一遍看曲面实际占多大，再只在这一块上细扫。
+			// 先用粗网格扫一遍看曲面实际占多大，再只在这一块上按屏幕大小细扫。
 			var pre = impscan(full, 20, 22);
-			var area = fitarea(pre, full);
-			res = impscan(area, rows, zsteps);
-			if (!res.all.length || (area !== full && areaedge(res, full))) res = impscan(full, rows, zsteps);
+			area = fitarea(pre, full);
+			res = impscan(area, improws(w, h, area), zsteps);
+			if (!res.all.length || (area !== full && areaedge(res, full))) {
+				area = full;
+				res = impscan(area, improws(w, h, area), zsteps);
+			}
+			imparea = res.all.length ? area : null;
 		}
 		var cols = res.cols, nx = res.nx, ny = res.ny, cw = res.cw, box = res.box;
 		var z0 = -cam.yspan, z1 = cam.yspan;
@@ -1080,10 +1110,10 @@
 		ctx.clip();
 		if (style === "grid") {
 			impgrid(ctx, cols, nx, ny, cw, gap);
-			implevelzero(ctx, cyaw, syaw, cp, sp, res.area, rows);
+			implevelzero(ctx, cyaw, syaw, cp, sp, res.area, ny);
 		}
 		else if (style === "dots") impdots(ctx, cols, nx, ny, cw, gap);
-		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp, res.area, rows);
+		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp, res.area, ny);
 		else impfill(ctx, cols, nx, ny, cw, gap);
 		// z 轴只画到曲面顶端，免得轴尖和标签被画布切掉。
 		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, box.z1 > 0 ? Math.min(z1, box.z1) : z1, box);
@@ -1174,7 +1204,7 @@
 
 	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
 	function implevelzero(ctx, cyaw, syaw, cp, sp, area, rows){
-		var gy = drag ? 30 : Math.max(44, Math.round(rows * 1.3));
+		var gy = dragging ? 30 : Math.max(44, Math.round(rows * 1.3));
 		var gx = gridcount(gy, area.x1 - area.x0, area.y1 - area.y0);
 		var gw = gx + 1;
 		var vals = new Float64Array(gw * (gy + 1));
@@ -1254,8 +1284,8 @@
 
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
 	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp, area, rows){
-		var levels = drag ? 6 : 12;
-		var gy = drag ? 30 : Math.max(44, Math.round(rows * 1.1));
+		var levels = dragging ? 6 : 12;
+		var gy = dragging ? 30 : Math.max(44, Math.round(rows * 1.1));
 		var gx = gridcount(gy, area.x1 - area.x0, area.y1 - area.y0);
 		var segs = [];
 		function proj(x, y, z){
