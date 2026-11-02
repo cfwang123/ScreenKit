@@ -257,19 +257,6 @@
 					},
 					{
 						x:"a",
-						"href":"/dict",
-						"data-page":"dict",
-						"data-cat":"text",
-						"data-name":"词典 查词 翻译 例句 发音 汉语 英语 日语 韩语 dictionary",
-						"title":"查词、看例句和发音，点击打开，Ctrl+点击新窗口",
-						c:[
-						{x:"i.fa-solid.fa-book"},
-						{x:"span","data-k":"web.dict",c:"词典"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"dict","title":"收藏"}
-					]
-					},
-					{
-						x:"a",
 						"href":"/reader",
 						"data-page":"reader",
 						"data-cat":"text",
@@ -461,6 +448,19 @@
 						{x:"i.fa-solid.fa-ruler"},
 						{x:"span","data-k":"web.tool.unit",c:"单位换算"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-unit","title":"收藏"}
+					]
+					},
+					{
+						x:"a",
+						"href":"/dict",
+						"data-page":"dict",
+						"data-cat":"info",
+						"data-name":"词典 查词 翻译 例句 发音 汉语 英语 日语 韩语 dictionary",
+						"title":"查词、看例句和发音，点击打开，Ctrl+点击新窗口",
+						c:[
+						{x:"i.fa-solid.fa-book"},
+						{x:"span","data-k":"web.dict",c:"词典"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"dict","title":"收藏"}
 					]
 					},
 					{
