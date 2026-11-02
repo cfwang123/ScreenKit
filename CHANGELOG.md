@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome TTS: the status no longer stays on 'speaking n/n' after playback ends. Chrome's speechSynthesis does not always fire onend, so a watchdog estimated from the text length now closes the job.
 - Chrome model page now also checks the extension IndexedDB for downloaded voices, so installed voices no longer show as missing
 - Web tool menu entries now read the merged tools.js instead of a stale web/tools/00-home.js left by older installs
+- Reader: a sentence that fails to synthesize is skipped instead of stopping the whole reading
 
 ### 中文
 
@@ -93,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 朗读：读完不再停在「朗读中 n/n」。Chrome 的 speechSynthesis 不一定触发 onend，现在按文本长度估一个上限兜底收尾。
 - Chrome 模型页的语音包状态同时检查扩展的 IndexedDB，已下载的语音不再显示为未安装
 - 升级后工具菜单的 web 工具目录改读合并后的 tools.js，不再被旧版本残留的 web/tools/00-home.js 带偏
+- 小说阅读器：单句合成失败时跳过该句继续朗读，不再整段停下
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 
