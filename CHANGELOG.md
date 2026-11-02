@@ -49,12 +49,14 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - The release script builds its 7z -x! excludes from the actual junk directory and file names again; they had been written as source-file paths, so the archive-level filter never matched and the pre-pack cleanup was the only guard.
+- Fix tool menu: Japanese name reading entry opened the Korean conjugation page because the card-name regex ran past the card into the next entry.
 
 ### 中文
 
 #### 修复
 
 - 发布脚本的 7z -x! 排除项重新按实际的垃圾目录和文件名生成；此前误写成了源码文件路径，打包层的过滤一直没生效，只剩打包前的清理在兜底。
+- 修复工具菜单：「日本姓名读法」点开后进入韩语词形变化，原因是卡片名字的正则跨过卡片边界取到了下一张卡片的键。
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 

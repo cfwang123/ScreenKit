@@ -738,7 +738,8 @@ sealed class TrayIcon : IDisposable {
 			if (m.Groups[1].Value == "fav" || m.Groups[1].Value == "all") continue;
 			cats.Add((m.Groups[1].Value, webname(m.Groups[3].Value, m.Groups[2].Value)));
 		}
-		foreach (Match m in Regex.Matches(js, "\"data-(?:tool|page)\":\"([^\"]+)\"\\s*,\\s*\"data-cat\":\"([^\"]+)\"[\\s\\S]*?\"data-k\":\"([^\"]+)\"\\s*,\\s*c:\"([^\"]*)\""))
+		// 只在本张卡片里找 data-k：卡片之间没有分隔，不加这层限制会一路吃到下一张卡片的键。
+		foreach (Match m in Regex.Matches(js, "\"data-(?:tool|page)\":\"([^\"]+)\"\\s*,\\s*\"data-cat\":\"([^\"]+)\"(?:(?!\"data-(?:tool|page)\":)[\\s\\S])*?\"data-k\":\"([^\"]+)\"\\s*,\\s*c:\"([^\"]*)\""))
 			tools.Add((m.Groups[1].Value, m.Groups[2].Value, webname(m.Groups[3].Value, m.Groups[4].Value)));
 		foreach (var cat in cats) {
 			var rows = new List<(string Id, string Name)>();

@@ -485,7 +485,7 @@
 						"title":"查日本姓氏和名字的读法。输入完整姓名会拆成一姓一名，也可以随机生成一个姓名，每条可以听",
 						c:[
 						{x:"i.fa-solid.fa-id-card"},
-						{x:"span",c:"日本姓名读法"},
+						{x:"span","data-k":"web.s.98f196ba27",c:"日本姓名读法"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-jname","title":"收藏"}
 					]
 					},
