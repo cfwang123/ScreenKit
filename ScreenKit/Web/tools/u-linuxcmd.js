@@ -10,6 +10,7 @@
 		disk: "磁盘与存储",
 		svc: "服务与日志",
 		archive: "压缩与归档",
+		media: "音视频",
 		dev: "开发与版本控制",
 		sec: "安全与防火墙",
 		other: "终端与帮助"
@@ -34,6 +35,7 @@
 		{ id: "disk", name: "磁盘与存储" },
 		{ id: "svc", name: "服务与日志" },
 		{ id: "archive", name: "压缩与归档" },
+		{ id: "media", name: "音视频" },
 		{ id: "dev", name: "开发与版本控制" },
 		{ id: "sec", name: "安全与防火墙" },
 		{ id: "other", name: "终端与帮助" }
@@ -225,6 +227,16 @@
 		["archive", "zstd -d", "解压 .zst", "zstd -d app.tar.zst"],
 		["archive", "7z a", "创建 7z 压缩包，需 p7zip", "7z a app.7z app/"],
 		["archive", "7z x", "解压 7z", "7z x app.7z"],
+		["media", "ffmpeg", "转格式、截片段、压体积、抽帧、转 GIF；-i 输入，最后一个参数是输出", "ffmpeg -i in.mov out.mp4"],
+		["media", "ffmpeg -ss -t", "截取片段：-ss 起点、-t 时长；-c copy 不重编码", "ffmpeg -ss 00:01:30 -i in.mp4 -t 30 -c copy cut.mp4"],
+		["media", "ffmpeg -vn", "去掉视频只留音频；-an 反过来去掉音轨", "ffmpeg -i in.mp4 -vn -c:a copy out.m4a"],
+		["media", "ffmpeg -vf scale", "缩放画面，-2 表示按比例取偶数边", "ffmpeg -i in.mp4 -vf scale=1280:-2 small.mp4"],
+		["media", "ffmpeg -crf", "h264 压体积：crf 越小越清晰，常用 18–28", "ffmpeg -i in.mp4 -c:v libx264 -crf 24 -preset medium out.mp4"],
+		["media", "ffmpeg -vf fps", "按帧率抽成图片，%04d 是连续编号", "ffmpeg -i in.mp4 -vf fps=1 f_%04d.jpg"],
+		["media", "ffmpeg gif", "视频转 GIF：先降帧率再缩放，体积小很多", "ffmpeg -i in.mp4 -vf 'fps=12,scale=480:-1' out.gif"],
+		["media", "ffmpeg concat", "拼接多个文件：list.txt 里一行一个 file 'xxx.mp4'", "ffmpeg -f concat -safe 0 -i list.txt -c copy out.mp4"],
+		["media", "ffmpeg -map", "只留某条视频/音频轨；-c copy 不重编码", "ffmpeg -i in.mkv -map 0:v:0 -map 0:a:0 -c copy out.mp4"],
+		["media", "ffprobe", "只看文件信息：时长、编码、码率", "ffprobe -v error -show_format -show_streams in.mp4"],
 
 		["dev", "git clone", "克隆仓库", "git clone https://github.com/user/repo.git"],
 		["dev", "git status", "查看工作区状态", "git status -sb"],
@@ -520,6 +532,22 @@
 
 	// 多行示例：数组每一项是一行，常用的写法配 # 注释。
 	var SAMP = {
+		"sh|ffmpeg": [
+			"# 看文件信息（不给输出文件时只打印信息）",
+			"ffmpeg -i in.mov",
+			"",
+			"# 转 mp4：h264 + aac，crf 越小越清晰",
+			"ffmpeg -i in.mov -c:v libx264 -crf 23 -c:a aac -b:a 128k out.mp4",
+			"",
+			"# 截 00:01:30 起的 30 秒，不重编码",
+			"ffmpeg -ss 00:01:30 -i in.mp4 -t 30 -c copy cut.mp4",
+			"",
+			"# 提取音频；缩放；抽帧",
+			"ffmpeg -i in.mp4 -vn -c:a copy out.m4a",
+			"ffmpeg -i in.mp4 -vf scale=1280:-2 small.mp4",
+			"ffmpeg -i in.mp4 -vf fps=1 frames/f_%04d.jpg"
+		],
+
 		"sh|$VAR": [
 			"# 赋值等号两边不能有空格",
 			"name=alice",
