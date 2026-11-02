@@ -300,9 +300,25 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	// 速查表里的数据（命令说明、备注、示例注释）是写死的中文，按整串查表翻成当前界面语言。
-	// 词典放在 tools/zz-l10n-<语言>.js 里，用 SK.regtr 注册；查不到就显示原文。
+	// zz-l10n-00keys.js 先注册一份中文键表，各语言的 zz-l10n-<语言>.js 只按同样顺序存译文，
+	// 省掉每份词典都带一遍中文键。查不到就显示原文。
 	// 注意别占用 SK.tr：那是按 web.* 键反查界面文案的老函数，别的工具在用。
 	var TRD = {};
+	// 中文原文键表，按序号对应各语言译文。
+	var TRK = null;
+	SK.regkeys = function(list){
+		TRK = list || null;
+	};
+	SK.regtrv = function(code, vals){
+		if (!code || !TRK || !vals) return;
+		var d = TRD[code] || (TRD[code] = {});
+		var i;
+		for (i = 0; i < TRK.length && i < vals.length; i++) {
+			var v = vals[i];
+			if (v == null || v === "") continue;
+			d[TRK[i]] = v;
+		}
+	};
 	SK.regtr = function(code, map){
 		if (!code || !map) return;
 		var d = TRD[code] || (TRD[code] = {});
