@@ -236,7 +236,11 @@ public partial class SysInfoWindow : Window {
 		Task.Run(() => {
 			List<UsbDev> rows = null;
 			string err = null;
-			try { rows = UsbList.Scan(); }
+			try {
+				rows = UsbList.Scan();
+				try { rows.InsertRange(0, SysDevices.ScanUsbControllers()); }
+				catch { }
+			}
 			catch (Exception ex) { err = ex.Message; }
 			apply(gen, () => usbgen, () => {
 				if (err != null) {

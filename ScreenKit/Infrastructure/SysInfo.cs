@@ -2,6 +2,7 @@ using System.Management;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Globalization;
 using Microsoft.Win32;
 using Vortice.DXGI;
 
@@ -12,14 +13,22 @@ static class SysInfo {
 	public static List<UsbPair> Scan() {
 		var rows = new List<UsbPair>();
 		try { pc(rows); } catch { }
+		try { osprefs(rows); } catch { }
 		try { cpu(rows); } catch { }
 		try { mem(rows); } catch { }
 		try { sticks(rows); } catch { }
 		try { board(rows); } catch { }
+		try { bioss(rows); } catch { }
+		try { chassis(rows); } catch { }
 		try { gpu(rows); } catch { }
+		try { gpudrv(rows); } catch { }
 		try { disks(rows); } catch { }
 		try { volumes(rows); } catch { }
 		try { nics(rows); } catch { }
+		try { wifi(rows); } catch { }
+		try { shares(rows); } catch { }
+		try { users(rows); } catch { }
+		try { sessions(rows); } catch { }
 		return rows;
 	}
 
@@ -49,6 +58,34 @@ static class SysInfo {
 		var mins = (int)(ms / 60000 % 60);
 		var up = days > 0 ? Loc.T("sys.uptime.d", days, hours) : Loc.T("sys.uptime.h", hours, mins);
 		add(rows, "sys.sec.pc", "sys.p.uptime", up);
+	}
+
+	static void osprefs(List<UsbPair> rows) {
+		using var s = new ManagementObjectSearcher(
+			"SELECT InstallDate, OSLanguage, CurrentTimeZone FROM Win32_OperatingSystem");
+		using var col = s.Get();
+		foreach (ManagementObject o in col) {
+			using (o) {
+				var raw = wstr(o, "InstallDate");
+				if (raw.Length > 0) {
+					try {
+						var dt = ManagementDateTimeConverter.ToDateTime(raw);
+						add(rows, "sys.sec.pc", "sys.p.install", dt.ToString("yyyy-MM-dd"));
+					}
+					catch { }
+				}
+				var lcid = wint(o, "OSLanguage");
+				if (lcid > 0) {
+					try { add(rows, "sys.sec.pc", "sys.p.oslang", CultureInfo.GetCultureInfo(lcid).NativeName); }
+					catch { }
+				}
+				var tz = wint(o, "CurrentTimeZone");
+				var sign = tz < 0 ? "-" : "+";
+				var abs = Math.Abs(tz);
+				add(rows, "sys.sec.pc", "sys.p.tz", $"UTC{sign}{abs / 60:00}:{abs % 60:00}");
+			}
+			break;
+		}
 	}
 
 	static string osver() {
@@ -110,6 +147,37 @@ static class SysInfo {
 		add(rows, "sys.sec.mem", "sys.p.load", st.MemoryLoad + "%");
 		add(rows, "sys.sec.mem", "sys.p.page", bytes(st.TotalPageFile));
 		add(rows, "sys.sec.mem", "sys.p.pagefree", bytes(st.AvailPageFile));
+		memarray(rows);
+	}
+
+	/// <summary>主板上的内存槽总数和最大支持容量；MaxCapacity 单位是 KB。</summary>
+	static void memarray(List<UsbPair> rows) {
+		var slots = 0;
+		ulong max = 0;
+		using (var s = new ManagementObjectSearcher(
+			"SELECT MemoryDevices, MaxCapacity FROM Win32_PhysicalMemoryArray"))
+		using (var col = s.Get()) {
+			foreach (ManagementObject o in col) {
+				using (o) {
+					slots += wint(o, "MemoryDevices");
+					try {
+						var cap = Convert.ToUInt64(o["MaxCapacity"] ?? 0);
+						if (cap > max) max = cap;
+					}
+					catch { }
+				}
+			}
+		}
+		if (slots <= 0) return;
+		var used = 0;
+		using (var s = new ManagementObjectSearcher("SELECT Capacity FROM Win32_PhysicalMemory"))
+		using (var col = s.Get()) {
+			foreach (ManagementObject o in col) {
+				using (o) used++;
+			}
+		}
+		add(rows, "sys.sec.mem", "sys.p.slots", used > 0 ? $"{used} / {slots}" : slots.ToString());
+		if (max > 0) add(rows, "sys.sec.mem", "sys.p.memmax", bytes(max * 1024UL));
 	}
 
 	static void board(List<UsbPair> rows) {
@@ -125,6 +193,82 @@ static class SysInfo {
 			}
 			break;
 		}
+	}
+
+	static void bioss(List<UsbPair> rows) {
+		using var s = new ManagementObjectSearcher(
+			"SELECT Manufacturer, SMBIOSBIOSVersion, ReleaseDate, SerialNumber FROM Win32_BIOS");
+		using var col = s.Get();
+		foreach (ManagementObject o in col) {
+			using (o) {
+				add(rows, "sys.sec.bios", "sys.p.vendor", wstr(o, "Manufacturer"));
+				add(rows, "sys.sec.bios", "sys.p.boardver", wstr(o, "SMBIOSBIOSVersion"));
+				add(rows, "sys.sec.bios", "sys.p.date", wmidate(wstr(o, "ReleaseDate")));
+				add(rows, "sys.sec.bios", "sys.p.serial", wstr(o, "SerialNumber"));
+			}
+			break;
+		}
+	}
+
+	static void chassis(List<UsbPair> rows) {
+		using var s = new ManagementObjectSearcher(
+			"SELECT Manufacturer, ChassisTypes, SerialNumber FROM Win32_SystemEnclosure");
+		using var col = s.Get();
+		foreach (ManagementObject o in col) {
+			using (o) {
+				add(rows, "sys.sec.chassis", "sys.p.vendor", wstr(o, "Manufacturer"));
+				add(rows, "sys.sec.chassis", "sys.p.kind", chassistype(o));
+				add(rows, "sys.sec.chassis", "sys.p.serial", wstr(o, "SerialNumber"));
+			}
+		}
+	}
+
+	static string chassistype(ManagementBaseObject o) {
+		try {
+			if (o["ChassisTypes"] is ushort[] list && list.Length > 0) return chassisname(list[0]);
+		}
+		catch { }
+		return "";
+	}
+
+	static string chassisname(int n) {
+		return n switch {
+			3 => "Desktop",
+			4 => "Low Profile Desktop",
+			5 => "Pizza Box",
+			6 => "Mini Tower",
+			7 => "Tower",
+			8 => "Portable",
+			9 => "Laptop",
+			10 => "Notebook",
+			11 => "Hand Held",
+			12 => "Docking Station",
+			13 => "All in One",
+			14 => "Sub Notebook",
+			15 => "Space-saving",
+			16 => "Lunch Box",
+			17 => "Main System Chassis",
+			23 => "Rack Mount",
+			30 => "Tablet",
+			31 => "Convertible",
+			32 => "Detachable",
+			35 => "Mini PC",
+			36 => "Stick PC",
+			_ => "Type " + n,
+		};
+	}
+
+	/// <summary>WMI 的 CIM 时间串转成本地短日期，解析失败时退回取前 8 位。</summary>
+	static string wmidate(string raw) {
+		if (raw.Length == 0) return "";
+		try { return ManagementDateTimeConverter.ToDateTime(raw).ToString("yyyy-MM-dd"); }
+		catch { return raw.Length >= 8 ? raw.Substring(0, 4) + "-" + raw.Substring(4, 2) + "-" + raw.Substring(6, 2) : raw; }
+	}
+
+	static string wmidatetime(string raw) {
+		if (raw.Length == 0) return "";
+		try { return ManagementDateTimeConverter.ToDateTime(raw).ToString("yyyy-MM-dd HH:mm"); }
+		catch { return raw; }
 	}
 
 	static void sticks(List<UsbPair> rows) {
@@ -187,6 +331,29 @@ static class SysInfo {
 			addn(rows, sec, head, "sys.sec.gpu", "sys.p.devid", g.Vendor.ToString("X4") + ":" + g.Device.ToString("X4"));
 			if (g.Dedicated > 0) addn(rows, sec, head, "sys.sec.gpu", "sys.p.vram", bytes(g.Dedicated));
 			if (g.Shared > 0) addn(rows, sec, head, "sys.sec.gpu", "sys.p.shared", bytes(g.Shared));
+		}
+	}
+
+	static void gpudrv(List<UsbPair> rows) {
+		var found = new List<(string Name, string Ver, string Date, string Mode)>();
+		using (var s = new ManagementObjectSearcher(
+			"SELECT Name, DriverVersion, DriverDate, VideoModeDescription FROM Win32_VideoController"))
+		using (var col = s.Get()) {
+			foreach (ManagementObject o in col) {
+				using (o) {
+					found.Add((wstr(o, "Name"), wstr(o, "DriverVersion"),
+						wmidate(wstr(o, "DriverDate")), wstr(o, "VideoModeDescription")));
+				}
+			}
+		}
+		for (var i = 0; i < found.Count; i++) {
+			var g = found[i];
+			var sec = found.Count == 1 ? "sys.sec.gpudrv" : null;
+			var head = found.Count == 1 ? "" : " " + (i + 1);
+			addn(rows, sec, head, "sys.sec.gpudrv", "sys.p.name", g.Name);
+			addn(rows, sec, head, "sys.sec.gpudrv", "sys.p.drv", g.Ver);
+			addn(rows, sec, head, "sys.sec.gpudrv", "sys.p.date", g.Date);
+			addn(rows, sec, head, "sys.sec.gpudrv", "sys.p.mode", g.Mode);
 		}
 	}
 
@@ -274,6 +441,103 @@ static class SysInfo {
 		}
 	}
 
+	/// <summary>无线网卡的 SSID 和信号；驱动没实现 MSNdis 类时静默跳过。</summary>
+	static void wifi(List<UsbPair> rows) {
+		try {
+			using var s = new ManagementObjectSearcher(@"root\wmi",
+				"SELECT InstanceName, SSID, SignalStrength FROM MSNdis_80211_ReceivedSignalStrength");
+			using var col = s.Get();
+			foreach (ManagementObject o in col) {
+				using (o) {
+					var ssid = wstr(o, "SSID");
+					var name = wstr(o, "InstanceName");
+					if (ssid.Length == 0 && name.Length == 0) continue;
+					var sig = wint(o, "SignalStrength");
+					var value = sig > 0 ? sig + "%" : "";
+					rows.Add(new UsbPair {
+						Name = Loc.T("sys.sec.wifi") + " · " + (ssid.Length > 0 ? ssid : name),
+						Value = value,
+					});
+				}
+			}
+		}
+		catch { }
+	}
+
+	static void shares(List<UsbPair> rows) {
+		using var s = new ManagementObjectSearcher("SELECT Name, Path, Description FROM Win32_Share");
+		using var col = s.Get();
+		foreach (ManagementObject o in col) {
+			using (o) {
+				var name = wstr(o, "Name");
+				if (name.Length == 0) continue;
+				var path = wstr(o, "Path");
+				var desc = wstr(o, "Description");
+				var value = path.Length == 0 ? desc : desc.Length == 0 ? path : path + " · " + desc;
+				rows.Add(new UsbPair { Name = Loc.T("sys.sec.shares") + " · " + name, Value = value });
+			}
+		}
+	}
+
+	static void users(List<UsbPair> rows) {
+		using var s = new ManagementObjectSearcher(
+			"SELECT Name, Disabled, Lockout, LocalAccount, SID FROM Win32_UserAccount WHERE LocalAccount=True");
+		using var col = s.Get();
+		var count = 0;
+		foreach (ManagementObject o in col) {
+			using (o) {
+				if (++count > 30) break;
+				var name = wstr(o, "Name");
+				if (name.Length == 0) continue;
+				var bits = new List<string>();
+				if (wbool(o, "LocalAccount")) bits.Add(Loc.T("sys.p.local"));
+				if (wbool(o, "Disabled")) bits.Add(Loc.T("sys.p.disabled"));
+				if (wbool(o, "Lockout")) bits.Add(Loc.T("sys.p.locked"));
+				var sid = wstr(o, "SID");
+				if (sid.Length > 0) bits.Add(sid);
+				rows.Add(new UsbPair {
+					Name = Loc.T("sys.sec.users") + " · " + name,
+					Value = string.Join(" · ", bits),
+				});
+			}
+		}
+	}
+
+	static void sessions(List<UsbPair> rows) {
+		using var s = new ManagementObjectSearcher(
+			"SELECT LogonId, LogonType, StartTime FROM Win32_LogonSession");
+		using var col = s.Get();
+		var count = 0;
+		foreach (ManagementObject o in col) {
+			using (o) {
+				if (++count > 20) break;
+				var id = wstr(o, "LogonId");
+				var start = wmidatetime(wstr(o, "StartTime"));
+				var value = start.Length == 0 ? "#" + id : start + " · #" + id;
+				rows.Add(new UsbPair {
+					Name = Loc.T("sys.sec.sessions") + " · " + logontype(wint(o, "LogonType")),
+					Value = value,
+				});
+			}
+		}
+	}
+
+	static string logontype(int n) => n switch {
+		0 => "System",
+		2 => "Interactive",
+		3 => "Network",
+		4 => "Batch",
+		5 => "Service",
+		7 => "Unlock",
+		8 => "Network Cleartext",
+		9 => "New Credentials",
+		10 => "Remote Interactive",
+		11 => "Cached Interactive",
+		12 => "Cached Remote",
+		13 => "Cached Unlock",
+		_ => "Type " + n,
+	};
+
 	static bool noise(NetworkInterface n) {
 		if (n.NetworkInterfaceType == NetworkInterfaceType.Loopback) return true;
 		var d = n.Description ?? "";
@@ -360,6 +624,11 @@ static class SysInfo {
 			return Convert.ToInt32(v);
 		}
 		catch { return 0; }
+	}
+
+	static bool wbool(ManagementBaseObject o, string name) {
+		try { return Convert.ToBoolean(o[name]); }
+		catch { return false; }
 	}
 
 	[StructLayout(LayoutKind.Sequential)]

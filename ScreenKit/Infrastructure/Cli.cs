@@ -6111,6 +6111,45 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Err("没有主板或内存条");
 			return 1;
 		}
+		foreach (var key in new[] { "sys.sec.bios", "sys.sec.chassis", "sys.sec.gpudrv" }) {
+			var title = Loc.T(key);
+			if (!rows.Any(p => (p.Name ?? "").StartsWith(title))) {
+				Err("缺少 " + title);
+				return 1;
+			}
+		}
+		if (!rows.Any(p => (p.Name ?? "").Contains(Loc.T("sys.p.install")))) {
+			Err("缺少安装日期");
+			return 1;
+		}
+		foreach (var key in new[] { "sys.sec.shares", "sys.sec.users", "sys.sec.sessions", "sys.sec.wifi" }) {
+			var title = Loc.T(key);
+			Out("section " + title + "=" + rows.Count(p => (p.Name ?? "").StartsWith(title)));
+		}
+		try {
+			var ctls = SysDevices.ScanUsbControllers();
+			Out("usbctl=" + ctls.Count);
+			if (ctls.Count == 0) {
+				Err("没有 USB 控制器");
+				return 1;
+			}
+		}
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
+		try {
+			var dlist = SysDevices.ScanDisks();
+			var withparts = dlist.Count(d => d.Props.Any(x => x.Name == Loc.T("dev.p.partition")));
+			Out("diskparts=" + withparts + "/" + dlist.Count);
+			var nlist = SysDevices.ScanNetwork();
+			var withdhcp = nlist.Count(n => n.Props.Any(x => x.Name == Loc.T("sys.p.dhcp")));
+			Out("netdhcp=" + withdhcp + "/" + nlist.Count);
+		}
+		catch (Exception ex) {
+			Err(ex.Message);
+			return 1;
+		}
 		List<UsbDev> ports;
 		try { ports = UsbList.ScanPorts(); }
 		catch (Exception ex) {

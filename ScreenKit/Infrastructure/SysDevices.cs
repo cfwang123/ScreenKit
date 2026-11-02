@@ -85,10 +85,13 @@ static class SysDevices {
 	public static List<UsbDev> ScanNetwork() {
 		var rows = new List<UsbDev>();
 		var pnp = netpnp();
+		var cfg = netcfg();
 		foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()) {
 			var props = new List<UsbPair>();
 			var id = nic.Id ?? "";
-			pnp.TryGetValue(id.Trim('{', '}'), out var extra);
+			var key = id.Trim('{', '}');
+			pnp.TryGetValue(key, out var extra);
+			cfg.TryGetValue(key, out var conf);
 			var status = nicstatus(nic.OperationalStatus);
 			var speed = speedtext(nic.Speed);
 			var mac = mactext(nic.GetPhysicalAddress());
@@ -101,6 +104,10 @@ static class SysDevices {
 			add(props, "dev.p.device", id);
 			add(props, "usb.p.mfg", extra?.Manufacturer);
 			add(props, "dev.p.pnp", extra?.PnpId);
+			if (conf != null) {
+				add(props, "sys.p.dhcp", conf.Dhcp ? Loc.T("usb.yes") : Loc.T("usb.no"));
+				add(props, "sys.p.mask", conf.Mask);
+			}
 			try {
 				var ip = nic.GetIPProperties();
 				add(props, "sys.p.ipv4", joinaddr(ip.UnicastAddresses.Select(x => x.Address), AddressFamily.InterNetwork));
@@ -134,8 +141,9 @@ static class SysDevices {
 	public static List<UsbDev> ScanDisks() {
 		var rows = new List<UsbDev>();
 		var health = diskhealth();
+		var parts = diskparts();
 		using var search = new ManagementObjectSearcher(
-			"SELECT DeviceID, PNPDeviceID, Model, Manufacturer, Size, InterfaceType, MediaType, SerialNumber, FirmwareRevision, Partitions, Status FROM Win32_DiskDrive");
+			"SELECT DeviceID, Index, PNPDeviceID, Model, Manufacturer, Size, InterfaceType, MediaType, SerialNumber, FirmwareRevision, Partitions, Status FROM Win32_DiskDrive");
 		using var found = search.Get();
 		foreach (ManagementObject item in found) {
 			using (item) {
@@ -154,7 +162,10 @@ static class SysDevices {
 				add(props, "sys.p.media", wstr(item, "MediaType"));
 				add(props, "sys.p.serial", serial);
 				add(props, "dev.p.firmware", wstr(item, "FirmwareRevision"));
-				add(props, "dev.p.partitions", wstr(item, "Partitions"));
+				if (parts.TryGetValue(wint(item, "Index"), out var list)) {
+					add(props, "dev.p.partitions", list.Count.ToString());
+					foreach (var p in list) add(props, "dev.p.partition", p);
+				}
 				add(props, "dev.p.health", status);
 				add(props, "dev.p.device", wstr(item, "DeviceID"));
 				add(props, "dev.p.pnp", wstr(item, "PNPDeviceID"));
@@ -172,6 +183,31 @@ static class SysDevices {
 			}
 		}
 		return rows;
+	}
+
+	/// <summary>物理盘 Index 到分区说明的映射，用于在磁盘页列出分区。</summary>
+	static Dictionary<int, List<string>> diskparts() {
+		var map = new Dictionary<int, List<string>>();
+		using var search = new ManagementObjectSearcher(
+			"SELECT DeviceID, DiskIndex, Size, Type, Bootable FROM Win32_DiskPartition");
+		using var found = search.Get();
+		foreach (ManagementObject item in found) {
+			using (item) {
+				var idx = wint(item, "DiskIndex");
+				var text = wstr(item, "DeviceID");
+				var size = wulong(item, "Size");
+				if (size > 0) text += " · " + bytestext(size);
+				var type = wstr(item, "Type");
+				if (type.Length > 0) text += " · " + type;
+				if (wbool(item, "Bootable")) text += " · boot";
+				if (!map.TryGetValue(idx, out var list)) {
+					list = new List<string>();
+					map[idx] = list;
+				}
+				list.Add(text);
+			}
+		}
+		return map;
 	}
 
 	public static List<UsbDev> ScanBatteries() {
@@ -222,6 +258,42 @@ static class SysDevices {
 
 	public static List<UsbDev> ScanProblems() => UsbList.ScanProblems();
 
+	/// <summary>USB 控制器和集线器；USB 页把它们和 USB 设备列在一起，方便看端口层级。</summary>
+	public static List<UsbDev> ScanUsbControllers() {
+		var rows = new List<UsbDev>();
+		usbctl(rows, "SELECT Name, DeviceID, Status FROM Win32_USBController", "usb.ctl", true);
+		usbctl(rows, "SELECT Name, DeviceID FROM Win32_USBHub", "usb.hub", false);
+		return rows;
+	}
+
+	static void usbctl(List<UsbDev> rows, string wql, string kind, bool withstatus) {
+		using var search = new ManagementObjectSearcher(wql);
+		using var found = search.Get();
+		foreach (ManagementObject item in found) {
+			using (item) {
+				var name = wstr(item, "Name");
+				var id = wstr(item, "DeviceID");
+				if (name.Length == 0 && id.Length == 0) continue;
+				var status = withstatus ? wstr(item, "Status") : "";
+				var props = new List<UsbPair>();
+				add(props, "usb.p.name", name);
+				add(props, "dev.p.device", id);
+				add(props, "sys.p.status", status);
+				var row = new UsbDev {
+					Name = name.Length > 0 ? name : id,
+					ClassName = Loc.T(kind),
+					Com = status,
+					Status = status,
+					InstanceId = id,
+					Props = props,
+					Active = true,
+				};
+				finish(row);
+				rows.Add(row);
+			}
+		}
+	}
+
 	static List<UsbDev> distinct(IEnumerable<UsbDev> source) {
 		var map = new Dictionary<string, UsbDev>(StringComparer.OrdinalIgnoreCase);
 		foreach (var row in source) {
@@ -247,6 +319,35 @@ static class SysDevices {
 		value = (value ?? "").Trim();
 		if (value.Length == 0) return;
 		props.Add(new UsbPair { Name = Loc.T(key), Value = value });
+	}
+
+	static Dictionary<string, NetCfg> netcfg() {
+		var map = new Dictionary<string, NetCfg>(StringComparer.OrdinalIgnoreCase);
+		try {
+			using var search = new ManagementObjectSearcher(
+				"SELECT SettingID, DHCPEnabled, IPSubnet FROM Win32_NetworkAdapterConfiguration WHERE IPEnabled=True");
+			using var found = search.Get();
+			foreach (ManagementObject item in found) {
+				using (item) {
+					var id = wstr(item, "SettingID").Trim('{', '}');
+					if (id.Length == 0) continue;
+					var mask = "";
+					try {
+						if (item["IPSubnet"] is string[] subnets)
+							mask = string.Join(", ", subnets.Where(x => x.Contains('.')).ToArray());
+					}
+					catch { }
+					map[id] = new NetCfg {
+						Dhcp = wbool(item, "DHCPEnabled"),
+						Mask = mask,
+					};
+				}
+			}
+		}
+		catch (Exception ex) {
+			if (SysDeviceAdmin.IsAccessDenied(ex)) throw;
+		}
+		return map;
 	}
 
 	static Dictionary<string, NetPnp> netpnp() {
@@ -440,6 +541,11 @@ static class SysDevices {
 		catch { return 0; }
 	}
 
+	static bool wbool(ManagementBaseObject item, string name) {
+		try { return Convert.ToBoolean(item[name]); }
+		catch { return false; }
+	}
+
 	static ulong wulong(ManagementBaseObject item, string name) {
 		try { return Convert.ToUInt64(item[name]); }
 		catch { return 0; }
@@ -456,6 +562,11 @@ static class SysDevices {
 	sealed class NetPnp {
 		public string PnpId;
 		public string Manufacturer;
+	}
+
+	sealed class NetCfg {
+		public bool Dhcp;
+		public string Mask;
 	}
 
 	sealed class DiskHealth {

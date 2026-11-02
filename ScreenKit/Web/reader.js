@@ -1522,6 +1522,8 @@
 			var text = st.sent[i].textContent || "";
 			if (i === start && off > 0) text = text.slice(off);
 			if (!text.replace(/\s+/g, "")) continue;
+			// 只有标点的句子合成不出声音（SAPI 只给一个空 WAV），直接跳过
+			if (!/[\p{L}\p{N}]/u.test(text)) continue;
 			queue.push({ i: i, text: text });
 		}
 		if (!queue.length) {
@@ -1665,6 +1667,22 @@
 	// 本地或在线合成返回 WAV。播放这一句时就把下一句的音频要回来。
 	function runwav(queue, token){
 		var ahead = null;
+		var bad = 0;
+		// 单句合成失败不中断：跳过这句接着读下一句；连续太多句都不响才停。
+		function skip(err){
+			bad++;
+			if (bad >= 5) {
+				readfail(token, err);
+				return false;
+			}
+			setmsg(L("web.reader.skip", "跳过一句") + " · " + (err || L("web.reader.novoice", "没有音频")), true);
+			return true;
+		}
+		function spoke(){
+			if (!bad) return;
+			bad = 0;
+			setmsg(L("web.reader.reading", "朗读中…"));
+		}
 		function fillahead(){
 			if (ahead || !queue.length || !readlive(token)) return;
 			var job = queue[0];
@@ -1710,9 +1728,10 @@
 					return;
 				}
 				if (!res || res.err || !res.clip) {
-					readfail(token, res && res.err);
+					if (skip(res && res.err)) next();
 					return;
 				}
+				spoke();
 				var play = function(){
 					if (!readlive(token)) {
 						dropclip(res.clip);
@@ -1721,7 +1740,7 @@
 					playclip(res.clip, function(err){
 						if (!readlive(token)) return;
 						if (err) {
-							readfail(token, err);
+							if (skip(err)) next();
 							return;
 						}
 						next();

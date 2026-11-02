@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Hidden dev switch in config.toml (default false). When false, startup removes the pre-merge tool scripts under web/tools and the old flattened copies in web/; local dev builds set it to true
 - Screen record options: pick the microphone (system default entry included) and watch inline level bars for the microphone and system sound; the HUD bar shows the same live meters instead of the audio-source text
 - Windows/Linux command cheat sheets add a Media section with ffmpeg/ffprobe examples (convert, trim, extract audio, scale, crf, frames, gif, concat, stream mapping)
+- System info adds BIOS, chassis, install date, language, time zone, memory slots, GPU driver, shared folders, local users, logon sessions, disk partitions, network DHCP and subnet mask, and USB controllers and hubs
 
 #### Changed
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - config.toml 新增隐藏的 dev 开关（默认 false）。为 false 时启动自动清理 web/tools 里合并前的工具脚本和旧版摊平在 web/ 的副本；本地开发目录设为 true 保留
 - 录屏选项：可单独选择麦克风（含「系统默认（当前设备）」），并显示麦克风和系统声音的行内电平条；录屏控制条也用同样的实时电平条代替声音来源文字
 - Windows/Linux 命令速查表新增「音视频」分类，补 ffmpeg/ffprobe 示例（转格式、截取、提取音频、缩放、CRF、抽帧、GIF、拼接、轨道映射）
+- 系统信息补充 BIOS、机箱、安装日期、语言、时区、内存插槽、显卡驱动、共享目录、本地用户、登录会话、磁盘分区、网卡 DHCP 和子网掩码，以及 USB 控制器和集线器
 
 #### 变更
 
