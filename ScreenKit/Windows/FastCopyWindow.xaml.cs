@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Windows.Threading;
 using Forms = System.Windows.Forms;
 
 namespace ScreenKit;
@@ -7,7 +8,9 @@ namespace ScreenKit;
 public partial class FastCopyWindow : Window {
 	readonly OcrOptions opt;
 	readonly ObservableCollection<string> rows = new();
+	readonly DispatcherTimer statwait = new() { Interval = TimeSpan.FromMilliseconds(250) };
 	CancellationTokenSource cts;
+	CancellationTokenSource statcts;
 	bool busy;
 	bool dead;
 	bool ready;
@@ -16,6 +19,11 @@ public partial class FastCopyWindow : Window {
 		this.opt = opt ?? new OcrOptions();
 		InitializeComponent();
 		lsrc.ItemsSource = rows;
+		rows.CollectionChanged += (_, _) => onrows();
+		statwait.Tick += (_, _) => {
+			statwait.Stop();
+			updatestats();
+		};
 		applylang();
 		initev();
 		if (paths != null) addpaths(paths);
@@ -62,6 +70,7 @@ public partial class FastCopyWindow : Window {
 		Closing += (_, _) => {
 			dead = true;
 			try { cts?.Cancel(); } catch { }
+			cancelstats();
 			saveopt();
 		};
 		pickmode(opt.FastCopyMode);
@@ -92,6 +101,43 @@ public partial class FastCopyWindow : Window {
 		lbworkers.Text = Loc.T("fc.workers");
 		bstart.Content = Loc.T("fc.start");
 		bcancel.Content = Loc.T("fc.cancel");
+	}
+
+	/// <summary>源列表有变化：稍等一下再统计，连续添加时只算一次。</summary>
+	void onrows() {
+		if (dead) return;
+		statwait.Stop();
+		if (rows.Count == 0) {
+			cancelstats();
+			lbtotal.Text = "";
+			return;
+		}
+		statwait.Start();
+	}
+
+	void cancelstats() {
+		try { statcts?.Cancel(); } catch { }
+		statcts = null;
+	}
+
+	/// <summary>后台统计源列表的文件数、文件夹数和大小，算完再显示。</summary>
+	void updatestats() {
+		if (dead) return;
+		cancelstats();
+		var paths = rows.ToList();
+		if (paths.Count == 0) { lbtotal.Text = ""; return; }
+		var todo = new CancellationTokenSource();
+		statcts = todo;
+		lbtotal.Text = Loc.T("fc.stat.scan");
+		Task.Run(() => FastCopy.Count(paths, todo.Token)).ContinueWith(t => {
+			var st = t.Status == TaskStatus.RanToCompletion ? t.Result : null;
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (dead || statcts != todo) return;
+				statcts = null;
+				todo.Dispose();
+				lbtotal.Text = st == null ? "" : Loc.T("fc.size.msg", st.Files, st.Dirs, FastCopy.FormatBytes(st.Bytes));
+			}));
+		});
 	}
 
 	void fillconflict() {
@@ -258,14 +304,19 @@ public partial class FastCopyWindow : Window {
 			Sources = rows.ToList(),
 		};
 		int nextui = Environment.TickCount - 1000;
+		var withbytes = mode is "copy" or "move";
 		job.OnProgress = p => {
 			var now = Environment.TickCount;
 			if (unchecked(now - nextui) < 80 && p.DoneFiles < p.TotalFiles) return;
 			nextui = now;
 			if (dead) return;
+			var line = $"{p.DoneFiles}/{p.TotalFiles}";
+			if (withbytes && p.TotalBytes > 0)
+				line += $"  {FastCopy.FormatBytes(p.DoneBytes)} / {FastCopy.FormatBytes(p.TotalBytes)}";
+			if (!string.IsNullOrEmpty(p.File)) line += "  " + Path.GetFileName(p.File);
 			Dispatcher.BeginInvoke(new Action(() => {
 				if (dead) return;
-				lbstat.Text = $"{p.DoneFiles}/{p.TotalFiles}  {Path.GetFileName(p.File)}";
+				lbstat.Text = line;
 			}));
 		};
 		Task.Run(() => FastCopy.Run(job)).ContinueWith(t => {
@@ -291,8 +342,12 @@ public partial class FastCopyWindow : Window {
 		else if (res.Error == "empty") lbstat.Text = Loc.T("fc.empty");
 		else if (res.Error == "dest") lbstat.Text = Loc.T("fc.nodest");
 		else if (res.Error == "inside") lbstat.Text = Loc.T("fc.inside");
-		else lbstat.Text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed)
-			+ (string.IsNullOrEmpty(res.Error) || res.Failed == 0 ? "" : "  " + res.Error);
+		else {
+			var text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed);
+			if (res.Bytes > 0 && curmode() is "copy" or "move") text += "  " + FastCopy.FormatBytes(res.Bytes);
+			if (!string.IsNullOrEmpty(res.Error) && res.Failed > 0) text += "  " + res.Error;
+			lbstat.Text = text;
+		}
 		if (!res.Cancelled && curmode() is "delete" or "recycle") {
 			var gone = new List<string>();
 			foreach (var p in rows)

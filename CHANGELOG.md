@@ -55,6 +55,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows/Linux command cheat sheets add a Media section with ffmpeg/ffprobe examples (convert, trim, extract audio, scale, crf, frames, gif, concat, stream mapping)
 - System info adds BIOS, chassis, install date, language, time zone, memory slots, GPU driver, shared folders, local users, logon sessions, disk partitions, network DHCP and subnet mask, and USB controllers and hubs
 - Reader: the dictionary window searches automatically 200 ms after typing stops
+- Fast copy window now counts the files, folders, and size of the source list, and shows the copied and total bytes while copying.
 
 #### Changed
 
@@ -62,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tools lookup tables share one Chinese key list across languages, shrinking the published tools.js by about 1 MB
 - Reader: dictionary tabs in the dictionary window stay switchable after picking a dictionary in the toolbar, and both stay in sync
 - Build no longer fails when minify.exe is missing from PATH; web minify is skipped instead.
+- Plot: 3D equations sample within the surface's own extent and pick grid density from its on-screen size, so the mesh no longer thins out after rotating
 
 #### Fixed
 
@@ -85,6 +87,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows/Linux 命令速查表新增「音视频」分类，补 ffmpeg/ffprobe 示例（转格式、截取、提取音频、缩放、CRF、抽帧、GIF、拼接、轨道映射）
 - 系统信息补充 BIOS、机箱、安装日期、语言、时区、内存插槽、显卡驱动、共享目录、本地用户、登录会话、磁盘分区、网卡 DHCP 和子网掩码，以及 USB 控制器和集线器
 - 小说阅读器：词典窗口输入停下 200 ms 即自动查询，不用再按回车
+- 快速复制窗口新增源列表统计：文件数、文件夹数和大小；复制过程中显示已完成和总共的字节数。
 
 #### 变更
 
@@ -92,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具速查表的各语言译文共用一份中文键表，发布包 tools.js 小约 1 MB
 - 小说阅读器：在工具栏选过词典后，词典窗口里的标签仍可切换，且与工具栏「词典」保持同步
 - 编译时 PATH 上没有 minify.exe 就跳过 web 压缩，不再报错。
+- 函数图像：三维方程按曲面实际占的范围加密采样，网格线疏密跟着画面大小走，转视角或松手后不再只剩几根线
 
 #### 修复
 

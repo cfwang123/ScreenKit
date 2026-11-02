@@ -52,6 +52,7 @@
 	var dragging = false;
 	// 上一次定稿时曲面占的范围，拖动时接着用，免得一拖就退回整片范围、线突然变稀。
 	var imparea = null;
+	var impzr = null;
 	var ARITY = {
 		sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, atan2: 2,
 		sqrt: 1, abs: 1, ln: 1, log: 1, log10: 1, log2: 1, exp: 1,
@@ -287,6 +288,7 @@
 		var src = input ? input.value : "";
 		implicit = false;
 		imparea = null;
+		impzr = null;
 		try {
 			var norm = normalize(src);
 			var zpre = /^\s*z\s*=/i.test(src);
@@ -941,7 +943,8 @@
 	}
 
 	// 在 area 范围内按 x、y 网格竖着扫一遍 F(x,y,z)=0 的零点，每一列得到若干个 z 解。
-	function impscan(area, rows, zsteps){
+	// za、zb 只决定沿 z 扫多长；颜色深浅仍按整片 z 范围算，换视角时颜色不会跳。
+	function impscan(area, rows, zsteps, za, zb){
 		var n = Math.max(2, Math.round(rows));
 		var m = Math.max(4, Math.round(zsteps));
 		var nx = gridcount(n, area.x1 - area.x0, area.y1 - area.y0);
@@ -951,16 +954,21 @@
 		var all = [];
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		var z0 = -cam.yspan, z1 = cam.yspan, dz = (z1 - z0) / m;
+		var z0 = -cam.yspan, z1 = cam.yspan;
+		if (za === undefined || !(zb > za)) {
+			za = z0;
+			zb = z1;
+		}
+		var dz = (zb - za) / m;
 		var i, j, k, x, y, z, f0, f1, lo, hi, flo, fhi, zm, fm, zz, p, list;
 		for (j = 0; j <= n; j++) {
 			y = area.y0 + (area.y1 - area.y0) * j / n;
 			for (i = 0; i <= nx; i++) {
 				x = area.x0 + (area.x1 - area.x0) * i / nx;
 				list = [];
-				f0 = ev(fn, x, y, z0);
+				f0 = ev(fn, x, y, za);
 				for (k = 1; k <= m; k++) {
-					z = z0 + dz * k;
+					z = za + dz * k;
 					f1 = ev(fn, x, y, z);
 					if (isFinite(f0) && isFinite(f1) && (f0 === 0 || (f1 !== 0 && (f0 > 0) !== (f1 > 0)))) {
 						lo = z - dz;
@@ -1002,7 +1010,7 @@
 				cols[j * cw + i] = list;
 			}
 		}
-		return { nx: nx, ny: n, cw: cw, cols: cols, all: all, box: box, area: area };
+		return { nx: nx, ny: n, m: m, cw: cw, cols: cols, all: all, box: box, area: area, za: za, zb: zb };
 	}
 
 	// 按粗扫到的范围往外放一格多点。曲面常常只占采样范围里的一小块，
@@ -1054,6 +1062,34 @@
 		return rows;
 	}
 
+	// 沿 z 扫的范围也收一下：曲面在 z 上一般也只占一段，少扫一截，同样的点数就细一倍。
+	function fitz(pre, full){
+		var z0 = -cam.yspan, z1 = cam.yspan;
+		if (!pre.all.length || !isFinite(pre.box.z0)) return [z0, z1];
+		var span = z1 - z0;
+		var pad = span / Math.max(1, pre.ny) * 2;
+		if (pad < span * 0.06) pad = span * 0.06;
+		var a = pre.box.z0 - pad, b = pre.box.z1 + pad;
+		if (a < z0) a = z0;
+		if (b > z1) b = z1;
+		if (!(b - a > 1e-9)) return [z0, z1];
+		return [a, b];
+	}
+
+	// 解贴到沿 z 扫的两端，说明 z 的范围取小了，得退回整片 z 重扫。
+	function zedge(res){
+		var z0 = -cam.yspan, z1 = cam.yspan;
+		var dz = (res.zb - res.za) / Math.max(1, res.m) * 1.5;
+		var low = res.za > z0 + 1e-9, high = res.zb < z1 - 1e-9;
+		var i, p;
+		for (i = 0; i < res.all.length; i++) {
+			p = res.all[i];
+			if (low && p.z - res.za < dz) return true;
+			if (high && res.zb - p.z < dz) return true;
+		}
+		return false;
+	}
+
 	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
 	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
 	function draw3implicit(ctx, w, h){
@@ -1064,19 +1100,22 @@
 		var res, area;
 		if (dragging) {
 			// 拖动时沿用上次定稿的范围，不然一拖就退回整片范围，线会突然变稀。
-			area = imparea && drag && cam.cx === drag.cx && cam.cy === drag.cy ? imparea : full;
-			res = impscan(area, improws(w, h, area), zsteps);
+			var keep = imparea && impzr && drag && cam.cx === drag.cx && cam.cy === drag.cy;
+			area = keep ? imparea : full;
+			res = impscan(area, improws(w, h, area), zsteps, keep ? impzr[0] : 0, keep ? impzr[1] : 0);
 		}
 		else {
 			// 先用粗网格扫一遍看曲面实际占多大，再只在这一块上按屏幕大小细扫。
 			var pre = impscan(full, 20, 22);
 			area = fitarea(pre, full);
-			res = impscan(area, improws(w, h, area), zsteps);
-			if (!res.all.length || (area !== full && areaedge(res, full))) {
+			var zr = fitz(pre, full);
+			res = impscan(area, improws(w, h, area), zsteps, zr[0], zr[1]);
+			if (!res.all.length || (area !== full && areaedge(res, full)) || zedge(res)) {
 				area = full;
 				res = impscan(area, improws(w, h, area), zsteps);
 			}
 			imparea = res.all.length ? area : null;
+			impzr = res.all.length ? [res.za, res.zb] : null;
 		}
 		var cols = res.cols, nx = res.nx, ny = res.ny, cw = res.cw, box = res.box;
 		var z0 = -cam.yspan, z1 = cam.yspan;

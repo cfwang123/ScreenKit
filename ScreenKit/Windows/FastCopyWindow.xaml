@@ -19,6 +19,7 @@
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 		<TextBlock x:Name="lbhint" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
 		           FontSize="12" Margin="0,0,0,10"/>
@@ -30,10 +31,12 @@
 			<Button x:Name="bremove" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="移除"/>
 			<Button x:Name="bclear" Style="{StaticResource ToolBtn}" Content="清空"/>
 		</StackPanel>
-		<ListBox x:Name="lsrc" Grid.Row="2" Margin="0,0,0,10"
+		<ListBox x:Name="lsrc" Grid.Row="2" Margin="0,0,0,6"
 		         BorderBrush="{StaticResource BorderSoft}"
 		         AutomationProperties.AutomationId="fastcopy.src"/>
-		<Grid x:Name="pdest" Grid.Row="3" Margin="0,0,0,10" AllowDrop="True">
+		<TextBlock x:Name="lbtotal" Grid.Row="3" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
+		           FontSize="12" Margin="0,0,0,10" AutomationProperties.AutomationId="fastcopy.total"/>
+		<Grid x:Name="pdest" Grid.Row="4" Margin="0,0,0,10" AllowDrop="True">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="52"/>
 				<ColumnDefinition Width="*"/>
@@ -46,7 +49,7 @@
 			<Button x:Name="bbrowse" Grid.Column="2" Style="{StaticResource ToolBtn}" Content="浏览"
 			        AutomationProperties.AutomationId="fastcopy.browse"/>
 		</Grid>
-		<WrapPanel Grid.Row="4" Margin="0,0,0,10">
+		<WrapPanel Grid.Row="5" Margin="0,0,0,10">
 			<TextBlock x:Name="lbmode" Text="方式" VerticalAlignment="Center" Margin="0,0,8,0"/>
 			<RadioButton x:Name="rcopy" Content="复制" GroupName="fcmode" Margin="0,0,12,0"
 			             VerticalAlignment="Center" IsChecked="True"
@@ -75,7 +78,7 @@
 			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 			         Text="8" AutomationProperties.AutomationId="fastcopy.workers"/>
 		</WrapPanel>
-		<StackPanel Grid.Row="5" Orientation="Horizontal" Margin="0,0,0,8">
+		<StackPanel Grid.Row="6" Orientation="Horizontal" Margin="0,0,0,8">
 			<Button x:Name="bstart" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="开始"
 			        AutomationProperties.AutomationId="fastcopy.start"/>
 			<Button x:Name="bcancel" Style="{StaticResource ToolBtn}" Margin="0,0,16,0" Content="取消"
@@ -83,7 +86,7 @@
 			<Button x:Name="breg" Style="{StaticResource ToolBtn}" Content="注册菜单"
 			        AutomationProperties.AutomationId="fastcopy.register"/>
 		</StackPanel>
-		<TextBlock x:Name="lbstat" Grid.Row="6" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
+		<TextBlock x:Name="lbstat" Grid.Row="7" TextWrapping="Wrap" Foreground="{StaticResource TextMuted}"
 		           FontSize="12" AutomationProperties.AutomationId="fastcopy.stat"/>
 	</Grid>
 </Window>

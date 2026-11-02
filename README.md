@@ -82,7 +82,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Character bitmaps**: Draw each character as a dot matrix and export a C array, hex, or dot-matrix text.
 - **QR / barcode**: Generate QR, Data Matrix, Code 128/39, EAN, and UPC.
 - **Batch rename**: Edit target names by hand or with rules such as `%1` and `#`, and sort by name or date.
-- **Fast copy**: Copy, cut, delete to the Recycle Bin, or make a symbolic or hard link, and register an Explorer cascade menu.
+- **Fast copy**: Copy, cut, delete to the Recycle Bin, or make a symbolic or hard link, and register an Explorer cascade menu. The window counts the files, folders, and size of the source list, and shows the copied and total bytes while running.
 - **Hash**: MD5, SHA-1, and SHA-256. Paste an expected value to compare.
 - **Text tools**: Base64, URL, hex, escapes, case, whitespace, counts, JSON pretty-print, and more.
 - **Markdown reader**: Open or drop a Markdown file (or a shortcut to one) and read it with the IE11 engine built into Windows; switch between light, dark, sepia, eye care, and midnight themes, click an image to view it full size, and export it to Word (needs Word installed) or PDF (printed by Edge/Chrome).

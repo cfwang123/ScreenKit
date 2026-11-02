@@ -3,6 +3,7 @@ namespace ScreenKit;
 /// <summary>资源管理器「快速粘贴」的进度窗。</summary>
 public partial class FastCopyProgWindow : Window {
 	readonly FastCopy.Job job;
+	readonly bool withbytes;
 	CancellationTokenSource cts;
 	bool dead;
 	bool done;
@@ -15,6 +16,7 @@ public partial class FastCopyProgWindow : Window {
 		this.job = job ?? new FastCopy.Job();
 		InitializeComponent();
 		Title = Loc.T("fc.title");
+		withbytes = string.IsNullOrEmpty(this.job.Link) && string.IsNullOrEmpty(this.job.Delete);
 		bcancel.Content = Loc.T("fc.cancel");
 		lbfile.Text = job?.Dest ?? "";
 		WindowEsc.Attach(this, () => bcancel.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)));
@@ -52,7 +54,10 @@ public partial class FastCopyProgWindow : Window {
 	void show(FastCopy.Progress p) {
 		if (dead) return;
 		lbfile.Text = string.IsNullOrEmpty(p.File) ? job.Dest : p.File;
-		lbstat.Text = $"{p.DoneFiles}/{p.TotalFiles}";
+		var line = $"{p.DoneFiles}/{p.TotalFiles}";
+		if (withbytes && p.TotalBytes > 0)
+			line += $"  {FastCopy.FormatBytes(p.DoneBytes)} / {FastCopy.FormatBytes(p.TotalBytes)}";
+		lbstat.Text = line;
 		if (p.TotalBytes > 0) {
 			bar.IsIndeterminate = false;
 			var pct = p.DoneBytes * 100.0 / p.TotalBytes;
@@ -79,6 +84,7 @@ public partial class FastCopyProgWindow : Window {
 		bar.IsIndeterminate = false;
 		if (res != null && res.Cancelled) lbstat.Text = Loc.T("fc.cancelled");
 		else if (res != null) lbstat.Text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed)
+			+ (res.Bytes > 0 && withbytes ? "  " + FastCopy.FormatBytes(res.Bytes) : "")
 			+ (string.IsNullOrEmpty(res.Error) ? "" : "  " + res.Error);
 	}
 }

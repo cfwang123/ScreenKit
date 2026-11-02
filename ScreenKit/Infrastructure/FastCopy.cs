@@ -46,6 +46,8 @@ public static class FastCopy {
 		public int Ok;
 		public int Skipped;
 		public int Failed;
+		/// <summary>已复制的字节数。</summary>
+		public long Bytes;
 		public bool Cancelled;
 		public string Error;
 	}
@@ -55,6 +57,13 @@ public static class FastCopy {
 		public string Dest;
 		public long Size;
 		public bool Copied;
+	}
+
+	/// <summary>源列表的文件数、文件夹数和字节。</summary>
+	public sealed class Stats {
+		public int Files;
+		public int Dirs;
+		public long Bytes;
 	}
 
 	sealed class ClipDto {
@@ -96,6 +105,9 @@ public static class FastCopy {
 		if (raw is "move" or "symlink" or "hardlink" or "delete" or "recycle") return raw;
 		return "copy";
 	}
+
+	/// <summary>字节数写成 1.23 MB 这样的短文本。</summary>
+	public static string FormatBytes(long n) => fmtbytes(n);
 
 	/// <summary>拖到目标上：文件夹用本身，文件用所在目录。多个时用第一个存在的。</summary>
 	public static string DropDest(IEnumerable<string> paths) {
@@ -206,7 +218,10 @@ public static class FastCopy {
 			Parallel.ForEach(items, po, it => {
 				job.Cancel.ThrowIfCancellationRequested();
 				copyone(it, job.Move, conflict, job.Cancel, res, ref doneBytes, () => ping(it.Src, false));
-				if (it.Copied) Interlocked.Increment(ref doneFiles);
+				if (it.Copied) {
+					Interlocked.Increment(ref doneFiles);
+					Interlocked.Add(ref res.Bytes, it.Size);
+				}
 				ping(it.Src, false);
 			});
 		}
@@ -696,25 +711,24 @@ public static class FastCopy {
 		else File.Delete(path);
 	}
 
-	sealed class SizeInfo {
-		public int Files;
-		public int Dirs;
-		public long Bytes;
-	}
-
-	static SizeInfo measure(IList<string> paths) {
-		var info = new SizeInfo();
+	/// <summary>统计文件数、文件夹数和字节；不进入重解析点，cancel 时抛 OperationCanceledException。</summary>
+	public static Stats Count(IEnumerable<string> paths, CancellationToken cancel = default) {
+		var info = new Stats();
 		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		if (paths == null) return info;
 		foreach (var raw in paths) {
+			cancel.ThrowIfCancellationRequested();
 			var p = full((raw ?? "").Trim().Trim('"'));
 			if (p.Length == 0 || !seen.Add(p)) continue;
-			measureone(p, info, seen);
+			measureone(p, info, seen, cancel);
 		}
 		return info;
 	}
 
-	static void measureone(string path, SizeInfo info, HashSet<string> seen) {
+	static Stats measure(IList<string> paths) => Count(paths);
+
+	static void measureone(string path, Stats info, HashSet<string> seen, CancellationToken cancel = default) {
+		cancel.ThrowIfCancellationRequested();
 		FileAttributes attr;
 		try { attr = File.GetAttributes(path); }
 		catch { return; }
@@ -723,17 +737,20 @@ public static class FastCopy {
 			if ((attr & FileAttributes.ReparsePoint) != 0) return;
 			try {
 				foreach (var file in Directory.EnumerateFiles(path)) {
+					cancel.ThrowIfCancellationRequested();
 					var fp = full(file);
 					if (!seen.Add(fp)) continue;
 					info.Files++;
 					try { info.Bytes += new FileInfo(file).Length; } catch { }
 				}
 				foreach (var sub in Directory.EnumerateDirectories(path)) {
+					cancel.ThrowIfCancellationRequested();
 					var dp = full(sub);
 					if (!seen.Add(dp)) continue;
-					measureone(dp, info, seen);
+					measureone(dp, info, seen, cancel);
 				}
 			}
+			catch (OperationCanceledException) { throw; }
 			catch { }
 			return;
 		}
@@ -1274,6 +1291,7 @@ public static class FastCopy {
 			job.Sources.Add(Path.Combine(src, "sub"));
 			var r = Run(job);
 			if (r.Failed != 0 || r.Ok < 2) return bad(say, $"copy ok={r.Ok} fail={r.Failed} {r.Error}");
+			if (r.Bytes != 8) return bad(say, "bytes " + r.Bytes);
 			if (File.ReadAllText(Path.Combine(dst, "a.txt")) != "hello") return bad(say, "content");
 			if (File.ReadAllText(Path.Combine(dst, "sub", "b.txt")) != "xyz") return bad(say, "sub");
 			File.WriteAllText(Path.Combine(dst, "a.txt"), "keep");
@@ -1384,6 +1402,17 @@ public static class FastCopy {
 			long expect = new FileInfo(Path.Combine(src, "a.txt")).Length + new FileInfo(Path.Combine(src, "sub", "b.txt")).Length;
 			if (sized.Files != 2 || sized.Dirs != 2 || sized.Bytes != expect)
 				return bad(say, $"size {sized.Files}/{sized.Dirs}/{sized.Bytes}");
+			var counted = Count(new[] { src, Path.Combine(src, "a.txt") }, CancellationToken.None);
+			if (counted.Files != 2 || counted.Dirs != 2 || counted.Bytes != expect)
+				return bad(say, $"count {counted.Files}/{counted.Dirs}/{counted.Bytes}");
+			if (!FormatBytes(counted.Bytes).EndsWith(" B")) return bad(say, "fmt " + FormatBytes(counted.Bytes));
+			var ccancel = new CancellationTokenSource();
+			ccancel.Cancel();
+			var ccaught = false;
+			try { Count(new[] { src }, ccancel.Token); }
+			catch (OperationCanceledException) { ccaught = true; }
+			if (!ccaught) return bad(say, "count cancel");
+			if (string.IsNullOrEmpty(Loc.T("fc.size.msg", 1, 2, "3 B"))) return bad(say, "size msg");
 			var sj = new Job { Dest = Path.Combine(root, "sdir"), Link = "symlink", Conflict = "overwrite" };
 			sj.Sources.Add(hf);
 			sj.Sources.Add(htree);
