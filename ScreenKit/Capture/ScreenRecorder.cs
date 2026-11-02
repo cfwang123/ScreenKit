@@ -151,7 +151,7 @@ sealed class ScreenRecorder : IDisposable {
 
 		if (audioMode != RecordAudioMode.Off) {
 			try {
-				audio = new AudioCapture(wavTmp, audioMode, recOpt.AudioHz, recOpt.AudioMono);
+				audio = new AudioCapture(wavTmp, audioMode, recOpt.AudioHz, recOpt.AudioMono, recOpt.MicDevice);
 				if (recOpt.IsMf)
 					audio.QueuePcm = true;
 				else
@@ -588,7 +588,7 @@ sealed class ScreenRecorder : IDisposable {
 			if (!recOpt.IsMf) fillgap();
 			if (audparts.Count > 0) audiopath = nextaudpath();
 			try {
-				audio = new AudioCapture(audiopath, mode, recOpt.AudioHz, recOpt.AudioMono);
+				audio = new AudioCapture(audiopath, mode, recOpt.AudioHz, recOpt.AudioMono, recOpt.MicDevice);
 				if (recOpt.IsMf)
 					audio.QueuePcm = true;
 				else

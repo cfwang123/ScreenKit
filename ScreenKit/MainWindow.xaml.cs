@@ -166,6 +166,8 @@ public partial class MainWindow : Window {
 		trysetwindowicon();
 		// 先读配置再装模型栏
 		AppConfig.LoadInto(opt);
+		// 发布版只认合并后的 web/tools.js；开发目录用 config.toml 的 dev = true 保留各工具脚本
+		if (!opt.Dev) WebToolSources.Clean();
 		DictDb.HoldMinutes = () => opt.DictDbHoldMin;
 		HttpProxy.ApplyFrom(opt);
 		Loc.SetFromConfig(opt.UiLang);

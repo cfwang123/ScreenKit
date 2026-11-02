@@ -263,6 +263,8 @@ static class AppConfig {
 				o.PwLexLlm = (pwllm ?? "").Trim().Trim('"');
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul))
 				o.UiLang = Loc.Normalize(ul.Trim().Trim('"'));
+			if (map.TryGetValue("dev", out var devFlag))
+				o.Dev = parsebool(devFlag, false);
 			if (map.TryGetValue("mod_ocr", out var moc))
 				o.ModOcr = parsebool(moc, true);
 			if (map.TryGetValue("mod_tts", out var mtts))
@@ -411,6 +413,8 @@ static class AppConfig {
 				o.Record.AudioEnabled = parsebool(ra, true);
 			if (map.TryGetValue("record_audio_src", out var ras) && !string.IsNullOrWhiteSpace(ras))
 				o.Record.AudioSource = ras.Trim();
+			if (map.TryGetValue("record_mic_dev", out var rmd) && !string.IsNullOrWhiteSpace(rmd))
+				o.Record.MicDevice = rmd.Trim().Trim('"');
 			if (map.TryGetValue("record_audio_kbps", out var rak) && int.TryParse(rak, out var rAkbps))
 				o.Record.AudioKbps = rAkbps;
 			if (map.TryGetValue("record_audio_hz", out var rah) && int.TryParse(rah, out var rAhz))
@@ -773,6 +777,8 @@ static class AppConfig {
 		sb.AppendLine($"pwgen_llm = \"{esc((o.PwLexLlm ?? "").Trim())}\"");
 		sb.AppendLine("# 界面语言：程序目录 lang/ 下的 toml 文件名，如 zh、en、ja、ko");
 		sb.AppendLine($"ui_lang = \"{esc(Loc.Normalize(o.UiLang))}\"");
+		sb.AppendLine("# 开发者配置：true 时保留 web/tools 里合并前的工具脚本。发布包不带 config.toml，按 false 处理");
+		sb.AppendLine($"dev = {(o.Dev ? "true" : "false")}");
 		sb.AppendLine($"# 功能开关。false 隐藏页面并停用热键、托盘和对应 HTTP；默认 true");
 		sb.AppendLine($"mod_ocr = {(o.ModOcr ? "true" : "false")}");
 		sb.AppendLine($"mod_tts = {(o.ModTts ? "true" : "false")}");
@@ -901,6 +907,8 @@ static class AppConfig {
 		sb.AppendLine($"# 声音：record_audio / Speakers|Mic|MicAndSpeakers / kbps 8~128 / Hz 常用 22050 / mono");
 		sb.AppendLine($"record_audio = {(rec.AudioEnabled ? "true" : "false")}");
 		sb.AppendLine($"record_audio_src = \"{esc(rec.AudioSource)}\"");
+		sb.AppendLine($"# 麦克风设备 ID，空字符串表示系统默认");
+		sb.AppendLine($"record_mic_dev = \"{esc(rec.MicDevice ?? "")}\"");
 		sb.AppendLine($"record_audio_kbps = {rec.AudioKbps}");
 		sb.AppendLine($"record_audio_hz = {rec.AudioHz}");
 		sb.AppendLine($"record_audio_mono = {(rec.AudioMono ? "true" : "false")}");

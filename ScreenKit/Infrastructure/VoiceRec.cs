@@ -405,11 +405,28 @@ static class VoiceRec {
 	}
 
 	/// <summary>默认播放设备名，系统环回就录它。</summary>
-	public static string DefaultRenderName() {
+	public static string DefaultRenderName() => defaultname(DataFlow.Render);
+
+	/// <summary>系统默认录音设备，空字符串表示没有。</summary>
+	public static string DefaultMicId() => defaultid(DataFlow.Capture);
+
+	/// <summary>系统默认录音设备名，用来标在「系统默认」旁边。</summary>
+	public static string DefaultMicName() => defaultname(DataFlow.Capture);
+
+	static string defaultname(DataFlow flow) {
 		try {
 			using var en = new MMDeviceEnumerator();
-			using var d = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console);
+			using var d = en.GetDefaultAudioEndpoint(flow, Role.Console);
 			return (d?.FriendlyName ?? "").Trim();
+		}
+		catch { return ""; }
+	}
+
+	static string defaultid(DataFlow flow) {
+		try {
+			using var en = new MMDeviceEnumerator();
+			using var d = en.GetDefaultAudioEndpoint(flow, Role.Console);
+			return d?.ID ?? "";
 		}
 		catch { return ""; }
 	}

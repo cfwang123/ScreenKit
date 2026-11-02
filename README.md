@@ -24,7 +24,7 @@ Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recog
 - The red frame is drawn outside the selection; size and aspect can be set before start, and the control bar can be dragged and collapsed. The audio source can be changed while recording.
 - **Region recording**: Writes an MP4, with system audio, the microphone, or both, and optional mouse and click highlights.
 - **GIF record**: Uses the same region capture and writes a silent GIF, with a frame rate and a palette.
-- **Record options**: The frame rate and the same shorter-side cap as screenshots.
+- **Record options**: The frame rate and the same shorter-side cap as screenshots. Pick the microphone here, with a system-default entry, and watch small vertical level bars for the microphone and the system sound.
 
 ## Speech, translation, dictionary, and face
 

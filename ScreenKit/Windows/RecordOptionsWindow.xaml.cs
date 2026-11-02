@@ -4,6 +4,12 @@ using System.Windows.Controls;
 namespace ScreenKit;
 
 public partial class RecordOptionsWindow : Window {
+	readonly VoiceMeter meter = new();
+	readonly System.Windows.Threading.DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(50) };
+	double micshow;
+	double sysshow;
+	int nextretry;
+
 	public RecordOptions Result { get; private set; }
 	public bool Applied { get; private set; }
 
@@ -20,6 +26,11 @@ public partial class RecordOptionsWindow : Window {
 		};
 		WindowEsc.Attach(this, () => { Applied = false; Close(); });
 		ecodec.SelectionChanged += (_, _) => synccodec();
+		emicdev.SelectionChanged += (_, _) => syncmic();
+		Closed += (_, _) => {
+			try { timer.Stop(); } catch { }
+			try { meter.Dispose(); } catch { }
+		};
 
 		foreach (var hz in RecordOptions.AudioHzChoices) {
 			var it = new ComboBoxItem {
@@ -28,8 +39,69 @@ public partial class RecordOptionsWindow : Window {
 			};
 			eaudhz.Items.Add(it);
 		}
-
+		fillmic();
 		loadui(Result);
+		meter.StartSys();
+		syncmic();
+		nextretry = Environment.TickCount;
+		timer.Tick += (_, _) => tick();
+		timer.Start();
+	}
+
+	/// <summary>「系统默认（当前设备名）」放第一项，后面才是能指定到具体设备的项。</summary>
+	void fillmic() {
+		emicdev.Items.Clear();
+		string name = VoiceRec.DefaultMicName();
+		emicdev.Items.Add(new ComboBoxItem {
+			Content = name.Length == 0 ? "系统默认" : $"系统默认（{name}）",
+			Tag = "",
+		});
+		try {
+			foreach (var d in VoiceRec.Devices())
+				emicdev.Items.Add(new ComboBoxItem { Content = d.Name, Tag = d.Id });
+		}
+		catch { }
+		emicdev.SelectedIndex = 0;
+	}
+
+	void selectmic(string id) {
+		id = (id ?? "").Trim();
+		foreach (ComboBoxItem it in emicdev.Items) {
+			if (string.Equals(it.Tag as string ?? "", id, StringComparison.OrdinalIgnoreCase)) {
+				emicdev.SelectedItem = it;
+				return;
+			}
+		}
+		emicdev.SelectedIndex = 0;
+	}
+
+	void syncmic() {
+		string id = (emicdev.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
+		if (id.Length == 0) id = VoiceRec.DefaultMicId();
+		if (id.Length == 0) meter.StopMic();
+		else meter.StartMic(id);
+	}
+
+	void tick() {
+		int tm = meter.MicOpen ? meter.MicLevel : 0;
+		int ts = meter.SysOpen ? meter.SysLevel : 0;
+		micshow = follow(micshow, tm);
+		sysshow = follow(sysshow, ts);
+		pmic.Value = micshow;
+		psys.Value = sysshow;
+		if (Environment.TickCount - nextretry >= 2000) {
+			nextretry = Environment.TickCount;
+			meter.RefreshSys();
+			if (emicdev.SelectedItem != null) syncmic();
+		}
+	}
+
+	/// <summary>上升立刻跟随，下降每 50ms 回落，竖条才不会一直顶在最高。</summary>
+	static double follow(double cur, int target) {
+		if (target >= cur) return target;
+		double next = cur - 7;
+		if (next < target) next = target;
+		return next < 0 ? 0 : next;
 	}
 
 	void loadui(RecordOptions o) {
@@ -51,6 +123,7 @@ public partial class RecordOptionsWindow : Window {
 			}
 		}
 		if (eaudsrc.SelectedItem == null) eaudsrc.SelectedIndex = 0;
+		selectmic(o.MicDevice);
 		eaudkbps.Text = o.AudioKbps.ToString();
 		eaudmono.IsChecked = o.AudioMono;
 		eaudhz.SelectedItem = null;
@@ -93,6 +166,7 @@ public partial class RecordOptionsWindow : Window {
 		}
 		o.AudioEnabled = eauden.IsChecked == true;
 		o.AudioSource = (eaudsrc.SelectedItem as ComboBoxItem)?.Tag as string ?? "Speakers";
+		o.MicDevice = (emicdev.SelectedItem as ComboBoxItem)?.Tag as string ?? "";
 		if (!tryint(eaudkbps, "音频码率 (kbps)", 8, 128, out var kbps)) return false;
 		o.AudioKbps = kbps;
 		o.AudioHz = (eaudhz.SelectedItem as ComboBoxItem)?.Tag is int hz ? hz : 22050;

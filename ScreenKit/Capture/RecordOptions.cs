@@ -14,6 +14,8 @@ public sealed class RecordOptions {
 	public bool AudioEnabled = true;
 	/// <summary>音频来源：Speakers / Mic / MicAndSpeakers。</summary>
 	public string AudioSource = "Speakers";
+	/// <summary>麦克风设备 ID；空字符串表示跟随系统默认。</summary>
+	public string MicDevice = "";
 	/// <summary>音频码率 kbps，8–128。</summary>
 	public int AudioKbps = 96;
 	/// <summary>音频采样率 Hz（规范化 WAV / 混音输出）。</summary>
@@ -102,6 +104,7 @@ public sealed class RecordOptions {
 		Av1Crf = Av1Crf,
 		AudioEnabled = AudioEnabled,
 		AudioSource = AudioSource,
+		MicDevice = MicDevice,
 		AudioKbps = AudioKbps,
 		AudioHz = AudioHz,
 		AudioMono = AudioMono,
@@ -121,6 +124,7 @@ public sealed class RecordOptions {
 		Av1Crf = o.Av1Crf;
 		AudioEnabled = o.AudioEnabled;
 		AudioSource = o.AudioSource;
+		MicDevice = o.MicDevice;
 		AudioKbps = o.AudioKbps;
 		AudioHz = o.AudioHz;
 		AudioMono = o.AudioMono;
@@ -149,6 +153,7 @@ public sealed class RecordOptions {
 		if (string.IsNullOrWhiteSpace(AudioSource)
 			|| (AudioSource != "Speakers" && AudioSource != "Mic" && AudioSource != "MicAndSpeakers"))
 			AudioSource = "Speakers";
+		MicDevice = (MicDevice ?? "").Trim();
 	}
 
 	static int snapaudiohz(int hz) {

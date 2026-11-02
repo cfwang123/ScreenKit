@@ -26,10 +26,13 @@ sealed class AudioCapture : IDisposable {
 	readonly string wavPath;
 	readonly int outRate;
 	readonly bool outMono;
+	readonly string micId;
 	readonly object gate = new();
 
 	WasapiLoopbackCapture loop;
 	WasapiCapture mic;
+	MMDeviceEnumerator micEn;
+	MMDevice micDev;
 	WavPlace writerLoop;
 	WavPlace writerMic;
 	WaveFormat fmtLoop;
@@ -88,11 +91,13 @@ sealed class AudioCapture : IDisposable {
 	public long FirstDataMs =>
 		firstDataTick == 0 || startTick == 0 ? -1 : Math.Max(0, firstDataTick - startTick);
 
-	public AudioCapture(string wavPath, RecordAudioMode mode, int sampleRateHz = 22050, bool mono = false) {
+	public AudioCapture(string wavPath, RecordAudioMode mode, int sampleRateHz = 22050, bool mono = false,
+		string micDevice = null) {
 		this.wavPath = wavPath ?? throw new ArgumentNullException(nameof(wavPath));
 		this.mode = mode;
 		outRate = sampleRateHz > 0 ? sampleRateHz : 22050;
 		outMono = mono;
+		micId = (micDevice ?? "").Trim();
 		if (mode == RecordAudioMode.Off)
 			throw new ArgumentException("音频模式为 Off");
 	}
@@ -145,10 +150,17 @@ sealed class AudioCapture : IDisposable {
 				? wavPath
 				: Path.Combine(dir ?? ".", baseName + "_mic.wav");
 			try {
-				mic = new WasapiCapture();
+				if (micId.Length > 0) {
+					micEn = new MMDeviceEnumerator();
+					micDev = micEn.GetDevice(micId);
+					mic = new WasapiCapture(micDev);
+				}
+				else
+					mic = new WasapiCapture();
 				fmtMic = mic.WaveFormat;
 				RecordLog.Step("mic_open",
-					$"fmt={fmtMic} rate={fmtMic.SampleRate} ch={fmtMic.Channels} queue={QueuePcm} path={pathMic}");
+					$"fmt={fmtMic} rate={fmtMic.SampleRate} ch={fmtMic.Channels} queue={QueuePcm} " +
+					$"dev={(micId.Length == 0 ? "default" : micId)} path={pathMic}");
 				if (!QueuePcm)
 					writerMic = WavPlace.Create(pathMic, fmtMic);
 				mic.DataAvailable += (_, e) => ondata(1, ref bytesMic, writerMic, fmtMic, e, "mic");
@@ -164,6 +176,12 @@ sealed class AudioCapture : IDisposable {
 				RecordLog.Step("mic_started", "WasapiCapture");
 			}
 			catch (Exception ex) {
+				try { mic?.Dispose(); } catch { }
+				mic = null;
+				try { micDev?.Dispose(); } catch { }
+				micDev = null;
+				try { micEn?.Dispose(); } catch { }
+				micEn = null;
 				if (mode == RecordAudioMode.Mic)
 					throw new InvalidOperationException("无法打开麦克风: " + ex.Message, ex);
 				CaptureLog.Ex("Mic optional", ex);
@@ -469,6 +487,10 @@ sealed class AudioCapture : IDisposable {
 		loop = null;
 		try { mic?.Dispose(); } catch { }
 		mic = null;
+		try { micDev?.Dispose(); } catch { }
+		micDev = null;
+		try { micEn?.Dispose(); } catch { }
+		micEn = null;
 
 		if (QueuePcm) {
 			RecordLog.Step("audio_finalize_end", "queue only");

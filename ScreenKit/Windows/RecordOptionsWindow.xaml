@@ -1,6 +1,7 @@
 <Window x:Class="ScreenKit.RecordOptionsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ScreenKit"
         Title="录屏选项"
         Width="520"
         MinWidth="460" MinHeight="320"
@@ -95,19 +96,56 @@
 				<!-- 声音 -->
 				<TextBlock Text="声音" FontWeight="SemiBold" Margin="0,0,0,6"/>
 				<CheckBox x:Name="eauden" Content="录制声音" Margin="0,0,0,8" IsChecked="True"/>
-				<Grid Margin="0,0,0,10">
+				<Grid Margin="0,0,0,8">
 					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" MinWidth="108"/>
 						<ColumnDefinition Width="*"/>
-						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="Auto"/>
 					</Grid.ColumnDefinitions>
-					<ComboBox x:Name="eaudsrc" Grid.Column="0" Height="32"
-					          VerticalContentAlignment="Center"
+					<TextBlock Grid.Column="0" Text="声音来源" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<ComboBox x:Name="eaudsrc" Grid.Column="1" Height="32"
+					          VerticalContentAlignment="Center" Margin="0,0,10,0"
 					          ToolTip="扬声器=系统正在播放的声音（环回）"
 					          IsEnabled="{Binding ElementName=eauden, Path=IsChecked}">
 						<ComboBoxItem Content="扬声器(听到的内容)" Tag="Speakers" IsSelected="True"/>
 						<ComboBoxItem Content="麦克风" Tag="Mic"/>
 						<ComboBoxItem Content="麦克风 + 扬声器" Tag="MicAndSpeakers"/>
 					</ComboBox>
+					<TextBlock Grid.Column="2" Text="麦" FontSize="11"
+					           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+					           Margin="0,0,4,0" ToolTip="麦克风电平"/>
+					<Border Grid.Column="3" BorderBrush="#C9D3DF" BorderThickness="1" CornerRadius="2"
+					        Padding="2" VerticalAlignment="Center" Margin="0,0,10,0"
+					        ToolTip="麦克风电平">
+						<local:VLevelBlocks x:Name="pmic" Width="9" Height="24"
+						                    AutomationProperties.AutomationId="opt.record.miclevel"/>
+					</Border>
+					<TextBlock Grid.Column="4" Text="系" FontSize="11"
+					           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+					           Margin="0,0,4,0" ToolTip="系统声音电平"/>
+					<Border Grid.Column="5" BorderBrush="#C9D3DF" BorderThickness="1" CornerRadius="2"
+					        Padding="2" VerticalAlignment="Center"
+					        ToolTip="系统声音电平">
+						<local:VLevelBlocks x:Name="psys" Width="9" Height="24"
+						                    AutomationProperties.AutomationId="opt.record.syslevel"/>
+					</Border>
+				</Grid>
+				<Grid Margin="0,0,0,10">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto" MinWidth="108"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<TextBlock Grid.Column="0" Text="麦克风" FontWeight="SemiBold"
+					           VerticalAlignment="Center" Margin="0,0,8,0"/>
+					<ComboBox x:Name="emicdev" Grid.Column="1" Height="32"
+					          VerticalContentAlignment="Center"
+					          ToolTip="录屏使用的麦克风；「系统默认」跟随 Windows 设置"
+					          AutomationProperties.AutomationId="opt.record.micdev"
+					          IsEnabled="{Binding ElementName=eauden, Path=IsChecked}"/>
 				</Grid>
 
 				<Grid Margin="0,0,0,10"

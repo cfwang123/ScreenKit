@@ -42,6 +42,10 @@ public partial class RecordHud : Window {
 	bool suspendedForCapture;
 	bool pausedBeforeSuspend;
 	string tmpPath;
+	readonly VoiceMeter meter = new();
+	DispatcherTimer metertimer;
+	double micshow, sysshow;
+	int nextmeter;
 
 	bool barCollapsed;
 	double? barUserX, barUserY; // DIP；null=自动贴选区
@@ -123,6 +127,9 @@ public partial class RecordHud : Window {
 			timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
 			timer.Tick += (_, _) => tickui();
 			timer.Start();
+			metertimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+			metertimer.Tick += (_, _) => tickmeters();
+			metertimer.Start();
 		};
 
 		bstart.Click += (_, _) => onstart();
@@ -140,6 +147,10 @@ public partial class RecordHud : Window {
 		WindowEsc.Attach(this, () => {
 			if (!started && !stopping) closeout(false);
 		});
+		Closed += (_, _) => {
+			try { metertimer?.Stop(); } catch { }
+			try { meter.Dispose(); } catch { }
+		};
 	}
 
 	/// <summary>
@@ -219,7 +230,7 @@ public partial class RecordHud : Window {
 			brief = hudbrief(recOpt);
 		}
 		lbsummary.Text = brief;
-		lbaudio.Visibility = Visibility.Collapsed;
+		audiosummary();
 		var be = started ? backend() : null;
 		var full = string.IsNullOrEmpty(be) ? sum : sum + "\n" + be;
 		var tip = $"选区 {rw}×{rh}\n{full}\n拖动红线外侧可移动 · 拖边缘/角点缩放";
@@ -230,8 +241,58 @@ public partial class RecordHud : Window {
 
 	static string hudbrief(RecordOptions o) {
 		o.Clamp();
-		var src = audtext(o.AudioEnabled, o.AudioSource);
-		return $"{o.Codec} {src}";
+		return $"{o.Codec} {o.Fps}fps";
+	}
+
+	/// <summary>操作条上用「麦克风/系统 + 竖条」代替声音来源文字，只显示这次会录的声道。</summary>
+	void audiosummary() {
+		bool on = !gifMode && recOpt.AudioEnabled;
+		paudio.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+		lbmute.Visibility = !gifMode && !on ? Visibility.Visible : Visibility.Collapsed;
+		pmicgrp.Visibility = UsesMic ? Visibility.Visible : Visibility.Collapsed;
+		psysgrp.Visibility = UsesSys ? Visibility.Visible : Visibility.Collapsed;
+		if (!gifMode) syncmeters();
+	}
+
+	bool UsesMic => !gifMode && recOpt.AudioEnabled
+		&& (recOpt.AudioMode is RecordAudioMode.Mic or RecordAudioMode.MicAndSpeakers);
+
+	bool UsesSys => !gifMode && recOpt.AudioEnabled
+		&& (recOpt.AudioMode is RecordAudioMode.Speakers or RecordAudioMode.MicAndSpeakers);
+
+	void syncmeters() {
+		if (gifMode) {
+			meter.StopMic();
+			meter.StopSys();
+			return;
+		}
+		if (UsesMic) {
+			string id = string.IsNullOrWhiteSpace(recOpt.MicDevice) ? VoiceRec.DefaultMicId() : recOpt.MicDevice;
+			if (id.Length == 0) meter.StopMic();
+			else meter.StartMic(id);
+		}
+		else meter.StopMic();
+		if (UsesSys) meter.RefreshSys();
+		else meter.StopSys();
+	}
+
+	void tickmeters() {
+		micshow = follow(micshow, meter.MicOpen ? meter.MicLevel : 0);
+		sysshow = follow(sysshow, meter.SysOpen ? meter.SysLevel : 0);
+		pmic.Value = micshow;
+		psys.Value = sysshow;
+		if (Environment.TickCount - nextmeter >= 2000) {
+			nextmeter = Environment.TickCount;
+			if (UsesMic || UsesSys) syncmeters();
+		}
+	}
+
+	/// <summary>上升立刻跟随，下降每 50ms 回落，竖条才不会一直顶在最高。</summary>
+	static double follow(double cur, int target) {
+		if (target >= cur) return target;
+		double next = cur - 7;
+		if (next < target) next = target;
+		return next < 0 ? 0 : next;
 	}
 
 	void layoutchrome(bool light = false) {
