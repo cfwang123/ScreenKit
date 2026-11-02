@@ -154,14 +154,6 @@ static class FeaturePick {
 		leaf("sharpcompress", "feat.pick.sharpcompress", "feat.pick.sharpcompress.detail",
 			FeatureKind.SharpCompress),
 		leaf("7za", "feat.pick.7za", "feat.pick.7za.detail", FeatureKind.Native7za),
-		group("tools", "feat.pick.tools", "feat.pick.tools.detail",
-			leaf("bogus", "feat.pick.bogus", "feat.pick.bogus.detail", FeatureKind.Bogus),
-			leaf("pinyin", "feat.pick.pinyin", "feat.pick.pinyin.detail", FeatureKind.NPinyin),
-			group("db", "feat.pick.db", "feat.pick.db.detail",
-				leaf("sqlite", "feat.pick.sqlite", "feat.pick.sqlite.detail", FeatureKind.NativeSqlite),
-				leaf("db.mysql", "feat.pick.db.mysql", "feat.pick.db.mysql.detail", FeatureKind.DbMysql),
-				leaf("db.oracle", "feat.pick.db.oracle", "feat.pick.db.oracle.detail", FeatureKind.DbOracle),
-				builtin("db.mssql", "feat.pick.db.mssql", "feat.pick.db.mssql.detail", FeatureKind.DbMssql))),
 		group("rec", "feat.pick.rec", "feat.pick.rec.detail",
 			builtin("rec.mf", "feat.pick.rec.mf", "feat.pick.rec.mf.detail", FeatureKind.MediaFoundation),
 			leaf("rec.ffmpeg", "feat.pick.rec.ffmpeg", "feat.pick.rec.ffmpeg.detail",
@@ -170,6 +162,15 @@ static class FeaturePick {
 			leaf("accel.cuda", "feat.pick.accel.cuda", "feat.CudaGpu.detail", FeatureKind.CudaGpu),
 			leaf("accel.dml", "feat.pick.accel.dml", "feat.DirectMl.detail", FeatureKind.DirectMl),
 			leaf("accel.cpu", "feat.pick.accel.cpu", "feat.OrtCpu.detail", FeatureKind.OrtCpu)),
+		// 工具集是杂项，排在最后
+		group("tools", "feat.pick.tools", "feat.pick.tools.detail",
+			leaf("bogus", "feat.pick.bogus", "feat.pick.bogus.detail", FeatureKind.Bogus),
+			leaf("pinyin", "feat.pick.pinyin", "feat.pick.pinyin.detail", FeatureKind.NPinyin),
+			group("db", "feat.pick.db", "feat.pick.db.detail",
+				leaf("sqlite", "feat.pick.sqlite", "feat.pick.sqlite.detail", FeatureKind.NativeSqlite),
+				leaf("db.mysql", "feat.pick.db.mysql", "feat.pick.db.mysql.detail", FeatureKind.DbMysql),
+				leaf("db.oracle", "feat.pick.db.oracle", "feat.pick.db.oracle.detail", FeatureKind.DbOracle),
+				builtin("db.mssql", "feat.pick.db.mssql", "feat.pick.db.mssql.detail", FeatureKind.DbMssql))),
 	];
 
 	public static IEnumerable<FeaturePickNode> Leaves(IEnumerable<FeaturePickNode> roots) {
