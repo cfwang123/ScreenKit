@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - System info adds BIOS, chassis, install date, language, time zone, memory slots, GPU driver, shared folders, local users, logon sessions, disk partitions, network DHCP and subnet mask, and USB controllers and hubs
 - Reader: the dictionary window searches automatically 200 ms after typing stops
 - Fast copy window now counts the files, folders, and size of the source list, and shows the copied and total bytes while copying.
+- Added a Count files button to the fast copy window that only reports the file count and size.
 
 #### Changed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 系统信息补充 BIOS、机箱、安装日期、语言、时区、内存插槽、显卡驱动、共享目录、本地用户、登录会话、磁盘分区、网卡 DHCP 和子网掩码，以及 USB 控制器和集线器
 - 小说阅读器：词典窗口输入停下 200 ms 即自动查询，不用再按回车
 - 快速复制窗口新增源列表统计：文件数、文件夹数和大小；复制过程中显示已完成和总共的字节数。
+- 快速复制窗口新增「统计文件」按钮，只统计文件数量和大小。
 
 #### 变更
 

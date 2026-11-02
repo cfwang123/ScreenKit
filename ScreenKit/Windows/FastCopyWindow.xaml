@@ -30,6 +30,8 @@
 			        AutomationProperties.AutomationId="fastcopy.adddir"/>
 			<Button x:Name="bremove" Style="{StaticResource ToolBtn}" Margin="0,0,6,0" Content="移除"/>
 			<Button x:Name="bclear" Style="{StaticResource ToolBtn}" Content="清空"/>
+			<Button x:Name="bstat" Style="{StaticResource ToolBtn}" Margin="12,0,0,0" Content="统计文件"
+			        AutomationProperties.AutomationId="fastcopy.countfiles"/>
 		</StackPanel>
 		<ListBox x:Name="lsrc" Grid.Row="2" Margin="0,0,0,6"
 		         BorderBrush="{StaticResource BorderSoft}"

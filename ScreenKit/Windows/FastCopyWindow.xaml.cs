@@ -35,6 +35,7 @@ public partial class FastCopyWindow : Window {
 		badddir.Click += (_, _) => adddir();
 		bremove.Click += (_, _) => removerows();
 		bclear.Click += (_, _) => { if (!busy) rows.Clear(); };
+		bstat.Click += (_, _) => countfiles();
 		bbrowse.Click += (_, _) => pickdest();
 		bstart.Click += (_, _) => start();
 		bcancel.Click += (_, _) => cts?.Cancel();
@@ -88,6 +89,7 @@ public partial class FastCopyWindow : Window {
 		badddir.Content = Loc.T("fc.adddir");
 		bremove.Content = Loc.T("fc.remove");
 		bclear.Content = Loc.T("fc.clear");
+		bstat.Content = Loc.T("fc.countfiles");
 		lbdest.Text = Loc.T("fc.dest");
 		bbrowse.Content = Loc.T("fc.browse");
 		lbmode.Text = Loc.T("fc.mode");
@@ -120,8 +122,16 @@ public partial class FastCopyWindow : Window {
 		statcts = null;
 	}
 
+	/// <summary>「统计文件」：只算文件数量和小计大小，不算文件夹。</summary>
+	void countfiles() {
+		if (busy || dead) return;
+		if (rows.Count == 0) { lbstat.Text = Loc.T("fc.empty"); return; }
+		statwait.Stop();
+		updatestats(true);
+	}
+
 	/// <summary>后台统计源列表的文件数、文件夹数和大小，算完再显示。</summary>
-	void updatestats() {
+	void updatestats(bool filesonly = false) {
 		if (dead) return;
 		cancelstats();
 		var paths = rows.ToList();
@@ -135,7 +145,9 @@ public partial class FastCopyWindow : Window {
 				if (dead || statcts != todo) return;
 				statcts = null;
 				todo.Dispose();
-				lbtotal.Text = st == null ? "" : Loc.T("fc.size.msg", st.Files, st.Dirs, FastCopy.FormatBytes(st.Bytes));
+				if (st == null) { lbtotal.Text = ""; return; }
+				var bytes = FastCopy.FormatBytes(st.Bytes);
+				lbtotal.Text = filesonly ? Loc.T("fc.files.msg", st.Files, bytes) : Loc.T("fc.size.msg", st.Files, st.Dirs, bytes);
 			}));
 		});
 	}
@@ -292,6 +304,7 @@ public partial class FastCopyWindow : Window {
 		bstart.IsEnabled = false;
 		bcancel.IsEnabled = true;
 		breg.IsEnabled = false;
+		bstat.IsEnabled = false;
 		cts = new CancellationTokenSource();
 		var job = new FastCopy.Job {
 			Dest = dest,
@@ -331,6 +344,7 @@ public partial class FastCopyWindow : Window {
 		bstart.IsEnabled = true;
 		bcancel.IsEnabled = false;
 		breg.IsEnabled = true;
+		bstat.IsEnabled = true;
 		try { cts?.Dispose(); } catch { }
 		cts = null;
 		if (dead) return;
