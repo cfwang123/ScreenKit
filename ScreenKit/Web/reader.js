@@ -355,9 +355,7 @@
 			if (st.cur) openbook(st.cur, false);
 		};
 		$("rd-dlang").onchange = function(){
-			st.dlang = $("rd-dlang").value || "";
-			savemeta("lang", st.dlang);
-			painttabs();
+			setdictlang($("rd-dlang").value);
 			var q = $("rd-dict-q").value.trim();
 			if (q) dictsearch(q);
 		};
@@ -623,6 +621,7 @@
 		st.enc = enc;
 		$("rd-enc").value = enc;
 		st.dlang = readmeta("lang");
+		st.tablang = st.dlang || "all";
 		$("rd-dlang").value = st.dlang;
 		var body = $("rd-body");
 		body.className = "rd-body";
@@ -2722,9 +2721,7 @@
 		var tabs = qa("#rd-dict-tabs button");
 		for (var i = 0; i < tabs.length; i++) {
 			tabs[i].onclick = function(){
-				if (st.dlang) return;
-				st.tablang = attr(this, "data-lang") || "all";
-				painttabs();
+				setdictlang(attr(this, "data-lang") || "all");
 				var q = $("rd-dict-q").value.trim();
 				if (q) dictsearch(q);
 			};
@@ -2734,13 +2731,23 @@
 		iniresize();
 	}
 
+	// 工具栏「词典」和窗口里的标签是同一个设置：在哪里切都同步。
+	function setdictlang(lang){
+		lang = lang || "all";
+		st.tablang = lang;
+		st.dlang = lang === "all" ? "" : lang;
+		var sel = $("rd-dlang");
+		if (sel) sel.value = st.dlang;
+		savemeta("lang", st.dlang);
+		painttabs();
+	}
+
 	function painttabs(){
 		var v = st.dlang || st.tablang || "all";
 		var tabs = qa("#rd-dict-tabs button");
 		for (var i = 0; i < tabs.length; i++) {
 			var id = attr(tabs[i], "data-lang");
 			tabs[i].className = id === v ? "on" : "";
-			tabs[i].disabled = !!st.dlang && id !== st.dlang;
 		}
 	}
 

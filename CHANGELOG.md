@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Install features: move the Tools group to the bottom of the feature tree.
 - Web tools lookup tables share one Chinese key list across languages, shrinking the published tools.js by about 1 MB
+- Reader: dictionary tabs in the dictionary window stay switchable after picking a dictionary in the toolbar, and both stay in sync
 
 #### Fixed
 
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 安装功能：把「工具集」移到功能树最后。
 - web 工具速查表的各语言译文共用一份中文键表，发布包 tools.js 小约 1 MB
+- 小说阅读器：在工具栏选过词典后，词典窗口里的标签仍可切换，且与工具栏「词典」保持同步
 
 #### 修复
 
