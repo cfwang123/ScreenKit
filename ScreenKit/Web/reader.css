@@ -144,7 +144,7 @@ button, input, select { font: inherit; }
 
 .rd-scroll { flex: 1; min-height: 0; overflow: auto; background: var(--paper); }
 .rd-body {
-	max-width: 44rem; margin: 0 auto; padding: 26px 26px 96px;
+	margin: 0; padding: 16px 14px 72px;
 	font-family: "Iowan Old Style", Palatino, "Palatino Linotype", "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif;
 	font-size: 19px; line-height: 1.9; color: var(--ink);
 }
