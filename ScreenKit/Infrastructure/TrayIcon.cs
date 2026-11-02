@@ -86,6 +86,10 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miFileProbe;
 	Forms.ToolStripMenuItem miPerfMon;
 	Forms.ToolStripMenuItem miHttpDbg;
+	Forms.ToolStripMenuItem miMqtt;
+	Forms.ToolStripMenuItem miSoapDbg;
+	Forms.ToolStripMenuItem miTls;
+	Forms.ToolStripMenuItem miSql;
 	Forms.ToolStripMenuItem miZhConv;
 	Forms.ToolStripMenuItem miPinyin;
 	Forms.ToolStripMenuItem miHangul;
@@ -237,6 +241,10 @@ sealed class TrayIcon : IDisposable {
 		miFileProbe = item("tray.fileprobe", () => FileProbeRequested?.Invoke());
 		miPerfMon = item("tray.perfmon", () => PerfMonRequested?.Invoke());
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
+		miMqtt = item("tray.mqtt", () => MqttRequested?.Invoke());
+		miSoapDbg = item("tray.soapdbg", () => SoapDbgRequested?.Invoke());
+		miTls = item("tray.tls", () => TlsRequested?.Invoke());
+		miSql = item("tray.sql", () => SqlRequested?.Invoke());
 		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
 		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
 		miHangul = item("tray.hangul", () => HangulRequested?.Invoke());
@@ -292,7 +300,11 @@ sealed class TrayIcon : IDisposable {
 		miNetGroup = new Forms.ToolStripMenuItem(Loc.T("tray.netgroup"));
 		miNetGroup.DropDownItems.Add(miNet);
 		miNetGroup.DropDownItems.Add(miHttpDbg);
+		miNetGroup.DropDownItems.Add(miMqtt);
+		miNetGroup.DropDownItems.Add(miSoapDbg);
+		miNetGroup.DropDownItems.Add(miTls);
 		miNetGroup.DropDownItems.Add(miPortUse);
+		miNetGroup.DropDownItems.Add(miSql);
 		miCatFile = new Forms.ToolStripMenuItem(Loc.T("menu.cat.file"));
 		miCatFile.DropDownItems.Add(miRename);
 		miCatFile.DropDownItems.Add(miFastCopy);
@@ -526,6 +538,10 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miCam, null);
 		setshortcut(miSys, null);
 		setshortcut(miHttpDbg, null);
+		setshortcut(miMqtt, null);
+		setshortcut(miSoapDbg, null);
+		setshortcut(miTls, null);
+		setshortcut(miSql, null);
 		setshortcut(miZhConv, null);
 		setshortcut(miPinyin, null);
 		setshortcut(miHangul, hangul);
@@ -615,6 +631,10 @@ sealed class TrayIcon : IDisposable {
 			settext(miSysTool, "tray.systool");
 			settext(miPerfMon, "tray.perfmon");
 			settext(miHttpDbg, "tray.httpdbg");
+			settext(miMqtt, "tray.mqtt");
+			settext(miSoapDbg, "tray.soapdbg");
+			settext(miTls, "tray.tls");
+			settext(miSql, "tray.sql");
 			settext(miZhConv, "tray.zhconv");
 			settext(miPinyin, "tray.pinyin");
 			settext(miHangul, "tray.hangul");
@@ -779,6 +799,10 @@ sealed class TrayIcon : IDisposable {
 	public event Action FileProbeRequested;
 	public event Action PerfMonRequested;
 	public event Action HttpDbgRequested;
+	public event Action MqttRequested;
+	public event Action SoapDbgRequested;
+	public event Action TlsRequested;
+	public event Action SqlRequested;
 	public event Action ZhConvRequested;
 	public event Action PinyinRequested;
 	public event Action HangulRequested;

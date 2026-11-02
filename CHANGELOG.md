@@ -46,12 +46,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Tray Tools menu now also offers MQTT, SOAP, TLS certificate check and database query, matching the main window's Tools menu.
+
 #### Fixed
 
 - The release script builds its 7z -x! excludes from the actual junk directory and file names again; they had been written as source-file paths, so the archive-level filter never matched and the pre-pack cleanup was the only guard.
 - Fix tool menu: Japanese name reading entry opened the Korean conjugation page because the card-name regex ran past the card into the next entry.
 
 ### 中文
+
+#### 新增
+
+- 托盘的「工具」补上 MQTT 调试、SOAP 接口调试、TLS 证书检查和数据库查询，与主窗口工具菜单一致。
 
 #### 修复
 
