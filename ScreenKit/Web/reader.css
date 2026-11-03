@@ -170,7 +170,7 @@ button, input, select { font: inherit; }
 
 /* 划词浮窗 */
 .rd-pop {
-	position: fixed; z-index: 70; width: min(360px, 92vw); max-height: 320px;
+	position: fixed; z-index: 70; width: min(360px, 92vw);
 	display: flex; flex-direction: column; overflow: hidden;
 	background: #fff; border: 1px solid var(--line); border-radius: 12px;
 	box-shadow: 0 12px 34px rgba(40, 30, 20, 0.18);
@@ -180,7 +180,8 @@ button, input, select { font: inherit; }
 .rd-pop-word { flex: 1; min-width: 0; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-x { flex: none; width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; font-size: 18px; color: var(--muted); }
 .rd-x:hover { background: #f3f4f6; color: var(--ink); }
-.rd-pop-items { overflow: auto; padding: 4px 6px; }
+/* 最多八行、超出滚动：和 WPF 浮窗一样直接给出整屏结果，再滚着往下看；结果少时窗口跟着变矮 */
+.rd-pop-items { overflow: auto; padding: 4px 6px; max-height: 228px; }
 /* 每行一个词条：词在前、解释在后，两边都单行，行尾省略 */
 .rd-hit {
 	display: flex; align-items: baseline; gap: 8px; width: 100%;

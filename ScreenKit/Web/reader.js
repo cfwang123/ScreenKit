@@ -2173,7 +2173,7 @@
 		$("rd-pop-items").innerHTML = '<p class="rd-empty">' + esc(L("web.reader.searching", "查询中…")) + "</p>";
 		pop.hidden = false;
 		placepop(sel);
-		dictsearch(text, 8, function(items, err){
+		dictsearch(text, 100, function(items, err){
 			if (pop.hidden || $("rd-pop-word").textContent !== text) return;
 			var box = $("rd-pop-items");
 			box.innerHTML = "";
