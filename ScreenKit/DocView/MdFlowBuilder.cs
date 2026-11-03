@@ -53,7 +53,15 @@ static class MdFlowBuilder {
 	/// <param name="baseFilePath">当前 md 路径，用于解析相对图片。</param>
 	/// <param name="embedImages">true 时内嵌显示本地/网络图片（Typora/预览）；false 仅文字链。</param>
 	public static FlowDocument Build(MdDoc doc, double pageWidth = 720, Action<string> onLink = null,
-		string baseFilePath = null, bool embedImages = true) {
+		string baseFilePath = null, bool embedImages = true) =>
+		BuildRange(doc, 0, doc?.Blocks?.Count ?? 0, pageWidth, onLink, baseFilePath, embedImages);
+
+	/// <summary>
+	/// 只排 [from, to) 这段块。有序列表序号和标题自动编号先按全文算好，
+	/// 窗口滑动时编号不会因为前面的块没排而重新从 1 开始。
+	/// </summary>
+	public static FlowDocument BuildRange(MdDoc doc, int from, int to, double pageWidth = 720,
+		Action<string> onLink = null, string baseFilePath = null, bool embedImages = true) {
 		var pageW = pageWidth > 100 ? pageWidth : 720;
 		// 字号/行高对齐 HTML；页边由宿主 RTB.Padding 承担（PagePadding 在 RTB 内几乎无效）
 		var fd = new FlowDocument {
@@ -91,7 +99,26 @@ static class MdFlowBuilder {
 		try { headAutoNum = DocViewOptions.Current?.MdHeadingAutoNumber ?? true; } catch { /* keep true */ }
 		var headNum = headAutoNum ? new MdHeadingNumber() : null;
 
-		foreach (var b in doc.Blocks) {
+		var count = doc.Blocks.Count;
+		if (from < 0) from = 0;
+		if (to > count) to = count;
+		if (from > to) from = to;
+		// 窗口之前的块只推进序号，不生成控件
+		for (var i = 0; i < from; i++) {
+			var pre = doc.Blocks[i];
+			if (pre.Kind != MdBlockKind.ListItem)
+				olCount.Clear();
+			else if (pre.Ordered) {
+				var cols = Math.Max(0, pre.Level);
+				if (!olCount.TryGetValue(cols, out var c)) c = 0;
+				olCount[cols] = c + 1;
+			}
+			if (headNum != null && pre.Kind == MdBlockKind.Heading && !string.IsNullOrWhiteSpace(pre.Text))
+				headNum.Next(Math.Max(1, Math.Min(6, pre.Level)));
+		}
+
+		for (var i = from; i < to; i++) {
+			var b = doc.Blocks[i];
 			if (b.Kind != MdBlockKind.ListItem)
 				olCount.Clear();
 

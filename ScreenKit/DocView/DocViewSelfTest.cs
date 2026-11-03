@@ -70,6 +70,15 @@ static class DocViewSelfTest {
 		if (codes != 1) return bad(say, $"md 代码块数 {codes}");
 		var fd = MdFlowBuilder.Build(doc, 780, null, path, true);
 		if (fd == null || fd.Blocks.Count == 0) return bad(say, "md FlowDocument 为空");
+		// 按需窗口：有序列表和标题编号要先按窗口之前的块算好，不能因为没排前面就从 1 重来
+		var big = new MdDoc();
+		for (var i = 0; i < 5; i++)
+			big.Blocks.Add(new MdBlock { Kind = MdBlockKind.ListItem, Ordered = true, Level = 0, Text = "项" + i });
+		big.Blocks.Add(new MdBlock { Kind = MdBlockKind.Heading, Level = 1, Text = "后段" });
+		var part = MdFlowBuilder.BuildRange(big, 3, big.Blocks.Count, 780, null, path, true);
+		var partText = new System.Windows.Documents.TextRange(part.ContentStart, part.ContentEnd).Text ?? "";
+		if (partText.IndexOf("4.", StringComparison.Ordinal) < 0)
+			return bad(say, "窗口序号没接上: " + partText.Replace("\r", " "));
 		say($"md: {doc.Blocks.Count} 块，{fd.Blocks.Count} 段");
 		return true;
 	}
