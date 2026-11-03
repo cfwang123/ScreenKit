@@ -63,7 +63,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
+				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -395,6 +395,8 @@ static class Cli {
 					return testmdread(Opt());
 				case "--test-docview":
 					return testdocview(args, i);
+				case "--test-doclib":
+					return testdoclib(args, i);
 				case "--test-portuse":
 					return testportuse();
 				case "--test-midisynth":
@@ -1162,8 +1164,17 @@ static class Cli {
 		FeaturePick.RefreshDiff(tree);
 		FeaturePick.DiffSelection(tree, out var addN, out var addSz, out var delN, out var delSz);
 		Out($"Pick installed add={addN}/{FeatureInstaller.FormatBytes(addSz)} del={delN}/{FeatureInstaller.FormatBytes(delSz)}");
-		foreach (var n in FeaturePick.Leaves(tree))
-			Out($"  pick [{(n.IsChecked == true ? "x" : " ")}] {n.Diff,-4} {n.SizeLabel,-12} {n.Title}  ({n.Id})");
+		void dumptree(IEnumerable<FeaturePickNode> nodes, int depth) {
+			foreach (var n in nodes) {
+				var pad = new string(' ', depth * 2);
+				if (n.IsGroup)
+					Out($"  {pad}+ {n.Title}  ({n.Id})");
+				else
+					Out($"  {pad}[{(n.IsChecked == true ? "x" : " ")}] {n.Diff,-4} {n.SizeLabel,-12} {n.Title}  ({n.Id})");
+				dumptree(n.Children, depth + 1);
+			}
+		}
+		dumptree(tree, 0);
 		var only = FeaturePick.BuildTree();
 		FeaturePick.SelectAll(only, false);
 		foreach (var n in FeaturePick.Leaves(only))
@@ -6404,8 +6415,52 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return bad == 0 ? 0 : 1;
 	}
 
-	static int testportuse() {
-		Out("=== 网络端口占用 --test-portuse ===");
+	/// <summary>
+	/// 文档解析库 --test-doclib [install|uninstall]：看 Office 解析库装没装；
+	/// 给 install / uninstall 时真的走一遍安装和卸载（下载走 NuGet）。
+	/// </summary>
+	static int testdoclib(string[] args, int start) {
+		Out("=== 文档解析库 --test-doclib ===");
+		var action = start + 1 < args.Length ? (args[start + 1] ?? "").ToLowerInvariant() : "";
+		var kinds = new[] { FeatureKind.DocOfficeOoxml, FeatureKind.DocOfficeLegacy };
+		void probe() {
+			Out($"OpenXml={NativeRuntime.HasOfficeOoxml()} NPOI={NativeRuntime.HasOfficeLegacy()}"
+				+ $" 全套={NativeRuntime.HasOfficeSuite()}");
+			foreach (var k in kinds)
+				Out($"  {k}: {FeatureInstaller.Probe(k)}");
+		}
+		if (action != "install" && action != "uninstall") {
+			probe();
+			return NativeRuntime.HasOfficeSuite() ? 0 : 1;
+		}
+		var log = new Progress<string>(Out);
+		var pr = new Progress<InstallProgress>(p => { });
+		Mouse.OverrideCursor = Cursors.Wait;
+		try {
+			foreach (var k in kinds) {
+				if (action == "install") {
+					Out("安装 " + k);
+					FeatureInstaller.InstallAsync(k, log, pr, CancellationToken.None)
+						.GetAwaiter().GetResult();
+				}
+				else {
+					Out("卸载 " + k);
+					FeatureInstaller.Uninstall(k, log);
+				}
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex.Message);
+			return 1;
+		}
+		finally { Mouse.OverrideCursor = null; }
+		probe();
+		var ok = action == "install" ? NativeRuntime.HasOfficeSuite() : !NativeRuntime.HasOfficeSuite();
+		Out(ok ? "=== OK ===" : "=== FAIL ===");
+		return ok ? 0 : 1;
+	}
+
+	static int testportuse() {		Out("=== 网络端口占用 --test-portuse ===");
 		return PortUse.SelfTest(Out);
 	}
 

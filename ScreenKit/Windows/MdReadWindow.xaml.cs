@@ -155,6 +155,14 @@ public partial class MdReadWindow : Window {
 		bzoomin.Click += (_, _) => zoomby(1.15);
 		bzoomfit.Click += (_, _) => cur?.Viewer?.ZoomFitWidth();
 		bfind.Click += (_, _) => togglefind();
+		bfindprev.Click += (_, _) => findnext(false);
+		bfindnext.Click += (_, _) => findnext(true);
+		epage.KeyDown += (_, e) => {
+			if (e.Key != Key.Enter) return;
+			e.Handled = true;
+			gotoPage();
+		};
+		epage.LostFocus += (_, _) => syncpagebox();
 		bmin.Click += (_, _) => WindowState = WindowState.Minimized;
 		bmax.Click += (_, _) => togglemax();
 		bclosewin.Click += (_, _) => Close();
@@ -228,7 +236,8 @@ public partial class MdReadWindow : Window {
 		mnsysopen.Header = Loc.T("mdread.sysopen");
 		mnword.Header = Loc.T("mdread.word");
 		mnpdf.Header = Loc.T("mdread.pdf");
-		bopen.Content = Loc.T("mdread.open");
+		// 工具栏按钮都是图标，文字只放在提示和自动化名里；这里不要再给 bopen 设 Content，
+		// 否则会盖掉 XAML 里的图标，在左端露出半个字
 		bprev.ToolTip = Loc.T("mdread.prevpage");
 		bnext.ToolTip = Loc.T("mdread.nextpage");
 		bzoomout.ToolTip = Loc.T("mdread.zoomout");
@@ -283,11 +292,28 @@ public partial class MdReadWindow : Window {
 		// PDF 要用 pdfium 逐页出图；精简包没装时先让用户装
 		if (kind == DocView.DocKind.Pdf && !NativeRuntime.HasPdfium() && !FeaturePrompt.EnsurePdf(this))
 			return false;
+		// Word / Excel 的解析库按需安装，不随发布包发
+		if (!ensuredoclib(path, kind)) return false;
 		tabs.Add(new Tab {
 			Path = path,
 			Name = System.IO.Path.GetFileName(path),
 			Kind = kind,
 		});
+		return true;
+	}
+
+	/// <summary>
+	/// Word / Excel 的解析库按需安装，不随发布包发：
+	/// docx / xlsx 要 OpenXml，doc / xls 要 NPOI。md、pdf、文本、图片、csv 都不依赖它们。
+	/// </summary>
+	bool ensuredoclib(string path, DocView.DocKind kind) {
+		if (kind is not (DocView.DocKind.Docx or DocView.DocKind.Xlsx)) return true;
+		var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+		var legacy = ext is ".doc" or ".xls";
+		if (!legacy && !NativeRuntime.HasOfficeOoxml() && !FeaturePrompt.EnsureDocOfficeOoxml(this))
+			return false;
+		if (legacy && !NativeRuntime.HasOfficeLegacy() && !FeaturePrompt.EnsureDocOfficeLegacy(this))
+			return false;
 		return true;
 	}
 
@@ -497,14 +523,44 @@ public partial class MdReadWindow : Window {
 
 	void togglefind() {
 		findopen = !findopen;
-		pfind.Visibility = findopen ? Visibility.Visible : Visibility.Collapsed;
+		efind.Visibility = findopen ? Visibility.Visible : Visibility.Collapsed;
+		bfindprev.Visibility = findopen ? Visibility.Visible : Visibility.Collapsed;
+		bfindnext.Visibility = findopen ? Visibility.Visible : Visibility.Collapsed;
 		if (!findopen) {
 			efind.Text = "";
 			cur?.Viewer?.ClearFind();
+			findtext = "";
 			return;
 		}
 		efind.Focus();
 		efind.SelectAll();
+	}
+
+	/// <summary>页码框回车跳到该页。</summary>
+	void gotoPage() {
+		var v = cur?.Viewer;
+		if (v == null) { syncpagebox(); return; }
+		if (!int.TryParse((epage.Text ?? "").Trim(), out var n) || n < 1) { syncpagebox(); return; }
+		n = Math.Min(n, Math.Max(1, v.PageCount));
+		v.GoToPage(n);
+		syncpagebox();
+		showstat();
+	}
+
+	/// <summary>把阅读器的当前页写回页码框。</summary>
+	void syncpagebox() {
+		var v = cur?.Viewer;
+		if (v == null) {
+			epage.Text = "";
+			lbpage.Text = "/ 0";
+			return;
+		}
+		var n = v.PageCount;
+		epage.Text = n > 0 ? Math.Max(1, v.CurrentPage).ToString() : "";
+		lbpage.Text = "/ " + Math.Max(0, n);
+		epage.IsEnabled = n > 0;
+		bprev.IsEnabled = n > 1;
+		bnext.IsEnabled = n > 1;
 	}
 
 	void findnext(bool forward) {
@@ -630,24 +686,28 @@ public partial class MdReadWindow : Window {
 		mnpath.IsEnabled = cur != null;
 		mnsysopen.IsEnabled = cur != null;
 		var v = cur?.Viewer;
-		bprev.IsEnabled = v != null && v.PageCount > 1;
-		bnext.IsEnabled = v != null && v.PageCount > 1;
 		bzoomout.IsEnabled = v != null;
 		bzoomin.IsEnabled = v != null;
 		bzoomfit.IsEnabled = v != null;
 		bfind.IsEnabled = v != null;
+		bfindprev.IsEnabled = v != null;
+		bfindnext.IsEnabled = v != null;
+		syncpagebox();
 		if (cur == null) {
 			lbstat.Text = Loc.T("mdread.hint");
 			return;
 		}
-		var parts = new List<string> { cur.Path };
+		// 状态栏只留格式和缩放这些随文件变的信息；完整路径放在提示里，免得太长把工具条挤没
+		var parts = new List<string>();
 		if (cur.Error.Length > 0) parts.Add(cur.Error);
 		else if (v != null) {
-			parts.Add(v.StatusText ?? "");
+			var s = v.StatusText ?? "";
+			if (s.Length > 0) parts.Add(s);
 			if (tabs.Count > 1) parts.Add(string.Format(Loc.T("mdread.tabs"), tabs.Count));
 		}
 		else parts.Add(Loc.T("mdread.loading"));
 		lbstat.Text = string.Join("  ·  ", parts);
+		lbstat.ToolTip = cur.Path;
 	}
 	#endregion
 }

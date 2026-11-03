@@ -71,6 +71,23 @@ static class NativeRuntime {
 		"PdfSharp.Cryptography.dll", PdfToImageDll,
 	];
 	const string SherpaCApi = "sherpa-onnx-c-api.dll";
+	// ───── 文档阅读器的 Office 解析库（docx/xlsx 用 OpenXml，doc/xls 用 NPOI）─────
+	const string OfficeOpenXmlPkg = "DocumentFormat.OpenXml";
+	const string OfficeOpenXmlVer = "3.2.0";
+	const string OfficeOpenXmlFrameworkPkg = "DocumentFormat.OpenXml.Framework";
+	const string OfficeOpenXmlFrameworkDll = "DocumentFormat.OpenXml.Framework.dll";
+	const string OfficeOpenXmlDll = "DocumentFormat.OpenXml.dll";
+	const string NpoiPkg = "NPOI";
+	const string NpoiVer = "2.3.0";
+	const string NpoiHwpfPkg = "NPOI.HWPF";
+	const string SharpZipPkg = "SharpZipLib";
+	const string SharpZipVer = "0.86.0";
+	const string SharpZipDll = "ICSharpCode.SharpZipLib.dll";
+	/// <summary>NPOI 2.3.0 的四个程序集：xls 解析、OOXML 容器、旧版 doc。</summary>
+	public static readonly string[] NpoiDlls = [
+		"NPOI.dll", "NPOI.OOXML.dll", "NPOI.OpenXml4Net.dll", "NPOI.OpenXmlFormats.dll",
+	];
+	const string NpoiHwpfDll = "NPOI.ScratchPad.HWPF.dll";
 
 	static readonly object gate = new();
 	static readonly HttpClient Http = createhttp();
@@ -112,6 +129,20 @@ static class NativeRuntime {
 		File.Exists(Path.Combine(BaseDir, Pdfium))
 		|| File.Exists(Path.Combine(BaseDir, "x64", Pdfium));
 
+	/// <summary>docx/xlsx 解析：OpenXml 三件套。</summary>
+	public static bool HasOfficeOoxml() =>
+		File.Exists(Path.Combine(BaseDir, OfficeOpenXmlDll))
+		&& File.Exists(Path.Combine(BaseDir, OfficeOpenXmlFrameworkDll));
+
+	/// <summary>doc/xls 解析：NPOI 四个程序集 + 旧版 doc + SharpZipLib。</summary>
+	public static bool HasOfficeLegacy() =>
+		NpoiDlls.All(n => File.Exists(Path.Combine(BaseDir, n)))
+		&& File.Exists(Path.Combine(BaseDir, NpoiHwpfDll))
+		&& File.Exists(Path.Combine(BaseDir, SharpZipDll));
+
+	/// <summary>文档阅读器全套 Office 解析库。</summary>
+	public static bool HasOfficeSuite() => HasOfficeOoxml() && HasOfficeLegacy();
+
 	/// <summary>PDF 渲染的原生库：Skia + PDFium 齐全。</summary>
 	public static bool HasSkiaPdf() => HasSkia() && HasPdfium();
 
@@ -141,7 +172,11 @@ static class NativeRuntime {
 	static long PdfSharpSizeHint => 1585472L;
 	static long PdfToImageSizeHint => 71528L;
 	public static long SherpaSizeHint => 5L * 1024 * 1024;
-	public static long OracleSizeHint => 4750952L;
+	/// <summary>OpenXml 三件套（docx/xlsx 解析）合计约 6.8MB。</summary>
+	public static long OfficeOoxmlSizeHint => 6353520L + 473712L + 124928L;
+	/// <summary>NPOI 四个程序集 + HWPF + SharpZipLib 合计约 4.7MB。</summary>
+	public static long OfficeLegacySizeHint => 1679360L + 536064L + 91136L + 2121728L
+		+ 318976L + 200704L;	public static long OracleSizeHint => 4750952L;
 	public static long MysqlSizeHint => 855400L;
 	/// <summary>SQLite 驱动整套（托管 + 原生）。</summary>
 	public static long SqliteDriverSizeHint => SqliteSizeHint + 172072 + 51200 + 11776 + 66048;
@@ -356,6 +391,31 @@ static class NativeRuntime {
 		sherpaOk = HasSherpa();
 	}
 
+	/// <summary>docx/xlsx 解析库：DocumentFormat.OpenXml + Framework。</summary>
+	public static async Task InstallOfficeOoxml(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await FeatureInstaller.InstallNuGetFiles(OfficeOpenXmlPkg, OfficeOpenXmlVer,
+			new[] { ("lib/net46/" + OfficeOpenXmlDll, Path.Combine(BaseDir, OfficeOpenXmlDll)) },
+			log, progress, ct, OfficeOoxmlSizeHint).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(OfficeOpenXmlFrameworkPkg, OfficeOpenXmlVer,
+			new[] { ("lib/net46/" + OfficeOpenXmlFrameworkDll, Path.Combine(BaseDir, OfficeOpenXmlFrameworkDll)) },
+			log, progress, ct, OfficeOoxmlSizeHint).ConfigureAwait(false);
+	}
+
+	/// <summary>doc/xls 解析库：NPOI 四个 + 旧版 doc（HWPF）+ SharpZipLib。</summary>
+	public static async Task InstallOfficeLegacy(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		await FeatureInstaller.InstallNuGetFiles(NpoiPkg, NpoiVer,
+			NpoiDlls.Select(n => ("lib/net40/" + n, Path.Combine(BaseDir, n))).ToArray(),
+			log, progress, ct, OfficeLegacySizeHint).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(NpoiHwpfPkg, NpoiVer,
+			new[] { ("lib/net40/" + NpoiHwpfDll, Path.Combine(BaseDir, NpoiHwpfDll)) },
+			log, progress, ct, OfficeLegacySizeHint).ConfigureAwait(false);
+		await FeatureInstaller.InstallNuGetFiles(SharpZipPkg, SharpZipVer,
+			new[] { ("lib/20/" + SharpZipDll, Path.Combine(BaseDir, SharpZipDll)) },
+			log, progress, ct, OfficeLegacySizeHint).ConfigureAwait(false);
+	}
+
 	// ───────── 卸载 ─────────
 
 	public static void UninstallOpenCv(IProgress<string> log = null) {
@@ -383,6 +443,12 @@ static class NativeRuntime {
 
 	public static void UninstallNPinyin(IProgress<string> log = null) =>
 		deletefiles(log, NPinyinDll);
+
+	public static void UninstallOfficeOoxml(IProgress<string> log = null) =>
+		deletefiles(log, OfficeOpenXmlDll, OfficeOpenXmlFrameworkDll);
+
+	public static void UninstallOfficeLegacy(IProgress<string> log = null) =>
+		deletefiles(log, NpoiDlls.Append(NpoiHwpfDll).Append(SharpZipDll).ToArray());
 
 	public static void UninstallSkia(IProgress<string> log = null) {
 		deletefiles(log, LibSkia,

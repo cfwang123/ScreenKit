@@ -70,6 +70,10 @@ public enum FeatureKind {
 	NPinyin,
 	/// <summary>输入法 ime.db。从固定 Release dict-db 的 ime.7z 解出，不进应用更新包。</summary>
 	ImeDb,
+	/// <summary>docx/xlsx 解析：DocumentFormat.OpenXml 及其 Framework（约 6.8MB）。</summary>
+	DocOfficeOoxml,
+	/// <summary>doc/xls 解析：NPOI 四件套 + HWPF + SharpZipLib（约 4.7MB）。</summary>
+	DocOfficeLegacy,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -235,6 +239,8 @@ static class FeatureInstaller {
 			make(FeatureKind.DbMssql, "db"),
 			make(FeatureKind.Bogus, "native"),
 			make(FeatureKind.NPinyin, "native"),
+			make(FeatureKind.DocOfficeOoxml, "office"),
+			make(FeatureKind.DocOfficeLegacy, "office"),
 			make(FeatureKind.NativeSkia, "native"),
 			make(FeatureKind.NativePdfium, "native"),
 			make(FeatureKind.PdfManaged, "native"),
@@ -301,6 +307,8 @@ static class FeatureInstaller {
 		FeatureKind.DbMssql => 0,
 		FeatureKind.Bogus => NativeRuntime.BogusSizeHint,
 		FeatureKind.NPinyin => NativeRuntime.NPinyinSizeHint,
+		FeatureKind.DocOfficeOoxml => NativeRuntime.OfficeOoxmlSizeHint,
+		FeatureKind.DocOfficeLegacy => NativeRuntime.OfficeLegacySizeHint,
 		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint + NativeRuntime.SkiaManagedSizeHint,
 		FeatureKind.NativePdfium => NativeRuntime.PdfiumSizeHint,
 		FeatureKind.PdfManaged => NativeRuntime.PdfManagedSizeHint,
@@ -386,6 +394,13 @@ static class FeatureInstaller {
 				return filesize(Path.Combine(BaseDir, "Bogus.dll"));
 			case FeatureKind.NPinyin:
 				return filesize(Path.Combine(BaseDir, "NPinyin.dll"));
+			case FeatureKind.DocOfficeOoxml:
+				return filesize(Path.Combine(BaseDir, "DocumentFormat.OpenXml.dll"))
+					+ filesize(Path.Combine(BaseDir, "DocumentFormat.OpenXml.Framework.dll"));
+			case FeatureKind.DocOfficeLegacy:
+				return NativeRuntime.NpoiDlls.Sum(n => filesize(Path.Combine(BaseDir, n)))
+					+ filesize(Path.Combine(BaseDir, "NPOI.ScratchPad.HWPF.dll"))
+					+ filesize(Path.Combine(BaseDir, "ICSharpCode.SharpZipLib.dll"));
 			case FeatureKind.NativeSkia:
 				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"))
 					+ filesize(Path.Combine(BaseDir, "SkiaSharp.dll"));
@@ -480,6 +495,10 @@ static class FeatureInstaller {
 			return NativeRuntime.HasBogus() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NPinyin:
 			return NativeRuntime.HasNPinyin() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.DocOfficeOoxml:
+			return NativeRuntime.HasOfficeOoxml() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.DocOfficeLegacy:
+			return NativeRuntime.HasOfficeLegacy() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSkia:
 			if (!NativeRuntime.HasSkia()) return FeatureInstallState.Missing;
 			return NativeRuntime.HasSkiaManaged() ? FeatureInstallState.Installed : FeatureInstallState.Partial;
@@ -684,6 +703,12 @@ static class FeatureInstaller {
 		case FeatureKind.NPinyin:
 			await NativeRuntime.InstallNPinyin(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.DocOfficeOoxml:
+			await NativeRuntime.InstallOfficeOoxml(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.DocOfficeLegacy:
+			await NativeRuntime.InstallOfficeLegacy(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.NativeSkia:
 			await NativeRuntime.InstallSkia(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -794,6 +819,12 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.NPinyin:
 			NativeRuntime.UninstallNPinyin(log);
+			break;
+		case FeatureKind.DocOfficeOoxml:
+			NativeRuntime.UninstallOfficeOoxml(log);
+			break;
+		case FeatureKind.DocOfficeLegacy:
+			NativeRuntime.UninstallOfficeLegacy(log);
 			break;
 		case FeatureKind.NativeSkia:
 			NativeRuntime.UninstallSkia(log);

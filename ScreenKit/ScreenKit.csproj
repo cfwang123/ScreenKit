@@ -147,10 +147,22 @@
     <PackageReference Include="ZXingCpp" Version="0.5.3" />
     <PackageReference Include="PDFsharp" Version="6.2.0" />
     <PackageReference Include="PDFtoImage" Version="5.1.1" />
-    <!-- 文档阅读器：docx/xlsx 版面解析，旧版 .doc/.xls 走 NPOI -->
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.2.0" />
-    <PackageReference Include="NPOI" Version="2.3.0" />
-    <PackageReference Include="NPOI.HWPF" Version="2.3.0" />
+    <!-- 文档阅读器的 docx/xlsx/doc/xls 解析库：跟 ZXing、NPinyin 一样按需安装，不随包发 -->
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.2.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="DocumentFormat.OpenXml.Framework" Version="3.2.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="NPOI" Version="2.3.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="NPOI.HWPF" Version="2.3.0">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="ICSharpCode.SharpZipLib" Version="0.86.0.518">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
     <!-- net48 兼容版本（勿用 10.0） -->
     <PackageReference Include="System.Drawing.Common" Version="8.0.11" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
@@ -374,6 +386,8 @@
       <_SlimJunk Include="$(_SlimOut)\opencv_videoio_ffmpeg*.dll" />
       <_SlimJunk Include="$(_SlimOut)\ZXing.dll;$(_SlimOut)\SharpCompress.dll;$(_SlimOut)\SharpSevenZip.dll;$(_SlimOut)\e_sqlite3.dll;$(_SlimOut)\Bogus.dll;$(_SlimOut)\NPinyin.dll" />
       <_SlimJunk Include="$(_SlimOut)\Microsoft.Data.Sqlite.dll;$(_SlimOut)\SQLitePCLRaw.*.dll;$(_SlimOut)\MySqlConnector.dll;$(_SlimOut)\Oracle.ManagedDataAccess.dll;$(_SlimOut)\System.Formats.Asn1.dll" />
+      <!-- 文档阅读器的 Office 解析库也按需安装，旧构建残留一并清掉 -->
+      <_SlimJunk Include="$(_SlimOut)\DocumentFormat.OpenXml.dll;$(_SlimOut)\DocumentFormat.OpenXml.Framework.dll;$(_SlimOut)\NPOI.dll;$(_SlimOut)\NPOI.*.dll;$(_SlimOut)\ICSharpCode.SharpZipLib.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\web\jname-s.txt;$(_SlimOut)\web\jname-g.txt" />

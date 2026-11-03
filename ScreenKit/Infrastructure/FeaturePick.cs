@@ -14,6 +14,11 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	public string SizeLabel { get; set; }
 	/// <summary>系统自带，勾选锁住，不参与安装或卸载。</summary>
 	public bool Locked { get; set; }
+	/// <summary>
+	/// 一行代表整套组件（数据库驱动）：装过其中任意一个就算已装，勾选时装齐全部。
+	/// 普通叶子只看 <see cref="Kinds"/> 最后一项是否已装。
+	/// </summary>
+	public bool WholePack { get; set; }
 	/// <summary>取消勾选已装功能时不记为卸载（首次启动向导）。</summary>
 	public bool KeepInstalled { get; set; }
 	public List<FeaturePickNode> Children { get; } = new();
@@ -82,7 +87,9 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 			return "";
 		}
 		if (Kinds == null || Kinds.Length == 0) return "";
-		var have = FeatureInstaller.Probe(Kinds[Kinds.Length - 1]) != FeatureInstallState.Missing;
+		var have = WholePack
+			? Kinds.Any(k => FeatureInstaller.Probe(k) != FeatureInstallState.Missing)
+			: FeatureInstaller.Probe(Kinds[Kinds.Length - 1]) != FeatureInstallState.Missing;
 		if (check == true && !have) return "add";
 		if (check != true && have && !KeepInstalled) return "del";
 		return "";
@@ -166,11 +173,13 @@ static class FeaturePick {
 		group("tools", "feat.pick.tools", "feat.pick.tools.detail",
 			leaf("bogus", "feat.pick.bogus", "feat.pick.bogus.detail", FeatureKind.Bogus),
 			leaf("pinyin", "feat.pick.pinyin", "feat.pick.pinyin.detail", FeatureKind.NPinyin),
-			group("db", "feat.pick.db", "feat.pick.db.detail",
-				leaf("sqlite", "feat.pick.sqlite", "feat.pick.sqlite.detail", FeatureKind.NativeSqlite),
-				leaf("db.mysql", "feat.pick.db.mysql", "feat.pick.db.mysql.detail", FeatureKind.DbMysql),
-				leaf("db.oracle", "feat.pick.db.oracle", "feat.pick.db.oracle.detail", FeatureKind.DbOracle),
-				builtin("db.mssql", "feat.pick.db.mssql", "feat.pick.db.mssql.detail", FeatureKind.DbMssql))),
+			group("docview", "feat.pick.docview", "feat.pick.docview.detail",
+				leaf("docview.ooxml", "feat.pick.docview.ooxml", "feat.pick.docview.ooxml.detail",
+					FeatureKind.DocOfficeOoxml),
+				leaf("docview.legacy", "feat.pick.docview.legacy", "feat.pick.docview.legacy.detail",
+					FeatureKind.DocOfficeLegacy)),
+			// 数据库驱动只有一行：勾上就把 SQLite / MySQL / Oracle 一起装（SQL Server 用系统自带，不用装）
+			wholedb()),
 	];
 
 	public static IEnumerable<FeaturePickNode> Leaves(IEnumerable<FeaturePickNode> roots) {
@@ -206,7 +215,9 @@ static class FeaturePick {
 				continue;
 			}
 			var primary = n.Kinds[n.Kinds.Length - 1];
-			var have = FeatureInstaller.Probe(primary) != FeatureInstallState.Missing;
+			var have = n.WholePack
+				? n.Kinds.Any(k => FeatureInstaller.Probe(k) != FeatureInstallState.Missing)
+				: FeatureInstaller.Probe(primary) != FeatureInstallState.Missing;
 			var want = have || ids.Contains(n.Id) || kinds.Contains(primary);
 			if (!want) {
 				foreach (var k in n.Kinds) {
@@ -296,6 +307,13 @@ static class FeaturePick {
 			foreach (var k in n.Kinds)
 				set.Add(k);
 		}
+	}
+
+	static FeaturePickNode wholedb() {
+		var n = leaf("db", "feat.pick.db", "feat.pick.db.detail",
+			FeatureKind.NativeSqlite, FeatureKind.DbMysql, FeatureKind.DbOracle);
+		n.WholePack = true;
+		return n;
 	}
 
 	static FeaturePickNode group(string id, string titleKey, string detailKey, params FeaturePickNode[] kids) {

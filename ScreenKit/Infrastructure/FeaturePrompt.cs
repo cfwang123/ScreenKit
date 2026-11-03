@@ -80,6 +80,16 @@ static class FeaturePrompt {
 		EnsureKinds(owner, Loc.T("feat.prompt.pdf.title"), Loc.T("feat.prompt.pdf.detail"),
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium, FeatureKind.PdfManaged);
 
+	/// <summary>docx/xlsx 预览要 OpenXml 解析库。</summary>
+	public static bool EnsureDocOfficeOoxml(Window owner = null) =>
+		EnsureKinds(owner, Loc.T("feat.prompt.ooxml.title"), Loc.T("feat.prompt.ooxml.detail"),
+			FeatureKind.DocOfficeOoxml);
+
+	/// <summary>doc/xls 预览要 NPOI 解析库。</summary>
+	public static bool EnsureDocOfficeLegacy(Window owner = null) =>
+		EnsureKinds(owner, Loc.T("feat.prompt.npoi.title"), Loc.T("feat.prompt.npoi.detail"),
+			FeatureKind.DocOfficeLegacy);
+
 	public static bool EnsureFfmpeg(Window owner = null) =>
 		EnsureKinds(owner, Loc.T("feat.prompt.ffmpeg.title"), Loc.T("feat.prompt.ffmpeg.detail"),
 			FeatureKind.Ffmpeg);

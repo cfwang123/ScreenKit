@@ -112,6 +112,10 @@ static class DocViewSelfTest {
 	}
 
 	static bool testdocx(Action<string> say, string dir) {
+		if (!NativeRuntime.HasOfficeOoxml() || !NativeRuntime.HasOfficeLegacy()) {
+			say("docx: 跳过（未安装 Office 解析库）");
+			return true;
+		}
 		var path = Path.Combine(dir, "t.docx");
 		makedocx(path);
 		var v = new DocxViewer();
@@ -125,6 +129,10 @@ static class DocViewSelfTest {
 	}
 
 	static bool testxlsx(Action<string> say, string dir) {
+		if (!NativeRuntime.HasOfficeOoxml() || !NativeRuntime.HasOfficeLegacy()) {
+			say("xlsx: 跳过（未安装 Office 解析库）");
+			return true;
+		}
 		var path = Path.Combine(dir, "t.xlsx");
 		makexlsx(path);
 		var v = new XlsxViewer();

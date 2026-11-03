@@ -108,34 +108,80 @@
 			</Setter>
 		</Style>
 
-		<!-- 工具栏上的图标按钮 -->
+		<!-- 工具栏图标按钮：统一 28×26 的方形，线框图标铺满图标区 -->
 		<Style x:Key="BarBtn" TargetType="Button">
 			<Setter Property="Background" Value="Transparent"/>
 			<Setter Property="BorderBrush" Value="Transparent"/>
-			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="Height" Value="28"/>
-			<Setter Property="Padding" Value="10,0"/>
-			<Setter Property="Margin" Value="0,0,4,0"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Width" Value="28"/>
+			<Setter Property="Height" Value="26"/>
+			<Setter Property="Padding" Value="5"/>
 			<Setter Property="Cursor" Value="Hand"/>
-			<Setter Property="Foreground" Value="#333A44"/>
-			<Setter Property="FontSize" Value="12.5"/>
+			<Setter Property="ToolTipService.Placement" Value="Bottom"/>
 			<Setter Property="Template">
 				<Setter.Value>
 					<ControlTemplate TargetType="Button">
 						<Border x:Name="bd" Background="{TemplateBinding Background}"
 						        BorderBrush="{TemplateBinding BorderBrush}"
-						        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+						        BorderThickness="1" CornerRadius="3"
+						        Padding="{TemplateBinding Padding}">
 							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
 								<Setter TargetName="bd" Property="Background" Value="#E6EAF0"/>
-								<Setter TargetName="bd" Property="BorderBrush" Value="#D2D8E0"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#D6DDE6"/>
 							</Trigger>
 							<Trigger Property="IsEnabled" Value="False">
-								<Setter Property="Foreground" Value="#A8B0BA"/>
+								<Setter Property="Opacity" Value="0.35"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<!-- 图标笔触：与 docview 一致，muted 色细线，不填充 -->
+		<Style x:Key="BarIcon" TargetType="Path">
+			<Setter Property="Stroke" Value="#6B7280"/>
+			<Setter Property="StrokeThickness" Value="1.4"/>
+			<Setter Property="StrokeStartLineCap" Value="Round"/>
+			<Setter Property="StrokeEndLineCap" Value="Round"/>
+			<Setter Property="StrokeLineJoin" Value="Round"/>
+			<Setter Property="Fill" Value="Transparent"/>
+			<Setter Property="Stretch" Value="Uniform"/>
+			<Setter Property="Width" Value="16"/>
+			<Setter Property="Height" Value="16"/>
+		</Style>
+
+		<!-- 工具栏上的小号文字（页码「/ 2」这类） -->
+		<Style x:Key="BarLabel" TargetType="TextBlock">
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+			<Setter Property="FontSize" Value="12"/>
+		</Style>
+
+		<!-- 工具栏里的输入框：页码、查找 -->
+		<Style x:Key="BarBox" TargetType="TextBox">
+			<Setter Property="Height" Value="22"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<Setter Property="Padding" Value="4,0"/>
+			<Setter Property="BorderBrush" Value="#D2D8E0"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="TextBox">
+						<Border Background="{TemplateBinding Background}"
+						        BorderBrush="{TemplateBinding BorderBrush}"
+						        BorderThickness="{TemplateBinding BorderThickness}"
+						        CornerRadius="3">
+							<ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
+							              VerticalAlignment="Center"/>
+						</Border>
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
@@ -198,44 +244,85 @@
 				</Grid>
 			</Border>
 
-			<!-- 第 2 行：工具栏 -->
+			<!-- 第 2 行：工具栏。参照 docview：一行图标按钮，页码和查找是行内输入框 -->
 			<Border x:Name="ptoolbar" DockPanel.Dock="Top" Background="#F7F8FA"
-			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,4">
-				<DockPanel LastChildFill="True">
-					<StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-						<Button x:Name="bopen" Style="{StaticResource BarBtn}" Content="打开…"
-						        AutomationProperties.AutomationId="mdread.open"/>
-						<Border Width="1" Height="18" Background="#D8DEE6" Margin="4,0,8,0"/>
-						<Button x:Name="bprev" Style="{StaticResource BarBtn}" Content="◀" ToolTip="上一页"
-						        AutomationProperties.AutomationId="mdread.prev"/>
-						<Button x:Name="bnext" Style="{StaticResource BarBtn}" Content="▶" ToolTip="下一页"
-						        AutomationProperties.AutomationId="mdread.next"/>
-						<Border Width="1" Height="18" Background="#D8DEE6" Margin="4,0,8,0"/>
-						<Button x:Name="bzoomout" Style="{StaticResource BarBtn}" Content="－" ToolTip="缩小"
-						        AutomationProperties.AutomationId="mdread.zoomout"/>
-						<Button x:Name="bzoomin" Style="{StaticResource BarBtn}" Content="＋" ToolTip="放大"
-						        AutomationProperties.AutomationId="mdread.zoomin"/>
-						<Button x:Name="bzoomfit" Style="{StaticResource BarBtn}" Content="适宽" ToolTip="适应宽度"
-						        AutomationProperties.AutomationId="mdread.zoomfit"/>
-						<Button x:Name="bfind" Style="{StaticResource BarBtn}" Content="查找"
-						        AutomationProperties.AutomationId="mdread.find"/>
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="6,2">
+				<!-- 左列按内容宽度，右列吃掉剩余宽度：状态文字被裁剪，按钮不会被挤变形 -->
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="*"/>
+					</Grid.ColumnDefinitions>
+					<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+						<!-- 打开 -->
+						<Button x:Name="bopen" Style="{StaticResource BarBtn}" ToolTip="打开文件"
+						        AutomationProperties.AutomationId="mdread.open">
+							<Path Style="{StaticResource BarIcon}"
+							      Data="M5,4 h4 l3,3 h7 a2,2 0 0 1 2,2 v8 a2,2 0 0 1 -2,2 h-14 a2,2 0 0 1 -2,-2 v-11 a2,2 0 0 1 2,-2"/>
+						</Button>
+						<Border Width="1" Height="18" Background="#D8DEE6" Margin="6,0"/>
+
+						<!-- 页码范围：页码 / 总页数 -->
+						<TextBlock Text="页码:" Style="{StaticResource BarLabel}" Margin="0,0,4,0"/>
+						<TextBox x:Name="epage" Style="{StaticResource BarBox}" Width="44"
+						         HorizontalContentAlignment="Right" ToolTip="跳到指定页（回车）"
+						         AutomationProperties.AutomationId="mdread.pagebox"/>
+						<TextBlock x:Name="lbpage" Text="/ 0" Style="{StaticResource BarLabel}"
+						           MinWidth="38" Margin="2,0,6,0"/>
+
+						<!-- 上一页 / 下一页 -->
+						<Button x:Name="bprev" Style="{StaticResource BarBtn}" ToolTip="上一页 (PgUp)"
+						        AutomationProperties.AutomationId="mdread.prev">
+							<Path Style="{StaticResource BarIcon}" Data="M5,12 L19,12 M5,12 L11,18 M5,12 L11,6"/>
+						</Button>
+						<Button x:Name="bnext" Style="{StaticResource BarBtn}" ToolTip="下一页 (PgDn)"
+						        AutomationProperties.AutomationId="mdread.next">
+							<Path Style="{StaticResource BarIcon}" Data="M5,12 L19,12 M13,18 L19,12 M13,6 L19,12"/>
+						</Button>
+						<Border Width="1" Height="18" Background="#D8DEE6" Margin="6,0"/>
+
+						<!-- 缩小 / 放大 / 适应宽度 -->
+						<Button x:Name="bzoomout" Style="{StaticResource BarBtn}" ToolTip="缩小 (Ctrl+-)"
+						        AutomationProperties.AutomationId="mdread.zoomout">
+							<Path Style="{StaticResource BarIcon}"
+							      Data="M10,10 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 M7,10 L13,10 M21,21 L15,15"/>
+						</Button>
+						<Button x:Name="bzoomin" Style="{StaticResource BarBtn}" ToolTip="放大 (Ctrl++)"
+						        AutomationProperties.AutomationId="mdread.zoomin">
+							<Path Style="{StaticResource BarIcon}"
+							      Data="M10,10 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 M7,10 L13,10 M10,7 L10,13 M21,21 L15,15"/>
+						</Button>
+						<Button x:Name="bzoomfit" Style="{StaticResource BarBtn}" ToolTip="适应宽度"
+						        AutomationProperties.AutomationId="mdread.zoomfit">
+							<Path Style="{StaticResource BarIcon}"
+							      Data="M3,3 h18 a2,2 0 0 1 2,2 v14 a2,2 0 0 1 -2,2 h-18 a2,2 0 0 1 -2,-2 v-14 a2,2 0 0 1 2,-2 M3,12 L21,12"/>
+						</Button>
+						<Border Width="1" Height="18" Background="#D8DEE6" Margin="6,0"/>
+
+						<!-- 查找：开关按钮 + 输入框 + 上/下一个（后两个未查找时隐藏） -->
+						<Button x:Name="bfind" Style="{StaticResource BarBtn}" ToolTip="查找 (Ctrl+F)"
+						        AutomationProperties.AutomationId="mdread.find">
+							<Path Style="{StaticResource BarIcon}"
+							      Data="M10,10 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 M21,21 L15,15"/>
+						</Button>
+						<TextBox x:Name="efind" Style="{StaticResource BarBox}" Width="150" Margin="2,0,2,0"
+						         Visibility="Collapsed" ToolTip="输入后回车向下，Shift+回车向上"
+						         AutomationProperties.AutomationId="mdread.findbox"/>
+						<Button x:Name="bfindprev" Style="{StaticResource BarBtn}" ToolTip="上一个"
+						        Visibility="Collapsed" AutomationProperties.AutomationId="mdread.findprev">
+							<Path Style="{StaticResource BarIcon}" Data="M15,6 L9,12 L15,18"/>
+						</Button>
+						<Button x:Name="bfindnext" Style="{StaticResource BarBtn}" ToolTip="下一个"
+						        Visibility="Collapsed" AutomationProperties.AutomationId="mdread.findnext">
+							<Path Style="{StaticResource BarIcon}" Data="M9,6 L15,12 L9,18"/>
+						</Button>
 					</StackPanel>
-					<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="12,0,4,0"
+
+					<!-- 状态文字：格式、页数、缩放 -->
+					<TextBlock x:Name="lbstat" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,4,0"
 					           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
 					           FontSize="12" AutomationProperties.AutomationId="mdread.stat"/>
-				</DockPanel>
-			</Border>
-
-			<!-- 第 2.5 行：查找条，点「查找」才出现 -->
-			<Border x:Name="pfind" DockPanel.Dock="Top" Visibility="Collapsed" Background="#F7F8FA"
-			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,4">
-				<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-					<TextBox x:Name="efind" Width="240" Height="26" Padding="6,0"
-					         VerticalContentAlignment="Center" FontSize="12.5"
-					         AutomationProperties.AutomationId="mdread.findbox"/>
-					<TextBlock Text="回车向下，Shift+回车向上" Margin="8,0,0,0" VerticalAlignment="Center"
-					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-				</StackPanel>
+				</Grid>
 			</Border>
 
 			<!-- 第 3 行：文档区，阅读器自己的 FrameworkElement 挂在这里 -->
