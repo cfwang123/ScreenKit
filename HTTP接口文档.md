@@ -476,6 +476,42 @@ ScreenKit --jpyomi "東京" --mono
 
 ---
 
+## 5.5.6 POST `/api/docview` · GET `/api/docasset`
+
+把 Markdown、Word (.docx) 或 PDF 转成可浏览的网页，供 web 工具集的文档阅读器使用。转换复用桌面阅读器的同一份实现，网页和桌面排版一致。
+
+**转换** `POST /api/docview?name=a.docx`
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `name` | string | 文件名，扩展名决定格式：`.md` / `.markdown` / `.mdown` / `.mkd` / `.docx` / `.pdf` |
+| `theme` | string | 只对 Markdown 有效，取值 `light` `dark` `sepia` `green` `night` |
+| `scale` | number | 只对 Markdown 有效，字号倍数，0.6 ~ 4 |
+
+请求体就是文件原始字节（`Content-Type` 任意），上限 60 MB。返回：
+
+```json
+{
+  "code": 100,
+  "data": {
+    "id": "1405a1b2_c3d4e5f6",
+    "name": "a.docx",
+    "kind": "docx",
+    "pages": 0,
+    "images": 3,
+    "html": "<!DOCTYPE html>…"
+  }
+}
+```
+
+`html` 是整页 HTML，里面的图片地址已经换成 `/api/docasset`；`pages` 只有 PDF 有值。转换产物放在 `tmp/docview/<id>/`，只保留最近 40 份。
+
+**取资源** `GET /api/docasset?id=<id>&f=page.html`
+
+`f` 是转换目录里的相对路径，页面本身用 `page.html`，图片形如 `img/001.png`。只接受本进程生成的 `id`，非法路径返回 `{"code":404}`。
+
+---
+
 ## 5.6 GET/POST `/api/qrmake` · POST `/api/qrscan`
 
 生成或识别二维码和条码。不随模块开关关闭。生成走 ZXing 写码，识别不跑 OCR。

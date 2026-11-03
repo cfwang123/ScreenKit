@@ -1,18 +1,23 @@
 (function(){
+	// 文档阅读器：一次拖入多个 md/docx/pdf，每个文件一个标签页。
+	// 转换在 C# 端做（和 WPF 阅读器同一份实现），这里只管排队、切标签和显示。
 	var page = null;
 	var hooked = false;
-	var lastb64 = "";
-	var lasttitle = "";
+	var tabs = [];
+	var cur = null;
+	var seq = 0;
 	var THEMES = ["light", "dark", "sepia", "green", "night"];
+	var MAXNAME = 26;
 
 	SK.regutil("u-mdread", {
-		title: "MD阅读器",
+		title: "文档阅读器",
 		own: true,
 		hideGo: true,
 		hideCopy: true,
 		hideOut: true,
 		body: body,
-		open: open
+		open: open,
+		dispose: dispose
 	});
 
 	function body(t){
@@ -22,12 +27,15 @@
 		return F.CreateDOM(t, { x: "div.mdread", c: [
 			{ x: "div.mdread-bar", c: [
 				{ x: "button.md-open", name: "mdOpen", type: "button", c: openLabel },
-				{ x: "input.md-file", name: "mdFile", type: "file", accept: ".md,.markdown,.mdown,.mkd,text/markdown", hidden: true },
+				{ x: "input.md-file", name: "mdFile", type: "file", hidden: true, multiple: true,
+					accept: ".md,.markdown,.mdown,.mkd,.docx,.pdf" },
 				{ x: "select.md-theme.mdtheme", name: "mdTheme", title: SK.t("mdread.theme") || "" },
 				{ x: "span.md-name", name: "mdName", "data-k": "web.mdread.hint", c: hint }
 			] },
+			{ x: "div.mdread-tabs", name: "mdTabs" },
 			{ x: "div.mdread-stage", c: [
-				{ x: "iframe.md-view", name: "mdView", title: "preview", sandbox: "allow-popups allow-scripts" },
+				{ x: "iframe.md-view", name: "mdView", title: "preview",
+					sandbox: "allow-popups allow-scripts allow-same-origin" },
 				{ x: "div.md-mask.mdread-mask", name: "mdMask" }
 			] }
 		] });
@@ -39,14 +47,14 @@
 		var file = page.doms.mdFile;
 		if (btn && file) btn.onclick = function(){ file.click(); };
 		if (file) file.onchange = function(){
-			take(file.files && file.files[0]);
+			takeall(file.files);
 			file.value = "";
 		};
 		filltheme();
 		var sel = page.doms.mdTheme;
 		if (sel) sel.onchange = function(){
 			savetheme(sel.value);
-			render();
+			retheme();
 		};
 		if (hooked) return;
 		hooked = true;
@@ -54,6 +62,19 @@
 		F.on(document, "dragover", arm);
 		F.on(document, "drop", ondrop);
 		F.on(document, "dragend", disarm);
+	}
+
+	// 离开工具时清掉标签，再进来是干净的
+	function dispose(){
+		var i;
+		for (i = 0; i < tabs.length; i++) free(tabs[i]);
+		tabs = [];
+		cur = null;
+		if (page && page.doms.mdName) {
+			F.seta(page.doms.mdName, "data-k", "web.mdread.hint");
+			page.doms.mdName.textContent = SK.t("web.mdread.hint") || "";
+		}
+		painttabs();
 	}
 
 	function filltheme(){
@@ -100,7 +121,7 @@
 		F.pd(ev);
 		disarm();
 		var files = ev.dataTransfer && ev.dataTransfer.files;
-		if (files && files.length) take(files[0]);
+		if (files && files.length) takeall(files);
 	}
 
 	function ismd(name){
@@ -108,45 +129,218 @@
 		return n.endsWith(".md") || n.endsWith(".markdown") || n.endsWith(".mdown") || n.endsWith(".mkd");
 	}
 
-	function take(file){
-		if (!file) return;
-		if (!ismd(file.name)) {
-			SK.msg("box-msg", SK.t("web.mdread.bad") || "", true);
+	function isdoc(name){
+		var n = (name || "").toLowerCase();
+		return ismd(n) || n.endsWith(".docx") || n.endsWith(".pdf");
+	}
+
+	// 一次来的多个文件：已打开的跳过，其余排队转换，最后进来的那个留在前台
+	function takeall(files){
+		if (!files || !files.length) return;
+		var list = [];
+		var bad = 0;
+		var i;
+		for (i = 0; i < files.length; i++) {
+			var f = files[i];
+			if (!isdoc(f.name)) { bad++; continue; }
+			var old = find(f.name);
+			if (old) { list.push(old); continue; }
+			var tab = {
+				id: ++seq, name: f.name || "", kind: kindof(f.name),
+				state: "load", html: "", url: "", pages: 0, file: f, error: ""
+			};
+			tabs.push(tab);
+			list.push(tab);
+			send(tab);
+		}
+		painttabs();
+		if (list.length) activatetab(list[list.length - 1]);
+		if (bad && !list.length) SK.msg("box-msg", SK.t("web.mdread.bad") || "", true);
+		else if (bad) SK.msg("box-msg", SK.t("web.mdread.bad.n") || "", true);
+		else SK.msg("box-msg", "");
+	}
+
+	function kindof(name){
+		if (ismd(name)) return "md";
+		var n = (name || "").toLowerCase();
+		return n.endsWith(".pdf") ? "pdf" : "docx";
+	}
+
+	function find(name){
+		var i;
+		for (i = 0; i < tabs.length; i++) if (tabs[i].name === name) return tabs[i];
+		return null;
+	}
+
+	// 把文件交给后端转换，回来的是整页 HTML 的地址
+	function send(tab){
+		var xhr = new XMLHttpRequest();
+		var theme = page && page.doms.mdTheme ? page.doms.mdTheme.value : "";
+		var url = "/api/docview?name=" + encodeURIComponent(tab.name)
+			+ "&theme=" + encodeURIComponent(theme);
+		xhr.open("POST", url, true);
+		F.hdr(xhr, "Content-Type", "application/octet-stream");
+		xhr.onload = function(){
+			var jo;
+			try { jo = F.parse(xhr.responseText); }
+			catch (e) { fail(tab, SK.t("web.mdread.fail") || ""); return; }
+			if (!jo || jo.code !== 100) {
+				fail(tab, jo && typeof jo.data === "string" && jo.data ? jo.data : (SK.t("web.mdread.fail") || ""));
+				return;
+			}
+			var d = jo.data || {};
+			tab.state = "ok";
+			tab.html = d.html || "";
+			tab.id = d.id || "";
+			tab.pages = d.pages || 0;
+			tab.url = "/api/docasset?id=" + encodeURIComponent(d.id || "") + "&f=page.html";
+			if (cur === tab) showtab(tab);
+			showstat();
+			painttabs();
+		};
+		xhr.onerror = function(){ fail(tab, SK.t("web.mdread.fail") || ""); };
+		xhr.send(tab.file);
+	}
+
+	function fail(tab, text){
+		tab.state = "bad";
+		tab.error = text || "";
+		if (cur === tab) showtab(tab);
+		painttabs();
+	}
+
+	function showtab(tab){
+		var view = page && page.doms.mdView;
+		if (!view || !tab) return;
+		if (tab.state === "ok") {
+			// srcdoc 一旦设过就压过 src，先摘掉它再换地址，否则一直停在占位页
+			view.removeAttribute("srcdoc");
+			if (view.getAttribute("src") !== tab.url) view.setAttribute("src", tab.url);
 			return;
 		}
-		var reader = new FileReader();
-		reader.onload = function(){
-			var bytes = new Uint8Array(reader.result);
-			lastb64 = tob64(bytes);
-			lasttitle = file.name || "";
-			var name = page.doms.mdName;
-			if (name) {
-				F.unset(name, "data-k");
-				name.textContent = file.name || "";
-			}
-			render();
-		};
-		reader.readAsArrayBuffer(file);
+		view.removeAttribute("src");
+		if (tab.state === "load") view.srcdoc = placeholder(SK.t("web.mdread.loading") || "");
+		else view.srcdoc = placeholder(tab.error || SK.t("web.mdread.fail") || "");
 	}
 
-	function render(){
-		if (!lastb64) return;
-		var sel = page.doms.mdTheme;
-		SK.post("/api/md", { base64: lastb64, title: lasttitle, theme: sel ? sel.value : "" }, function(data){
+	function placeholder(text){
+		return '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
+			+ 'html,body{height:100%;margin:0}body{display:flex;align-items:center;justify-content:center;'
+			+ 'font:14px/1.7 "Segoe UI","Microsoft YaHei UI",sans-serif;color:#8b949e;background:#f0f2f5;'
+			+ 'text-align:center;padding:24px;box-sizing:border-box}</style></head><body>'
+			+ esc(text) + "</body></html>";
+	}
+
+	function activatetab(tab){
+		if (!tab) return;
+		cur = tab;
+		showstat();
+		painttabs();
+		showtab(tab);
+	}
+
+	// 换主题：Markdown 的排版随主题走，重新转一次；docx/pdf 与主题无关，只重刷当前页
+	function retheme(){
+		if (!cur) return;
+		if (cur.kind !== "md" || !cur.file) {
+			showtab(cur);
+			return;
+		}
+		cur.state = "load";
+		showtab(cur);
+		painttabs();
+		SK.msg("box-msg", SK.t("web.mdread.loading") || "");
+		send(cur);
+	}
+
+	// ==================== 标签条 ====================
+	function painttabs(){
+		var host = page && page.doms.mdTabs;
+		if (!host) return;
+		host.hidden = tabs.length === 0;
+		while (host.firstChild) host.removeChild(host.firstChild);
+		var i;
+		for (i = 0; i < tabs.length; i++) host.appendChild(maketab(tabs[i]));
+	}
+
+	function maketab(tab){
+		var chip = F.el("div");
+		chip.className = "mdread-tab" + (tab === cur ? " on" : "") + (tab.state === "load" ? " wait" : "");
+		chip.title = tab.name;
+		var lb = F.el("span");
+		lb.className = "mdread-tabname";
+		lb.textContent = shorten(tab.name);
+		chip.appendChild(lb);
+		var x = F.el("button");
+		x.type = "button";
+		x.className = "mdread-tabx";
+		x.title = SK.t("mdread.tabclose") || "";
+		x.textContent = "×";
+		x.onclick = function(ev){
+			ev.stopPropagation();
+			closetab(tab);
+		};
+		chip.appendChild(x);
+		chip.onclick = function(){
+			if (tab !== cur) activatetab(tab);
+		};
+		chip.onmousedown = function(ev){
+			if (ev.button === 1) {
+				ev.preventDefault();
+				closetab(tab);
+			}
+		};
+		return chip;
+	}
+
+	function shorten(name){
+		if (!name) return "";
+		return name.length > MAXNAME ? name.substring(0, MAXNAME - 1) + "…" : name;
+	}
+
+	function closetab(tab){
+		var i = tabs.indexOf(tab);
+		if (i < 0) return;
+		tabs.splice(i, 1);
+		free(tab);
+		if (!tabs.length) {
+			cur = null;
 			var view = page.doms.mdView;
 			if (view) {
-				view.srcdoc = (data && data.html) || "";
-				if (data && data.bg) view.style.background = data.bg;
+				view.removeAttribute("src");
+				view.srcdoc = "";
 			}
-			SK.msg("box-msg", "");
-		}, "box-msg");
+			showstat();
+			painttabs();
+			return;
+		}
+		activatetab(tabs[Math.min(i, tabs.length - 1)]);
 	}
 
-	function tob64(bytes){
-		var s = "";
-		var step = 0x8000;
-		for (var i = 0; i < bytes.length; i += step)
-			s += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
-		return btoa(s);
+	// 临时目录由后端按数量清理，这里只断开引用
+	function free(tab){
+		tab.html = "";
+		tab.url = "";
+		tab.file = null;
+	}
+
+	function showstat(){
+		var el = page && page.doms.mdName;
+		if (!el) return;
+		if (!cur) {
+			F.seta(el, "data-k", "web.mdread.hint");
+			el.textContent = SK.t("web.mdread.hint") || "";
+			return;
+		}
+		var parts = [cur.name, cur.kind];
+		if (cur.kind === "pdf" && cur.pages) parts.push(cur.pages + " " + (SK.t("web.mdread.pageunit") || ""));
+		if (tabs.length > 1) parts.push(tabs.length + " " + (SK.t("web.mdread.tabunit") || ""));
+		F.unset(el, "data-k");
+		el.textContent = parts.join("  ·  ");
+	}
+
+	function esc(s){
+		return String(s == null ? "" : s)
+			.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 	}
 })();

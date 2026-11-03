@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using ScreenKit.Json;
 
 namespace ScreenKit;
@@ -79,15 +80,16 @@ sealed partial class HttpOcrServer {
 			}
 			if (total == 0) throw new InvalidOperationException("文件是空的");
 			if (ext is ".md" or ".markdown" or ".mdown" or ".mkd") {
+				// 只拿到 md 的字节，同目录的图片取不到，基准目录留空，别生成打不开的 file:// 地址
 				var md = MdRead.ReadText(raw);
-				var html = MdRead.ToHtml(md, Path.GetDirectoryName(raw) ?? "", name, scale, theme);
-				res = new DocViewHtml.Result { Html = rewritehtml(html, id), Pages = 0 };
+				var html = MdRead.ToHtml(md, "", name, scale, theme);
+				res = new DocViewHtml.Result { Html = rewritehtml(html, id, dir), Pages = 0 };
 			}
 			else {
 				if (ext == ".pdf" && !NativeRuntime.HasPdfium())
 					throw new MissingFeatureException("缺少 pdfium.dll，请先在帮助 → 安装功能里安装 PDFium");
 				res = DocViewHtml.Convert(raw, Path.Combine(dir, "img"));
-				res.Html = rewritehtml(res.Html, id);
+				res.Html = rewritehtml(res.Html, id, dir);
 			}
 			File.WriteAllText(Path.Combine(dir, "page.html"), res.Html ?? "", new UTF8Encoding(true));
 			// 原文件已经拆成页面和图片，留着占地方
@@ -105,36 +107,48 @@ sealed partial class HttpOcrServer {
 
 	/// <summary>
 	/// 页面里的 file:// 地址在浏览器里打不开，换成 /api/docasset?id=…&amp;f=…。
-	/// 图片都落在同一个目录，取路径最后一段当文件名即可。
+	/// 图片都在同一个转换目录（docx/pdf 在 img 子目录），只取相对路径最后两段。
 	/// </summary>
-	static string rewritehtml(string html, string id) {
+	static string rewritehtml(string html, string id, string dir) {
 		if (string.IsNullOrEmpty(html)) return "";
+		var root = Path.GetFullPath(dir);
 		return Regex.Replace(html, "file://+([^\"'\\s]*)", m => {
-			var rel = m.Groups[1].Value.Replace('\\', '/');
-			var name = rel.Substring(rel.LastIndexOf('/') + 1);
-			return name.Length == 0 ? m.Value : "/api/docasset?id=" + id + "&f=" + Uri.EscapeDataString(name);
+			var full = m.Groups[1].Value.Replace('/', '\\');
+			string f = null;
+			try {
+				var abs = Path.GetFullPath(full);
+				if (abs.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+					f = abs.Substring(root.Length).TrimStart('\\').Replace('\\', '/');
+			}
+			catch { }
+			if (string.IsNullOrEmpty(f)) {
+				// 不在转换目录里（如 md 引用了外部图片），交给浏览器按原地址处理
+				return m.Value;
+			}
+			return "/api/docasset?id=" + id + "&f=" + Uri.EscapeDataString(f);
 		});
 	}
 
-	/// <summary>发转换产物：page.html 或同目录下的图片。只认本进程生成过的随机目录名。</summary>
+	/// <summary>发转换产物：page.html 或转换目录里的图片。目录名只认本进程生成的随机名。</summary>
 	void handledocasset(SockCtx ctx) {
 		if (!isget(ctx.Request)) {
 			writejson(ctx, 405, err(805, "docasset 仅支持 GET"));
 			return;
 		}
 		var id = (query(ctx.Request, "id") ?? "").Trim();
-		var name = Path.GetFileName((query(ctx.Request, "f") ?? "").Trim());
-		if (!docviewidok(id) || name.Length == 0) {
+		var name = (query(ctx.Request, "f") ?? "").Replace('\\', '/').Trim();
+		if (!docviewidok(id) || name.Length == 0 || name.Contains("..") || name.StartsWith("/")) {
 			writejson(ctx, 404, err(404, "文件不存在"));
 			return;
 		}
-		var dir = Path.Combine(docviewroot(), id);
-		var full = Path.Combine(dir, name);
-		if (!File.Exists(full)) {
+		var dir = Path.GetFullPath(Path.Combine(docviewroot(), id));
+		var full = Path.GetFullPath(Path.Combine(dir, name));
+		if (!full.StartsWith(dir + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)
+			|| !File.Exists(full)) {
 			writejson(ctx, 404, err(404, "文件不存在"));
 			return;
 		}
-		var mime = Path.GetExtension(name).ToLowerInvariant() switch {
+		var mime = Path.GetExtension(full).ToLowerInvariant() switch {
 			".html" => "text/html; charset=utf-8",
 			".png" => "image/png",
 			".jpg" or ".jpeg" => "image/jpeg",
@@ -150,7 +164,7 @@ sealed partial class HttpOcrServer {
 			res.ContentType = mime;
 			res.ContentLength64 = bytes.Length;
 			res.Headers["Access-Control-Allow-Origin"] = "*";
-			res.Headers["Cache-Control"] = name.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+			res.Headers["Cache-Control"] = mime.StartsWith("text/html", StringComparison.Ordinal)
 				? SendFileWebPages.NO_CACHE : SendFileWebPages.CACHE_CONTROL;
 			res.OutputStream.Write(bytes, 0, bytes.Length);
 			try { res.OutputStream.Close(); } catch { }

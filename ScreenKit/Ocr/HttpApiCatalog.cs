@@ -59,6 +59,8 @@ static class HttpApiCatalog {
 		add(list, "GET /api/pinyin", "GET", "/api/pinyin?text=中国", "", "http.doc.pinyin", accept: "GET/POST");
 		add(list, "POST /api/pinyin", "POST", "/api/pinyin", "{\n  \"text\": \"中国\"\n}", "http.doc.pinyin");
 		add(list, "POST /api/md", "POST", "/api/md", "{\n  \"text\": \"# 标题\\n\\n- 一\",\n  \"title\": \"a.md\"\n}", "http.doc.md");
+		add(list, "POST /api/docview", "POST", "/api/docview?name=a.docx", "(文件字节)", "http.doc.docview");
+		add(list, "GET /api/docasset", "GET", "/api/docasset?id=…&f=page.html", "", "http.doc.docview");
 		add(list, "GET /api/calendar", "GET", "/api/calendar?date=2024-02-10&cal=lunar", "", "http.doc.calendar");
 		add(list, "POST /api/calendar", "POST", "/api/calendar", "{\n  \"date\": \"2024-02-10\",\n  \"cal\": \"lunar\"\n}", "http.doc.calendar");
 		add(list, "GET /api/jpyomi", "GET", "/api/jpyomi?text=東京は晴れです", "", "http.doc.jpyomi");

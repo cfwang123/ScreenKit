@@ -299,11 +299,11 @@
 						"type":"button",
 						"data-tool":"u-mdread",
 						"data-cat":"text",
-						"data-name":"md 阅读器 markdown 预览 拖入",
-						"title":"拖入 Markdown 文件，按和桌面阅读器相同的规则预览",
+						"data-name":"md 阅读器 markdown 预览 拖入 docx word pdf 文档 标签",
+						"title":"拖入 Markdown、Word 或 PDF，多文件用标签切换",
 						c:[
 						{x:"i.fa-solid.fa-book-open"},
-						{x:"span","data-k":"web.tool.mdread",c:"MD阅读器"},
+						{x:"span","data-k":"web.tool.mdread",c:"文档阅读器"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-mdread","title":"收藏"}
 					]
 					},

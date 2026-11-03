@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Fast copy window now counts the files, folders, and size of the source list, and shows the copied and total bytes while copying.
 - Added a Count files button to the fast copy window that only reports the file count and size.
 - Markdown reader becomes document reader: drop multiple Markdown/Word/PDF files, custom title bar with tab chips, docx and PDF rendering in C#
+- Web tools: document reader opens several Markdown/Word/PDF files as tabs, converted by the same C# renderer as the desktop reader (/api/docview, /api/docasset)
 
 #### Changed
 
@@ -93,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 快速复制窗口新增源列表统计：文件数、文件夹数和大小；复制过程中显示已完成和总共的字节数。
 - 快速复制窗口新增「统计文件」按钮，只统计文件数量和大小。
 - MD 阅读器升级为文档阅读器：可一次拖入多个 Markdown/Word/PDF，自绘标题栏与标签页，docx 与 PDF 由 C# 端转 HTML
+- web 工具集：文档阅读器支持一次拖入多个 Markdown/Word/PDF 并用标签切换，转换复用桌面阅读器的 C# 实现（/api/docview、/api/docasset）
 
 #### 变更
 
