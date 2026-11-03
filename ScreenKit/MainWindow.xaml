@@ -240,7 +240,7 @@
 					          ToolTip="连 MQTT 服务器收发消息，也能在本机起一个服务端"/>
 					<MenuItem x:Name="mnudpdbg" Header="TCP/UDP/串口调试(_P)…"
 					          AutomationProperties.AutomationId="menu.udpdbg"
-					          ToolTip="TCP 连接或监听，UDP 发送或监听，串口打开后收发"/>
+					          ToolTip="TCP 连接或监听后发送，UDP 监听后发送，串口打开后收发"/>
 					<MenuItem x:Name="mnsoapdbg" Header="SOAP 接口调试(_S)…"
 					          AutomationProperties.AutomationId="menu.soapdbg"
 					          ToolTip="读取 WSDL，调试 SOAP 接口并启动本地模拟服务"/>

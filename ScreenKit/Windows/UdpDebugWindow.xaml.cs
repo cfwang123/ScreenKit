@@ -176,13 +176,13 @@ public partial class UdpDebugWindow : Window {
 		if (log.Count == 0) lbstat.Text = Loc.T("udpdbg.idle");
 	}
 
-	/// <summary>TCP 显示连接和监听，UDP 显示发送和监听，串口显示打开。</summary>
+	/// <summary>三种协议都有发送。TCP 多连接，串口多打开，网络多监听。</summary>
 	void applyproto() {
 		var tcp = istcp();
 		var comon = iscom();
 		netrow.Visibility = comon ? Visibility.Collapsed : Visibility.Visible;
 		comrow.Visibility = comon ? Visibility.Visible : Visibility.Collapsed;
-		bsend.Visibility = tcp ? Visibility.Collapsed : Visibility.Visible;
+		bsend.Visibility = Visibility.Visible;
 		bconnect.Visibility = tcp ? Visibility.Visible : Visibility.Collapsed;
 		bopen.Visibility = comon ? Visibility.Visible : Visibility.Collapsed;
 		rudp.IsEnabled = !busy();
