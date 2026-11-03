@@ -130,22 +130,48 @@ sealed partial class HttpOcrServer {
 			.Append("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">")
 			.Append("<title>").Append(title).Append("</title>")
 			.Append("<style>")
-			.Append("html,body{margin:0;padding:0;background:#f0f2f5;color:#1f2328;")
+			.Append("html,body{margin:0;padding:0;height:100%;overflow:hidden;background:#f0f2f5;color:#1f2328;")
 			.Append("font-family:'Segoe UI','Microsoft YaHei UI',sans-serif}")
-			.Append("body{padding:18px 14px 40px}")
-			.Append("#pages{max-width:860px;margin:0 auto}")
-			/* 页与页的缝隙固定 10px，和桌面阅读器一致 */
-			.Append(".pg{margin:0 auto 10px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.14);")
-			.Append("display:flex;align-items:flex-start;justify-content:center;overflow:hidden}")
+			.Append("#scroll{position:absolute;inset:0;overflow:auto;overscroll-behavior:contain}")
+			.Append("#scroll.grab{cursor:grab}")
+			.Append("#scroll.grabbing{cursor:grabbing}")
+			.Append("#pages{padding:18px 14px 40px}")
+			/* 页与页的缝隙固定 10px，和桌面阅读器一致。宽度写死 px，auto 外边距让超出时只往右溢出，横向滚动够得着 */
+			.Append(".pg{position:relative;margin:0 auto 10px;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.14);overflow:hidden}")
 			.Append(".pg:last-child{margin-bottom:14px}")
-			.Append(".pg canvas{display:block;width:100%;height:auto}")
-			.Append(".pg .ph{width:100%;text-align:center;color:#8b949e;font-size:13px;padding:60px 0}")
+			.Append(".pg canvas{display:block}")
+			.Append(".pg .ph{position:absolute;left:0;top:0;right:0;bottom:0;text-align:center;color:#8b949e;font-size:13px;padding-top:24px;box-sizing:border-box}")
+			/* 文本层：压在画布上的一层透明文字，用来选中和复制，位置字号由 pdf.js 写行内样式。
+			   容器不吃鼠标事件，只有文字本身吃，这样拖在空白处是平移、拖在字上是选字 */
+			.Append(".pg .tx{position:absolute;left:0;top:0;overflow:hidden;line-height:1;")
+			.Append("pointer-events:none;transform-origin:0 0;-webkit-user-select:text;user-select:text}")
+			.Append(".pg .tx span,.pg .tx br{position:absolute;color:transparent;white-space:pre;cursor:text;")
+			.Append("transform-origin:0% 0%;margin:0;padding:0;pointer-events:auto}")
+			.Append(".pg .tx span::selection,.pg .tx br::selection{background:rgba(37,99,235,.3)}")
+			.Append("#bar{position:fixed;top:10px;right:14px;z-index:9;display:flex;align-items:center;gap:2px;")
+			.Append("padding:4px;border-radius:9px;background:rgba(255,255,255,.95);")
+			.Append("box-shadow:0 2px 8px rgba(15,23,42,.16)}")
+			.Append("#bar button{border:0;background:transparent;color:#24292f;min-width:26px;height:26px;")
+			.Append("border-radius:6px;cursor:pointer;font-size:13px;line-height:1;padding:0 6px}")
+			.Append("#bar button:hover{background:rgba(15,23,42,.08)}")
+			.Append("#bar button.on{background:rgba(37,99,235,.13);color:#1d4ed8}")
+			.Append("#pct{min-width:46px;text-align:center;color:#57606a;font-size:12.5px;")
+			.Append("font-variant-numeric:tabular-nums;cursor:default}")
+			.Append("#bar .sep{width:1px;height:16px;background:rgba(15,23,42,.12);margin:0 3px}")
 			.Append("#tip{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);")
 			.Append("padding:5px 12px;border-radius:14px;background:rgba(31,35,40,.78);color:#fff;")
 			.Append("font-size:12.5px;pointer-events:none;opacity:0;transition:opacity .2s}")
 			.Append("#tip.on{opacity:1}")
 			.Append("</style></head><body>")
-			.Append("<div id=\"pages\"></div><div id=\"tip\"></div>")
+			.Append("<div id=\"bar\">")
+			.Append("<button id=\"zout\" title=\"缩小（Ctrl+滚轮）\">−</button>")
+			.Append("<span id=\"pct\">100%</span>")
+			.Append("<button id=\"zin\" title=\"放大（Ctrl+滚轮）\">+</button>")
+			.Append("<span class=\"sep\"></span>")
+			.Append("<button id=\"fitw\" class=\"on\" title=\"适应宽度\">宽</button>")
+			.Append("<button id=\"fitp\" title=\"适应页高\">页</button>")
+			.Append("</div>")
+			.Append("<div id=\"scroll\"><div id=\"pages\"></div></div><div id=\"tip\"></div>")
 			.Append("<script src=\"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js\"></script>")
 			.Append("<script>")
 			.Append("(function(){")
@@ -157,24 +183,30 @@ sealed partial class HttpOcrServer {
 		return sb.ToString();
 	}
 
-	/// <summary>页面脚本：pdf.js 按页渲染，滚动到哪画到哪，等比缩放到正文宽度。</summary>
+	/// <summary>
+	/// 页面脚本：pdf.js 按页渲染，滚到哪画到哪；每页带一层透明文字可选中复制；
+	/// 缩放跟 pdf.js 的 --scale-factor 走，平移用滚动位置实现。
+	/// </summary>
 	const string PDFJS_JS = """
 		var lib = window.pdfjsLib;
 		var host = document.getElementById("pages");
+		var scroller = document.getElementById("scroll");
 		var tip = document.getElementById("tip");
+		var pct = document.getElementById("pct");
+		var btnin = document.getElementById("zin");
+		var btnout = document.getElementById("zout");
+		var btnw = document.getElementById("fitw");
+		var btnp = document.getElementById("fitp");
+
 		var doc = null;
-		var busy = {};
-		var done = {};
 		var slots = [];
+		var metas = [];
+		var drawn = {};
+		var busy = {};
+		var fitmode = "width";
+		var zoom = 1;
 		var current = 1;
 		var tipTok = 0;
-
-		function say(text){
-			tip.textContent = text;
-			tip.className = "on";
-			var mine = ++tipTok;
-			setTimeout(function(){ if (mine === tipTok) tip.className = ""; }, 1600);
-		}
 
 		if (!lib) {
 			host.innerHTML = '<div class="pg"><div class="ph">加载 pdf.js 失败，请检查网络后刷新</div></div>';
@@ -183,42 +215,102 @@ sealed partial class HttpOcrServer {
 		lib.GlobalWorkerOptions.workerSrc =
 			"https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js";
 
-		// 先按 A4 比例摆占位，滚动条长度立刻是对的，不用等页面渲染完
+		function say(text){
+			tip.textContent = text;
+			tip.className = "on";
+			var mine = ++tipTok;
+			setTimeout(function(){ if (mine === tipTok) tip.className = ""; }, 1500);
+		}
+
+		function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
+
+		// 正文可用宽度（去掉左右留白和滚动条）
+		function availw(){ return Math.max(160, scroller.clientWidth - 28); }
+
+		function pagew(i){ return metas[i] ? metas[i].w : 595; }
+		function pageh(i){ return metas[i] ? metas[i].h : 842; }
+
+		// fitmode 决定基准缩放，zoom 再乘上去；返回 CSS 像素 / PDF 点
+		function effscale(i){
+			var w = pagew(i);
+			var s = availw() / w;
+			if (fitmode === "page") s = Math.min(s, (scroller.clientHeight - 76) / pageh(i));
+			return clamp(s * zoom, 0.1, 8);
+		}
+
+		function setpct(){
+			// 100% 按 96dpi 的“实际大小”，和桌面阅读器看着差不多大
+			pct.textContent = Math.round(effscale(0) * 75) + "%";
+			btnw.className = fitmode === "width" ? "on" : "";
+			btnp.className = fitmode === "page" ? "on" : "";
+		}
+
 		function build(total){
 			var i, el;
 			host.innerHTML = "";
 			slots = [];
+			metas = [];
 			for (i = 0; i < total; i++) {
 				el = document.createElement("div");
 				el.className = "pg";
-				el.style.height = "1180px";
+				el.style.width = Math.round(availw()) + "px";
+				el.style.height = Math.round(availw() * 1.414) + "px";
 				el.innerHTML = '<div class="ph">第 ' + (i + 1) + " 页</div>";
 				host.appendChild(el);
 				slots.push(el);
 			}
 		}
 
-		// 一页按正文宽度等比缩放；高 DPI 屏按设备像素放大画布，字才不发虚
+		// 页框尺寸、缩放变量、画布、文本层一起按当前缩放摆好
+		function layout(i, v){
+			var el = slots[i];
+			el.style.width = Math.round(v.width) + "px";
+			el.style.height = Math.round(v.height) + "px";
+			// 文本层的 width/height/font-size 都写成 calc(var(--scale-factor)*…)，必须和 viewport.scale 一致
+			el.style.setProperty("--scale-factor", v.scale);
+		}
+
+		function textlayer(el, page, v){
+			var tx = document.createElement("div");
+			tx.className = "tx";
+			return page.getTextContent().then(function(tc){
+				return lib.renderTextLayer({
+					textContentSource: tc,
+					container: tx,
+					viewport: v,
+					textDivs: []
+				}).promise;
+			}).then(function(){
+				el.appendChild(tx);
+			}).catch(function(){
+				// 没有文字层（纯扫描件等）不影响看图
+			});
+		}
+
 		function draw(i){
 			if (doc == null || i < 0 || i >= slots.length) return;
-			if (done[i] || busy[i]) return;
+			if (busy[i]) return;
 			busy[i] = true;
 			var el = slots[i];
 			doc.getPage(i + 1).then(function(page){
 				var vp = page.getViewport({ scale: 1 });
-				var box = host.clientWidth || 800;
-				var v = page.getViewport({ scale: box / vp.width });
-				var dpr = Math.min(2, window.devicePixelRatio || 1);
+				metas[i] = { w: vp.width, h: vp.height };
+				var v = page.getViewport({ scale: effscale(i) });
+				layout(i, v);
+				var dpr = clamp(window.devicePixelRatio || 1, 1, 2);
 				var canvas = document.createElement("canvas");
-				canvas.width = Math.floor(v.width * dpr);
-				canvas.height = Math.floor(v.height * dpr);
-				el.style.height = "";
-				el.innerHTML = "";
-				el.appendChild(canvas);
-				var ctx = canvas.getContext("2d");
+				canvas.width = Math.max(1, Math.round(v.width * dpr));
+				canvas.height = Math.max(1, Math.round(v.height * dpr));
+				canvas.style.width = Math.round(v.width) + "px";
+				canvas.style.height = Math.round(v.height) + "px";
+				var ctx = canvas.getContext("2d", { alpha: false });
 				ctx.scale(dpr, dpr);
 				return page.render({ canvasContext: ctx, viewport: v }).promise.then(function(){
-					done[i] = true;
+					el.innerHTML = "";
+					el.appendChild(canvas);
+					return textlayer(el, page, v);
+				}).then(function(){
+					drawn[i] = v.scale;
 					busy[i] = false;
 				});
 			}).catch(function(){
@@ -230,17 +322,16 @@ sealed partial class HttpOcrServer {
 		// 离视口一屏以内的页先画，滚动时再补其它页
 		function scan(){
 			if (doc == null) return;
-			var vh = window.innerHeight || 800;
-			var i, r;
+			var sr = scroller.getBoundingClientRect();
+			var vh = sr.height;
+			var i, r, best = 1;
 			for (i = 0; i < slots.length; i++) {
-				if (done[i] || busy[i]) continue;
 				r = slots[i].getBoundingClientRect();
-				if (r.bottom > -vh && r.top < vh * 2) draw(i);
+				if (r.bottom > sr.top - vh && r.top < sr.bottom + vh) draw(i);
 			}
-			var best = 1;
 			for (i = 0; i < slots.length; i++) {
 				r = slots[i].getBoundingClientRect();
-				if (r.bottom > 0) { best = i + 1; break; }
+				if (r.bottom > sr.top + 8) { best = i + 1; break; }
 			}
 			if (best !== current) {
 				current = best;
@@ -248,30 +339,105 @@ sealed partial class HttpOcrServer {
 			}
 		}
 
+		// 缩放变了：所有页尺寸重算，可见的立即重画，其余的等滚到再看
+		function relayout(){
+			var i, s;
+			for (i = 0; i < slots.length; i++) {
+				s = effscale(i);
+				slots[i].style.width = Math.round(pagew(i) * s) + "px";
+				slots[i].style.height = Math.round(pageh(i) * s) + "px";
+				drawn[i] = 0;
+			}
+			setpct();
+			scan();
+		}
+
+		// 以光标（或视口中心）为锚点缩放，缩放前后同一处内容尽量留在原地
+		function setzoom(z, ox, oy){
+			z = clamp(z, 0.25, 6);
+			if (Math.abs(z - zoom) < 0.001) return;
+			var w = scroller.clientWidth, h = scroller.clientHeight;
+			if (ox == null) { ox = w / 2; oy = h / 2; }
+			var rx = (scroller.scrollLeft + ox) / Math.max(1, scroller.scrollWidth);
+			var ry = (scroller.scrollTop + oy) / Math.max(1, scroller.scrollHeight);
+			zoom = z;
+			relayout();
+			scroller.scrollLeft = rx * scroller.scrollWidth - ox;
+			scroller.scrollTop = ry * scroller.scrollHeight - oy;
+		}
+
 		var ticking = false;
-		function onscroll(){
+		scroller.addEventListener("scroll", function(){
 			if (ticking) return;
 			ticking = true;
 			requestAnimationFrame(function(){ ticking = false; scan(); });
-		}
+		}, { passive: true });
+
+		// Ctrl+滚轮缩放，普通滚轮留给滚动
+		scroller.addEventListener("wheel", function(e){
+			if (!e.ctrlKey && !e.metaKey) return;
+			e.preventDefault();
+			var r = scroller.getBoundingClientRect();
+			var step = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+			setzoom(zoom * step, e.clientX - r.left, e.clientY - r.top);
+		}, { passive: false });
+
+		// 平移：左键拖空白/画布、中键拖任意位置。拖在文字上则是选中文字，不拦
+		var panning = null;
+		var space = false;
+		scroller.addEventListener("mousedown", function(e){
+			var ontext = e.target && e.target.closest && e.target.closest(".tx span,.tx br");
+			if (ontext && e.button === 0 && !space) return;
+			if (e.button !== 0 && e.button !== 1) return;
+			if (e.button === 0 && !space && e.target.closest && e.target.closest(".tx")) return;
+			panning = {
+				x: e.clientX, y: e.clientY,
+				l: scroller.scrollLeft, t: scroller.scrollTop
+			};
+			scroller.className = "grabbing";
+			e.preventDefault();
+		});
+		window.addEventListener("mousemove", function(e){
+			if (!panning) return;
+			scroller.scrollLeft = panning.l - (e.clientX - panning.x);
+			scroller.scrollTop = panning.t - (e.clientY - panning.y);
+		});
+		window.addEventListener("mouseup", function(){
+			if (!panning) return;
+			panning = null;
+			scroller.className = space ? "grab" : "";
+		});
+		// 按住空格再拖，空白处和文字上都能平移
+		window.addEventListener("keydown", function(e){
+			if (e.code === "Space" && !space) {
+				space = true;
+				scroller.className = "grab";
+			}
+		});
+		window.addEventListener("keyup", function(e){
+			if (e.code === "Space") {
+				space = false;
+				if (!panning) scroller.className = "";
+			}
+		});
+
+		btnin.onclick = function(){ setzoom(zoom * 1.2); };
+		btnout.onclick = function(){ setzoom(zoom / 1.2); };
+		btnw.onclick = function(){ fitmode = "width"; zoom = 1; relayout(); };
+		btnp.onclick = function(){ fitmode = "page"; zoom = 1; relayout(); };
+
+		var rtimer = 0;
+		window.addEventListener("resize", function(){
+			clearTimeout(rtimer);
+			rtimer = setTimeout(relayout, 160);
+		});
 
 		build(TOTAL > 0 ? TOTAL : 1);
+		setpct();
 		lib.getDocument({ url: FILE, cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
 			cMapPacked: true }).promise.then(function(d){
 			doc = d;
 			if (d.numPages !== TOTAL) build(d.numPages);
-			window.addEventListener("scroll", onscroll, { passive: true });
-			window.addEventListener("resize", function(){
-				// 宽度变了要重画；已画的作废，回到占位高度避免跳动
-				var i;
-				for (i = 0; i < slots.length; i++) {
-					if (!done[i]) continue;
-					done[i] = false;
-					slots[i].style.height = "1180px";
-					slots[i].innerHTML = '<div class="ph">第 ' + (i + 1) + " 页</div>";
-				}
-				scan();
-			});
 			scan();
 		}).catch(function(ex){
 			host.innerHTML = '<div class="pg"><div class="ph">PDF 打不开：' +
