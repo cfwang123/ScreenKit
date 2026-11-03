@@ -1688,20 +1688,32 @@
 		var settled = false;
 		var started = false;
 		// 在线语音没代理时不会报错，只是迟迟不出声，10 秒判超时。
-		var timer = setTimeout(function(){
-			if (started) return;
+		// 但排在别的句子后面时只是在队列里等着，前一句读十几秒很正常，这时一直延期；
+		// 轮到自己了才开始计时，免得超时把正在读的那句一起 cancel 掉。
+		var deadline = Date.now() + 10000;
+		var tick = setInterval(function(){
+			if (settled || started) {
+				clearInterval(tick);
+				return;
+			}
+			if (syn.speaking) {
+				deadline = Date.now() + 10000;
+				return;
+			}
+			if (Date.now() < deadline) return;
+			clearInterval(tick);
 			try { syn.cancel(); } catch (e) {}
 			finish(L("web.reader.timeout", "10 秒还没出声，在线语音可能需要代理"));
-		}, 10000);
+		}, 500);
 		function finish(err){
 			if (settled) return;
 			settled = true;
-			clearTimeout(timer);
+			clearInterval(tick);
 			done(err || "");
 		}
 		u.onstart = function(){
 			started = true;
-			clearTimeout(timer);
+			clearInterval(tick);
 			if (onstart) onstart();
 		};
 		u.onend = function(){ finish(""); };

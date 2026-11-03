@@ -395,29 +395,121 @@ sealed partial class HttpOcrServer {
 			setzoom(zoom * step, e.clientX - r.left, e.clientY - r.top);
 		}, { passive: false });
 
-		// 点一下页面：把这一页按高分辨率重画一遍，交给外层 Viewer 放大看。
-		// PDF 页是 canvas 不是 img，没法像文档图片那样直接点开，得自己出图。
-		function bigimage(i){
-			if (doc == null || i < 0 || i >= slots.length) return;
-			doc.getPage(i + 1).then(function(page){
-				var vp = page.getViewport({ scale: 1 });
-				// 出到 1500px 宽足够看清小字，再大 GIF 式的 data URL 会开始卡
-				var v = page.getViewport({ scale: Math.min(3, 1500 / vp.width) });
-				var c = document.createElement("canvas");
-				c.width = Math.round(v.width);
-				c.height = Math.round(v.height);
-				var ctx = c.getContext("2d", { alpha: false });
-				ctx.fillStyle = "#fff";
-				ctx.fillRect(0, 0, c.width, c.height);
-				return page.render({ canvasContext: ctx, viewport: v }).promise.then(function(){
-					var url;
-					// 扫描件是照片，JPEG 比 PNG 小一个数量级，肉眼差不多
-					try { url = c.toDataURL("image/jpeg", 0.92); } catch (e) { return; }
-					try {
-						parent.postMessage({ sk: "docimg", src: url, list: [url], index: 0 }, "*");
+		// 点一下页面：找出点中的是哪张插图，只把那张图按原分辨率放大，不是整页。
+		// PDF 里的图是 canvas 画上去的，没有 img 元素，只能翻绘制指令 + 变换矩阵倒推位置。
+		function hits(i, px, py){
+			return doc.getPage(i + 1).then(function(page){
+				var v = page.getViewport({ scale: effscale(i) });
+				// 把页面坐标（CSS 像素）换回 PDF 用户空间
+				var m = lib.Util.inverseTransform(v.transform);
+				var ux = m[0] * px + m[2] * py + m[4];
+				var uy = m[1] * px + m[3] * py + m[5];
+				return page.getOperatorList().then(function(ops){
+					var stack = [], ctm = null, found = [], fn = ops.fnArray, ag = ops.argsArray;
+					var k, o, a;
+					for (k = 0; k < fn.length; k++) {
+						o = fn[k];
+						a = ag[k];
+						if (o === lib.OPS.save) {
+							stack.push(ctm ? ctm.slice() : [1, 0, 0, 1, 0, 0]);
+						}
+						else if (o === lib.OPS.restore) {
+							ctm = stack.length ? stack.pop() : null;
+						}
+						else if (o === lib.OPS.transform) {
+							ctm = ctm ? lib.Util.transform(ctm, a) : a.slice();
+						}
+						else if (o === lib.OPS.paintImageXObject || o === lib.OPS.paintInlineImageXObject) {
+							found.push({ id: a[0], ctm: ctm ? ctm.slice() : [1, 0, 0, 1, 0, 0] });
+						}
 					}
-					catch (e2) { }
+					// 后画的压在上面，从后往前找第一个命中的
+					var j, box, h;
+					for (j = found.length - 1; j >= 0; j--) {
+						h = found[j];
+						box = unitbox(h.ctm);
+						if (ux >= box[0] && ux <= box[2] && uy >= box[1] && uy <= box[3]) return h;
+					}
+					return null;
 				});
+			});
+		}
+
+		// 图片总画在单位正方形 (0,0)-(1,1) 里，乘上当时 CTM 就是它在页面上的框
+		function unitbox(m){
+			var xs = [], ys = [], i, x, y;
+			var pts = [[0, 0], [1, 0], [0, 1], [1, 1]];
+			for (i = 0; i < 4; i++) {
+				x = pts[i][0]; y = pts[i][1];
+				xs.push(m[0] * x + m[2] * y + m[4]);
+				ys.push(m[1] * x + m[3] * y + m[5]);
+			}
+			return [Math.min.apply(null, xs), Math.min.apply(null, ys),
+				Math.max.apply(null, xs), Math.max.apply(null, ys)];
+		}
+
+		// 取那张图的原始像素，铺到画布上再交给外层 Viewer
+		function rawimage(i, hit){
+			return doc.getPage(i + 1).then(function(page){
+				return new Promise(function(res){
+					page.objs.get(hit.id, function(data){
+						if (!data) { res(0); return; }
+						var c = document.createElement("canvas");
+						var ctx;
+						// 浏览器支持 OffscreenCanvas 时 pdf.js 直接给 ImageBitmap，没有原始字节可转
+						if (data.bitmap) {
+							c.width = data.bitmap.width;
+							c.height = data.bitmap.height;
+							ctx = c.getContext("2d", { alpha: false });
+							ctx.fillStyle = "#fff";
+							ctx.fillRect(0, 0, c.width, c.height);
+							ctx.drawImage(data.bitmap, 0, 0);
+						}
+						else if (data.data && data.width && data.height) {
+							var w = data.width, h = data.height;
+							c.width = w;
+							c.height = h;
+							ctx = c.getContext("2d", { alpha: false });
+							var img = ctx.createImageData(w, h);
+							var out = img.data, src = data.data, kind = data.kind;
+							var p, q, n = w * h;
+							if (kind === lib.ImageKind.RGBA_32BPP || kind === lib.ImageKind.RGB_24BPP) {
+								var bpp = kind === lib.ImageKind.RGBA_32BPP ? 4 : 3;
+								for (p = 0, q = 0; p < n; p++, q += 4) {
+									out[q] = src[p * bpp];
+									out[q + 1] = src[p * bpp + 1];
+									out[q + 2] = src[p * bpp + 2];
+									out[q + 3] = bpp === 4 ? src[p * bpp + 3] : 255;
+								}
+							}
+							else {
+								// 1bpp：每字节 8 个像素，1 是黑
+								for (p = 0; p < n; p++) {
+									var bit = (src[p >> 3] >> (7 - (p & 7))) & 1;
+									out[p * 4] = out[p * 4 + 1] = out[p * 4 + 2] = bit ? 0 : 255;
+									out[p * 4 + 3] = 255;
+								}
+							}
+							ctx.putImageData(img, 0, 0);
+						}
+						else { res(0); return; }
+						var url;
+						try { url = c.toDataURL("image/png"); } catch (e) { res(0); return; }
+						try {
+							parent.postMessage({ sk: "docimg", src: url, list: [url], index: 0 }, "*");
+						}
+						catch (e2) { }
+						res(1);
+					});
+				});
+			});
+		}
+
+		function bigimage(i, px, py){
+			if (doc == null || i < 0 || i >= slots.length) return;
+			hits(i, px, py).then(function(hit){
+				if (!hit) return;
+				return rawimage(i, hit);
 			}).catch(function(){ });
 		}
 
@@ -463,7 +555,9 @@ sealed partial class HttpOcrServer {
 			var el = document.elementFromPoint(e.clientX, e.clientY);
 			var pg = el && el.closest ? el.closest(".pg") : null;
 			if (!pg) return;
-			bigimage(slots.indexOf(pg));
+			// 点击位置换到这一页自己的 CSS 坐标，用来判断点中了哪张图
+			var r = pg.getBoundingClientRect();
+			bigimage(slots.indexOf(pg), e.clientX - r.left, e.clientY - r.top);
 		});
 		// 按住空格再拖，空白处和文字上都能平移
 		window.addEventListener("keydown", function(e){
@@ -494,7 +588,7 @@ sealed partial class HttpOcrServer {
 		build(TOTAL > 0 ? TOTAL : 1);
 		setpct();
 		lib.getDocument({ url: FILE, cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
-			cMapPacked: true }).promise.then(function(d){
+			cMapPacked: true, isOffscreenCanvasSupported: false }).promise.then(function(d){
 			doc = d;
 			if (d.numPages !== TOTAL) build(d.numPages);
 			scan();

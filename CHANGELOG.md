@@ -76,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Reader: the word lookup popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
 - Web PDF viewer opens at 100% actual size by default (1:1 button, plus fit width / fit page)
 - Web dictionary: the selection popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
+- Web PDF viewer: clicking a picture inside a PDF now opens that picture at its own resolution (not a screenshot of the whole page); clicking plain text does nothing
 
 #### Fixed
 
@@ -120,6 +121,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器：划词浮窗和 WPF 一样取 100 条结果，列表超过八行可滚动
 - web PDF 查看默认按 100% 实际大小打开（工具栏 1:1 按钮，另有适应宽度/页高）
 - web 词典：划词浮窗和 WPF 浮窗一样取 100 条结果，列表超过八行可滚动
+- web PDF 查看：点 PDF 里的图片只放大那张图本身（按原分辨率），点文字不弹
 
 #### 修复
 
