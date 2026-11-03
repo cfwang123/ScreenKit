@@ -67,7 +67,14 @@ sealed class FtpEntry : INotifyPropertyChanged {
 
 	public string Name {
 		get => name;
-		set { if (name == value) return; name = value; notify(nameof(Name)); }
+		set {
+			if (name == value) return;
+			name = value;
+			notify(nameof(Name));
+			// 图标按扩展名分，名字变了要重算
+			notify(nameof(Icon));
+			notify(nameof(IconBrush));
+		}
 	}
 	public string Full {
 		get => full;
@@ -92,7 +99,14 @@ sealed class FtpEntry : INotifyPropertyChanged {
 	}
 	public string SizeText => IsDir ? "" : FtpFmt.Size(Size);
 	public string TimeText => Modified == default ? "" : FtpFmt.Time(Modified);
-	public string Icon => IsDir ? "\uE8B7" : "\uE8A5";
+	/// <summary>
+	/// 列表里显示的图标字形（Segoe MDL2 Assets 码位）。
+	/// 只分几大类：文件夹、图片、视频、音频、压缩包、文档、代码、可执行、其他。
+	/// </summary>
+	public string Icon => FtpIcon.Glyph(Name, IsDir);
+
+	/// <summary>图标颜色，按类型稍微区分一下，比全灰好看也更容易扫。</summary>
+	public string IconBrush => FtpIcon.Color(Name, IsDir);
 
 	public event PropertyChangedEventHandler PropertyChanged;
 

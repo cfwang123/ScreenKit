@@ -225,6 +225,21 @@ static class FtpServerSelfTest {
 	/// 界面自测：造主窗口，确认 FTP 服务页的控件在、状态栏项在、
 	/// 端口输入框能读写，以及配置里新增的字段能存进 config.toml。
 	/// </summary>
+	/// <summary>把字形反查回分类名，只给自测用。</summary>
+	static string glyphkind(string g) => g switch {
+		"\uE8B7" => "folder",
+		"\uEB9F" => "image",
+		"\uE714" => "video",
+		"\uE8D6" => "audio",
+		"\uF012" => "zip",
+		"\uEA90" => "pdf",
+		"\uE943" => "code",
+		"\uE7B8" => "exe",
+		"\uE8A5" => "doc",
+		"\uE7C3" => "file",
+		_ => "file"
+	};
+
 	public static int UiSmoke(Action<string> outLog, Action<string> errLog) {
 		var fails = 0;
 		void ok(string s) => outLog($"OK   {s}");
@@ -290,6 +305,58 @@ static class FtpServerSelfTest {
 				var tftpBogus = new TftpOptions { Port = 99999 };
 				if (tftpBogus.PortOr() != 69) bad("TFTP 越界端口没退回 69");
 				else ok("TFTP 越界端口退回 69");
+
+				// ---- 图标按类型分类 ----
+				var seen = new Dictionary<string, string>();
+				foreach (var (file, want) in new[] {
+					(".", "folder"),
+					("a.jpg", "image"), ("a.PNG", "image"), ("a.webp", "image"),
+					("a.mp4", "video"), ("a.mkv", "video"),
+					("a.mp3", "audio"), ("a.flac", "audio"),
+					("a.zip", "zip"), ("a.7z", "zip"), ("a.tar.gz", "zip"),
+					("a.pdf", "pdf"),
+					("a.cs", "code"), ("a.json", "code"), ("a.py", "code"),
+					("a.docx", "doc"), ("a.txt", "doc"), ("a.csv", "doc"),
+					("a.exe", "exe"), ("a.dll", "exe"), ("a.apk", "exe"),
+					("a.unknownext", "file"), ("noext", "file"),
+					(".gitignore", "file"),
+				}) {
+					bool isdir = file == ".";
+					var g = FtpIcon.Glyph(isdir ? "somedir" : file, isdir);
+					var got = glyphkind(g);
+					if (got != want) bad($"图标分类 {file} 得到 {got}，期望 {want}");
+					else seen[want] = g;
+				}
+				if (seen.Count >= 8) ok($"图标分 {seen.Count} 类且全部正确");
+				else bad($"只有 {seen.Count} 类图标被验证到");
+
+				// 不同类型必须给不同字形
+				if (FtpIcon.Glyph("x.jpg", false) != FtpIcon.Glyph("x.mp4", false))
+					ok("图片与视频图标不同");
+				else bad("图片与视频用了同一个图标");
+				if (FtpIcon.Glyph("dir", true) != FtpIcon.Glyph("x.txt", false))
+					ok("文件夹与文件图标不同");
+				else bad("文件夹与文件用了同一个图标");
+
+				// 颜色也得有区分，且都是合法色值
+				if (FtpIcon.Color("d", true) == FtpIcon.Color("a.png", false)) bad("文件夹与图片同色");
+				else ok("文件夹与图片颜色不同");
+				foreach (var (nm, d) in new[] { ("d", true), ("a.png", false), ("a.mp4", false),
+					("a.zip", false), ("a.xyz", false) }) {
+					var c = FtpIcon.Color(nm, d);
+					if (!c.StartsWith("#") || c.Length != 7) bad($"颜色值格式不对: {c}");
+					else {
+						try { System.Windows.Media.ColorConverter.ConvertFromString(c); }
+						catch { bad($"颜色无法解析: {c}"); }
+					}
+				}
+				ok("颜色值都是合法 #RRGGBB");
+
+				// FtpEntry 上要能拿到图标与颜色
+				var ent = new FtpEntry { Name = "movie.mp4", IsDir = false };
+				if (string.IsNullOrEmpty(ent.Icon)) bad("FtpEntry.Icon 为空");
+				else if (string.IsNullOrEmpty(ent.IconBrush)) bad("FtpEntry.IconBrush 为空");
+				else ok("FtpEntry 上能取到图标与颜色");
 
 				// ---- 协议表里必须有 tftp，且默认端口 69 ----
 				if (Array.IndexOf(FtpProto.All, FtpProto.Tftp) < 0) bad("协议表里没有 tftp");

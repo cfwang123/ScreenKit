@@ -73,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The TCP/UDP debugger also opens a serial port, with baud, data bits, parity, and stop bits
 - The FTP file manager can now connect over TFTP as well: pick TFTP as the protocol, type a file name to download it, or drop a file in to upload. TFTP cannot list directories, so that pane switches to a name-based panel and the TFTP libraries are not needed.
 - Korean conjugation tables now include graded grammar levels 1-6 and other uncommon patterns, with particles and noun patterns on nouns.
+- The FTP file manager list now shows a type icon before each name: folders, images, video, audio, archives, PDF, documents, code and executables each get their own, with a touch of colour.
 
 #### Changed
 
@@ -152,6 +153,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - TCP/UDP 调试增加串口，可设波特率、数据位、校验和停止位
 - FTP 文件管理新增 TFTP 协议：协议里选 TFTP，输入文件名即可下载，把文件拖进来即按原文件名上传。TFTP 没有列目录命令，所以连接后列表区换成按文件名操作的提示面板；TFTP 自带实现，不需要装那两个库。
 - 韩语变形表加入 1–6 级和其它不常用语法；助词和名词后置接在名词上。
+- FTP 文件管理的列表在名称前显示类型图标：文件夹、图片、视频、音频、压缩包、PDF、文档、代码和可执行文件各一种，并带一点颜色区分。
 
 #### 变更
 

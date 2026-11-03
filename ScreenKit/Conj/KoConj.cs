@@ -197,7 +197,6 @@ static class KoConj {
 		["role"] = new[] { "角色语", "역할어", "Character" },
 		["circle"] = new[] { "小圈子", "은어", "In-group" },
 		["rough"] = new[] { "粗俗", "속어", "Vulgar" },
-		["adv"] = new[] { "高级", "고급", "Advanced" },
 	};
 
 	private static readonly Dictionary<string, string[]> NOTE = new() {
@@ -1237,6 +1236,18 @@ static class KoConj {
 		add("becwind", "는 바람에", nowmod + " 바람에");
 		add("becfault", "는 탓에", nowmod + " 탓에");
 		add("becthanks", "는 덕분에", nowmod + " 덕분에");
+		add("euryeonman", "으련만", pluseu(st, "련만", false));
+		if (verb) {
+			add("giro", "기로", jn(syls) + "기로");
+			add("gising", "기 십상이다", jn(syls) + "기 십상이에요");
+			add("dorokhada", "도록 하다", jn(syls) + "도록 해요");
+		}
+		add("gieneun", "기에는", jn(syls) + "기에는");
+		add("ginareum", "기 나름이다", jn(syls) + "기 나름이에요");
+		if (hs != null) {
+			add("honset", "시겠", jn(hs) + "겠어요");
+			add("honsideol", "시더", jn(hs) + "더라");
+		}
 		cur = g("mod");
 		if (adj && !eobs) add("modn", "ㄴ", nieunword(syls, irr));
 		else add("modn", "는", neun(syls));
@@ -1399,6 +1410,47 @@ static class KoConj {
 		add("cheok", "는 척하다", nowmod + " 척해요");
 		add("qquote", "냐고", quotenya(syls, irr, kind) + " / " + past + "느냐고");
 		add("dquote", "다는", repend(plainnow, "다", "다는") + " / " + past + "다는");
+		add("deora", "더라", jn(syls) + "더라");
+		add("deorago", "더라고요", jn(syls) + "더라고요");
+		add("deondeyo", "던데요", jn(syls) + "던데요");
+		add("deoni", "더니", jn(syls) + "더니");
+		add("getdeora", "겠더라", jn(syls) + "겠더라");
+		add("eulteni", "을 테니", rl + " 테니");
+		add("eulbeophada", "을 법하다", rl + " 법해요");
+		add("dani", "다니", repend(plainnow, "다", "다니"));
+		add("dagie", "다기에", repend(plainnow, "다", "다기에"));
+		add("dadeoni", "다더니", repend(plainnow, "다", "다더니"));
+		add("damyeon", "다면", repend(plainnow, "다", "다면"));
+		add("dason", "다손 치더라도", repend(plainnow, "다", "다손 치더라도"));
+		add("janeun", "자는", jn(syls) + "자는");
+		add("nyaneun", "냐는", jn(syls) + "냐는");
+		if (verb) {
+			add("giwihaeseo", "기 위해서", jn(syls) + "기 위해서");
+			add("gimangjeong", "기에 망정이지", jn(syls) + "기에 망정이지");
+		}
+		add("eotseoya", "었어야", past + "어야");
+		add("jianheumyeon", "지 않으면 안 되다", jn(syls) + "지 않으면 안 돼요");
+		add("namana", "나 마나", dropr(syls, "나 마나"));
+		add("geonamalgeona", "거나 말거나", jn(syls) + "거나 말거나");
+		add("eulppundeoreo", "을 뿐더러", rl + " 뿐더러");
+		add("eundedaga", "은 데다가", nieunword(syls, irr) + " 데다가");
+		add("gohaseo", "고 해서", jn(syls) + "고 해서");
+		if (verb) {
+			add("dabomyeon", "다 보면", jn(syls) + "다 보면");
+			add("goboni", "고 보니", jn(syls) + "고 보니");
+		}
+		add("gineunkeonyeong", "기는커녕", jn(syls) + "기는커녕");
+		add("neunseom", "는 셈이다", nowmod + " 셈이에요");
+		add("neunhan", "는 한", nowmod + " 한");
+		add("neunihang", "는 이상", nowmod + " 이상");
+		if (verb) add("neunmadang", "는 마당에", nowmod + " 마당에");
+		add("eulmangjeong", "을망정", rl + "망정");
+		add("euljieonjeong", "을지언정", rl + "지언정");
+		if (adj) add("gijjak", "기 짝이 없다", jn(syls) + "기 짝이 없어요");
+		add("neundaero", "는 대로", nowmod + " 대로");
+		if (verb) add("neuntong", "는 통에", nowmod + " 통에");
+		add("deonji", "던지", jn(syls) + "던지");
+		add("gemandeulda", "게 만들다", jn(syls) + "게 만들어요");
 		// 省略：것 的缩略和带空格的「将来的东西」与承诺形 ㄹ게 分开
 		var full = fullpolite(syls, irr);
 		cur = g("ellip");
@@ -1460,60 +1512,6 @@ static class KoConj {
 		add("llla", "ㄹ라", rl + "라");
 		if (verb || adj || itda) add("cheo", "쳐", "쳐" + ba);
 		if (verb) add("daeda", "대다", ba + " 대");
-		cur = g("adv");
-		add("deora", "더라", jn(syls) + "더라");
-		add("deorago", "더라고요", jn(syls) + "더라고요");
-		add("deondeyo", "던데요", jn(syls) + "던데요");
-		add("deoni", "더니", jn(syls) + "더니");
-		add("getdeora", "겠더라", jn(syls) + "겠더라");
-		add("eulteni", "을 테니", rl + " 테니");
-		add("eulbeophada", "을 법하다", rl + " 법해요");
-		add("dani", "다니", repend(plainnow, "다", "다니"));
-		add("dagie", "다기에", repend(plainnow, "다", "다기에"));
-		add("dadeoni", "다더니", repend(plainnow, "다", "다더니"));
-		add("damyeon", "다면", repend(plainnow, "다", "다면"));
-		add("dason", "다손 치더라도", repend(plainnow, "다", "다손 치더라도"));
-		add("janeun", "자는", jn(syls) + "자는");
-		add("nyaneun", "냐는", jn(syls) + "냐는");
-		if (verb) {
-			add("giwihaeseo", "기 위해서", jn(syls) + "기 위해서");
-			add("gimangjeong", "기에 망정이지", jn(syls) + "기에 망정이지");
-		}
-		add("eotseoya", "었어야", past + "어야");
-		add("jianheumyeon", "지 않으면 안 되다", jn(syls) + "지 않으면 안 돼요");
-		add("namana", "나 마나", dropr(syls, "나 마나"));
-		add("geonamalgeona", "거나 말거나", jn(syls) + "거나 말거나");
-		add("eulppundeoreo", "을 뿐더러", rl + " 뿐더러");
-		add("eundedaga", "은 데다가", nieunword(syls, irr) + " 데다가");
-		add("gohaseo", "고 해서", jn(syls) + "고 해서");
-		if (verb) {
-			add("dabomyeon", "다 보면", jn(syls) + "다 보면");
-			add("goboni", "고 보니", jn(syls) + "고 보니");
-		}
-		add("gineunkeonyeong", "기는커녕", jn(syls) + "기는커녕");
-		add("neunseom", "는 셈이다", nowmod + " 셈이에요");
-		add("neunhan", "는 한", nowmod + " 한");
-		add("neunihang", "는 이상", nowmod + " 이상");
-		if (verb) add("neunmadang", "는 마당에", nowmod + " 마당에");
-		add("eulmangjeong", "을망정", rl + "망정");
-		add("euljieonjeong", "을지언정", rl + "지언정");
-		add("euryeonman", "으련만", pluseu(st, "련만", false));
-		if (verb) {
-			add("giro", "기로", jn(syls) + "기로");
-			add("gising", "기 십상이다", jn(syls) + "기 십상이에요");
-			add("dorokhada", "도록 하다", jn(syls) + "도록 해요");
-		}
-		add("gieneun", "기에는", jn(syls) + "기에는");
-		add("ginareum", "기 나름이다", jn(syls) + "기 나름이에요");
-		if (adj) add("gijjak", "기 짝이 없다", jn(syls) + "기 짝이 없어요");
-		if (hs != null) {
-			add("honset", "시겠", jn(hs) + "겠어요");
-			add("honsideol", "시더", jn(hs) + "더라");
-		}
-		add("neundaero", "는 대로", nowmod + " 대로");
-		if (verb) add("neuntong", "는 통에", nowmod + " 통에");
-		add("deonji", "던지", jn(syls) + "던지");
-		add("gemandeulda", "게 만들다", jn(syls) + "게 만들어요");
 		rows.AddRange(KoGrammar.VerbRows(li, new KoPatForms {
 			Stem = jn(syls),
 			Ae = ba,
@@ -1901,6 +1899,12 @@ static class KoConj {
 		add("igido", "이기도", noun + "이기도 해요");
 		add("imyeonseo", "이면서", copart(noun, bat, "면서", "면서"));
 		add("idaga", "이다가", copart(noun, bat, "다가", "다가"));
+		add("giro", "기로", noun + "이기로");
+		add("gieneun", "기에는", noun + "이기에는");
+		add("neunseom", "인 셈이다", noun + "인 셈이에요");
+		add("neunhan", "인 한", noun + "인 한");
+		add("neunihang", "인 이상", noun + "인 이상");
+		add("neunmadang", "인 마당에", noun + "인 마당에");
 		cur = g("mod");
 		add("modn", "ㄴ", noun + "인");
 		add("modf", "ㄹ", noun + "일");
@@ -1939,18 +1943,12 @@ static class KoConj {
 		add("cheok", "인 척하다", noun + "인 척해요");
 		add("qquote", "냐고", copart(noun, bat, "냐고", "냐고") + " / " + copart(noun, bat, "었느냐고", "였느냐고"));
 		add("dquote", "다는", (bat ? noun + "이라는" : noun + "라는") + " / " + (bat ? noun + "이었다는" : noun + "였다는"));
-		cur = g("adv");
+		cur = g("mood");
 		add("dani", "라니", noun + (bat ? "이라니" : "라니"));
 		add("dagie", "라기에", noun + (bat ? "이라기에" : "라기에"));
 		add("dadeoni", "라더니", noun + (bat ? "이라더니" : "라더니"));
 		add("damyeon", "라면", noun + (bat ? "이라면" : "라면"));
 		add("dason", "라손 치더라도", noun + (bat ? "이라손 치더라도" : "라손 치더라도"));
-		add("giro", "기로", noun + "이기로");
-		add("gieneun", "기에는", noun + "이기에는");
-		add("neunseom", "인 셈이다", noun + "인 셈이에요");
-		add("neunhan", "인 한", noun + "인 한");
-		add("neunihang", "인 이상", noun + "인 이상");
-		add("neunmadang", "인 마당에", noun + "인 마당에");
 		cur = g("ext");
 		add("jana", "잖아", copart(noun, bat, "잖아", "잖아"));
 		add("geodeun", "거든", copart(noun, bat, "거든", "거든"));

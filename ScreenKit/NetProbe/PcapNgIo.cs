@@ -15,7 +15,11 @@ static class PcapNgIo {
 	const uint BYTE_ORDER_MAGIC = 0x1A2B3C4D;
 
 	/// <summary>将报文列表写入 pcapng（按时间排序）。</summary>
-	public static void Write(string path, IEnumerable<PacketRow> packets) {
+	public static void Write(string path, IEnumerable<PacketRow> packets) =>
+		Write(path, packets, 0);
+
+	/// <param name="linkType">指定链路类型；0 表示按帧内容猜测（以太网 / Raw IP / USBPcap）。</param>
+	public static void Write(string path, IEnumerable<PacketRow> packets, int linkType) {
 		if (string.IsNullOrEmpty(path)) throw new ArgumentException("path");
 		List<PacketRow> list = new();
 		foreach (var p in packets) {
@@ -26,11 +30,103 @@ static class PcapNgIo {
 		using var fs = File.Create(path);
 		using var bw = new BinaryWriter(fs);
 		writeShb(bw);
-		// 常见链路类型：以太网 1；若帧不像以太网则用 Raw IP 101
-		var link = guessLinkType(list);
+		// 常见链路类型：以太网 1；若帧不像以太网则用 Raw IP 101；USB 为 249
+		var link = linkType > 0 ? linkType : guessLinkType(list);
 		writeIdb(bw, link);
 		foreach (var p in list)
 			writeEpb(bw, p, link);
+	}
+
+	/// <summary>读取 pcapng/pcap，把链路类型 249 的帧解析为 USB 报文。</summary>
+	public static List<PacketRow> ReadUsb(string path, int max = 20000) {
+		if (string.IsNullOrEmpty(path) || !File.Exists(path))
+			throw new FileNotFoundException("文件不存在", path);
+		using var fs = File.OpenRead(path);
+		using var br = new BinaryReader(fs);
+		List<PacketRow> rows = new();
+		var ifaces = new Dictionary<uint, int>();
+		uint nextIface = 0;
+		var little = true;
+		var saw = false;
+
+		while (fs.Position + 8 <= fs.Length && rows.Count < max) {
+			var start = fs.Position;
+			var type = readU32(br, little);
+			var totalLen = readU32(br, little);
+			if (totalLen < 12 || start + totalLen > fs.Length) break;
+			saw = true;
+
+			if (type == BT_SHB) {
+				var magic = br.ReadUInt32();
+				if (magic == BYTE_ORDER_MAGIC) little = true;
+				else if (magic == 0x4D3C2B1A) little = false;
+				fs.Position = start + totalLen;
+				continue;
+			}
+			if (type == BT_IDB) {
+				var link = readU16(br, little);
+				readU16(br, little);
+				readU32(br, little);
+				ifaces[nextIface++] = link;
+				fs.Position = start + totalLen;
+				continue;
+			}
+			if (type == BT_EPB) {
+				var ifId = readU32(br, little);
+				var tsHigh = readU32(br, little);
+				var tsLow = readU32(br, little);
+				var capLen = readU32(br, little);
+				readU32(br, little);
+				if (capLen > 0 && capLen < 16 * 1024 * 1024 && fs.Position + capLen <= fs.Length) {
+					var raw = br.ReadBytes((int)capLen);
+					var link = ifaces.TryGetValue(ifId, out var lt) ? lt : 0;
+					addUsb(rows, raw, link, tsToTime(tsHigh, tsLow), max);
+				}
+				fs.Position = start + totalLen;
+				continue;
+			}
+			fs.Position = start + totalLen;
+		}
+
+		if (!saw) {
+			fs.Position = 0;
+			rows = readClassicUsb(br, max);
+		}
+		return rows;
+	}
+
+	static void addUsb(List<PacketRow> rows, byte[] raw, int link, DateTime time, int max) {
+		if (rows.Count >= max) return;
+		if (link != 0 && link != UsbPacketParser.DLT_USBPCAP) return;
+		if (!UsbPacketParser.TryParse(raw, out var row)) return;
+		row.Time = time;
+		row.Raw = raw;
+		rows.Add(row);
+	}
+
+	static List<PacketRow> readClassicUsb(BinaryReader br, int max) {
+		List<PacketRow> rows = new();
+		var fs = br.BaseStream;
+		if (fs.Length < 24) return rows;
+		var magic = br.ReadUInt32();
+		var little = magic == 0xA1B2C3D4 || magic == 0xA1B23C4D;
+		var swap = magic == 0xD4C3B2A1 || magic == 0x4D3CB2A1;
+		if (!little && !swap) return rows;
+		fs.Position = 20;
+		var link = little ? br.ReadUInt32() : swapU32(br.ReadUInt32());
+		fs.Position = 24;
+		if (link != UsbPacketParser.DLT_USBPCAP) return rows;
+		while (fs.Position + 16 <= fs.Length && rows.Count < max) {
+			var tsSec = little ? br.ReadUInt32() : swapU32(br.ReadUInt32());
+			var tsUsec = little ? br.ReadUInt32() : swapU32(br.ReadUInt32());
+			var incl = little ? br.ReadUInt32() : swapU32(br.ReadUInt32());
+			var orig = little ? br.ReadUInt32() : swapU32(br.ReadUInt32());
+			if (incl == 0 || fs.Position + incl > fs.Length) break;
+			var raw = br.ReadBytes((int)incl);
+			var time = DateTimeOffset.FromUnixTimeSeconds(tsSec).LocalDateTime.AddTicks(tsUsec * 10);
+			addUsb(rows, raw, (int)link, time, max);
+		}
+		return rows;
 	}
 
 	/// <summary>读取 pcapng，解析 TCP 为 PacketRow 列表（最多 max 条）。</summary>
@@ -194,6 +290,14 @@ static class PcapNgIo {
 		foreach (var p in list) {
 			var r = p.Raw;
 			if (r == null || r.Length < 14) continue;
+			// USBPcap 头：headerLen 落在 27..64，传输类型是 0..3 / 0xFE / 0xFF
+			if (r.Length >= 27) {
+				var hdr = r[0] | (r[1] << 8);
+				var xfer = r[22];
+				if (hdr >= 27 && hdr <= 64 && hdr <= r.Length &&
+				    (xfer <= 3 || xfer == 0xFE || xfer == 0xFF))
+					return UsbPacketParser.DLT_USBPCAP;
+			}
 			// 以太网类型字段
 			var eth = (r[12] << 8) | r[13];
 			if (eth is 0x0800 or 0x86DD or 0x8100) return 1; // DLT_EN10MB
