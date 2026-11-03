@@ -40,6 +40,8 @@ public static class FastCopy {
 		public long TotalBytes;
 		public int DoneFiles;
 		public int TotalFiles;
+		/// <summary>还在列文件，总数还没定。</summary>
+		public bool Scanning;
 	}
 
 	public sealed class Result {
@@ -175,6 +177,7 @@ public static class FastCopy {
 		}
 		var items = new List<Work>();
 		var sweep = new List<string>();
+		var scan = scanping(job);
 		foreach (var raw in job.Sources ?? new List<string>()) {
 			if (job.Cancel.IsCancellationRequested) {
 				res.Cancelled = true;
@@ -183,6 +186,7 @@ public static class FastCopy {
 			var src = (raw ?? "").Trim().Trim('"');
 			if (src.Length == 0) continue;
 			plan(src, dest, job.Move, conflict, items, sweep, res);
+			scan(src, false);
 		}
 		if (res.Cancelled) return res;
 		if (items.Count == 0 && res.Failed == 0 && res.Skipped == 0) {
@@ -192,6 +196,7 @@ public static class FastCopy {
 		}
 		long total = 0;
 		foreach (var it in items) total += it.Size;
+		scan("", true);
 		int doneFiles = 0;
 		long doneBytes = 0;
 		int nextui = Environment.TickCount - 1000;
@@ -489,6 +494,20 @@ public static class FastCopy {
 		catch { return path ?? ""; }
 	}
 
+	/// <summary>列文件时把已扫到的数量报出去，80 毫秒最多一次。</summary>
+	static Action<string, bool> scanping(Job job) {
+		int nextui = Environment.TickCount - 1000;
+		return (file, force) => {
+			var now = Environment.TickCount;
+			if (!force && unchecked(now - nextui) < 80) return;
+			nextui = now;
+			try {
+				job.OnProgress?.Invoke(new Progress { File = file ?? "", Scanning = true });
+			}
+			catch { }
+		};
+	}
+
 	static bool samepath(string a, string b) =>
 		string.Equals(full(a), full(b), StringComparison.OrdinalIgnoreCase);
 
@@ -510,6 +529,7 @@ public static class FastCopy {
 		var res = new Result();
 		var hard = job.Link == "hardlink";
 		var items = new List<Work>();
+		var scan = scanping(job);
 		foreach (var raw in job.Sources ?? new List<string>()) {
 			if (job.Cancel.IsCancellationRequested) {
 				res.Cancelled = true;
@@ -553,6 +573,7 @@ public static class FastCopy {
 				continue;
 			}
 			items.Add(new Work { Src = full(src), Dest = full(to), Size = 1 });
+			scan(src, false);
 		}
 		if (res.Cancelled) return res;
 		if (items.Count == 0 && res.Failed == 0 && res.Skipped == 0 && res.Ok == 0) {
@@ -560,6 +581,7 @@ public static class FastCopy {
 			res.Error = "empty";
 			return res;
 		}
+		scan("", true);
 		int doneFiles = 0;
 		long doneBytes = 0;
 		int nextui = Environment.TickCount - 1000;
@@ -712,28 +734,43 @@ public static class FastCopy {
 	}
 
 	/// <summary>统计文件数、文件夹数和字节；不进入重解析点，cancel 时抛 OperationCanceledException。</summary>
-	public static Stats Count(IEnumerable<string> paths, CancellationToken cancel = default) {
+	public static Stats Count(IEnumerable<string> paths, CancellationToken cancel = default) =>
+		Count(paths, cancel, null);
+
+	/// <summary>边统计边回调当前已扫到的数量和正在看的路径。回调在统计线程上。</summary>
+	public static Stats Count(IEnumerable<string> paths, CancellationToken cancel, Action<Stats, string> onprogress) {
 		var info = new Stats();
 		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		if (paths == null) return info;
+		int nextui = Environment.TickCount - 1000;
+		void ping(string path, bool force) {
+			if (onprogress == null) return;
+			var now = Environment.TickCount;
+			if (!force && unchecked(now - nextui) < 80) return;
+			nextui = now;
+			try { onprogress(info, path ?? ""); } catch { }
+		}
 		foreach (var raw in paths) {
 			cancel.ThrowIfCancellationRequested();
 			var p = full((raw ?? "").Trim().Trim('"'));
 			if (p.Length == 0 || !seen.Add(p)) continue;
-			measureone(p, info, seen, cancel);
+			measureone(p, info, seen, cancel, ping);
 		}
+		ping("", true);
 		return info;
 	}
 
 	static Stats measure(IList<string> paths) => Count(paths);
 
-	static void measureone(string path, Stats info, HashSet<string> seen, CancellationToken cancel = default) {
+	static void measureone(string path, Stats info, HashSet<string> seen, CancellationToken cancel,
+		Action<string, bool> ping) {
 		cancel.ThrowIfCancellationRequested();
 		FileAttributes attr;
 		try { attr = File.GetAttributes(path); }
 		catch { return; }
 		if ((attr & FileAttributes.Directory) != 0) {
 			info.Dirs++;
+			ping(path, false);
 			if ((attr & FileAttributes.ReparsePoint) != 0) return;
 			try {
 				foreach (var file in Directory.EnumerateFiles(path)) {
@@ -742,12 +779,13 @@ public static class FastCopy {
 					if (!seen.Add(fp)) continue;
 					info.Files++;
 					try { info.Bytes += new FileInfo(file).Length; } catch { }
+					ping(fp, false);
 				}
 				foreach (var sub in Directory.EnumerateDirectories(path)) {
 					cancel.ThrowIfCancellationRequested();
 					var dp = full(sub);
 					if (!seen.Add(dp)) continue;
-					measureone(dp, info, seen, cancel);
+					measureone(dp, info, seen, cancel, ping);
 				}
 			}
 			catch (OperationCanceledException) { throw; }
@@ -756,6 +794,7 @@ public static class FastCopy {
 		}
 		info.Files++;
 		try { info.Bytes += new FileInfo(path).Length; } catch { }
+		ping(path, false);
 	}
 
 	static string fmtbytes(long n) {

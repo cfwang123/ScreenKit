@@ -74,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The FTP file manager can now connect over TFTP as well: pick TFTP as the protocol, type a file name to download it, or drop a file in to upload. TFTP cannot list directories, so that pane switches to a name-based panel and the TFTP libraries are not needed.
 - Korean conjugation tables now include graded grammar levels 1-6 and other uncommon patterns, with particles and noun patterns on nouns.
 - The FTP file manager list now shows a type icon before each name: folders, images, video, audio, archives, PDF, documents, code and executables each get their own, with a touch of colour.
+- Tools > Network adds USB capture: USBPcap URB capture with control, bulk, interrupt and isochronous parsing, per-device filtering, and pcapng import/export.
 
 #### Changed
 
@@ -104,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - UDP debugger is now a TCP/UDP debugger, with a protocol radio that shows connect or send
 - In the FTP file manager transfer list, a finished transfer now leaves the list on its own; failed and cancelled ones stay so the reason is visible and retry still works.
 - The Korean conjugation table no longer has a separate Advanced group; those patterns are listed under mood and connective groups.
+- Fast copy shows a cancellable progress window while counting and while copying
 
 #### Fixed
 
@@ -155,6 +157,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP 文件管理新增 TFTP 协议：协议里选 TFTP，输入文件名即可下载，把文件拖进来即按原文件名上传。TFTP 没有列目录命令，所以连接后列表区换成按文件名操作的提示面板；TFTP 自带实现，不需要装那两个库。
 - 韩语变形表加入 1–6 级和其它不常用语法；助词和名词后置接在名词上。
 - FTP 文件管理的列表在名称前显示类型图标：文件夹、图片、视频、音频、压缩包、PDF、文档、代码和可执行文件各一种，并带一点颜色区分。
+- 工具 → 网络工具 新增 USB 抓包：经 USBPcap 抓 URB，解析控制、批量、中断、等时传输，可按设备筛选，并导入导出 pcapng。
 
 #### 变更
 
@@ -185,6 +188,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - UDP 调试改为 TCP/UDP 调试，单选切换协议，分别显示连接或发送
 - FTP 文件管理的传输列表里，传完的条目会自动从列表移除；失败和取消的仍保留，好让用户看到原因并重试。
 - 韩语变形表去掉单独的「高级」分组，这些条目并入语气和连接。
+- 快速复制在统计和传输时弹出可取消的进度窗口
 
 #### 修复
 

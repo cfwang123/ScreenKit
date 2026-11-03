@@ -9,8 +9,6 @@ public partial class FastCopyWindow : Window {
 	readonly OcrOptions opt;
 	readonly ObservableCollection<string> rows = new();
 	readonly DispatcherTimer statwait = new() { Interval = TimeSpan.FromMilliseconds(250) };
-	CancellationTokenSource cts;
-	CancellationTokenSource statcts;
 	bool busy;
 	bool dead;
 	bool ready;
@@ -38,7 +36,6 @@ public partial class FastCopyWindow : Window {
 		bstat.Click += (_, _) => countfiles();
 		bbrowse.Click += (_, _) => pickdest();
 		bstart.Click += (_, _) => start();
-		bcancel.Click += (_, _) => cts?.Cancel();
 		breg.Click += (_, _) => togglereg();
 		rcopy.Checked += (_, _) => onmode();
 		rmove.Checked += (_, _) => onmode();
@@ -70,8 +67,6 @@ public partial class FastCopyWindow : Window {
 		};
 		Closing += (_, _) => {
 			dead = true;
-			try { cts?.Cancel(); } catch { }
-			cancelstats();
 			saveopt();
 		};
 		pickmode(opt.FastCopyMode);
@@ -102,7 +97,6 @@ public partial class FastCopyWindow : Window {
 		lbconflict.Text = Loc.T("fc.conflict");
 		lbworkers.Text = Loc.T("fc.workers");
 		bstart.Content = Loc.T("fc.start");
-		bcancel.Content = Loc.T("fc.cancel");
 	}
 
 	/// <summary>源列表有变化：稍等一下再统计，连续添加时只算一次。</summary>
@@ -110,46 +104,33 @@ public partial class FastCopyWindow : Window {
 		if (dead) return;
 		statwait.Stop();
 		if (rows.Count == 0) {
-			cancelstats();
 			lbtotal.Text = "";
 			return;
 		}
 		statwait.Start();
 	}
 
-	void cancelstats() {
-		try { statcts?.Cancel(); } catch { }
-		statcts = null;
-	}
-
-	/// <summary>「统计文件」：只算文件数量和小计大小，不算文件夹。</summary>
+	/// <summary>「统计文件」：弹出进度窗，只算文件数量和小计大小，不算文件夹。</summary>
 	void countfiles() {
 		if (busy || dead) return;
 		if (rows.Count == 0) { lbstat.Text = Loc.T("fc.empty"); return; }
 		statwait.Stop();
-		updatestats(true);
+		var win = new FastCopyProgWindow(rows.ToList(), true) { Owner = this };
+		win.ShowDialog();
+		if (dead) return;
+		lbtotal.Text = win.Stats == null ? Loc.T("fc.cancelled") : Loc.T("fc.files.msg", win.Stats.Files, FastCopy.FormatBytes(win.Stats.Bytes));
 	}
 
-	/// <summary>后台统计源列表的文件数、文件夹数和大小，算完再显示。</summary>
-	void updatestats(bool filesonly = false) {
+	/// <summary>源列表变化后统计文件数、文件夹数和大小，进度在单独的窗口里。</summary>
+	void updatestats() {
 		if (dead) return;
-		cancelstats();
 		var paths = rows.ToList();
 		if (paths.Count == 0) { lbtotal.Text = ""; return; }
-		var todo = new CancellationTokenSource();
-		statcts = todo;
-		lbtotal.Text = Loc.T("fc.stat.scan");
-		Task.Run(() => FastCopy.Count(paths, todo.Token)).ContinueWith(t => {
-			var st = t.Status == TaskStatus.RanToCompletion ? t.Result : null;
-			Dispatcher.BeginInvoke(new Action(() => {
-				if (dead || statcts != todo) return;
-				statcts = null;
-				todo.Dispose();
-				if (st == null) { lbtotal.Text = ""; return; }
-				var bytes = FastCopy.FormatBytes(st.Bytes);
-				lbtotal.Text = filesonly ? Loc.T("fc.files.msg", st.Files, bytes) : Loc.T("fc.size.msg", st.Files, st.Dirs, bytes);
-			}));
-		});
+		var win = new FastCopyProgWindow(paths, false) { Owner = this };
+		win.ShowDialog();
+		if (dead) return;
+		if (win.Stats == null) { lbtotal.Text = Loc.T("fc.cancelled"); return; }
+		lbtotal.Text = Loc.T("fc.size.msg", win.Stats.Files, win.Stats.Dirs, FastCopy.FormatBytes(win.Stats.Bytes));
 	}
 
 	void fillconflict() {
@@ -168,7 +149,7 @@ public partial class FastCopyWindow : Window {
 	}
 
 	void onesc() {
-		if (busy) { cts?.Cancel(); return; }
+		if (busy) return;
 		Close();
 	}
 
@@ -300,12 +281,6 @@ public partial class FastCopyWindow : Window {
 				return;
 		}
 		saveopt();
-		busy = true;
-		bstart.IsEnabled = false;
-		bcancel.IsEnabled = true;
-		breg.IsEnabled = false;
-		bstat.IsEnabled = false;
-		cts = new CancellationTokenSource();
 		var job = new FastCopy.Job {
 			Dest = dest,
 			Move = mode == "move",
@@ -313,40 +288,25 @@ public partial class FastCopyWindow : Window {
 			Delete = del ? mode : "",
 			Conflict = conflict(),
 			Workers = opt.FastCopyWorkers,
-			Cancel = cts.Token,
 			Sources = rows.ToList(),
 		};
-		int nextui = Environment.TickCount - 1000;
-		var withbytes = mode is "copy" or "move";
-		job.OnProgress = p => {
-			var now = Environment.TickCount;
-			if (unchecked(now - nextui) < 80 && p.DoneFiles < p.TotalFiles) return;
-			nextui = now;
-			if (dead) return;
-			var line = $"{p.DoneFiles}/{p.TotalFiles}";
-			if (withbytes && p.TotalBytes > 0)
-				line += $"  {FastCopy.FormatBytes(p.DoneBytes)} / {FastCopy.FormatBytes(p.TotalBytes)}";
-			if (!string.IsNullOrEmpty(p.File)) line += "  " + Path.GetFileName(p.File);
-			Dispatcher.BeginInvoke(new Action(() => {
-				if (dead) return;
-				lbstat.Text = line;
-			}));
-		};
-		Task.Run(() => FastCopy.Run(job)).ContinueWith(t => {
-			FastCopy.Result res = null;
-			if (t.Status == TaskStatus.RanToCompletion) res = t.Result;
-			Dispatcher.BeginInvoke(new Action(() => finish(res, t.Exception)));
-		});
+		var win = new FastCopyProgWindow(job) { Owner = this };
+		win.ShowDialog();
+		if (dead) return;
+		finish(jobresult(win), null);
+	}
+
+	static FastCopy.Result jobresult(FastCopyProgWindow win) {
+		if (win.Code == 0) return new FastCopy.Result { Ok = win.Ok };
+		if (win.Code == 3) return new FastCopy.Result { Ok = win.Ok, Failed = win.Failed, Cancelled = true };
+		return new FastCopy.Result { Ok = win.Ok, Failed = win.Failed, Error = "see" };
 	}
 
 	void finish(FastCopy.Result res, AggregateException ex) {
 		busy = false;
 		bstart.IsEnabled = true;
-		bcancel.IsEnabled = false;
 		breg.IsEnabled = true;
 		bstat.IsEnabled = true;
-		try { cts?.Dispose(); } catch { }
-		cts = null;
 		if (dead) return;
 		if (res == null) {
 			lbstat.Text = ex?.InnerException?.Message ?? ex?.Message ?? "";
@@ -356,6 +316,7 @@ public partial class FastCopyWindow : Window {
 		else if (res.Error == "empty") lbstat.Text = Loc.T("fc.empty");
 		else if (res.Error == "dest") lbstat.Text = Loc.T("fc.nodest");
 		else if (res.Error == "inside") lbstat.Text = Loc.T("fc.inside");
+		else if (res.Error == "see") lbstat.Text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed);
 		else {
 			var text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed);
 			if (res.Bytes > 0 && curmode() is "copy" or "move") text += "  " + FastCopy.FormatBytes(res.Bytes);
