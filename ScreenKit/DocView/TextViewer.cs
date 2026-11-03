@@ -6,7 +6,6 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using EmojiWpf = Emoji.Wpf;
 
 namespace ScreenKit.DocView;
 
@@ -95,7 +94,7 @@ sealed class TextViewer : IDocViewer {
 			PagePadding = new Thickness(16, 12, 16, 20),
 			Background = Brushes.White,
 		};
-		editBox = new EmojiWpf.TextBox {
+		editBox = new TextBox {
 			FontFamily = new FontFamily("Consolas, Cascadia Mono, Segoe UI Emoji, 微软雅黑, monospace"),
 			FontSize = BASE_FONT,
 			TextWrapping = TextWrapping.NoWrap,

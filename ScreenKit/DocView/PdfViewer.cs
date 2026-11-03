@@ -1799,7 +1799,7 @@ sealed class PdfViewer : IDocViewer {
 			DocViewLog.Info($"copy pdf image {ctxImage.Bitmap.PixelWidth}x{ctxImage.Bitmap.PixelHeight}");
 		} catch (Exception ex) {
 			DocViewLog.Error("Clipboard.SetImage", ex);
-			MessageBox.Show("复制图片失败: " + ex.Message, "DocviewWPF");
+			MessageBox.Show("复制图片失败: " + ex.Message, "ScreenKit");
 		}
 	}
 
@@ -1816,7 +1816,7 @@ sealed class PdfViewer : IDocViewer {
 			DocViewLog.Info($"save pdf image {dlg.FileName}");
 		} catch (Exception ex) {
 			DocViewLog.Error("save pdf image", ex);
-			MessageBox.Show("保存失败: " + ex.Message, "DocviewWPF");
+			MessageBox.Show("保存失败: " + ex.Message, "ScreenKit");
 		}
 	}
 

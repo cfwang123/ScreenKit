@@ -13,6 +13,9 @@ html, body {
 	background: var(--bg); color: var(--ink);
 	font: 13px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
 }
+body { display: flex; flex-direction: column; }
+/* 这些块自己设了 display，会盖掉 [hidden] 的默认 display:none，得显式兜一下 */
+[hidden] { display: none !important; }
 /* 标签条：一条细带，够放几个芯片就行 */
 .doc-tabs {
 	display: flex; align-items: flex-end; gap: 3px;
@@ -37,11 +40,16 @@ html, body {
 }
 .doc-tabx:hover { background: #fecaca; color: #b42318; }
 /* 内容区 */
-.doc-stage { position: relative; flex: 1 1 auto; min-height: 0; height: calc(100% - 0px); }
-body.hastabs .doc-stage { height: calc(100% - 32px); }
-.doc-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+.doc-stage { position: relative; flex: 1 1 auto; min-height: 0; }
+.doc-stage iframe {
+	position: absolute; inset: 0; width: 100%; height: 100%;
+	border: 0; background: #fff;
+}
+/* 没打开文件时 iframe 不显示，否则它会盖住下面的空态提示 */
+.doc-stage iframe:not([src]) { display: none; }
 .doc-empty {
-	position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+	position: absolute; inset: 0; z-index: 1; display: flex;
+	align-items: center; justify-content: center;
 	color: var(--muted); font-size: 14px; padding: 24px; text-align: center;
 }
 .doc-empty[hidden] { display: none; }

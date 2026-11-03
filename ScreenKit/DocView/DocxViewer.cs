@@ -2376,7 +2376,7 @@ sealed class DocxViewer : IDocViewer {
 				DocViewLog.Info($"Docx save image {dlg.FileName}");
 			} catch (Exception ex) {
 				DocViewLog.Error("save image", ex);
-				MessageBox.Show("保存失败: " + ex.Message, "DocviewWPF");
+				MessageBox.Show("保存失败: " + ex.Message, "ScreenKit");
 			}
 		};
 		cm.Items.Add(mview);

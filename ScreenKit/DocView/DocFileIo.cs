@@ -48,7 +48,7 @@ static class DocFileIo {
 	static FileStream openviacopy(string path) {
 		var ext = Path.GetExtension(path);
 		if (string.IsNullOrEmpty(ext)) ext = ".bin";
-		var tmp = Path.Combine(Path.GetTempPath(), "DocviewWPF_" + Guid.NewGuid().ToString("N") + ext);
+		var tmp = Path.Combine(Path.GetTempPath(), "ScreenKit_doc_" + Guid.NewGuid().ToString("N") + ext);
 		try {
 			using (var src = openshared(path))
 			using (var dst = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None, BUF))

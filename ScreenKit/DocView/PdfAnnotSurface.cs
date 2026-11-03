@@ -12,6 +12,7 @@ using MediaColor = System.Windows.Media.Color;
 using WpfPoint = System.Windows.Point;
 using WpfBrushes = System.Windows.Media.Brushes;
 using WpfCursors = System.Windows.Input.Cursors;
+using ShapePath = System.Windows.Shapes.Path;
 
 namespace ScreenKit.DocView;
 

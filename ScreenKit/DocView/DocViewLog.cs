@@ -4,10 +4,9 @@ using System.Text;
 
 namespace ScreenKit.DocView;
 
-/// <summary>简单文件日志，目录：exe 旁 logs/。</summary>
-static class DocLog {
+/// <summary>文档阅读器的诊断日志，目录：exe 旁 log/。失败不影响阅读。</summary>
+static class DocViewLog {
 	static readonly object Gate = new();
-	static string logDir;
 	static string logFile;
 
 	public static void Info(string msg) => write("I", msg, null);
@@ -23,7 +22,8 @@ static class DocLog {
 			line += "\n";
 			lock (Gate)
 				File.AppendAllText(logFile, line, Encoding.UTF8);
-		} catch {
+		}
+		catch {
 			// 日志失败不影响业务
 		}
 	}
@@ -32,10 +32,9 @@ static class DocLog {
 		if (logFile != null) return;
 		lock (Gate) {
 			if (logFile != null) return;
-			var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-			logDir = Path.Combine(baseDir, "logs");
-			Directory.CreateDirectory(logDir);
-			logFile = Path.Combine(logDir, $"docviewwpf_{DateTime.Now:yyyyMMdd}.log");
+			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+			Directory.CreateDirectory(dir);
+			logFile = Path.Combine(dir, $"docview_{DateTime.Now:yyyyMMdd}.log");
 		}
 	}
 }

@@ -912,7 +912,7 @@ static class XlsxPictures {
 	/// <summary>命令行自检：构造带图的 xlsx/xls，走 Prepare 与位图解码。</summary>
 	public static int SelfCheck(TextWriter log) {
 		if (log == null) log = Console.Out;
-		var dir = Path.Combine(Path.GetTempPath(), "DocviewWPF_xlsxpic_" + Guid.NewGuid().ToString("N"));
+		var dir = Path.Combine(Path.GetTempPath(), "ScreenKit_xlsxpic_" + Guid.NewGuid().ToString("N"));
 		Directory.CreateDirectory(dir);
 		var fail = 0;
 		try {

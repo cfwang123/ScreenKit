@@ -2,6 +2,7 @@ using System;
 
 namespace ScreenKit.DocView;
 
+/// <summary>按文件类型建阅读器。只保留 ScreenKit 文档阅读器用得到的几种。</summary>
 static class ViewerFactory {
 	public static IDocViewer Create(DocKind kind) {
 		switch (kind) {
@@ -12,8 +13,6 @@ static class ViewerFactory {
 			case DocKind.Md: return new MdViewer();
 			case DocKind.Image: return new ImageViewer();
 			case DocKind.Csv: return new CsvViewer();
-			case DocKind.Browser: return new BrowserViewer();
-			case DocKind.Console: return new ConsoleViewer();
 			default: throw new NotSupportedException("不支持的文件类型");
 		}
 	}

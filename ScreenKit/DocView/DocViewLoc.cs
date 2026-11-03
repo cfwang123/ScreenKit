@@ -19,7 +19,7 @@ static class DocViewLoc {
 	public static string T(string key) {
 		if (string.IsNullOrEmpty(key)) return "";
 		try {
-			var s = ScreenKit.DocViewLoc.T("docview." + key);
+			var s = ScreenKit.Loc.T("docview." + key);
 			if (s != null && s != "docview." + key)
 				return s;
 		}

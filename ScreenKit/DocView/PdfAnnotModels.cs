@@ -225,7 +225,7 @@ sealed class PdfAnnotFile {
 	public int Version = 1;
 
 	[DataMember(Name = "app", Order = 2)]
-	public string App = "DocviewWPF";
+	public string App = "ScreenKit";
 
 	[DataMember(Name = "source", Order = 3)]
 	public string Source = "";
@@ -345,7 +345,7 @@ sealed class PdfAnnotDoc {
 
 			var data = new PdfAnnotFile {
 				Version = 1,
-				App = "DocviewWPF",
+				App = "ScreenKit",
 				Source = Path.GetFileName(pdfPath ?? AnnotPath.Replace(".annot.json", "")),
 				Items = new List<PdfAnnotItem>(),
 			};

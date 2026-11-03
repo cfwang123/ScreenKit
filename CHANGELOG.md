@@ -91,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary detail: blank lines are shown again instead of collapsing to zero height
 - Web PDF viewer: clicking empty space clears the text selection; clicking a picture clears it and opens the picture
 - Reader: continuous reading no longer stops after a dozen sentences. The prefetched next sentence was timing out while it merely waited behind a long one, and cancelling the whole queue; the 10-second watchdog now only runs once the queue reaches that sentence
+- Document reader page (/doc) showed a blank window: the empty-state hint was hidden behind the idle iframe and a stray 32px gap sat above it
 
 ### 中文
 
@@ -139,6 +140,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 词典详情：空行恢复显示，不再压缩成 0 高
 - web PDF 查看：点空白取消文字选中，点图取消选中并放大该图
 - 小说阅读器：连续朗读不再读到十几句就自己停下。预取的下一句在前一句后面排队时也被按「10 秒没出声」判超时，一 cancel 就把整队打断；现在排队等待期间不计时，轮到它才开始算
+- 文档阅读页（/doc）打开是空白：空态提示被空的 iframe 盖住，上方还多了 32px 空隙
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 

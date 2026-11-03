@@ -7,7 +7,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using EmojiWpf = Emoji.Wpf;
 
 namespace ScreenKit.DocView;
 
@@ -304,8 +303,6 @@ static class MdFlowBuilder {
 				}
 			}
 		}
-		// 将 emoji 替换为矢量彩色字形（Segoe UI Emoji COLR）
-		try { EmojiWpf.FlowDocumentExtensions.SubstituteGlyphs(fd); } catch { /* 无 emoji 字体时忽略 */ }
 		return fd;
 	}
 
@@ -368,8 +365,7 @@ static class MdFlowBuilder {
 			TextAlignment = TextAlignment.Left,
 			ColumnWidth = double.PositiveInfinity,
 		};
-		try { EmojiWpf.FlowDocumentExtensions.SubstituteGlyphs(codeDoc); } catch { /* ignore */ }
-		var rtb = new EmojiWpf.RichTextBox {
+		var rtb = new RichTextBox {
 			Document = codeDoc,
 			IsReadOnly = true,
 			IsDocumentEnabled = true,

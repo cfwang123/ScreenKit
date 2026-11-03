@@ -22,6 +22,12 @@ static class ImageOverlay {
 
 	static OverlayWindow current;
 
+	/// <summary>弹层归属的窗口，由阅读器在显示前设置。</summary>
+	public static Window ActiveHost;
+
+	/// <summary>弹层对齐的文档区元素，可空。</summary>
+	public static FrameworkElement HostAnchor;
+
 	public static bool IsOpen => current != null && current.IsVisible;
 
 	/// <summary>给 Image 挂上双击预览与右键菜单（复制/复制为文件/保存）。</summary>
@@ -94,7 +100,7 @@ static class ImageOverlay {
 			return true;
 		} catch (Exception ex) {
 			DocViewLog.Warn($"ImageOverlay.CopyImage: {ex.Message}");
-			MessageBox.Show("复制图片失败: " + ex.Message, "DocviewWPF",
+			MessageBox.Show("复制图片失败: " + ex.Message, "ScreenKit",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
@@ -109,14 +115,14 @@ static class ImageOverlay {
 			if (!string.IsNullOrWhiteSpace(filePath) && File.Exists(filePath))
 				path = Path.GetFullPath(filePath);
 			else if (bmp != null) {
-				var dir = Path.Combine(Path.GetTempPath(), "DocviewWPF");
+				var dir = Path.Combine(Path.GetTempPath(), "ScreenKit");
 				Directory.CreateDirectory(dir);
 				var name = suggestsfilename(suggestName, filePath);
 				path = uniquepath(Path.Combine(dir, name));
 				SaveBitmap(toclipboardbitmap(bmp), path);
 			}
 			if (string.IsNullOrEmpty(path) || !File.Exists(path)) {
-				MessageBox.Show("无法复制为文件：没有可用的图片数据。", "DocviewWPF",
+				MessageBox.Show("无法复制为文件：没有可用的图片数据。", "ScreenKit",
 					MessageBoxButton.OK, MessageBoxImage.Warning);
 				return false;
 			}
@@ -132,7 +138,7 @@ static class ImageOverlay {
 			return true;
 		} catch (Exception ex) {
 			DocViewLog.Warn($"ImageOverlay.CopyAsFile: {ex.Message}");
-			MessageBox.Show("复制为文件失败: " + ex.Message, "DocviewWPF",
+			MessageBox.Show("复制为文件失败: " + ex.Message, "ScreenKit",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
@@ -172,7 +178,7 @@ static class ImageOverlay {
 	/// <summary>另存为对话框。</summary>
 	public static bool SaveImageAs(Window owner, BitmapSource bmp, string sourcePath = null) {
 		if (bmp == null) {
-			MessageBox.Show("没有可保存的图片。", "DocviewWPF",
+			MessageBox.Show("没有可保存的图片。", "ScreenKit",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
@@ -194,7 +200,7 @@ static class ImageOverlay {
 			return true;
 		} catch (Exception ex) {
 			DocViewLog.Warn($"ImageOverlay.SaveImageAs: {ex.Message}");
-			MessageBox.Show("保存失败: " + ex.Message, "DocviewWPF",
+			MessageBox.Show("保存失败: " + ex.Message, "ScreenKit",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 			return false;
 		}
@@ -297,17 +303,9 @@ static class ImageOverlay {
 		Window owner = null;
 		FrameworkElement anchor = null;
 		try {
-			MainWindow main = null;
-			foreach (Window w in Application.Current.Windows) {
-				if (w is MainWindow mw && mw.IsActive) { main = mw; break; }
-			}
-			if (main == null) {
-				foreach (Window w in Application.Current.Windows) {
-					if (w is MainWindow mw) { main = mw; break; }
-				}
-			}
-			owner = main ?? Application.Current?.MainWindow;
-			anchor = main?.DocOverlayHost as FrameworkElement ?? owner as FrameworkElement;
+			// 谁的文档区有焦点就把谁当宿主：多 tab 阅读器里图片来自当前 tab。
+			owner = ActiveHost ?? Application.Current?.MainWindow;
+			anchor = HostAnchor as FrameworkElement ?? owner as FrameworkElement;
 		} catch { /* ignore */ }
 
 		var win = new OverlayWindow(bmp, title ?? "图片预览", sourcePath, owner, anchor);
@@ -812,7 +810,7 @@ static class ImageOverlay {
 				savebitmap(bmp, dlg.FileName);
 				lbtitle.Text = stripnote(lbtitle.Text) + "  ·  已保存";
 			} catch (Exception ex) {
-				MessageBox.Show("保存失败: " + ex.Message, "DocviewWPF",
+				MessageBox.Show("保存失败: " + ex.Message, "ScreenKit",
 					MessageBoxButton.OK, MessageBoxImage.Warning);
 			}
 		}
