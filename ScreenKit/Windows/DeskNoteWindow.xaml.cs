@@ -10,10 +10,11 @@ public partial class DeskNoteWindow : Window {
 	Brush ink = Brushes.Black;
 	bool ready;
 
-	public DeskNoteWindow() : this(DeskNote.DefaultPath) { }
+	public DeskNoteWindow() : this(null) { }
 
 	public DeskNoteWindow(string path) {
-		this.path = path ?? DeskNote.DefaultPath;
+		// path 为空表示用 data.json 的 note 段
+		this.path = path;
 		note = DeskNote.Load(this.path);
 		InitializeComponent();
 		Title = Loc.T("note.title");

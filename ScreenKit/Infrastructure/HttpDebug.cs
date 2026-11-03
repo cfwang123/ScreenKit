@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
@@ -58,11 +58,12 @@ sealed class HttpDbgResult {
 
 /// <summary>
 /// HTTP 请求调试：一行一个参数，请求头一行一个 Name: Value。POST 可为表单、JSON、XML，或自定义 MIME 的原文。
-/// 请求存在程序目录 httpdbg.json，不写入 config.toml。
+/// 请求存在 data.json 的 httpdbg 段，不写入 config.toml。
 /// 还没有示例时补上分组「测试」和本程序 1224 端口的几条接口。
 /// </summary>
 static class HttpDebug {
-	public const string FILE_NAME = "httpdbg.json";
+	/// <summary>data.json 里这一段的名字。</summary>
+	public const string SECTION = "httpdbg";
 	public const string DEFAULT_GROUP = "default";
 	public const string SELF_GROUP = "self";
 	const string SELF_ORIGIN = "http://127.0.0.1:1224";
@@ -71,21 +72,23 @@ static class HttpDebug {
 
 	static string uacache;
 
-	public static string StorePath() =>
-		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILE_NAME);
+	public static string StorePath() => DataStore.StorePath;
 
 	public static HttpDbgBook Load(string path, string defaultName, out string error) {
 		error = null;
 		var book = new HttpDbgBook();
-		if (!string.IsNullOrEmpty(path) && File.Exists(path)) {
-			try {
+		try {
+			if (string.IsNullOrEmpty(path)) {
+				book = DataStore.Get<HttpDbgBook>(SECTION) ?? new HttpDbgBook();
+			}
+			else if (File.Exists(path)) {
 				var text = File.ReadAllText(path, Encoding.UTF8);
 				book = JSONF.Parse(text).ToObject<HttpDbgBook>() ?? new HttpDbgBook();
 			}
-			catch (Exception ex) {
-				error = ex.Message;
-				book = new HttpDbgBook();
-			}
+		}
+		catch (Exception ex) {
+			error = ex.Message;
+			book = new HttpDbgBook();
 		}
 		normalize(book, defaultName);
 		if (!book.Seeded) {
@@ -96,8 +99,13 @@ static class HttpDebug {
 	}
 
 	public static void Save(string path, HttpDbgBook book) {
-		if (string.IsNullOrEmpty(path)) throw new ArgumentException("path");
+		if (book == null) return;
 		normalize(book, "default");
+		// 不给路径就写进 data.json
+		if (string.IsNullOrEmpty(path)) {
+			DataStore.Put(SECTION, book);
+			return;
+		}
 		var dir = Path.GetDirectoryName(path);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 		var json = JSONF.FromObject(book, skipNull: true, camel: true).ToJSONString(0);
@@ -609,7 +617,7 @@ static class HttpDebug {
 		if (TryCheckJson("  ", out var ej) || ej != "emptyjson") fail("empty json");
 		var dir = Path.Combine(Path.GetTempPath(), "sk-httpdbg-" + Guid.NewGuid().ToString("N"));
 		Directory.CreateDirectory(dir);
-		var path = Path.Combine(dir, FILE_NAME);
+		var path = Path.Combine(dir, "httpdbg.json");
 		HttpListener lis = null;
 		try {
 			var book = new HttpDbgBook { Seeded = true };

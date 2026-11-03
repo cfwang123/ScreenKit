@@ -43,8 +43,6 @@ public partial class MdReadWindow : Window {
 	MdReadState state = new();
 	/// <summary>state 是否已经从磁盘读过；没读过就写会把别人的历史抹掉。</summary>
 	bool stateloaded;
-	/// <summary>自测时把状态文件指到临时目录，免得动真的 mdread.json。</summary>
-	internal static string StatePathOverride;
 	/// <summary>拆出去的子窗口（拖成独立窗口时建，关掉后自然消失）。</summary>
 	static readonly List<MdReadWindow> livelist = new();
 	/// <summary>true = 拖动标签拆出来的窗口，标签全关掉就自己关。</summary>
@@ -109,7 +107,7 @@ public partial class MdReadWindow : Window {
 	void loadstate() {
 		if (stateloaded) return;
 		stateloaded = true;
-		state = MdReadState.Load(StatePathOverride);
+		state = MdReadState.Load();
 	}
 
 	/// <summary>自测用：当前标签的阅读器状态文字。</summary>
@@ -397,7 +395,7 @@ public partial class MdReadWindow : Window {
 			foreach (var t in tabs) state.Touch(t.Path);
 			var active = cur == null ? 0 : Math.Max(0, tabs.IndexOf(cur));
 			state.RememberTabs(tabs.Select(t => t.Path), active);
-			state.Save(StatePathOverride);
+			state.Save();
 			buildhistorymenu();
 		}
 		catch { }

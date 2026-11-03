@@ -4,10 +4,13 @@ using ScreenKit.Json;
 namespace ScreenKit;
 
 /// <summary>
-/// 文档阅读器的历史文件与上次打开的标签。存在 exe 旁的 mdread.json，
+/// 文档阅读器的历史文件与上次打开的标签。存在 data.json 的 mdread 段，
 /// 不进 config.toml：这是界面状态，跟着阅读器走。
 /// </summary>
 sealed class MdReadState {
+	/// <summary>data.json 里这一段的名字。</summary>
+	public const string SECTION = "mdread";
+
 	/// <summary>历史文件，最近的在前，最多 <see cref="HISTORY_MAX"/> 条。</summary>
 	public List<string> History { get; set; } = new();
 
@@ -20,15 +23,18 @@ sealed class MdReadState {
 	/// <summary>菜单「历史文件」最多显示几条。</summary>
 	public const int HISTORY_MAX = 10;
 
-	public static string DefaultPath =>
-		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mdread.json");
+	public static string DefaultPath => DataStore.StorePath;
 
-	/// <summary>读状态；文件不在或坏了都当空状态，不打扰用户。</summary>
+	/// <summary>读状态；没存过或坏了都当空状态，不打扰用户。</summary>
 	public static MdReadState Load(string path = null) {
-		path ??= DefaultPath;
 		try {
-			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return new MdReadState();
-			var st = JSONF.Parse(File.ReadAllText(path)).ToObject<MdReadState>() ?? new MdReadState();
+			MdReadState st;
+			if (path == null) st = DataStore.Get<MdReadState>(SECTION);
+			else {
+				if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return new MdReadState();
+				st = JSONF.Parse(File.ReadAllText(path)).ToObject<MdReadState>();
+			}
+			st ??= new MdReadState();
 			st.History = clean(st.History, HISTORY_MAX);
 			st.Tabs = clean(st.Tabs, int.MaxValue);
 			if (st.ActiveTab < 0) st.ActiveTab = 0;
@@ -40,7 +46,10 @@ sealed class MdReadState {
 	}
 
 	public void Save(string path = null) {
-		path ??= DefaultPath;
+		if (path == null) {
+			DataStore.Put(SECTION, this);
+			return;
+		}
 		try {
 			var json = JSONF.FromObject(this).ToJSONString(0);
 			var dir = Path.GetDirectoryName(path);

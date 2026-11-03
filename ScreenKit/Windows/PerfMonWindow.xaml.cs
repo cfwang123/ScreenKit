@@ -24,7 +24,7 @@ public partial class PerfMonWindow : Window {
 	bool placed;
 
 	public PerfMonWindow() {
-		opt = PerfOpt.Load(PerfOpt.DefaultPath);
+		opt = PerfOpt.Load();
 		InitializeComponent();
 		Title = Loc.T("perf.title");
 		lbtitle.Text = Loc.T("perf.title");
@@ -74,7 +74,7 @@ public partial class PerfMonWindow : Window {
 			};
 			item.Click += (_, _) => {
 				opt.Set((string)item.Tag, item.IsChecked);
-				opt.Save(PerfOpt.DefaultPath);
+				opt.Save();
 				buildrows();
 			};
 			menu.Items.Add(item);
@@ -101,7 +101,7 @@ public partial class PerfMonWindow : Window {
 		Topmost = on;
 		if (topmi != null) topmi.IsChecked = on;
 		paintpin();
-		opt.Save(PerfOpt.DefaultPath);
+		opt.Save();
 	}
 
 	void paintpin() {
@@ -276,7 +276,7 @@ public partial class PerfMonWindow : Window {
 	void setinterval(int ms) {
 		opt.IntervalMs = PerfOpt.NormMs(ms);
 		timer.Interval = TimeSpan.FromMilliseconds(opt.IntervalMs);
-		opt.Save(PerfOpt.DefaultPath);
+		opt.Save();
 	}
 
 	void savepos() {
@@ -284,6 +284,6 @@ public partial class PerfMonWindow : Window {
 		opt.HasPos = true;
 		opt.Left = Left;
 		opt.Top = Top;
-		opt.Save(PerfOpt.DefaultPath);
+		opt.Save();
 	}
 }

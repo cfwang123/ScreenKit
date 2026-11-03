@@ -31,29 +31,36 @@ public sealed class DeskNote {
 		return "#" + s.ToUpperInvariant();
 	}
 
-	public static string DefaultPath =>
-		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "note.json");
+	public static string DefaultPath => DataStore.StorePath;
 
-	public static DeskNote Load(string path) {
+	public static DeskNote Load(string path = null) {
 		try {
-			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return new DeskNote();
-			var note = JSONF.Parse(File.ReadAllText(path)).ToObject<DeskNote>();
-			if (note == null) return new DeskNote();
-			if (note.Text == null) note.Text = "";
-			if (note.Items == null) note.Items = new List<DeskNoteItem>();
-			for (var i = 0; i < note.Items.Count; i++) {
-				if (note.Items[i] == null) note.Items[i] = new DeskNoteItem();
-				else if (note.Items[i].Text == null) note.Items[i].Text = "";
-			}
-			return note;
+			// 默认走 data.json 的 note 段；给了路径就读那个文件（导出/自测用）
+			if (path == null) return fromsection(DataStore.Get<DeskNote>("note"));
+			if (!File.Exists(path)) return new DeskNote();
+			return fromsection(JSONF.Parse(File.ReadAllText(path)).ToObject<DeskNote>());
 		}
 		catch {
 			return new DeskNote();
 		}
 	}
 
-	public void Save(string path) {
-		if (string.IsNullOrWhiteSpace(path)) return;
+	static DeskNote fromsection(DeskNote note) {
+		if (note == null) return new DeskNote();
+		if (note.Text == null) note.Text = "";
+		if (note.Items == null) note.Items = new List<DeskNoteItem>();
+		for (var i = 0; i < note.Items.Count; i++) {
+			if (note.Items[i] == null) note.Items[i] = new DeskNoteItem();
+			else if (note.Items[i].Text == null) note.Items[i].Text = "";
+		}
+		return note;
+	}
+
+	public void Save(string path = null) {
+		if (path == null) {
+			DataStore.Put("note", this);
+			return;
+		}
 		var json = JSONF.FromObject(this).ToJSONString(0);
 		var dir = Path.GetDirectoryName(path);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

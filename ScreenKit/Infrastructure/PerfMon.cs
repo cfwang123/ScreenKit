@@ -23,8 +23,7 @@ public sealed class PerfOpt {
 		return ms;
 	}
 
-	public static string DefaultPath =>
-		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "perf.json");
+	public static string DefaultPath => DataStore.StorePath;
 
 	public bool On(string key) {
 		if (Flags != null && Flags.TryGetValue(key, out var v)) return v;
@@ -36,10 +35,14 @@ public sealed class PerfOpt {
 		Flags[key] = on;
 	}
 
-	public static PerfOpt Load(string path) {
+	public static PerfOpt Load(string path = null) {
 		try {
-			if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return new PerfOpt();
-			var o = JSONF.Parse(File.ReadAllText(path)).ToObject<PerfOpt>();
+			PerfOpt o;
+			if (path == null) o = DataStore.Get<PerfOpt>("perf");
+			else {
+				if (!File.Exists(path)) return new PerfOpt();
+				o = JSONF.Parse(File.ReadAllText(path)).ToObject<PerfOpt>();
+			}
 			if (o == null) return new PerfOpt();
 			if (o.Flags == null) o.Flags = new Dictionary<string, bool>();
 			return o;
@@ -47,8 +50,11 @@ public sealed class PerfOpt {
 		catch { return new PerfOpt(); }
 	}
 
-	public void Save(string path) {
-		if (string.IsNullOrWhiteSpace(path)) return;
+	public void Save(string path = null) {
+		if (path == null) {
+			DataStore.Put("perf", this);
+			return;
+		}
 		var json = JSONF.FromObject(this).ToJSONString(0);
 		var dir = Path.GetDirectoryName(path);
 		if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

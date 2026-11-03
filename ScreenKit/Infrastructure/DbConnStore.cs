@@ -17,20 +17,23 @@ sealed class DbConnItem {
 	public string Secret { get; set; } = "";
 }
 
-/// <summary>连接列表存在程序目录 sql-conns.json（不写 config.toml，也不进安装包）。</summary>
+/// <summary>连接列表放在 data.json 的 sqlconns 段（不写 config.toml，也不进安装包）。</summary>
 static class DbConnStore {
-	const string FILE_NAME = "sql-conns.json";
+	/// <summary>data.json 里这一段的名字。</summary>
+	const string SECTION = "sqlconns";
 
-	public static string StorePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, FILE_NAME);
+	public static string StorePath => DataStore.StorePath;
 
 	/// <summary>读不到或内容坏了都当没有；没有名字的条目丢掉。</summary>
 	public static List<DbConnItem> Load(string path = null) {
-		path ??= StorePath;
 		var list = new List<DbConnItem>();
 		try {
-			if (!File.Exists(path)) return list;
-			var text = File.ReadAllText(path, Encoding.UTF8);
-			var got = JSONF.Parse(text).ToObject<List<DbConnItem>>();
+			List<DbConnItem> got;
+			if (path == null) got = DataStore.Get<List<DbConnItem>>(SECTION);
+			else {
+				if (!File.Exists(path)) return list;
+				got = JSONF.Parse(File.ReadAllText(path, Encoding.UTF8)).ToObject<List<DbConnItem>>();
+			}
 			if (got == null) return list;
 			foreach (var it in got) {
 				if (it == null || string.IsNullOrWhiteSpace(it.Name)) continue;
@@ -42,7 +45,10 @@ static class DbConnStore {
 	}
 
 	public static void Save(List<DbConnItem> list, string path = null) {
-		path ??= StorePath;
+		if (path == null) {
+			DataStore.Put(SECTION, list ?? new List<DbConnItem>());
+			return;
+		}
 		var json = JSONF.FromObject(list, skipNull: true, skipDefault: true, camel: true).ToJSONString(0);
 		var tmp = path + ".tmp";
 		File.WriteAllText(tmp, json, new UTF8Encoding(false));

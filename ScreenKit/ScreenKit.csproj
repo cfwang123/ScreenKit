@@ -407,6 +407,9 @@
     <ItemGroup>
       <_SlimRuntime Include="$(_SlimOut)\*.log" />
       <_SlimRuntime Include="$(_SlimOut)\config.toml" />
+      <!-- 用户数据与旧的分散状态文件：不随包发，升级也不覆盖 -->
+      <_SlimRuntime Include="$(_SlimOut)\data.json;$(_SlimOut)\data.json.tmp" />
+      <_SlimRuntime Include="$(_SlimOut)\note.json;$(_SlimOut)\perf.json;$(_SlimOut)\sql-conns.json;$(_SlimOut)\httpdbg.json;$(_SlimOut)\mdread.json" />
     </ItemGroup>
     <Delete Files="@(_SlimRuntime)" TreatErrorsAsWarnings="true" Condition="'@(_SlimRuntime)' != ''" />
     <RemoveDir Directories="$(_SlimOutLegacy)" ContinueOnError="true" />

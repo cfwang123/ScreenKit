@@ -6441,6 +6441,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		var dir = Path.Combine(Path.GetTempPath(), "ScreenKit_mdtabs");
 		try { Directory.CreateDirectory(dir); } catch { }
 		var bad = 0;
+		bad += testdatastore(dir);
 		var a = Path.Combine(dir, "a.md");
 		var b = Path.Combine(dir, "b.txt");
 		var c = Path.Combine(dir, "c.md");
@@ -6468,12 +6469,13 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		Out($"history: count={st.History.Count} cap={st2.History.Count}/{MdReadState.HISTORY_MAX}");
 
-		// —— 存读：标签与选中项要能原样回来 ——
-		var file = Path.Combine(dir, "mdread.json");
+		// —— 存读：标签与选中项要能原样回来。走 data.json 的 mdread 段，指到临时文件 ——
+		var file = Path.Combine(dir, "data.json");
+		DataStore.UsePath(file);
 		st.Touch(a);
 		st.RememberTabs(new[] { a, b, c }, 2);
-		st.Save(file);
-		var back = MdReadState.Load(file);
+		st.Save();
+		var back = MdReadState.Load();
 		if (back.Tabs.Count != 3 || back.Tabs[0] != a || back.ActiveTab != 2) {
 			Err($"FAIL: 存读不一致 tabs={back.Tabs.Count} active={back.ActiveTab}");
 			bad++;
@@ -6481,7 +6483,6 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		Out($"state: tabs={string.Join(",", back.Tabs.Select(Path.GetFileName))} active={back.ActiveTab}");
 
 		// —— 恢复：重开窗口应带出上次的标签 ——
-		MdReadWindow.StatePathOverride = file;
 		var w = new MdReadWindow(cfg);
 		w.Show();
 		w.RestoreLastSession();
@@ -6527,9 +6528,68 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		try { w.Close(); } catch { }
 		pump();
-		MdReadWindow.StatePathOverride = null;
+		DataStore.UsePath(null);
 
 		try { Directory.Delete(dir, true); } catch { }
+		return bad;
+	}
+
+	/// <summary>
+	/// data.json 自测：五个模块的数据都落在同一个文件的不同段里，
+	/// 写了一段不该影响别的段，读回来内容一致。
+	/// </summary>
+	static int testdatastore(string dir) {
+		var bad = 0;
+		var file = Path.Combine(dir, "data-store.json");
+		try { if (File.Exists(file)) File.Delete(file); } catch { }
+		DataStore.UsePath(file);
+
+		// 便笺 + 性能小窗 + 连接 + http 请求 + 阅读器状态，五段一起写
+		new DeskNote { Text = "便笺正文", Todo = true, Topmost = true }.Save();
+		var perf = new PerfOpt { IntervalMs = 2500, Topmost = false };
+		perf.Set("gpu", false);
+		perf.Save();
+		DbConnStore.Save(new List<DbConnItem> {
+			new() { Name = "本地", Kind = SqlTool.Sqlite, File = "x.db" },
+		});
+		HttpDebug.Save(null, new HttpDbgBook { Seeded = true });
+		var st = new MdReadState();
+		st.History.Add("a.md");
+		st.Save();
+
+		// 只有一个文件：不该再冒出 note.json / perf.json 之类
+		var files = Directory.GetFiles(dir).Select(Path.GetFileName).ToList();
+		var stray = files.Where(n => n != "data-store.json" && n != "data-store.json.tmp"
+			&& n.EndsWith(".json", StringComparison.OrdinalIgnoreCase)).ToList();
+		if (stray.Count > 0) {
+			Err("FAIL: 还写出了分散文件 " + string.Join(",", stray));
+			bad++;
+		}
+
+		// 每段都要能原样读回
+		if (DeskNote.Load().Text != "便笺正文") { Err("FAIL: note 段读回不对"); bad++; }
+		var pb = PerfOpt.Load();
+		if (pb.IntervalMs != 2500 || pb.Topmost || pb.On("gpu") || !pb.On("cpu")) {
+			Err("FAIL: perf 段读回不对");
+			bad++;
+		}
+		var conns = DbConnStore.Load();
+		if (conns.Count != 1 || conns[0].Name != "本地") { Err("FAIL: sqlconns 段读回不对"); bad++; }
+		var book = HttpDebug.Load(null, "未分组", out _);
+		if (!book.Seeded) { Err("FAIL: httpdbg 段读回不对"); bad++; }
+		if (MdReadState.Load().History.Count == 0) { Err("FAIL: mdread 段读回不对"); bad++; }
+
+		// 整本文件里应有全部五段的键
+		DataStore.Reset();
+		var text = File.ReadAllText(file);
+		foreach (var key in new[] { "note", "perf", "sqlconns", "mdread" }) {
+			if (text.IndexOf("\"" + key + "\"", StringComparison.Ordinal) < 0) {
+				Err("FAIL: data.json 里没有 " + key + " 段");
+				bad++;
+			}
+		}
+		Out($"datastore: {files.Count} 个文件，五段共用 data.json");
+		DataStore.UsePath(null);
 		return bad;
 	}
 

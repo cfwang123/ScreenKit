@@ -10,7 +10,6 @@ public partial class HttpDebugWindow : Window {
 		public override string ToString() => Text ?? "";
 	}
 
-	readonly string store;
 	HttpDbgBook book;
 	string curid;
 	string snap;
@@ -28,7 +27,6 @@ public partial class HttpDebugWindow : Window {
 	CancellationTokenSource cts;
 
 	public HttpDebugWindow() {
-		store = HttpDebug.StorePath();
 		InitializeComponent();
 		emethod.Items.Add("GET");
 		emethod.Items.Add("POST");
@@ -36,7 +34,7 @@ public partial class HttpDebugWindow : Window {
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
-		book = HttpDebug.Load(store, Loc.T("httpdbg.defgroup"), out var err);
+		book = HttpDebug.Load(null, Loc.T("httpdbg.defgroup"), out var err);
 		fillgroups(HttpDebug.DEFAULT_GROUP);
 		blank(HttpDebug.DEFAULT_GROUP);
 		if (!string.IsNullOrEmpty(err)) lbstat.Text = Loc.T("httpdbg.badfile", err);
@@ -397,7 +395,7 @@ public partial class HttpDebugWindow : Window {
 
 	bool write() {
 		try {
-			HttpDebug.Save(store, book);
+			HttpDebug.Save(null, book);
 			return true;
 		}
 		catch (Exception ex) {
