@@ -76,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The FTP file manager list now shows a type icon before each name: folders, images, video, audio, archives, PDF, documents, code and executables each get their own, with a touch of colour.
 - Tools > Network adds USB capture: USBPcap URB capture with control, bulk, interrupt and isochronous parsing, per-device filtering, and pcapng import/export.
 - The fast copy source list now shows a type icon before each entry too, using the same icon set as the FTP file manager.
+- The Russian word-form tool now lists graded grammar for verbs, adjectives and nouns, including case prepositions.
 
 #### Changed
 
@@ -160,6 +161,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP 文件管理的列表在名称前显示类型图标：文件夹、图片、视频、音频、压缩包、PDF、文档、代码和可执行文件各一种，并带一点颜色区分。
 - 工具 → 网络工具 新增 USB 抓包：经 USBPcap 抓 URB，解析控制、批量、中断、等时传输，可按设备筛选，并导入导出 pcapng。
 - 快速复制的文件列表也在每项前面显示类型图标，和 FTP 文件管理用同一套。
+- 俄语词形变化加入动词、形容词、名词的分级语法，名词前置词按格接上。
 
 #### 变更
 
