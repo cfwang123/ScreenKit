@@ -1185,6 +1185,23 @@ static class Cli {
 		var ch = FeaturePick.Leaves(only).First(n => n.Id == "ocr.ch");
 		var cpu = FeaturePick.Leaves(only).First(n => n.Id == "accel.cpu");
 		Out($"Pick ocr.ch only: ch={ch.SizeLabel} cpu checked={cpu.IsChecked == true} diff={cpu.Diff} size={cpu.SizeLabel} addCpu={addOnly.Contains(FeatureKind.OrtCpu)} delCpu={delOnly.Contains(FeatureKind.OrtCpu)}");
+		// 整包节点（文档阅读器 / 数据库驱动）勾一行应装齐所有组件
+		var pack = FeaturePick.BuildTree();
+		FeaturePick.SelectAll(pack, false);
+		FeaturePick.Leaves(pack).First(n => n.Id == "docview").SetCheck(true, fromUi: true);
+		FeaturePick.Leaves(pack).First(n => n.Id == "db").SetCheck(true, fromUi: true);
+		// 勾一行应把整包的所有组件都选上（不看是否已装）
+		var packsSel = new HashSet<FeatureKind>();
+		FeaturePick.CollectKinds(pack, packsSel);
+		var packOk = packsSel.Contains(FeatureKind.DocOfficeOoxml)
+			&& packsSel.Contains(FeatureKind.DocOfficeLegacy)
+			&& packsSel.Contains(FeatureKind.NativeSqlite)
+			&& packsSel.Contains(FeatureKind.DbMysql)
+			&& packsSel.Contains(FeatureKind.DbOracle);
+		Out($"Pick whole packs: docview={packsSel.Contains(FeatureKind.DocOfficeOoxml)}/"
+			+ $"{packsSel.Contains(FeatureKind.DocOfficeLegacy)} db={packsSel.Contains(FeatureKind.NativeSqlite)}/"
+			+ $"{packsSel.Contains(FeatureKind.DbMysql)}/{packsSel.Contains(FeatureKind.DbOracle)}");
+		if (!packOk) return 1;
 		var dml = FeatureInstaller.ExpectedSize(FeatureKind.DirectMl);
 		var dmlNow = InstallFeaturesWindow.ProgressTotal(dml, 0, dml, 164L * 1024 * 1024, 193L * 1024 * 1024);
 		var dmlWas = InstallFeaturesWindow.ProgressTotal(18L * 1024 * 1024, 0, 18L * 1024 * 1024, 164L * 1024 * 1024, 193L * 1024 * 1024);

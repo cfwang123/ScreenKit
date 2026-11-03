@@ -81,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Document reader rebuilt on a native WPF viewer stack ported from DocviewWPF: md/docx/pdf/xlsx preview (plus images, txt/code and csv), multi-tab chips in the title bar, lazy per-tab rendering, and click-to-zoom images
 - Document reader: Markdown can be exported to Word or PDF again from the title-bar menu
 - Document reader: Office parser libraries (OpenXml for docx/xlsx, NPOI for doc/xls) are installable features instead of shipping with the app; the toolbar is now a row of uniform icon buttons with page and find boxes inline
+- Install features: the document reader is one line under Tools that installs both Word/Excel parser sets at once, matching the single database-driver line
 
 #### Fixed
 
@@ -134,6 +135,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文档阅读器改用从 DocviewWPF 移植的 WPF 阅读器：支持 md/docx/pdf/xlsx 预览（另含图片、txt/代码、csv），标题栏多标签，切到哪个标签才渲染哪个，点图片可放大
 - 文档阅读器：Markdown 仍可从标题栏菜单导出 Word 或 PDF
 - 文档阅读器：docx/xlsx 与 doc/xls 的解析库改成可安装功能，不再随包发；工具栏改成一行统一大小的图标按钮，页码和查找框直接放在行内
+- 安装功能：文档阅读器在工具集下只占一行，勾选即同时装两套 Word/Excel 解析库，与数据库驱动一致
 
 #### 修复
 

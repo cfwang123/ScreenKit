@@ -173,11 +173,8 @@ static class FeaturePick {
 		group("tools", "feat.pick.tools", "feat.pick.tools.detail",
 			leaf("bogus", "feat.pick.bogus", "feat.pick.bogus.detail", FeatureKind.Bogus),
 			leaf("pinyin", "feat.pick.pinyin", "feat.pick.pinyin.detail", FeatureKind.NPinyin),
-			group("docview", "feat.pick.docview", "feat.pick.docview.detail",
-				leaf("docview.ooxml", "feat.pick.docview.ooxml", "feat.pick.docview.ooxml.detail",
-					FeatureKind.DocOfficeOoxml),
-				leaf("docview.legacy", "feat.pick.docview.legacy", "feat.pick.docview.legacy.detail",
-					FeatureKind.DocOfficeLegacy)),
+			// 文档阅读器只有一行：勾上就把 docx/xlsx 与 doc/xls 两套解析库一起装
+			wholedocview(),
 			// 数据库驱动只有一行：勾上就把 SQLite / MySQL / Oracle 一起装（SQL Server 用系统自带，不用装）
 			wholedb()),
 	];
@@ -307,6 +304,13 @@ static class FeaturePick {
 			foreach (var k in n.Kinds)
 				set.Add(k);
 		}
+	}
+
+	static FeaturePickNode wholedocview() {
+		var n = leaf("docview", "feat.pick.docview", "feat.pick.docview.detail",
+			FeatureKind.DocOfficeOoxml, FeatureKind.DocOfficeLegacy);
+		n.WholePack = true;
+		return n;
 	}
 
 	static FeaturePickNode wholedb() {
