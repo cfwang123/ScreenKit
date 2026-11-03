@@ -110,15 +110,24 @@ static class FtpSelfTest {
 			r.CopyTo(f, 64 * 1024);
 		}
 
-		/// <summary>先传一半，再从断点续上另一半，验证 OpenWrite(offset) 走的是追加。</summary>
+		/// <summary>先传一半，再从断点续上另一半，验证 OpenWrite(offset) 追加而不是覆盖。</summary>
 		void resume(IFtpBackend b, string local, string remote, long half) {
 			var all = File.ReadAllBytes(local);
 			// 重建一个只有前半段的远端文件
 			b.RmFile(remote);
-			using (var w0 = b.OpenWrite(remote, 0)) w0.Write(all, 0, (int)half);
+			using (var w0 = b.OpenWrite(remote, 0)) {
+				w0.Write(all, 0, (int)half);
+				w0.Flush();
+			}
 			var mid = b.Size(remote);
 			if (mid != half) throw new InvalidOperationException($"half write {mid} != {half}");
-			using (var w1 = b.OpenWrite(remote, mid)) w1.Write(all, (int)mid, all.Length - (int)mid);
+			var start = b.AlignResume(remote, mid);
+			if (start != mid) throw new InvalidOperationException($"AlignResume {start} != {mid}");
+			using (var w1 = b.OpenWrite(remote, start)) {
+				outLog($"  resume stream: CanSeek={w1.CanSeek} CanWrite={w1.CanWrite} type={w1.GetType().Name}");
+				w1.Write(all, (int)start, all.Length - (int)start);
+				w1.Flush();
+			}
 			var fin = b.Size(remote);
 			if (fin != all.Length) throw new InvalidOperationException($"resume {fin} != {all.Length}");
 		}
@@ -129,5 +138,34 @@ static class FtpSelfTest {
 		for (int i = 0; i < a.Length; i++)
 			if (a[i] != b[i]) return false;
 		return true;
+	}
+
+	/// <summary>
+	/// 只把窗口造出来再关掉：验证 XAML 能加载、绑定路径不错、语言键都在（缺键会显示键名）。
+	/// 不需要网络，也不需要依赖已安装。
+	/// </summary>
+	public static int UiSmoke(Action<string> outLog, Action<string> errLog) {
+		try {
+			var w = new FtpWindow();
+			// 构造完还没显示，Loaded 里的检查不会跑；直接看关键控件在不在
+			if (w.lvlocal == null) { errLog("本机列表未创建"); return 2; }
+			if (w.lvremote == null) { errLog("远程列表未创建"); return 3; }
+			if (w.lvxfer == null) { errLog("传输列表未创建"); return 4; }
+			if (string.IsNullOrEmpty(w.Title)) { errLog("标题为空"); return 5; }
+			if (w.Title.StartsWith("ftp.", StringComparison.Ordinal)) {
+				errLog("标题是裸键名，缺语言文案");
+				return 6;
+			}
+			outLog($"窗口 OK  标题={w.Title}");
+			outLog($"  协议项 {w.cbKind.Items.Count} 个，当前 {w.cbKind.SelectedItem}");
+			outLog($"  并行度选项 {w.cbParallel.Items.Count} 个");
+			outLog($"  依赖已装 {FtpDeps.Installed}（缺 {string.Join("、", FtpDeps.Missing())}）");
+			w.Close();
+			return 0;
+		}
+		catch (Exception ex) {
+			errLog($"EXC {ex.GetType().Name}: {ex.Message}");
+			return 7;
+		}
 	}
 }

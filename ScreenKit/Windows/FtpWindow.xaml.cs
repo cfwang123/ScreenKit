@@ -118,7 +118,6 @@ public partial class FtpWindow : Window {
 		sites.AddRange(FtpSiteStore.Load());
 		cbSite.ItemsSource = null;
 		cbSite.ItemsSource = sites;
-		cbSite.DisplayMemberPath = "Name";
 	}
 
 	void fillsite(FtpSite s) {

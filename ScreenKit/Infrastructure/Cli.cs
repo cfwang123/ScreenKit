@@ -89,6 +89,8 @@ static class Cli {
 				or "--test-chat"
 				or "--test-rtsp"
 				or "--test-rtspsrv"
+				or "--test-ftp"
+				or "--test-udpdbg"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
 				or "--toast"
@@ -509,6 +511,8 @@ static class Cli {
 					return testaoa();
 				case "--list-install":
 					return listinstall();
+				case "--test-udpdbg":
+					return testudpdbg();
 				case "--list-tts-install":
 					return listttsinstall();
 				case "--asr":
@@ -1254,6 +1258,17 @@ static class Cli {
 		finally {
 			FeaturePick.Installed = saved;
 		}
+		return 0;
+	}
+
+	/// <summary>UDP 调试的报文解析和回环收发。</summary>
+	static int testudpdbg() {
+		var err = UdpDebug.SelfTest();
+		if (err.Length > 0) {
+			Err("FAIL udpdbg: " + err);
+			return 1;
+		}
+		Out("udpdbg ok");
 		return 0;
 	}
 
@@ -2678,6 +2693,13 @@ static class Cli {
 
 	static int testftp(string[] args, int at) {
 		string arg(int off) => at + off < args.Length ? args[at + off] : null;
+		// --test-ftp-ui：只造窗口验证 XAML 与文案，不连网
+		if (arg(1) == "ui") {
+			Out("=== FTP 窗口自测 ===");
+			var rcui = FtpSelfTest.UiSmoke(Out, Err);
+			Out(rcui == 0 ? "窗口自测通过" : $"窗口自测失败 rc={rcui}");
+			return rcui;
+		}
 		return testftp(arg(1), arg(2), arg(3), arg(4), arg(5), arg(6));
 	}
 

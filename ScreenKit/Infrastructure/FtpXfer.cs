@@ -151,9 +151,16 @@ sealed class FtpXfer {
 	void doUpload(FtpJob job, IFtpBackend backend) {
 		using var src = new FileStream(job.Local, FileMode.Open, FileAccess.Read, FileShare.Read, BUFSIZE);
 		if (job.Total <= 0) job.Total = src.Length;
-		// 断点续传：上次已传的字节数作为起点
-		long offset = job.Done;
-		if (offset > src.Length) offset = 0;
+		// 断点续传：只有远端长度正好等于已传字节数才能接着传，否则从头来
+		long offset = backend.AlignResume(job.Remote, job.Done);
+		if (offset <= 0) {
+			offset = 0;
+			job.Done = 0;
+		}
+		if (offset > src.Length) {
+			offset = 0;
+			job.Done = 0;
+		}
 		src.Seek(offset, SeekOrigin.Begin);
 		long remain = src.Length - offset;
 		using var dst = backend.OpenWrite(job.Remote, offset);

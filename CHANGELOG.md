@@ -64,6 +64,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web PDF viewer: click a page to open a high-resolution copy of it in the Viewer.js lightbox; dragging pans without triggering it
 - Document reader: a Recent files submenu that remembers the last 10 files, and the files that were open when the window closed reopen as tabs next time. Tabs can be dragged to reorder, dragged out into their own window, and dragged back in to merge
 - Settings, Hotkeys: a Document viewer entry, empty by default, that shows or hides the document reader
+- FTP file manager supporting FTP, FTPS and SFTP: dual panes, drag to transfer, progress queue
 
 #### Changed
 
@@ -87,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - All user data besides config.toml now lives in one data.json beside the exe: desk note, performance window, database connections, HTTP debug requests, and the document reader's history and tabs. The separate note.json, perf.json, sql-conns.json, httpdbg.json and mdread.json files are gone
 - Diagnostic logs follow capture_log: cast_sess, cuda_bootstrap, cast.log, fc.txt and the document viewer log are no longer written when it is off
 - Document viewer renders a large Markdown file in blocks around the viewport instead of laying out the whole file at once
+- FTP and SFTP libraries install on demand from the Tools group; slim package size is unchanged
 
 #### Fixed
 
@@ -127,6 +129,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web PDF 查看：点页面用 Viewer.js 弹出该页高清图；拖动平移不会误触发
 - 文档阅读器：菜单新增「历史文件」，记住最近 10 个；关窗时开着的标签下次打开自动恢复。标签可以拖动排序、拖出成独立窗口、拖回合并
 - 参数设置的快捷键页增加「文档查看器」，默认留空；按下时打开或关闭文档阅读器
+- 新增 FTP 文件管理工具，支持 FTP、FTPS、SFTP：双栏浏览、拖放传输、传输队列与进度
 
 #### 变更
 
@@ -150,6 +153,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 除 config.toml 以外的用户数据统一存到 exe 旁的 data.json：便笺、性能小窗、数据库连接、HTTP 调试请求、文档阅读器的历史与标签。原来分散的 note.json、perf.json、sql-conns.json、httpdbg.json、mdread.json 不再生成
 - 诊断日志统一受 capture_log 控制：关闭时不再写 cast_sess.txt、cuda_bootstrap.log、cast.log、fc.txt 和文档阅读器日志
 - 文档阅读器打开超大 Markdown 时只排视口附近的块，不再整篇一次排版
+- FTP 与 SFTP 依赖改为在「安装功能 → 工具集」按需安装，精简包体积不变
 
 #### 修复
 

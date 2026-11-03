@@ -115,6 +115,7 @@ public partial class MainWindow : Window {
 	PerfMonWindow perfMonWin;
 	HttpDebugWindow httpDbgWin;
 	MqttWindow mqttWin;
+	UdpDebugWindow udpDbgWin;
 	SoapDebugWindow soapDbgWin;
 	ZhConvertWindow zhConvWin;
 	PinyinWindow pinyinWin;
@@ -1884,6 +1885,7 @@ public partial class MainWindow : Window {
 		mnperfmon.Click += (_, _) => openperfmon();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnmqtt.Click += (_, _) => openmqtt();
+		mnudpdbg.Click += (_, _) => openudpdbg();
 		mnsoapdbg.Click += (_, _) => opensoapdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
 		mnpinyin.Click += (_, _) => openpinyin();
@@ -2088,6 +2090,8 @@ public partial class MainWindow : Window {
 			mnhttpdbg.ToolTip = Loc.T("menu.httpdbg.tip");
 			mnmqtt.Header = Loc.T("menu.mqtt");
 			mnmqtt.ToolTip = Loc.T("menu.mqtt.tip");
+			mnudpdbg.Header = Loc.T("menu.udpdbg");
+			mnudpdbg.ToolTip = Loc.T("menu.udpdbg.tip");
 			mnsoapdbg.Header = Loc.T("menu.soapdbg");
 			mnsoapdbg.ToolTip = Loc.T("menu.soapdbg.tip");
 			mnftp.Header = Loc.T("menu.ftp");
@@ -4873,6 +4877,9 @@ public partial class MainWindow : Window {
 
 	void openmqtt() =>
 		opentoolwin(ref mqttWin, () => new MqttWindow(), "menu.mqtt");
+
+	void openudpdbg() =>
+		opentoolwin(ref udpDbgWin, () => new UdpDebugWindow(), "menu.udpdbg");
 
 	void opensoapdbg() =>
 		opentoolwin(ref soapDbgWin, () => new SoapDebugWindow(), "menu.soapdbg");

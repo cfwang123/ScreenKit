@@ -128,11 +128,21 @@ sealed class FtpBackend : IFtpBackend {
 
 	/// <summary>
 	/// offset 为 0 时新建，否则用 APPE 追加到已有内容后面。
-	/// FTP 没有 REST 写定位，APPE 是唯一能续传上传的方式。
+	/// FTP 没有 REST 写定位，APPE 是唯一能续传上传的方式，前提是远端长度正好等于 offset。
 	/// </summary>
 	public Stream OpenWrite(string path, long offset) {
 		var full = Full(path);
 		if (offset <= 0) return cli.OpenWrite(full, FtpDataType.Binary, true);
 		return cli.OpenAppend(full, FtpDataType.Binary, true);
+	}
+
+	/// <summary>FTP 用 APPE 追加，远端长度与断点不符就从头传。</summary>
+	public long AlignResume(string path, long want) {
+		if (want <= 0) return 0;
+		try {
+			var cur = cli.GetFileSize(Full(path), -1);
+			return cur == want ? want : 0;
+		}
+		catch { return 0; }
 	}
 }

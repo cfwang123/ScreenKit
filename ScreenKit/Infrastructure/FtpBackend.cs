@@ -42,6 +42,15 @@ interface IFtpBackend : IDisposable {
 	/// <summary>读远端文件，offset 为续传起点。</summary>
 	Stream OpenRead(string path, long offset, long length);
 
-	/// <summary>写远端文件。offset > 0 表示从断点续传（追加），靠实现决定用 REST/APPE。</summary>
+	/// <summary>
+	/// 写远端文件。offset == 0 时新建覆盖；offset &gt; 0 时追加（远端已有内容长度必须等于 offset，
+	/// 由 <see cref="AlignResume"/> 先行确认）。
+	/// </summary>
 	Stream OpenWrite(string path, long offset);
+
+	/// <summary>
+	/// 续传起点对齐：远端当前长度正好等于 want 才能从 want 接着传，否则只能从 0 重来。
+	/// 返回实际可用的起点。
+	/// </summary>
+	long AlignResume(string path, long want);
 }

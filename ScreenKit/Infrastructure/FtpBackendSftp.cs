@@ -148,14 +148,27 @@ sealed class SftpBackend : IFtpBackend {
 		return s;
 	}
 
-	/// <summary>offset 为 0 时覆盖；否则先接上已有前缀再追加，靠上层把已有部分拷进流。</summary>
+	/// <summary>
+	/// offset 为 0 时覆盖写；否则定位到断点继续写。
+	/// 只写句柄在 SSH.NET 里不可定位，续传必须用 ReadWrite 打开。
+	/// </summary>
 	public Stream OpenWrite(string path, long offset) {
 		var full = Full(path);
 		if (offset <= 0) return cli.OpenWrite(full);
-		// SFTP 支持随机写：打开已有文件，定位到断点继续写
-		var s = cli.OpenWrite(full);
-		try { s.Seek(offset, SeekOrigin.Begin); }
+		var s = cli.Open(full, FileMode.Open, FileAccess.ReadWrite);
+		try { s.Position = offset; }
 		catch { s.Dispose(); throw; }
 		return s;
+	}
+
+	/// <summary>SFTP 能随机写，长度与断点不符就从头传（半截文件可能内容不对）。</summary>
+	public long AlignResume(string path, long want) {
+		if (want <= 0) return 0;
+		try {
+			var a = cli.GetAttributes(Full(path));
+			if (a.IsDirectory) return 0;
+			return (long)a.Size == want ? want : 0;
+		}
+		catch { return 0; }
 	}
 }
