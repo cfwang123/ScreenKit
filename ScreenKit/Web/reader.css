@@ -204,7 +204,7 @@ button, input, select { font: inherit; }
 }
 .rd-pop-ops button:hover { background: #f3f4f6; }
 
-/* 词典窗口 */
+/* 词典窗口。字号与 WPF 词典窗口一致用 13，别跟着正文的 15 走 */
 .rd-dict {
 	position: fixed; z-index: 60; left: 8vw; top: 8vh;
 	width: min(880px, 90vw); height: min(600px, 78vh);
@@ -212,6 +212,7 @@ button, input, select { font: inherit; }
 	display: flex; flex-direction: column; overflow: hidden;
 	background: #fff; border: 1px solid var(--line); border-radius: 14px;
 	box-shadow: 0 18px 48px rgba(40, 30, 20, 0.22);
+	font-size: 13px; line-height: 1.5;
 }
 .rd-dict[hidden] { display: none !important; }
 .rd-dict.max {
@@ -245,17 +246,17 @@ button, input, select { font: inherit; }
 	display: flex; align-items: center; gap: 8px; padding: 8px 10px;
 	background: #faf8f5; border-bottom: 1px solid var(--line); cursor: grab; user-select: none;
 }
-.rd-dict-bar strong { flex: none; }
+.rd-dict-bar strong { flex: none; font-size: 13px; }
 .rd-dict-bar button { position: relative; z-index: 5; }
 .rd-dict-status { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rd-dict-search { display: flex; gap: 8px; padding: 10px 12px 0; }
 .rd-dict-search input {
 	flex: 1; min-width: 120px; height: 32px; margin: 0; padding: 0 8px; border: 1px solid var(--line);
-	border-radius: 8px; background: #fff;
+	border-radius: 8px; background: #fff; font-size: 13px;
 }
 .rd-dict-search button {
 	flex: none; height: 32px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px;
-	background: #fff; cursor: pointer;
+	background: #fff; cursor: pointer; font-size: 13px;
 }
 .rd-dict-tabs { display: flex; gap: 6px; padding: 8px 12px; flex-wrap: wrap; }
 .rd-dict-tabs button {
@@ -264,7 +265,7 @@ button, input, select { font: inherit; }
 }
 .rd-dict-tabs button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .rd-dict-tabs button:disabled { opacity: 0.4; }
-.rd-dict-main { flex: 1; min-height: 0; display: flex; gap: 8px; padding: 8px 12px 10px; }
+.rd-dict-main { flex: 1; min-height: 0; display: flex; gap: 8px; padding: 8px 12px 10px; font-size: 13px; }
 .rd-dict-list {
 	width: min(340px, 42%); min-width: 180px; overflow: auto;
 	border: 1px solid var(--line); border-radius: 8px;
@@ -284,6 +285,7 @@ button, input, select { font: inherit; }
 .rd-dict-detail {
 	flex: 1; min-width: 0; overflow: auto; padding: 10px 12px;
 	border: 1px solid var(--line); border-radius: 8px;
+	font-size: 13px; line-height: 1.6;
 }
 .rd-dict-detail p { margin: 0 0 2px; }
 .rd-dict-detail .title { font-weight: 650; margin-bottom: 4px; }

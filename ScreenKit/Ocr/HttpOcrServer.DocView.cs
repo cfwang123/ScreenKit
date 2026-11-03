@@ -168,7 +168,8 @@ sealed partial class HttpOcrServer {
 			.Append("<span id=\"pct\">100%</span>")
 			.Append("<button id=\"zin\" title=\"放大（Ctrl+滚轮）\">+</button>")
 			.Append("<span class=\"sep\"></span>")
-			.Append("<button id=\"fitw\" class=\"on\" title=\"适应宽度\">宽</button>")
+			.Append("<button id=\"actual\" class=\"on\" title=\"100% 实际大小\">1:1</button>")
+			.Append("<button id=\"fitw\" title=\"适应宽度\">宽</button>")
 			.Append("<button id=\"fitp\" title=\"适应页高\">页</button>")
 			.Append("</div>")
 			.Append("<div id=\"scroll\"><div id=\"pages\"></div></div><div id=\"tip\"></div>")
@@ -197,16 +198,19 @@ sealed partial class HttpOcrServer {
 		var btnout = document.getElementById("zout");
 		var btnw = document.getElementById("fitw");
 		var btnp = document.getElementById("fitp");
+		var btna = document.getElementById("actual");
 
 		var doc = null;
 		var slots = [];
 		var metas = [];
 		var drawn = {};
 		var busy = {};
-		var fitmode = "width";
+		// 默认按 100% 实际大小打开：PDF 的 1 点是 1/72 英寸，屏幕 1 像素是 1/96 英寸
+		var fitmode = "actual";
 		var zoom = 1;
 		var current = 1;
 		var tipTok = 0;
+		var PT2PX = 96 / 72;
 
 		if (!lib) {
 			host.innerHTML = '<div class="pg"><div class="ph">加载 pdf.js 失败，请检查网络后刷新</div></div>';
@@ -233,16 +237,19 @@ sealed partial class HttpOcrServer {
 		// fitmode 决定基准缩放，zoom 再乘上去；返回 CSS 像素 / PDF 点
 		function effscale(i){
 			var w = pagew(i);
-			var s = availw() / w;
-			if (fitmode === "page") s = Math.min(s, (scroller.clientHeight - 76) / pageh(i));
+			var s;
+			if (fitmode === "width") s = availw() / w;
+			else if (fitmode === "page") s = Math.min(availw() / w, (scroller.clientHeight - 76) / pageh(i));
+			else s = PT2PX;  // actual：100% 实际大小，A4 约 794px 宽
 			return clamp(s * zoom, 0.1, 8);
 		}
 
 		function setpct(){
-			// 100% 按 96dpi 的“实际大小”，和桌面阅读器看着差不多大
-			pct.textContent = Math.round(effscale(0) * 75) + "%";
+			// 基准缩放已经折算成屏幕实际大小，这里就是用户看到的百分比
+			pct.textContent = Math.round(effscale(0) * 100 / PT2PX) + "%";
 			btnw.className = fitmode === "width" ? "on" : "";
 			btnp.className = fitmode === "page" ? "on" : "";
+			btna.className = fitmode === "actual" ? "on" : "";
 		}
 
 		function build(total){
@@ -253,8 +260,8 @@ sealed partial class HttpOcrServer {
 			for (i = 0; i < total; i++) {
 				el = document.createElement("div");
 				el.className = "pg";
-				el.style.width = Math.round(availw()) + "px";
-				el.style.height = Math.round(availw() * 1.414) + "px";
+				el.style.width = Math.round(595 * PT2PX) + "px";
+				el.style.height = Math.round(842 * PT2PX) + "px";
 				el.innerHTML = '<div class="ph">第 ' + (i + 1) + " 页</div>";
 				host.appendChild(el);
 				slots.push(el);
@@ -324,10 +331,14 @@ sealed partial class HttpOcrServer {
 			if (doc == null) return;
 			var sr = scroller.getBoundingClientRect();
 			var vh = sr.height;
-			var i, r, best = 1;
+			var i, r, best = 1, s;
 			for (i = 0; i < slots.length; i++) {
 				r = slots[i].getBoundingClientRect();
-				if (r.bottom > sr.top - vh && r.top < sr.bottom + vh) draw(i);
+				if (r.bottom <= sr.top - vh || r.top >= sr.bottom + vh) continue;
+				// 已经按当前比例画过就别再画，否则每次滚动都重渲染
+				s = effscale(i);
+				if (drawn[i] && Math.abs(drawn[i] - s) < 0.0005) continue;
+				draw(i);
 			}
 			for (i = 0; i < slots.length; i++) {
 				r = slots[i].getBoundingClientRect();
@@ -423,6 +434,7 @@ sealed partial class HttpOcrServer {
 
 		btnin.onclick = function(){ setzoom(zoom * 1.2); };
 		btnout.onclick = function(){ setzoom(zoom / 1.2); };
+		btna.onclick = function(){ fitmode = "actual"; zoom = 1; relayout(); };
 		btnw.onclick = function(){ fitmode = "width"; zoom = 1; relayout(); };
 		btnp.onclick = function(){ fitmode = "page"; zoom = 1; relayout(); };
 
