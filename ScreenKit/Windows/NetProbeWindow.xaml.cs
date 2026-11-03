@@ -124,7 +124,10 @@ public partial class NetProbeWindow : Window {
 			if (e.Row.Item is ProcessNetRow p) applyRuleRowColor(e.Row, p.RuleTag);
 		};
 		mnproccap.Click += (_, _) => mnproccap_Click();
-		mnproccapall.Click += (_, _) => mnproccapall_Click();
+		// 双击进程行＝直接抓这一个进程
+		dgproc.MouseDoubleClick += (_, _) => {
+			if (dgproc.SelectedItem is ProcessNetRow dp && dp.Pid > 0) capturepid(dp.Pid);
+		};
 
 		dgconn.SelectionChanged += (_, _) => {
 			if (restoringSel) return;
@@ -967,8 +970,10 @@ public partial class NetProbeWindow : Window {
 		updateStatusText();
 	}
 
-	void mnproccapall_Click() {
-		startCaptureForProcesses(null);
+	/// <summary>只抓指定一个进程，供双击进程行使用。</summary>
+	void capturepid(int pid) {
+		if (pid <= 0) return;
+		startCaptureForProcesses(new[] { pid });
 		updateCapButtons();
 		updateTitles();
 		updateStatusText();

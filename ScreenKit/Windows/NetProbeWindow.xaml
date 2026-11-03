@@ -378,10 +378,8 @@
 								          ToolTip="Ctrl/Shift 多选进程后右键「抓包」">
 									<DataGrid.ContextMenu>
 										<ContextMenu>
-											<MenuItem x:Name="mnproccap" Header="抓包（选中进程）"
-											          ToolTip="开始/继续抓包，仅缓存选中进程（支持 Ctrl 多选）相关连接"/>
-											<MenuItem x:Name="mnproccapall" Header="抓包（全部进程）"
-											          ToolTip="清除进程过滤，抓取全部 TCP/UDP"/>
+											<MenuItem x:Name="mnproccap" Header="抓包选中进程"
+											          ToolTip="开始/继续抓包，只缓存选中进程（可 Ctrl 多选）相关连接；双击进程行也能直接抓包"/>
 										</ContextMenu>
 									</DataGrid.ContextMenu>
 									<DataGrid.Columns>

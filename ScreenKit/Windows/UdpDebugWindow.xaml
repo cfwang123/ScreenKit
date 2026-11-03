@@ -1,9 +1,9 @@
 <Window x:Class="ScreenKit.UdpDebugWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="TCP/UDP 调试"
-        Width="820" Height="640"
-        MinWidth="640" MinHeight="460"
+        Title="TCP/UDP/串口 调试"
+        Width="860" Height="640"
+        MinWidth="700" MinHeight="460"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{StaticResource BgApp}"
@@ -15,6 +15,7 @@
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="140"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
@@ -23,8 +24,11 @@
 			             VerticalAlignment="Center" Margin="0,0,10,0"
 			             AutomationProperties.AutomationId="udpdbg.proto.udp"/>
 			<RadioButton x:Name="rtcp" Content="TCP" GroupName="sockproto"
-			             VerticalAlignment="Center" Margin="0,0,14,0"
+			             VerticalAlignment="Center" Margin="0,0,10,0"
 			             AutomationProperties.AutomationId="udpdbg.proto.tcp"/>
+			<RadioButton x:Name="rcom" Content="串口" GroupName="sockproto"
+			             VerticalAlignment="Center" Margin="0,0,14,0"
+			             AutomationProperties.AutomationId="udpdbg.proto.com"/>
 			<CheckBox x:Name="chexshow" Content="hex 显示" VerticalAlignment="Center" Margin="0,0,12,0"
 			          AutomationProperties.AutomationId="udpdbg.hexshow"/>
 			<TextBlock x:Name="lbenc" Text="编码" VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -42,7 +46,7 @@
 		         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
 		         BorderBrush="{StaticResource BorderSoft}" Padding="8"
 		         AutomationProperties.AutomationId="udpdbg.log"/>
-		<Grid Grid.Row="2" Margin="0,10,0,0">
+		<Grid x:Name="netrow" Grid.Row="2" Margin="0,10,0,0">
 			<Grid.ColumnDefinitions>
 				<ColumnDefinition Width="Auto"/>
 				<ColumnDefinition Width="150"/>
@@ -68,7 +72,31 @@
 			<Button x:Name="blisten" Grid.Column="7" Style="{StaticResource ToolBtn}"
 			        AutomationProperties.AutomationId="udpdbg.listen"/>
 		</Grid>
-		<DockPanel Grid.Row="3" Margin="0,8,0,0" LastChildFill="False">
+		<DockPanel x:Name="comrow" Grid.Row="3" Margin="0,10,0,0" LastChildFill="False" Visibility="Collapsed">
+			<TextBlock x:Name="lbport" Text="端口" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<ComboBox x:Name="eport" Width="110" Height="30" Margin="0,0,8,0"
+			          VerticalContentAlignment="Center" IsEditable="True"
+			          AutomationProperties.AutomationId="udpdbg.com.port"/>
+			<Button x:Name="brefresh" Style="{StaticResource ToolBtnSm}" Margin="0,0,12,0"
+			        AutomationProperties.AutomationId="udpdbg.com.refresh"/>
+			<TextBlock x:Name="lbbaud" Text="波特率" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<ComboBox x:Name="ebaud" Width="100" Height="30" Margin="0,0,10,0"
+			          VerticalContentAlignment="Center" IsEditable="True"
+			          AutomationProperties.AutomationId="udpdbg.com.baud"/>
+			<TextBlock x:Name="lbdata" Text="数据位" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<ComboBox x:Name="edata" Width="64" Height="30" Margin="0,0,10,0"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="udpdbg.com.data"/>
+			<TextBlock x:Name="lbparity" Text="校验" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<ComboBox x:Name="eparity" Width="80" Height="30" Margin="0,0,10,0"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="udpdbg.com.parity"/>
+			<TextBlock x:Name="lbstop" Text="停止位" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<ComboBox x:Name="estop" Width="64" Height="30"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="udpdbg.com.stop"/>
+		</DockPanel>
+		<DockPanel Grid.Row="4" Margin="0,8,0,0" LastChildFill="False">
 			<CheckBox x:Name="chexsend" Content="hex 发送" VerticalAlignment="Center" Margin="0,0,14,0"
 			          AutomationProperties.AutomationId="udpdbg.hexsend"/>
 			<CheckBox x:Name="ctimer" Content="定时" VerticalAlignment="Center" Margin="0,0,6,0"
@@ -84,13 +112,15 @@
 			        AutomationProperties.AutomationId="udpdbg.send"/>
 			<Button x:Name="bconnect" Style="{StaticResource ToolBtn}"
 			        AutomationProperties.AutomationId="udpdbg.connect"/>
+			<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Visibility="Collapsed"
+			        AutomationProperties.AutomationId="udpdbg.com.open"/>
 		</DockPanel>
-		<TextBox x:Name="epayload" Grid.Row="4" Margin="0,8,0,0" AcceptsReturn="True"
+		<TextBox x:Name="epayload" Grid.Row="5" Margin="0,8,0,0" AcceptsReturn="True"
 		         FontFamily="Consolas, Microsoft YaHei UI" FontSize="13"
 		         VerticalScrollBarVisibility="Auto"
 		         BorderBrush="{StaticResource BorderSoft}" Padding="8"
 		         AutomationProperties.AutomationId="udpdbg.payload"/>
-		<TextBlock x:Name="lbstat" Grid.Row="5" Margin="0,8,0,0" FontSize="12"
+		<TextBlock x:Name="lbstat" Grid.Row="6" Margin="0,8,0,0" FontSize="12"
 		           Foreground="{StaticResource TextMuted}"
 		           AutomationProperties.AutomationId="udpdbg.stat"/>
 	</Grid>

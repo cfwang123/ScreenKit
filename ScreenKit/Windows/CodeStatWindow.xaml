@@ -1,0 +1,83 @@
+<Window x:Class="ScreenKit.CodeStatWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="代码统计"
+        Width="980" Height="640"
+        MinWidth="760" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="codestat.window">
+	<Grid Margin="16">
+		<TabControl x:Name="tabs" BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="codestat.tabs">
+			<TabItem x:Name="tabpick" Header="选择" AutomationProperties.AutomationId="codestat.tab.pick">
+				<DockPanel Margin="0,8,0,0">
+					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" LastChildFill="False">
+						<Button x:Name="badd" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
+						        AutomationProperties.AutomationId="codestat.add"/>
+						<Button x:Name="bdel" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
+						        AutomationProperties.AutomationId="codestat.del"/>
+						<Button x:Name="bclear" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
+						        AutomationProperties.AutomationId="codestat.clear"/>
+						<CheckBox x:Name="cgit" Content="启用 .gitignore" VerticalAlignment="Center" Margin="12,0,0,0"
+						          IsChecked="True" AutomationProperties.AutomationId="codestat.git"/>
+					</DockPanel>
+					<TextBox x:Name="eignore" DockPanel.Dock="Bottom" Height="72" Margin="0,8,0,0"
+					         AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+					         BorderBrush="{StaticResource BorderSoft}" Padding="6,4"
+					         AutomationProperties.AutomationId="codestat.ignore"/>
+					<TextBlock x:Name="lbignore" DockPanel.Dock="Bottom" Margin="0,8,0,0"
+					           Foreground="{StaticResource TextMuted}"/>
+					<ListBox x:Name="lpaths" BorderBrush="{StaticResource BorderSoft}"
+					         AutomationProperties.AutomationId="codestat.paths"/>
+				</DockPanel>
+			</TabItem>
+			<TabItem x:Name="tabstat" Header="统计" AutomationProperties.AutomationId="codestat.tab.stat">
+				<DockPanel Margin="0,8,0,0">
+					<TextBlock x:Name="lbstat" DockPanel.Dock="Bottom" Margin="0,8,0,0"
+					           Foreground="{StaticResource TextMuted}"/>
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="1.3*"/>
+							<ColumnDefinition Width="6"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+						<ListView x:Name="lvlang" BorderBrush="{StaticResource BorderSoft}"
+						          AutomationProperties.AutomationId="codestat.langs">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="collang" Header="语言" Width="130" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colfiles" Header="文件" Width="60" DisplayMemberBinding="{Binding Files}"/>
+									<GridViewColumn x:Name="collines" Header="行" Width="70" DisplayMemberBinding="{Binding Lines}"/>
+									<GridViewColumn x:Name="colcode" Header="代码" Width="70" DisplayMemberBinding="{Binding Code}"/>
+									<GridViewColumn x:Name="colcmt" Header="注释" Width="70" DisplayMemberBinding="{Binding Comments}"/>
+									<GridViewColumn x:Name="colblank" Header="空行" Width="60" DisplayMemberBinding="{Binding Blanks}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+						<ListView x:Name="lvfile" Grid.Column="2" BorderBrush="{StaticResource BorderSoft}"
+						          VirtualizingPanel.IsVirtualizing="True"
+						          VirtualizingPanel.VirtualizationMode="Recycling"
+						          VirtualizingPanel.ScrollUnit="Item"
+						          ScrollViewer.CanContentScroll="True"
+						          AutomationProperties.AutomationId="codestat.files">
+							<ListView.View>
+								<GridView>
+									<GridViewColumn x:Name="colfname" Header="文件" Width="220" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colflines" Header="行" Width="60" DisplayMemberBinding="{Binding Lines}"/>
+									<GridViewColumn x:Name="colfcode" Header="代码" Width="60" DisplayMemberBinding="{Binding Code}"/>
+								</GridView>
+							</ListView.View>
+						</ListView>
+					</Grid>
+				</DockPanel>
+			</TabItem>
+		</TabControl>
+		<Button x:Name="bgo" Style="{StaticResource ToolBtn}" HorizontalAlignment="Right" VerticalAlignment="Top"
+		        Margin="0,4,4,0" Panel.ZIndex="2" AutomationProperties.AutomationId="codestat.go"/>
+	</Grid>
+</Window>

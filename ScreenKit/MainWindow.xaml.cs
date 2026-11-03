@@ -100,6 +100,7 @@ public partial class MainWindow : Window {
 	QrMakeWindow qrMakeWin;
 	BatchRenameWindow renameWin;
 	HashWindow hashWin;
+	CodeStatWindow codeStatWin;
 	ShotHistoryWindow histwin;
 	TextToolWindow textToolWin;
 	MdReadWindow mdReadWin;
@@ -748,6 +749,7 @@ public partial class MainWindow : Window {
 			tray.MemRequested += () => Dispatcher.BeginInvoke(new Action(() => openmem()));
 			tray.SysToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opensystool()));
 			tray.FileProbeRequested += () => Dispatcher.BeginInvoke(new Action(() => openfileprobe()));
+			tray.CodeStatRequested += () => Dispatcher.BeginInvoke(new Action(() => opencodestat()));
 			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon()));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg()));
 			tray.MqttRequested += () => Dispatcher.BeginInvoke(new Action(() => openmqtt()));
@@ -1868,6 +1870,7 @@ public partial class MainWindow : Window {
 		mnqrmake.Click += (_, _) => openqrmake();
 		mnrename.Click += (_, _) => openrename();
 		mnhash.Click += (_, _) => openhash();
+		mncodestat.Click += (_, _) => opencodestat();
 		mntexttool.Click += (_, _) => opentexttool();
 		mnmdread.Click += (_, _) => openmdread();
 		mndoc2md.Click += (_, _) => opendoc2md();
@@ -2053,6 +2056,8 @@ public partial class MainWindow : Window {
 			mnrename.ToolTip = Loc.T("menu.rename.tip");
 			mnhash.Header = Loc.T("menu.hash");
 			mnhash.ToolTip = Loc.T("menu.hash.tip");
+			mncodestat.Header = Loc.T("menu.codestat");
+			mncodestat.ToolTip = Loc.T("menu.codestat.tip");
 			mntexttool.Header = Loc.T("menu.texttool");
 			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
 			mnmdread.Header = Loc.T("menu.mdread");
@@ -4843,6 +4848,9 @@ public partial class MainWindow : Window {
 	void openhash() =>
 		opentoolwin(ref hashWin, () => new HashWindow(), "menu.hash");
 
+	void opencodestat() =>
+		opentoolwin(ref codeStatWin, () => new CodeStatWindow(), "menu.codestat");
+
 	void opentexttool() =>
 		opentoolwin(ref textToolWin, () => new TextToolWindow(), "menu.texttool");
 
@@ -5089,6 +5097,7 @@ public partial class MainWindow : Window {
 				if (ReferenceEquals(qrMakeWin, w)) qrMakeWin = null;
 				else if (ReferenceEquals(renameWin, w)) renameWin = null;
 				else if (ReferenceEquals(hashWin, w)) hashWin = null;
+				else if (ReferenceEquals(codeStatWin, w)) codeStatWin = null;
 				else if (ReferenceEquals(textToolWin, w)) textToolWin = null;
 				else if (ReferenceEquals(mdReadWin, w)) mdReadWin = null;
 				else if (ReferenceEquals(doc2mdWin, w)) doc2mdWin = null;

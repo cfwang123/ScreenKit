@@ -228,7 +228,7 @@
 				          AutomationProperties.AutomationId="menu.cat.talk"/>
 				<MenuItem x:Name="mnnetgroup" Header="网络工具(_N)"
 				          AutomationProperties.AutomationId="menu.netgroup"
-				          ToolTip="网络工具、HTTP 请求调试、MQTT、TCP/UDP 调试、SOAP 接口调试、端口占用和数据库查询">
+				          ToolTip="网络工具、HTTP 请求调试、MQTT、TCP/UDP/串口调试、SOAP 接口调试、端口占用和数据库查询">
 					<MenuItem x:Name="mnnet" Header="网络工具(_N)…"
 					          AutomationProperties.AutomationId="menu.net"
 					          ToolTip="Ping、域名解析、端口测试、网络唤醒和网络发现"/>
@@ -238,9 +238,9 @@
 					<MenuItem x:Name="mnmqtt" Header="MQTT 调试(_Q)…"
 					          AutomationProperties.AutomationId="menu.mqtt"
 					          ToolTip="连 MQTT 服务器收发消息，也能在本机起一个服务端"/>
-					<MenuItem x:Name="mnudpdbg" Header="TCP/UDP 调试(_P)…"
+					<MenuItem x:Name="mnudpdbg" Header="TCP/UDP/串口调试(_P)…"
 					          AutomationProperties.AutomationId="menu.udpdbg"
-					          ToolTip="TCP 可连接或监听，UDP 可发送或监听，报文按 hex 或文本收发"/>
+					          ToolTip="TCP 连接或监听，UDP 发送或监听，串口打开后收发"/>
 					<MenuItem x:Name="mnsoapdbg" Header="SOAP 接口调试(_S)…"
 					          AutomationProperties.AutomationId="menu.soapdbg"
 					          ToolTip="读取 WSDL，调试 SOAP 接口并启动本地模拟服务"/>
@@ -271,6 +271,9 @@
 					<MenuItem x:Name="mnfileprobe" Header="文件分析(_P)…"
 					          AutomationProperties.AutomationId="menu.fileprobe"
 					          ToolTip="看文件头、版本、图片信息、媒体和文本编码"/>
+					<MenuItem x:Name="mncodestat" Header="代码统计(_C)…"
+					          AutomationProperties.AutomationId="menu.codestat"
+					          ToolTip="按语言统计代码、注释和空行"/>
 				</MenuItem>
 				<MenuItem x:Name="mncatsys" Header="系统(_Y)"
 				          AutomationProperties.AutomationId="menu.cat.sys">

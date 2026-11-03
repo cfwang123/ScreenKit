@@ -84,6 +84,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miMem;
 	Forms.ToolStripMenuItem miSysTool;
 	Forms.ToolStripMenuItem miFileProbe;
+	Forms.ToolStripMenuItem miCodeStat;
 	Forms.ToolStripMenuItem miPerfMon;
 	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miMqtt;
@@ -239,6 +240,7 @@ sealed class TrayIcon : IDisposable {
 		miMem.ToolTipText = Loc.T("menu.mem.tip");
 		miSysTool = item("tray.systool", () => SysToolRequested?.Invoke());
 		miFileProbe = item("tray.fileprobe", () => FileProbeRequested?.Invoke());
+		miCodeStat = item("tray.codestat", () => CodeStatRequested?.Invoke());
 		miPerfMon = item("tray.perfmon", () => PerfMonRequested?.Invoke());
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miMqtt = item("tray.mqtt", () => MqttRequested?.Invoke());
@@ -308,6 +310,7 @@ sealed class TrayIcon : IDisposable {
 		miCatFile.DropDownItems.Add(miRename);
 		miCatFile.DropDownItems.Add(miFastCopy);
 		miCatFile.DropDownItems.Add(miFileProbe);
+		miCatFile.DropDownItems.Add(miCodeStat);
 		miCatSys = new Forms.ToolStripMenuItem(Loc.T("menu.cat.sys"));
 		miCatSys.DropDownItems.Add(miSys);
 		miCatSys.DropDownItems.Add(miSysTool);
@@ -551,6 +554,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miAutoKey, null);
 		setshortcut(miFastCopy, null);
 		setshortcut(miFileProbe, null);
+		setshortcut(miCodeStat, null);
 		setshortcut(miGlyphMod, null);
 		setshortcut(miCast, null);
 		setshortcut(miSettings, null);
@@ -644,6 +648,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miAutoKey, "tray.autokey");
 			settext(miFastCopy, "tray.fastcopy");
 			settext(miFileProbe, "tray.fileprobe");
+			settext(miCodeStat, "tray.codestat");
 			settext(miGlyphMod, "tray.glyphmod");
 			settext(miCast, "tray.cast");
 			settext(miSettings, "tray.settings");
@@ -799,6 +804,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action MemRequested;
 	public event Action SysToolRequested;
 	public event Action FileProbeRequested;
+	public event Action CodeStatRequested;
 	public event Action PerfMonRequested;
 	public event Action HttpDbgRequested;
 	public event Action MqttRequested;

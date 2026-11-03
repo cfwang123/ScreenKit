@@ -7,10 +7,15 @@ static class FtpBackendFactory {
 	/// 缺库时在 JIT 阶段就会抛，所以这里必须先行加载；缺文件抛 MissingFeatureException。
 	/// </summary>
 	public static IFtpBackend Create(string kind) {
+		// TFTP 自己实现，不依赖第三方库，不需要先装依赖
+		if (FtpProto.IsTftp(kind)) return new TftpBackend();
 		FtpDeps.LoadAll();
 		if (FtpProto.IsSftp(kind)) return new SftpBackend();
 		return new FtpBackend();
 	}
+
+	/// <summary>这个协议需不需要 FluentFTP / SSH.NET 那两个库。TFTP 不需要。</summary>
+	public static bool NeedsDeps(string kind) => !FtpProto.IsTftp(kind);
 
 	public static IFtpBackend Create(FtpSite site) => Create(site?.Kind);
 }

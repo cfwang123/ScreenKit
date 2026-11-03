@@ -60,7 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-codestat" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
@@ -329,6 +329,8 @@ static class Cli {
 					return testrename();
 				case "--test-hash":
 					return testhash();
+				case "--test-codestat":
+					return testcodestat();
 				case "--test-texttool":
 					return testtexttool();
 				case "--test-fx":
@@ -4081,6 +4083,55 @@ static class Cli {
 			try { File.Delete(path); } catch { }
 		}
 		Out(bad == 0 ? "=== OK：校验哈希 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	static int testcodestat() {
+		Out("=== 代码统计 --test-codestat ===");
+		var bad = 0;
+		var root = Path.Combine(Path.GetTempPath(), "sk_cs_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+		try {
+			Directory.CreateDirectory(Path.Combine(root, "sub"));
+			Directory.CreateDirectory(Path.Combine(root, "skip"));
+			File.WriteAllText(Path.Combine(root, ".gitignore"), "skip/\n*.log\n");
+			File.WriteAllText(Path.Combine(root, "a.cs"), "using X;\r\n// c\r\n\r\nclass A { }\r\n");
+			File.WriteAllText(Path.Combine(root, "sub", "b.py"), "# c\n\nprint(1)\n");
+			File.WriteAllText(Path.Combine(root, "n.log"), "nope\n");
+			File.WriteAllText(Path.Combine(root, "skip", "c.cs"), "class Z {}\n");
+			File.WriteAllText(Path.Combine(root, "d.md"), "hi\n\n```cs\nint x;\n```\n");
+			if (!CodeStat.matchrules("skip/c.cs", false, new[] { "skip/" })) {
+				Err("FAIL: gitignore 目录");
+				bad++;
+			}
+			if (CodeStat.matchrules("keep/a.cs", false, new[] { "*.log", "!keep/" })) {
+				Err("FAIL: 取反");
+				bad++;
+			}
+			var r = CodeStat.Run(new[] { root }, true, new[] { "b.py" }, CancellationToken.None);
+			var cs = r.Langs.FirstOrDefault(x => x.Name == "C#" && !x.Child);
+			var md = r.Langs.FirstOrDefault(x => x.Name == "Markdown");
+			Out($"langs={r.Langs.Count} files={r.Files.Count} skip={r.Skipped}");
+			if (cs == null || cs.Files != 1 || cs.Code < 2) {
+				Err("FAIL: C# 行数");
+				bad++;
+			}
+			if (r.Files.Any(f => f.Name == "b.py" || f.Name == "c.cs" || f.Name == "n.log")) {
+				Err("FAIL: 忽略没生效");
+				bad++;
+			}
+			if (md == null || !r.Langs.Any(x => x.Child && x.Name == "C#")) {
+				Err("FAIL: Markdown 围栏");
+				bad++;
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex.Message);
+			bad++;
+		}
+		finally {
+			try { Directory.Delete(root, true); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：代码统计 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}
 
@@ -8711,6 +8762,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-qr-make
   ScreenKit --test-rename
   ScreenKit --test-hash
+  ScreenKit --test-codestat
   ScreenKit --test-texttool
   ScreenKit --test-fx
   ScreenKit --test-pwgen
@@ -8823,6 +8875,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-qr-make  生成 UTF-8/GBK 二维码（图下原文）与 Code128
       --test-rename  Everything 风格 %1 / ### 批量改名
       --test-hash  计算并比对 SHA-256
+      --test-codestat  按语言统计行数，含 .gitignore 和手写忽略
       --test-texttool  Base64 / URL / GBK 十六进制往返
       --test-fx  货币换算：查询失败回退默认并缓存 10 分钟，成功也缓存 10 分钟
       --test-pwgen  生成密码（长度、每类字符、排除易混）；单词译音 / 变体 JSON 解析
@@ -8953,6 +9006,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   ScreenKit --test-qr-make
   ScreenKit --test-rename
   ScreenKit --test-hash
+  ScreenKit --test-codestat
   ScreenKit --test-texttool
   ScreenKit --test-fx
   ScreenKit --test-pwgen

@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools > Network adds Network Monitor: per-process connections, send/receive bytes and rates from TCP ESTATS, plus a packet capture tab with protocol parsing, per-connection packet view, HTTP stream reassembly and pcapng import/export.
 - Built-in simple FTP server: set the root folder, port and one user name and password; leave the user name empty for anonymous access. It can be started from the FTP server tab or left to start with the program, and the status bar shows the listening port.
 - The built-in file server now also speaks TFTP on its own UDP port: share the same folder and start or stop FTP and TFTP independently, with both ports shown in the status bar.
+- Code stats: count lines by language for dropped folders and files, with .gitignore and extra ignore rules
 
 #### Changed
 
@@ -96,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP: the connect button turns into Disconnect once connected (green connect / red disconnect), and clicking it disconnects.
 - UDP debugger remembers the last remote address, port, and payload
 - FTP file manager now shows only the server list: drag files or folders in from Explorer to upload, drag files out to download through Explorer, or use Download to...
+- UDP debugger is now a TCP/UDP debugger, with a protocol radio that shows connect or send
 
 #### Fixed
 
@@ -142,6 +144,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具 → 网络工具 新增网络监控：按进程看连接与收发字节、速率（基于 TCP ESTATS），另有抓包页，可解析协议、看单连接报文、重组 HTTP 明文流，并导入导出 pcapng。
 - 内置简易 FTP 服务：可设置根目录、端口和一个用户名密码，用户名留空则允许匿名访问。可在「FTP服务」页就地启停，也能随程序启动；启用后状态栏显示监听端口。
 - 内置文件服务新增 TFTP，用独立的 UDP 端口：与 FTP 共用同一个目录，FTP 和 TFTP 可以分别启停，状态栏同时显示两个端口。
+- 代码统计：拖入目录和文件后按语言统计行数，可沿用 .gitignore 并另写忽略规则
 
 #### 变更
 
@@ -169,6 +172,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP 文件管理：连接成功后「连接」按钮变为「断开」（连接为绿色、断开为红色），点击即可断开连接。
 - UDP 调试记住上次填写的对方地址、端口和报文
 - FTP 文件管理改为单栏，只显示服务器文件列表：从资源管理器拖入即上传，把文件拖出即交给资源管理器下载，也可用「下载到…」下载选中项。
+- UDP 调试改为 TCP/UDP 调试，单选切换协议，分别显示连接或发送
 
 #### 修复
 

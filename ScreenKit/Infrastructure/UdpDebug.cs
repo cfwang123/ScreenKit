@@ -1,3 +1,4 @@
+using System.IO.Ports;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -61,8 +62,13 @@ static class UdpDebug {
 		public bool Reply { get; set; }
 		public bool Scroll { get; set; } = true;
 		public int Enc { get; set; }
-		/// <summary>0 为 UDP，1 为 TCP。</summary>
+		/// <summary>0 为 UDP，1 为 TCP，2 为串口。</summary>
 		public int Proto { get; set; }
+		public string ComPort { get; set; } = "";
+		public string Baud { get; set; } = "9600";
+		public int DataBits { get; set; } = 8;
+		public int Parity { get; set; }
+		public int StopBits { get; set; } = 1;
 	}
 
 	const string SECTION = "udplast";
@@ -77,6 +83,37 @@ static class UdpDebug {
 		try { DataStore.Put(SECTION, st); }
 		catch { }
 	}
+
+	public static readonly int[] Bauds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200];
+	public static readonly int[] DataBits = [8, 7, 6, 5];
+
+	/// <summary>波特率，至少 1。</summary>
+	public static int Baud(string text) {
+		if (!int.TryParse((text ?? "").Trim(), out var n) || n < 1) throw new FormatException("bad baud");
+		return n;
+	}
+
+	/// <summary>数据位只接受 5 到 8。</summary>
+	public static int Bits(string text) {
+		if (!int.TryParse((text ?? "").Trim(), out var n) || n < 5 || n > 8) throw new FormatException("bad bits");
+		return n;
+	}
+
+	/// <summary>校验下标：0 无，1 奇，2 偶，3 标记，4 空格。</summary>
+	public static Parity ParityOf(int index) => index switch {
+		1 => Parity.Odd,
+		2 => Parity.Even,
+		3 => Parity.Mark,
+		4 => Parity.Space,
+		_ => Parity.None,
+	};
+
+	/// <summary>停止位下标：0 为 1，1 为 1.5，2 为 2。</summary>
+	public static StopBits StopOf(int index) => index switch {
+		1 => StopBits.OnePointFive,
+		2 => StopBits.Two,
+		_ => StopBits.One,
+	};
 
 	/// <summary>定时发送间隔，至少 1 毫秒。</summary>
 	public static int Interval(string text) {
@@ -158,6 +195,8 @@ static class UdpDebug {
 			if (back2.Peer != "10.0.0.8" || back2.PeerPort != "9000" || back2.Payload != "AB\n"
 				|| !back2.HexSend || back2.Enc != 1)
 				return "last";
+			if (Baud("9600") != 9600 || Bits("8") != 8) return "serial";
+			if (ParityOf(2) != Parity.Even || StopOf(2) != StopBits.Two) return "serial line";
 		}
 		finally {
 			DataStore.UsePath(null);

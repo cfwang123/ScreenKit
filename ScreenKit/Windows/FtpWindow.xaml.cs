@@ -49,6 +49,8 @@ public partial class FtpWindow : Window {
 	/// <summary>开窗先看库在不在；缺了问一句，同意就去装，拒绝就只留本机浏览。</summary>
 	void checkdeps() {
 		if (FtpDeps.Installed) return;
+		// 选的是 TFTP：自己实现，不依赖那两个库，照常可用
+		if (!FtpBackendFactory.NeedsDeps(selKind())) return;
 		var ok = FtpDeps.Ensure(this);
 		if (ok) return;
 		setstat(Loc.T("ftp.need.hint"));
@@ -73,6 +75,12 @@ public partial class FtpWindow : Window {
 		};
 		eport.Text = FtpProto.DefPort(FtpProto.Sftp).ToString();
 		bconn.Click += (_, _) => connect();
+		btftpget.Click += (_, _) => tftpgetone();
+		etftpname.KeyDown += (_, e) => {
+			if (e.Key != Key.Enter) return;
+			e.Handled = true;
+			tftpgetone();
+		};
 		bsave.Click += (_, _) => savesite();
 		ehost.KeyDown += (_, e) => {
 			if (e.Key != Key.Enter) return;
@@ -96,6 +104,7 @@ public partial class FtpWindow : Window {
 		FtpProto.Ftps => Loc.T("ftp.kind.ftps"),
 		FtpProto.FtpsImplicit => Loc.T("ftp.kind.ftpsi"),
 		FtpProto.Sftp => Loc.T("ftp.kind.sftp"),
+		FtpProto.Tftp => Loc.T("ftp.kind.tftp"),
 		_ => Loc.T("ftp.kind.ftp")
 	};
 
@@ -316,6 +325,7 @@ public partial class FtpWindow : Window {
 		try { browse?.Dispose(); } catch { }
 		browse = null;
 		remoteRows.Clear();
+		applytftpmode(false);
 		setconnstate(false);
 		setstat(Loc.T("ftp.disconnected"));
 	}
@@ -325,16 +335,18 @@ public partial class FtpWindow : Window {
 		bconn.Content = Loc.T(on ? "ftp.disconnect" : "ftp.connect");
 		bconn.Style = (Style)FindResource(on ? "DisconnectBtn" : "ConnectBtn");
 		bconn.IsEnabled = true;
-		bremotemkdir.IsEnabled = on;
-		bremotedel.IsEnabled = on;
-		bremoterefresh.IsEnabled = on;
-		bdownloadto.IsEnabled = on;
+		var tftp = on && curSite != null && FtpProto.IsTftp(curSite.Kind);
+		bremotemkdir.IsEnabled = on && !tftp;
+		bremotedel.IsEnabled = on && !tftp;
+		bremoterefresh.IsEnabled = on && !tftp;
+		bdownloadto.IsEnabled = on && !tftp;
 		updateupbtn();
+		bremoteup.IsEnabled = on && !tftp && remoteDir.TrimEnd('/').Length > 0;
 	}
 
 	void doconnect() {
 		if (connecting) return;
-		if (!FtpDeps.Ensure(this)) {
+		if (FtpBackendFactory.NeedsDeps(selKind()) && !FtpDeps.Ensure(this)) {
 			setstat(Loc.T("ftp.need.hint"));
 			return;
 		}
@@ -385,6 +397,13 @@ public partial class FtpWindow : Window {
 		browse = backend;
 		curSite = site;
 		setconnstate(true);
+		if (FtpProto.IsTftp(site.Kind)) {
+			// TFTP 没有列目录，界面切成按文件名收发
+			applytftpmode(true);
+			setstat(string.Format(Loc.T("ftp.connected"), site.Kind, site.Host,
+				site.PortOr(FtpProto.DefPort(site.Kind))));
+			return;
+		}
 		var wd = "/";
 		try { wd = backend.WorkDir(); }
 		catch { }
@@ -401,6 +420,8 @@ public partial class FtpWindow : Window {
 			setstat(Loc.T("ftp.err.noconn"));
 			return;
 		}
+		// TFTP 不能列目录，别去碰
+		if (curSite != null && FtpProto.IsTftp(curSite.Kind)) return;
 		var d = (dir ?? "").Trim();
 		if (d.Length == 0) d = "/";
 		var backend = browse;
@@ -430,6 +451,7 @@ public partial class FtpWindow : Window {
 	/// <summary>传完后静默刷新：失败不弹提示，别打断用户。</summary>
 	void refreshremotequiet() {
 		if (browse == null) return;
+		if (curSite != null && FtpProto.IsTftp(curSite.Kind)) return;
 		var backend = browse;
 		var d = remoteDir;
 		Task.Run(() => {
@@ -546,6 +568,56 @@ public partial class FtpWindow : Window {
 	}
 	#endregion
 
+	// ==================== TFTP 模式 ====================
+	#region
+	/// <summary>
+	/// TFTP 没有列目录命令，所以连接后把列表换成一段说明加「按文件名下载」输入框。
+	/// 上传照旧：把文件拖进来就发那个文件名。
+	/// </summary>
+	void applytftpmode(bool on) {
+		if (tftptip == null) return;
+		tftptip.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+		lvremote.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+		eremotepath.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
+		lbremote.Text = Loc.T(on ? "ftp.tftp.panel" : "ftp.remote");
+		if (!on) return;
+		lbtftptiptitle.Text = Loc.T("ftp.tftp.hinttitle");
+		lbtftptiptext.Text = Loc.T("ftp.tftp.hinttext");
+		lbtftptipget.Text = Loc.T("ftp.tftp.getlabel");
+		btftpget.Content = Loc.T("ftp.tftp.getbtn");
+		if (string.IsNullOrWhiteSpace(etftpname.Text))
+			etftpname.Text = "firmware.bin";
+	}
+
+	/// <summary>按文件名从 TFTP 服务器取一个文件，存到用户选的本机路径。</summary>
+	void tftpgetone() {
+		if (browse == null || curSite == null) {
+			setstat(Loc.T("ftp.err.noconn"));
+			return;
+		}
+		var name = (etftpname.Text ?? "").Trim().TrimStart('/');
+		if (name.Length == 0) {
+			setstat(Loc.T("ftp.tftp.noname"));
+			return;
+		}
+		string local;
+		using (var dlg = new System.Windows.Forms.SaveFileDialog {
+			Title = Loc.T("ftp.tftp.saveto"),
+			FileName = Path.GetFileName(name),
+			Filter = Loc.T("ftp.tftp.filter"),
+			OverwritePrompt = true
+		}) {
+			if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+			local = dlg.FileName;
+		}
+		if (string.IsNullOrWhiteSpace(local)) return;
+		// TFTP 探不到大小时按未知处理，进度显示成不确定
+		var size = browse.Size("/" + name);
+		xfer.EnqueueDownload(curSite, "/" + name, local, size, epass.Password ?? "");
+		setstat(string.Format(Loc.T("ftp.queued.down"), 1));
+	}
+	#endregion
+
 	// ==================== 传输触发 ====================
 	#region
 	void uploadpaths(string[] paths) {
@@ -554,9 +626,18 @@ public partial class FtpWindow : Window {
 			return;
 		}
 		var pw = epass.Password ?? "";
+		var tftp = FtpProto.IsTftp(curSite.Kind);
 		int n = 0;
 		foreach (var p in paths) {
-			foreach (var (local, remote) in FtpXfer.ExpandUpload(p, remoteDir)) {
+			if (tftp && Directory.Exists(p)) {
+				setstat(Loc.T("ftp.tftp.nodir"));
+				continue;
+			}
+			// TFTP 只认平铺的文件名，不展开子目录
+			var items = tftp
+				? new List<(string local, string remote)> { (p, FtpXfer.joinRemote("/", Path.GetFileName(p))) }
+				: FtpXfer.ExpandUpload(p, remoteDir);
+			foreach (var (local, remote) in items) {
 				xfer.EnqueueUpload(curSite, local, remote, pw);
 				n++;
 			}

@@ -6,7 +6,7 @@ namespace ScreenKit;
 /// <summary>一个保存下来的 FTP/SFTP 站点。密码只存 DPAPI 加密后的 base64。</summary>
 sealed class FtpSite {
 	public string Name { get; set; } = "";
-	/// <summary>ftp / ftps / ftpsi / sftp。</summary>
+	/// <summary>ftp / ftps / ftpsi / sftp / tftp。</summary>
 	public string Kind { get; set; } = FtpProto.Sftp;
 	public string Host { get; set; } = "";
 	public int Port { get; set; }
@@ -29,12 +29,14 @@ static class FtpProto {
 	public const string Ftps = "ftps";
 	public const string FtpsImplicit = "ftpsi";
 	public const string Sftp = "sftp";
+	public const string Tftp = "tftp";
 
-	public static readonly string[] All = { Ftp, Ftps, FtpsImplicit, Sftp };
+	public static readonly string[] All = { Ftp, Ftps, FtpsImplicit, Sftp, Tftp };
 
 	public static int DefPort(string kind) => kind switch {
 		FtpsImplicit => 990,
 		Sftp => 22,
+		Tftp => 69,
 		_ => 21
 	};
 
@@ -49,6 +51,9 @@ static class FtpProto {
 	}
 
 	public static bool IsSftp(string kind) => Norm(kind) == Sftp;
+
+	/// <summary>TFTP 只能按文件名收发，没有目录浏览，界面据此改行为。</summary>
+	public static bool IsTftp(string kind) => Norm(kind) == Tftp;
 }
 
 /// <summary>目录里的一项。SizeText / TimeText / PermText 只给界面绑定用。</summary>
