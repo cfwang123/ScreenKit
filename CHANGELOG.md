@@ -78,6 +78,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - The fast copy source list now shows a type icon before each entry too, using the same icon set as the FTP file manager.
 - The Russian word-form tool now lists graded grammar for verbs, adjectives and nouns, including case prepositions.
 - Russian nouns can now set gender, declension and animacy by hand.
+- USB capture shows the connected device tree and captures only the selected device, or a hub and everything under it.
+- Common ports now include Modbus TCP 502 and other industrial and service ports.
 
 #### Changed
 
@@ -164,6 +166,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 快速复制的文件列表也在每项前面显示类型图标，和 FTP 文件管理用同一套。
 - 俄语词形变化加入动词、形容词、名词的分级语法，名词前置词按格接上。
 - 俄语名词可以手选性、变格和动物性。
+- USB 抓包显示已连接的设备树，选中一台设备后只抓它，选中集线器则连同它下面的设备一起抓。
+- 常见端口号补上 Modbus TCP 502，以及其它工控和服务端口。
 
 #### 变更
 
