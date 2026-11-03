@@ -26,6 +26,7 @@ public partial class UdpDebugWindow : Window {
 		InitializeComponent();
 		eenc.ItemsSource = Encs;
 		eenc.SelectedIndex = 0;
+		loadlast();
 		applylang();
 		chexshow.Checked += (_, _) => restyle();
 		chexshow.Unchecked += (_, _) => restyle();
@@ -35,10 +36,53 @@ public partial class UdpDebugWindow : Window {
 		bclear.Click += (_, _) => clearlog();
 		ctimer.Checked += (_, _) => timeron(true);
 		ctimer.Unchecked += (_, _) => timeron(false);
+		epeer.LostFocus += (_, _) => savelast();
+		epeerport.LostFocus += (_, _) => savelast();
+		elocal.LostFocus += (_, _) => savelast();
+		epayload.LostFocus += (_, _) => savelast();
+		einterval.LostFocus += (_, _) => savelast();
+		chexshow.Checked += (_, _) => savelast();
+		chexshow.Unchecked += (_, _) => savelast();
+		chexsend.Checked += (_, _) => savelast();
+		chexsend.Unchecked += (_, _) => savelast();
+		creply.Checked += (_, _) => savelast();
+		creply.Unchecked += (_, _) => savelast();
+		cscroll.Checked += (_, _) => savelast();
+		cscroll.Unchecked += (_, _) => savelast();
+		eenc.SelectionChanged += (_, _) => savelast();
 		timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
 		timer.Tick += (_, _) => send();
 		WindowEsc.Attach(this);
 		Closed += (_, _) => shutdown();
+	}
+
+	void loadlast() {
+		var st = UdpDebug.LoadLast();
+		epeer.Text = st.Peer ?? "";
+		epeerport.Text = st.PeerPort ?? "";
+		elocal.Text = st.LocalPort ?? "";
+		epayload.Text = st.Payload ?? "";
+		if (!string.IsNullOrWhiteSpace(st.Interval)) einterval.Text = st.Interval;
+		chexshow.IsChecked = st.HexShow;
+		chexsend.IsChecked = st.HexSend;
+		creply.IsChecked = st.Reply;
+		cscroll.IsChecked = st.Scroll;
+		if (st.Enc >= 0 && st.Enc < Encs.Length) eenc.SelectedIndex = st.Enc;
+	}
+
+	void savelast() {
+		UdpDebug.SaveLast(new UdpDebug.Last {
+			Peer = epeer.Text ?? "",
+			PeerPort = epeerport.Text ?? "",
+			LocalPort = elocal.Text ?? "",
+			Payload = epayload.Text ?? "",
+			Interval = einterval.Text ?? "",
+			HexShow = chexshow.IsChecked == true,
+			HexSend = chexsend.IsChecked == true,
+			Reply = creply.IsChecked == true,
+			Scroll = cscroll.IsChecked == true,
+			Enc = eenc.SelectedIndex,
+		});
 	}
 
 	void applylang() {
@@ -186,6 +230,7 @@ public partial class UdpDebugWindow : Window {
 
 	void shutdown() {
 		dead = true;
+		savelast();
 		try { timer?.Stop(); } catch { }
 		try { recvcts?.Cancel(); } catch { }
 		try { sock?.Close(); } catch { }

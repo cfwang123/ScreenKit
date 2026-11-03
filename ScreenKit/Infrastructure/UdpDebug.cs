@@ -49,6 +49,33 @@ static class UdpDebug {
 		return p;
 	}
 
+	/// <summary>上次填写的地址、端口和报文。放 data.json 的 udplast 段。</summary>
+	public sealed class Last {
+		public string Peer { get; set; } = "";
+		public string PeerPort { get; set; } = "";
+		public string LocalPort { get; set; } = "";
+		public string Payload { get; set; } = "";
+		public string Interval { get; set; } = "1000";
+		public bool HexShow { get; set; }
+		public bool HexSend { get; set; }
+		public bool Reply { get; set; }
+		public bool Scroll { get; set; } = true;
+		public int Enc { get; set; }
+	}
+
+	const string SECTION = "udplast";
+
+	public static Last LoadLast() {
+		try { return DataStore.Get<Last>(SECTION) ?? new Last(); }
+		catch { return new Last(); }
+	}
+
+	public static void SaveLast(Last st) {
+		if (st == null) return;
+		try { DataStore.Put(SECTION, st); }
+		catch { }
+	}
+
 	/// <summary>定时发送间隔，至少 1 毫秒。</summary>
 	public static int Interval(string text) {
 		if (!int.TryParse((text ?? "").Trim(), out var ms) || ms < 1) throw new FormatException("bad interval");
@@ -117,6 +144,20 @@ static class UdpDebug {
 		var back = new IPEndPoint(IPAddress.Any, 0);
 		var echoed = a.Receive(ref back);
 		if (echoed.Length != 1 || echoed[0] != 0x10 || back.Port != bp.Port) return "reply";
+
+		var path = Path.Combine(Path.GetTempPath(), "sk-udpdbg-" + Guid.NewGuid().ToString("N") + ".json");
+		try {
+			DataStore.UsePath(path);
+			SaveLast(new Last { Peer = "10.0.0.8", PeerPort = "9000", Payload = "AB\n", HexSend = true, Enc = 1 });
+			var back2 = LoadLast();
+			if (back2.Peer != "10.0.0.8" || back2.PeerPort != "9000" || back2.Payload != "AB\n"
+				|| !back2.HexSend || back2.Enc != 1)
+				return "last";
+		}
+		finally {
+			DataStore.UsePath(null);
+			try { File.Delete(path); } catch { }
+		}
 		return "";
 	}
 }

@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Settings, Hotkeys: a Document viewer entry, empty by default, that shows or hides the document reader
 - FTP file manager supporting FTP, FTPS and SFTP: dual panes, drag to transfer, progress queue
 - UDP debugger: listen on one local port, send hex or text to a remote address, repeat on a timer, and auto-reply with the typed payload
+- Tools > Network adds Network Monitor: per-process connections, send/receive bytes and rates from TCP ESTATS, plus a packet capture tab with protocol parsing, per-connection packet view, HTTP stream reassembly and pcapng import/export.
 
 #### Changed
 
@@ -91,6 +92,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Document viewer renders a large Markdown file in blocks around the viewport instead of laying out the whole file at once
 - FTP and SFTP libraries install on demand from the Tools group; slim package size is unchanged
 - FTP: the connect button turns into Disconnect once connected (green connect / red disconnect), and clicking it disconnects.
+- UDP debugger remembers the last remote address, port, and payload
 
 #### Fixed
 
@@ -133,6 +135,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 参数设置的快捷键页增加「文档查看器」，默认留空；按下时打开或关闭文档阅读器
 - 新增 FTP 文件管理工具，支持 FTP、FTPS、SFTP：双栏浏览、拖放传输、传输队列与进度
 - 新增 UDP 调试：监听一个本机端口，按 hex 或文本发到对方地址，可定时重复发送，收到报文时按输入内容自动回复
+- 工具 → 网络工具 新增网络监控：按进程看连接与收发字节、速率（基于 TCP ESTATS），另有抓包页，可解析协议、看单连接报文、重组 HTTP 明文流，并导入导出 pcapng。
 
 #### 变更
 
@@ -158,6 +161,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文档阅读器打开超大 Markdown 时只排视口附近的块，不再整篇一次排版
 - FTP 与 SFTP 依赖改为在「安装功能 → 工具集」按需安装，精简包体积不变
 - FTP 文件管理：连接成功后「连接」按钮变为「断开」（连接为绿色、断开为红色），点击即可断开连接。
+- UDP 调试记住上次填写的对方地址、端口和报文
 
 #### 修复
 
