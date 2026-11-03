@@ -1,4 +1,4 @@
-﻿using System.Drawing.Text;
+using System.Drawing.Text;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -317,6 +317,15 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlemd(ctx);
+				return;
+			}
+
+			if (path is "/api/mdfrag" or "/api/mdfrag/") {
+				if (!isget(req) && !ispost(req)) {
+					writejson(ctx, 405, err(805, "mdfrag 仅支持 GET 或 POST"));
+					return;
+				}
+				handlemdfrag(ctx);
 				return;
 			}
 
@@ -1259,6 +1268,46 @@ sealed partial class HttpOcrServer : IDisposable {
 			return;
 		}
 		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("html", html), ("theme", th.Id), ("bg", th.Bg)))));
+	}
+
+	/// <summary>只给正文片段，网页版 Markdown 阅读器和小说阅读器共用 WPF 那份解析。</summary>
+	void handlemdfrag(SockCtx ctx) {
+		if (!readbody(ctx, out var jo)) return;
+		string text;
+		var b64 = field(ctx, jo, "base64");
+		if (!string.IsNullOrEmpty(b64)) {
+			byte[] raw;
+			try { raw = Convert.FromBase64String(b64); }
+			catch {
+				writejson(ctx, 200, err(802, "base64 无法解码"));
+				return;
+			}
+			if (raw.Length > 2000000) {
+				writejson(ctx, 200, err(802, "文件过大"));
+				return;
+			}
+			text = MdRead.Decode(raw);
+		}
+		else text = field(ctx, jo, "text") ?? "";
+		if (text.Length == 0) {
+			writejson(ctx, 200, err(802, "请提供 text 或 base64"));
+			return;
+		}
+		if (text.Length > 2000000) {
+			writejson(ctx, 200, err(802, "text 过长"));
+			return;
+		}
+		var sentence = (field(ctx, jo, "sentence") ?? "") != "0";
+		var chapters = new List<(string Id, string Text)>();
+		string html;
+		try { html = MdRead.ToBody(text, "", sentence, chapters); }
+		catch (Exception ex) {
+			writejson(ctx, 200, err(failcode(ex), ex.Message));
+			return;
+		}
+		var arr = JSONF.newArray(chapters.Count);
+		foreach (var (id, title) in chapters) arr.Add(JSONF.newObject(("id", id), ("text", title)));
+		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("html", html), ("chap", arr)))));
 	}
 
 	void handlezhconv(SockCtx ctx) {

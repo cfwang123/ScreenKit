@@ -143,9 +143,10 @@ button, input, select { font: inherit; }
 .rd-ratev { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 
 .rd-scroll { flex: 1; min-height: 0; overflow: auto; background: var(--paper); }
+/* 思源宋体在 Windows 上只装了 Heavy 一档，写进字体栈会让正文全是粗笔画，中文回落到宋体 */
 .rd-body {
 	margin: 0; padding: 16px 14px 72px;
-	font-family: "Iowan Old Style", Palatino, "Palatino Linotype", "Songti SC", "Noto Serif SC", "Source Han Serif SC", serif;
+	font-family: "Iowan Old Style", Palatino, "Palatino Linotype", "Songti SC", "SimSun", serif;
 	font-size: 19px; line-height: 1.9; color: var(--ink);
 }
 .rd-body.txt p { text-indent: 2em; margin: 0.35em 0; }

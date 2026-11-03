@@ -392,7 +392,7 @@ static class Cli {
 				case "--test-glyphmod":
 					return testglyphmod();
 				case "--test-mdread":
-					return testmdread();
+					return testmdread(Opt());
 				case "--test-portuse":
 					return testportuse();
 				case "--test-midisynth":
@@ -6319,9 +6319,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return GlyphMod.SelfTest(Out);
 	}
 
-	static int testmdread() {
+	static int testmdread(string pdfpath = null) {
 		Out("=== MD阅读器 --test-mdread ===");
-		return MdRead.SelfTest(Out);
+		var bad = MdRead.SelfTest(Out);
+		if (bad != 0) return bad;
+		return DocViewHtml.SelfTest(Out, pdfpath);
 	}
 
 	static int testportuse() {

@@ -1,39 +1,231 @@
 <Window x:Class="ScreenKit.MdReadWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
-        Title="MD阅读器"
-        Width="960" Height="720"
-        MinWidth="640" MinHeight="420"
-        WindowStartupLocation="CenterOwner"
-        ResizeMode="CanResizeWithGrip"
+        Title="文档阅读器"
+        Width="1040" Height="760"
+        MinWidth="680" MinHeight="440"
+        WindowStartupLocation="CenterScreen"
         Background="{StaticResource BgApp}"
-        FontFamily="Segoe UI, Microsoft YaHei UI"
+        WindowStyle="None"
+        ResizeMode="CanResize"
         AllowDrop="True"
         AutomationProperties.AutomationId="mdread.window">
-	<Grid Margin="16">
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="*"/>
-		</Grid.RowDefinitions>
-		<DockPanel Margin="0,0,0,8">
-			<Button x:Name="bopen" Content="打开" DockPanel.Dock="Left" Style="{StaticResource ToolBtn}"
-			        AutomationProperties.AutomationId="mdread.open"/>
-			<Button x:Name="bclose" Content="关闭" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
-			        AutomationProperties.AutomationId="mdread.close"/>
-			<Button x:Name="bpdf" Content="导出 PDF" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
-			        Margin="0,0,8,0" AutomationProperties.AutomationId="mdread.pdf"/>
-			<Button x:Name="bword" Content="导出 Word" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}"
-			        Margin="0,0,8,0" AutomationProperties.AutomationId="mdread.word"/>
-			<ComboBox x:Name="etheme" DockPanel.Dock="Right" Width="104" Height="30"
-			          VerticalAlignment="Center" VerticalContentAlignment="Center"
-			          Margin="0,0,8,0" AutomationProperties.AutomationId="mdread.theme"/>
-			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="12,0,12,0"
-			           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
-			           AutomationProperties.AutomationId="mdread.stat"/>
+	<!-- CaptionHeight 与标题栏同高：空白处交给系统拖动/双击；交互控件要标 IsHitTestVisibleInChrome -->
+	<shell:WindowChrome.WindowChrome>
+		<shell:WindowChrome CaptionHeight="32"
+		                    ResizeBorderThickness="8,6,8,6"
+		                    GlassFrameThickness="0"
+		                    CornerRadius="0"
+		                    UseAeroCaptionButtons="False"/>
+	</shell:WindowChrome.WindowChrome>
+
+	<Window.Resources>
+		<!-- 标题栏窗口按钮，高度与标题栏 32 对齐 -->
+		<Style x:Key="CapBtn" TargetType="Button">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Width" Value="42"/>
+			<Setter Property="Height" Value="32"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="bd" Background="{TemplateBinding Background}">
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E2E6EC"/>
+								<Setter Property="Foreground" Value="#1F2328"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+		<Style x:Key="CapBtnClose" TargetType="Button" BasedOn="{StaticResource CapBtn}">
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="bd" Background="{TemplateBinding Background}">
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E81123"/>
+								<Setter Property="Foreground" Value="White"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<!-- 标题栏 tab 芯片：当前页白底凸出，其余透明；右边一条细线分隔 -->
+		<Style x:Key="TitleTab" TargetType="Border">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0,0,1,0"/>
+			<Setter Property="Padding" Value="10,0,6,0"/>
+			<Setter Property="Margin" Value="0,4,0,0"/>
+			<Setter Property="MinWidth" Value="60"/>
+			<Setter Property="MaxWidth" Value="220"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="SnapsToDevicePixels" Value="True"/>
+		</Style>
+		<Style x:Key="TitleTabActive" TargetType="Border" BasedOn="{StaticResource TitleTab}">
+			<Setter Property="Background" Value="#FFFFFF"/>
+			<Setter Property="BorderBrush" Value="#D6DBE2"/>
+		</Style>
+
+		<!-- 芯片右上角的关闭叉 -->
+		<Style x:Key="CloseTabBtn" TargetType="Button">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Width" Value="18"/>
+			<Setter Property="Height" Value="18"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="3">
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#FECACA"/>
+								<Setter Property="Foreground" Value="#B42318"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<!-- 工具栏上的图标按钮 -->
+		<Style x:Key="BarBtn" TargetType="Button">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderBrush" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Height" Value="28"/>
+			<Setter Property="Padding" Value="10,0"/>
+			<Setter Property="Margin" Value="0,0,4,0"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Foreground" Value="#333A44"/>
+			<Setter Property="FontSize" Value="12.5"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="bd" Background="{TemplateBinding Background}"
+						        BorderBrush="{TemplateBinding BorderBrush}"
+						        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E6EAF0"/>
+								<Setter TargetName="bd" Property="BorderBrush" Value="#D2D8E0"/>
+							</Trigger>
+							<Trigger Property="IsEnabled" Value="False">
+								<Setter Property="Foreground" Value="#A8B0BA"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+	</Window.Resources>
+
+	<Border x:Name="proot" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+	        Background="{StaticResource BgApp}">
+		<DockPanel>
+			<!-- 第 1 行：自绘标题栏 = 汉堡菜单 + tab 芯片 + 窗口按钮 -->
+			<Border x:Name="ptitle" DockPanel.Dock="Top" Height="32"
+			        Background="#F0F2F5" BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1"
+			        MouseLeftButtonDown="ontitledrag">
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="Auto"/>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
+					</Grid.ColumnDefinitions>
+
+					<Menu x:Name="mnmain" Grid.Column="0" Background="Transparent" VerticalAlignment="Stretch"
+					      Padding="0" Margin="0"
+					      shell:WindowChrome.IsHitTestVisibleInChrome="True">
+						<MenuItem x:Name="mnhamburger" Padding="10,0" VerticalAlignment="Stretch" ToolTip="菜单">
+							<MenuItem.Header>
+								<TextBlock Text="☰" FontSize="14" VerticalAlignment="Center"
+								           Foreground="#333A44"/>
+							</MenuItem.Header>
+							<MenuItem x:Name="mnopen" Header="打开…"/>
+							<MenuItem x:Name="mnclose" Header="关闭当前标签"/>
+							<MenuItem x:Name="mncloseall" Header="关闭全部标签"/>
+							<Separator/>
+							<MenuItem x:Name="mnword" Header="导出 Word…"/>
+							<MenuItem x:Name="mnpdf" Header="导出 PDF…"/>
+							<Separator/>
+							<MenuItem x:Name="mnreload" Header="重新加载当前标签"/>
+							<MenuItem x:Name="mnpath" Header="复制文件路径"/>
+							<MenuItem x:Name="mnsysopen" Header="用系统应用打开"/>
+						</MenuItem>
+					</Menu>
+
+					<!-- tab 芯片条；ScrollViewer 本身不进 chrome，芯片单独标可命中 -->
+					<ScrollViewer x:Name="svtabs" Grid.Column="1"
+					              HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled"
+					              VerticalAlignment="Stretch" Background="Transparent">
+						<StackPanel x:Name="tabhost" Orientation="Horizontal" VerticalAlignment="Stretch"
+						            Background="Transparent"/>
+					</ScrollViewer>
+
+					<StackPanel Grid.Column="2" Orientation="Horizontal"
+					            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+						<Button x:Name="bmin" Style="{StaticResource CapBtn}" Content="─" ToolTip="最小化"
+						        AutomationProperties.AutomationId="mdread.min"/>
+						<Button x:Name="bmax" Style="{StaticResource CapBtn}" Content="□" ToolTip="最大化"
+						        AutomationProperties.AutomationId="mdread.max"/>
+						<Button x:Name="bclosewin" Style="{StaticResource CapBtnClose}" Content="✕" ToolTip="关闭"
+						        AutomationProperties.AutomationId="mdread.closewin"/>
+					</StackPanel>
+				</Grid>
+			</Border>
+
+			<!-- 第 2 行：工具栏 -->
+			<Border x:Name="ptoolbar" DockPanel.Dock="Top" Background="#F7F8FA"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,4">
+				<DockPanel LastChildFill="True">
+					<StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+						<Button x:Name="bopen" Style="{StaticResource BarBtn}" Content="打开…"
+						        AutomationProperties.AutomationId="mdread.open"/>
+						<Button x:Name="bword" Style="{StaticResource BarBtn}" Content="导出 Word"
+						        AutomationProperties.AutomationId="mdread.word"/>
+						<Button x:Name="bpdf" Style="{StaticResource BarBtn}" Content="导出 PDF"
+						        AutomationProperties.AutomationId="mdread.pdf"/>
+						<Border Width="1" Height="18" Background="#D8DEE6" Margin="4,0,8,0"/>
+						<TextBlock x:Name="lbtheme" Text="主题" VerticalAlignment="Center" Margin="0,0,6,0"
+						           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+						<ComboBox x:Name="etheme" Width="96" Height="26" VerticalContentAlignment="Center"
+						          AutomationProperties.AutomationId="mdread.theme"/>
+					</StackPanel>
+					<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="12,0,4,0"
+					           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
+					           FontSize="12" AutomationProperties.AutomationId="mdread.stat"/>
+				</DockPanel>
+			</Border>
+
+			<!-- 第 3 行：页面 -->
+			<Border x:Name="phostbox" BorderBrush="{StaticResource BorderSoft}" BorderThickness="0"
+			        Background="White">
+				<wfi:WindowsFormsHost x:Name="phost" AutomationProperties.AutomationId="mdread.view"/>
+			</Border>
 		</DockPanel>
-		<Border x:Name="phostbox" Grid.Row="1" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Background="White">
-			<wfi:WindowsFormsHost x:Name="phost" AutomationProperties.AutomationId="mdread.view"/>
-		</Border>
-	</Grid>
+	</Border>
 </Window>
