@@ -1514,6 +1514,31 @@ static class KoConj {
 		if (verb) add("neuntong", "는 통에", nowmod + " 통에");
 		add("deonji", "던지", jn(syls) + "던지");
 		add("gemandeulda", "게 만들다", jn(syls) + "게 만들어요");
+		rows.AddRange(KoGrammar.VerbRows(li, new KoPatForms {
+			Stem = jn(syls),
+			Ae = ba,
+			Past = past,
+			Eu = pluseu(st, "", false),
+			Eud = pluseu(st, "", true),
+			Rl = rl,
+			Nn = nieunword(syls, irr),
+			Neun = neun(syls),
+			Drop = dropr(syls, ""),
+			Mod = nowmod,
+			Gi = jn(syls) + "기",
+			Mieum = mieum(syls, irr),
+			Plain = plainnow,
+			Hap = hapsho(syls),
+			Hapq = repend(hapsho(syls), "니다", "니까"),
+			Seyo = seyoform(syls, irr),
+			Sip = sipnio(syls, irr),
+			Bsida = bsida(syls, irr),
+			Hao = haoform(syls),
+			Nde = neundeform(syls, irr, kind, ""),
+			Saop = saop(syls),
+			Verb = verb,
+			Adj = adj,
+		}));
 		rows.AddRange(dialectrows(syls, irr, kind, li));
 		rows.AddRange(koreanrows(word, syls, irr, kind, li));
 		return rows;
@@ -2010,6 +2035,7 @@ static class KoConj {
 		cur = g("rough");
 		add("nya", "냐", copart(noun, bat, "냐?", "냐?") + " / " + copart(noun, bat, "었냐?", "였냐?"));
 		add("llla", "ㄹ라", noun + "일라");
+		rows.AddRange(KoGrammar.NounRows(li, noun, bat));
 		rows.AddRange(copuladialect(noun, bat, li));
 		rows.AddRange(koreancopularows(noun, li));
 		return rows;

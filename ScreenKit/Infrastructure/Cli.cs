@@ -94,6 +94,7 @@ static class Cli {
 				or "--test-ftpsrv"
 				or "--test-tftpsrv"
 				or "--test-tftpcli"
+				or "--test-xfertidy"
 				or "--test-udpdbg"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
@@ -310,6 +311,8 @@ static class Cli {
 					return testtftpsrv();
 				case "--test-tftpcli":
 					return testtftpcli();
+				case "--test-xfertidy":
+					return testxfertidy();
 				case "--test-rtspsrv":
 					return RtspTestSrv.Test(Out, Err);
 				case "--test-sendfile":
@@ -2703,6 +2706,14 @@ static class Cli {
 		s = s ?? "";
 		if (s.Length <= max) return s;
 		return s.Substring(0, max) + "…";
+	}
+
+	/// <summary>传输队列自测：跑一成一败两个任务，确认成功的从列表撤掉、失败的保留。</summary>
+	static int testxfertidy() {
+		Out("=== 传输队列完成后撤条目 ===");
+		var rc = FtpXferSelfTest.Run(Out, Err);
+		Out(rc == 0 ? "全部通过" : $"自测失败 rc={rc}");
+		return rc;
 	}
 
 	/// <summary>FTP 文件管理里的 TFTP 客户端自测：本机起服务端，跑上传、下载、大小探测与不支持的操作。</summary>

@@ -68,7 +68,8 @@ sealed class FtpXfer {
 	void pump() {
 		lock (gate) {
 			if (running >= maxParallel) return;
-			foreach (var job in Jobs) {
+			// 用快照遍历：界面线程可能同时把已完成的任务移走
+			foreach (var job in Jobs.ToList()) {
 				if (running >= maxParallel) break;
 				if (job.State != FtpJobState.Waiting) continue;
 				running++;
@@ -101,11 +102,19 @@ sealed class FtpXfer {
 		if (job.State == FtpJobState.Waiting) job.State = FtpJobState.Canceled;
 	}
 
+	/// <summary>从队列里去掉一条（传输完成时界面调用）。必须在 UI 线程调。</summary>
+	public void Remove(FtpJob job) {
+		if (job == null) return;
+		lock (gate) Jobs.Remove(job);
+	}
+
 	/// <summary>清掉已结束的任务，运行中的保留。</summary>
 	public void ClearFinished() {
-		for (int i = Jobs.Count - 1; i >= 0; i--) {
-			var s = Jobs[i].State;
-			if (s is FtpJobState.Done or FtpJobState.Failed or FtpJobState.Canceled) Jobs.RemoveAt(i);
+		lock (gate) {
+			for (int i = Jobs.Count - 1; i >= 0; i--) {
+				var s = Jobs[i].State;
+				if (s is FtpJobState.Done or FtpJobState.Failed or FtpJobState.Canceled) Jobs.RemoveAt(i);
+			}
 		}
 	}
 

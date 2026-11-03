@@ -186,7 +186,7 @@
 		var hint = page.doms.kvHint;
 		if (hint) {
 			F.seta(hint, "data-k", "web.kverb.hint");
-			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。表末是朝鲜文化语（ㅂ네다 系）、朝鲜播音体（只列与标准语不同的 -시였습니다）和延边朝鲜语（-ㅁ다/슴다、-ㄴ다이）；与标准语同形的说法不列。");
+			hint.textContent = tx("web.kverb.hint", "先选类型（自动/动词/形容词/名词），再输入或在右侧选词。每条旁边的喇叭听发音。걷다 按「走」，묻다 按「问」。名词会按 이다 词尾变化。方言组之前是 1–6 级语法和其它不常用语法，助词和名词后置接在名词上。表末是朝鲜文化语（ㅂ네다 系）、朝鲜播音体（只列与标准语不同的 -시였습니다）和延边朝鲜语（-ㅁ다/슴다、-ㄴ다이）；与标准语同形的说法不列。");
 		}
 		var title = SK.doms.boxTitle;
 		if (title) title.textContent = tx("web.tool.kverb", "韩语词形变化");

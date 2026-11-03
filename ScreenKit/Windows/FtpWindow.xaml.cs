@@ -268,9 +268,12 @@ public partial class FtpWindow : Window {
 			if (int.TryParse(cbParallel.SelectedItem as string, out var n)) xfer.MaxParallel = n;
 		};
 		bclearfinished.Click += (_, _) => xfer.ClearFinished();
-		xfer.Finished += _ => dispatcher(() => {
+		xfer.Finished += job => dispatcher(() => {
 			// 传完刷新远程目录，不然新文件看不到
 			if (browse != null) refreshremotequiet();
+			// 成功完成的从列表里撤掉：队列只留还在跑的和出错的。
+			// 失败/取消的保留，好让用户看见原因并能点重试。
+			if (job != null && job.State == FtpJobState.Done) xfer.Remove(job);
 		});
 	}
 

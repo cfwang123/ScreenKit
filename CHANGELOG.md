@@ -100,6 +100,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - UDP debugger remembers the last remote address, port, and payload
 - FTP file manager now shows only the server list: drag files or folders in from Explorer to upload, drag files out to download through Explorer, or use Download to...
 - UDP debugger is now a TCP/UDP debugger, with a protocol radio that shows connect or send
+- In the FTP file manager transfer list, a finished transfer now leaves the list on its own; failed and cancelled ones stay so the reason is visible and retry still works.
 
 #### Fixed
 
@@ -177,6 +178,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - UDP 调试记住上次填写的对方地址、端口和报文
 - FTP 文件管理改为单栏，只显示服务器文件列表：从资源管理器拖入即上传，把文件拖出即交给资源管理器下载，也可用「下载到…」下载选中项。
 - UDP 调试改为 TCP/UDP 调试，单选切换协议，分别显示连接或发送
+- FTP 文件管理的传输列表里，传完的条目会自动从列表移除；失败和取消的仍保留，好让用户看到原因并重试。
 
 #### 修复
 
