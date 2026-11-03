@@ -183,7 +183,8 @@ button, input, select { font: inherit; }
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 #pop-wait { margin: 2px 0 4px; color: #6e6e6e; }
-#pop-hits { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow: auto; }
+/* 最多八行、超出滚动：和 WPF 划词浮窗一样直接给出整批结果，再滚着往下看 */
+#pop-hits { list-style: none; margin: 0; padding: 0; max-height: 244px; overflow: auto; }
 #pop-hits li {
 	display: flex;
 	gap: 8px;

@@ -395,8 +395,36 @@ sealed partial class HttpOcrServer {
 			setzoom(zoom * step, e.clientX - r.left, e.clientY - r.top);
 		}, { passive: false });
 
+		// 点一下页面：把这一页按高分辨率重画一遍，交给外层 Viewer 放大看。
+		// PDF 页是 canvas 不是 img，没法像文档图片那样直接点开，得自己出图。
+		function bigimage(i){
+			if (doc == null || i < 0 || i >= slots.length) return;
+			doc.getPage(i + 1).then(function(page){
+				var vp = page.getViewport({ scale: 1 });
+				// 出到 1500px 宽足够看清小字，再大 GIF 式的 data URL 会开始卡
+				var v = page.getViewport({ scale: Math.min(3, 1500 / vp.width) });
+				var c = document.createElement("canvas");
+				c.width = Math.round(v.width);
+				c.height = Math.round(v.height);
+				var ctx = c.getContext("2d", { alpha: false });
+				ctx.fillStyle = "#fff";
+				ctx.fillRect(0, 0, c.width, c.height);
+				return page.render({ canvasContext: ctx, viewport: v }).promise.then(function(){
+					var url;
+					// 扫描件是照片，JPEG 比 PNG 小一个数量级，肉眼差不多
+					try { url = c.toDataURL("image/jpeg", 0.92); } catch (e) { return; }
+					try {
+						parent.postMessage({ sk: "docimg", src: url, list: [url], index: 0 }, "*");
+					}
+					catch (e2) { }
+				});
+			}).catch(function(){ });
+		}
+
 		// 平移：左键拖空白/画布、中键拖任意位置。拖在文字上则是选中文字，不拦
 		var panning = null;
+		var downat = null;
+		var moved = false;
 		var space = false;
 		scroller.addEventListener("mousedown", function(e){
 			var ontext = e.target && e.target.closest && e.target.closest(".tx span,.tx br");
@@ -407,18 +435,35 @@ sealed partial class HttpOcrServer {
 				x: e.clientX, y: e.clientY,
 				l: scroller.scrollLeft, t: scroller.scrollTop
 			};
-			scroller.className = "grabbing";
+			downat = { x: e.clientX, y: e.clientY };
+			moved = false;
+			scroller.className = space ? "grab" : "";
 			e.preventDefault();
 		});
 		window.addEventListener("mousemove", function(e){
 			if (!panning) return;
+			if (!moved && Math.abs(e.clientX - downat.x) + Math.abs(e.clientY - downat.y) > 4) {
+				moved = true;
+				scroller.className = "grabbing";
+			}
+			if (!moved) return;
 			scroller.scrollLeft = panning.l - (e.clientX - panning.x);
 			scroller.scrollTop = panning.t - (e.clientY - panning.y);
 		});
-		window.addEventListener("mouseup", function(){
+		window.addEventListener("mouseup", function(e){
 			if (!panning) return;
+			var wasclick = !moved && panning && e.button === 0;
 			panning = null;
+			downat = null;
 			scroller.className = space ? "grab" : "";
+			if (!wasclick) return;
+			// 刚选完字不算点击
+			var sel = window.getSelection ? String(window.getSelection()) : "";
+			if (sel && sel.length) return;
+			var el = document.elementFromPoint(e.clientX, e.clientY);
+			var pg = el && el.closest ? el.closest(".pg") : null;
+			if (!pg) return;
+			bigimage(slots.indexOf(pg));
 		});
 		// 按住空格再拖，空白处和文字上都能平移
 		window.addEventListener("keydown", function(e){

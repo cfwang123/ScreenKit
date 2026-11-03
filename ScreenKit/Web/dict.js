@@ -1067,10 +1067,10 @@
 		placepop(sel);
 		var g = ++sgen;
 		var q = selText;
-		fetch("/api/dict?q=" + encodeURIComponent(q) + "&limit=8").then(function(r){ return r.json(); }).then(function(j){
+		// 与 WPF 划词浮窗一致：一次取 100 条，列表超出八行再滚动
+		fetch("/api/dict?q=" + encodeURIComponent(q) + "&limit=100").then(function(r){ return r.json(); }).then(function(j){
 			if (g !== sgen || pop.hidden) return;
 			var rows = (j && j.code === 100 && j.data && j.data.hits) || [];
-			if (rows.length > 8) rows = rows.slice(0, 8);
 			$("pop-wait").hidden = rows.length > 0;
 			var box = $("pop-hits");
 			var i, li, b, span;

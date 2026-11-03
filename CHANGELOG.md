@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tools: document reader opens several Markdown/Word/PDF files as tabs, converted by the same C# renderer as the desktop reader (/api/docview, /api/docasset)
 - Web PDF viewer: selectable text layer, zoom (buttons / Ctrl+wheel / fit width / fit page) and drag-to-pan
 - Web document reader: clicking an image in a Markdown or Word document opens it in a Viewer.js lightbox with zoom, rotate and multi-image navigation
+- Web PDF viewer: click a page to open a high-resolution copy of it in the Viewer.js lightbox; dragging pans without triggering it
 
 #### Changed
 
@@ -74,6 +75,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web document reader: PDF pages are drawn on demand by pdf.js from CDN instead of being pre-rendered to PNG, so 40 pages open in about 35 ms
 - Reader: the word lookup popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
 - Web PDF viewer opens at 100% actual size by default (1:1 button, plus fit width / fit page)
+- Web dictionary: the selection popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
 
 #### Fixed
 
@@ -103,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具集：文档阅读器支持一次拖入多个 Markdown/Word/PDF 并用标签切换，转换复用桌面阅读器的 C# 实现（/api/docview、/api/docasset）
 - web PDF 查看：加文本层可选字复制，支持缩放（按钮、Ctrl+滚轮、适应宽度/页高）和拖动平移
 - web 文档阅读器：点 Markdown/Word 文档里的图片用 Viewer.js 弹层放大，可缩放、旋转、多图翻页
+- web PDF 查看：点页面用 Viewer.js 弹出该页高清图；拖动平移不会误触发
 
 #### 变更
 
@@ -116,6 +119,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 文档阅读器：PDF 改由 CDN 上的 pdf.js 按需绘制，不再预渲染成 PNG，40 页文档打开约 35 ms
 - 小说阅读器：划词浮窗和 WPF 一样取 100 条结果，列表超过八行可滚动
 - web PDF 查看默认按 100% 实际大小打开（工具栏 1:1 按钮，另有适应宽度/页高）
+- web 词典：划词浮窗和 WPF 浮窗一样取 100 条结果，列表超过八行可滚动
 
 #### 修复
 
