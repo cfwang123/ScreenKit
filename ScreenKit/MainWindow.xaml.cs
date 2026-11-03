@@ -130,6 +130,7 @@ public partial class MainWindow : Window {
 	GlyphModWindow glyphModWin;
 	PortUseWindow portUseWin;
 	NetProbeWindow netMonWin;
+	UsbCapWindow usbCapWin;
 	TlsWindow tlsWin;
 	FtpWindow ftpWin;
 	MidiSynthWindow midiWin;
@@ -1882,6 +1883,7 @@ public partial class MainWindow : Window {
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
 		mnnetmon.Click += (_, _) => opennetmon();
+		mnusbcap.Click += (_, _) => openusbcap();
 		mntls.Click += (_, _) => opentls();
 		mnftp.Click += (_, _) => openftp();
 		mnmidi.Click += (_, _) => openmidi();
@@ -2084,6 +2086,8 @@ public partial class MainWindow : Window {
 			mnportuse.ToolTip = Loc.T("menu.portuse.tip");
 			mnnetmon.Header = Loc.T("menu.netmon");
 			mnnetmon.ToolTip = Loc.T("menu.netmon.tip");
+			mnusbcap.Header = Loc.T("menu.usbcap");
+			mnusbcap.ToolTip = Loc.T("menu.usbcap.tip");
 			mnmidi.Header = Loc.T("menu.midisynth");
 			mnmidi.ToolTip = Loc.T("menu.midisynth.tip");
 			mnvoicerec.Header = Loc.T("menu.voicerec");
@@ -4870,6 +4874,9 @@ public partial class MainWindow : Window {
 	void opennetmon() =>
 		opentoolwin(ref netMonWin, () => new NetProbeWindow(), "menu.netmon");
 
+	void openusbcap() =>
+		opentoolwin(ref usbCapWin, () => new UsbCapWindow(), "menu.usbcap");
+
 	void openmidi() =>
 		opentoolwin(ref midiWin, () => new MidiSynthWindow(), "menu.midisynth");
 
@@ -5132,6 +5139,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(pinyinWin, w)) pinyinWin = null;
 				else if (ReferenceEquals(portUseWin, w)) portUseWin = null;
 				else if (ReferenceEquals(netMonWin, w)) netMonWin = null;
+				else if (ReferenceEquals(usbCapWin, w)) usbCapWin = null;
 				else if (ReferenceEquals(tlsWin, w)) tlsWin = null;
 				else if (ReferenceEquals(ftpWin, w)) ftpWin = null;
 				else if (ReferenceEquals(rtspSrvWin, w)) rtspSrvWin = null;

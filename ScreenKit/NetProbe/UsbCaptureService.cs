@@ -37,6 +37,9 @@ sealed class UsbCaptureService : IDisposable {
 
 	UsbCaptureService() { }
 
+	/// <summary>命令行自测入口，转给解析器。</summary>
+	public static int SelfTest(Action<string> log) => UsbPacketParser.SelfTest(log);
+
 	/// <summary>缺驱动或未提权时返回提示，否则返回 null。</summary>
 	public static string CheckEnvironment() {
 		if (!SysDeviceAdmin.IsAdmin())
@@ -128,6 +131,7 @@ sealed class UsbCaptureService : IDisposable {
 	}
 
 	void readloop(IntPtr h, string name) {
+		_ = name;
 		var buf = new byte[1024 * 1024];
 		var evt = CreateEvent(IntPtr.Zero, true, false, null);
 		var ov = new NativeOverlapped();

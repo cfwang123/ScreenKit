@@ -250,6 +250,9 @@
 					<MenuItem x:Name="mnnetmon" Header="网络监控(_M)…"
 					          AutomationProperties.AutomationId="menu.netmon"
 					          ToolTip="按进程查看连接与收发流量，抓包看报文（需管理员权限与 Npcap）"/>
+					<MenuItem x:Name="mnusbcap" Header="USB 抓包(_U)…"
+					          AutomationProperties.AutomationId="menu.usbcap"
+					          ToolTip="抓 USB 传输看报文（需管理员权限与 USBPcap）"/>
 					<MenuItem x:Name="mntls" Header="TLS 证书检查(_T)…"
 					          AutomationProperties.AutomationId="menu.tls"
 					          ToolTip="查看服务器证书链、有效期、SAN、指纹和握手参数"/>

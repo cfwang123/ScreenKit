@@ -7,7 +7,7 @@ namespace ScreenKit;
 /// <summary>工具 → 快速复制。</summary>
 public partial class FastCopyWindow : Window {
 	readonly OcrOptions opt;
-	readonly ObservableCollection<string> rows = new();
+	readonly ObservableCollection<FastCopyRow> rows = new();
 	readonly DispatcherTimer statwait = new() { Interval = TimeSpan.FromMilliseconds(250) };
 	bool busy;
 	bool dead;
@@ -115,7 +115,7 @@ public partial class FastCopyWindow : Window {
 		if (busy || dead) return;
 		if (rows.Count == 0) { lbstat.Text = Loc.T("fc.empty"); return; }
 		statwait.Stop();
-		var win = new FastCopyProgWindow(rows.ToList(), true) { Owner = this };
+		var win = new FastCopyProgWindow(rows.Select(r => r.Path).ToList(), true) { Owner = this };
 		win.ShowDialog();
 		if (dead) return;
 		lbtotal.Text = win.Stats == null ? Loc.T("fc.cancelled") : Loc.T("fc.files.msg", win.Stats.Files, FastCopy.FormatBytes(win.Stats.Bytes));
@@ -124,7 +124,7 @@ public partial class FastCopyWindow : Window {
 	/// <summary>源列表变化后统计文件数、文件夹数和大小，进度在单独的窗口里。</summary>
 	void updatestats() {
 		if (dead) return;
-		var paths = rows.ToList();
+		var paths = rows.Select(r => r.Path).ToList();
 		if (paths.Count == 0) { lbtotal.Text = ""; return; }
 		var win = new FastCopyProgWindow(paths, false) { Owner = this };
 		win.ShowDialog();
@@ -172,19 +172,19 @@ public partial class FastCopyWindow : Window {
 			try { p = Path.GetFullPath(p); } catch { }
 			var dup = false;
 			foreach (var one in rows) {
-				if (string.Equals(one, p, StringComparison.OrdinalIgnoreCase)) { dup = true; break; }
+				if (string.Equals(one.Path, p, StringComparison.OrdinalIgnoreCase)) { dup = true; break; }
 			}
-			if (!dup) rows.Add(p);
+			if (!dup) rows.Add(FastCopyRow.From(p));
 		}
 	}
 
 	void removerows() {
 		if (busy) return;
-		var pick = new List<string>();
+		var pick = new List<FastCopyRow>();
 		foreach (var one in lsrc.SelectedItems) {
-			if (one is string s) pick.Add(s);
+			if (one is FastCopyRow r) pick.Add(r);
 		}
-		foreach (var s in pick) rows.Remove(s);
+		foreach (var r in pick) rows.Remove(r);
 	}
 
 	void pickdest() {
@@ -288,7 +288,7 @@ public partial class FastCopyWindow : Window {
 			Delete = del ? mode : "",
 			Conflict = conflict(),
 			Workers = opt.FastCopyWorkers,
-			Sources = rows.ToList(),
+			Sources = rows.Select(r => r.Path).ToList(),
 		};
 		var win = new FastCopyProgWindow(job) { Owner = this };
 		win.ShowDialog();
@@ -324,10 +324,10 @@ public partial class FastCopyWindow : Window {
 			lbstat.Text = text;
 		}
 		if (!res.Cancelled && curmode() is "delete" or "recycle") {
-			var gone = new List<string>();
-			foreach (var p in rows)
-				if (!File.Exists(p) && !Directory.Exists(p)) gone.Add(p);
-			foreach (var p in gone) rows.Remove(p);
+			var gone = new List<FastCopyRow>();
+			foreach (var r in rows)
+				if (!File.Exists(r.Path) && !Directory.Exists(r.Path)) gone.Add(r);
+			foreach (var r in gone) rows.Remove(r);
 		}
 	}
 }

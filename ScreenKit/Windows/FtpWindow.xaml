@@ -10,10 +10,6 @@
         Background="{StaticResource BgApp}"
         FontFamily="Segoe UI, Microsoft YaHei UI"
         AutomationProperties.AutomationId="ftp.window">
-	<Window.Resources>
-		<local:HexBrushConverter x:Key="hexbrush"/>
-	</Window.Resources>
-
 	<Grid Margin="12">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>

@@ -86,6 +86,16 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		// USB 抓包窗口：由主窗口以管理员身份用 start 拉起，只开这一个窗口，不占单实例锁。
+		if (args.Any(a => a == "--usbcap")) {
+			AppConfig.initlogswitch();
+			base.OnStartup(e);
+			var usbwin = new UsbCapWindow();
+			MainWindow = usbwin;
+			usbwin.Show();
+			return;
+		}
+
 		// 网络监控窗口：由主窗口以管理员身份用 start 拉起，只开这一个窗口，不占单实例锁。
 		if (args.Any(a => a == "--netprobe")) {
 			AppConfig.initlogswitch();
@@ -102,6 +112,21 @@ public partial class App : System.Windows.Application {
 			var w = new SoapDebugWindow();
 			MainWindow = w;
 			w.Show();
+			return;
+		}
+
+		// USB 抓包解析自测：不启动 GUI，结果写到 usbcap_selftest.log
+		if (args.Any(a => a == "--test-usbcap")) {
+			var lines = new System.Collections.Generic.List<string>();
+			var code = 1;
+			try { code = UsbCaptureService.SelfTest(lines.Add); }
+			catch (Exception ex) { lines.Add("[ERR] " + ex); }
+			try {
+				File.WriteAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "usbcap_selftest.log"),
+					lines, new UTF8Encoding(false));
+			}
+			catch { }
+			Environment.Exit(code);
 			return;
 		}
 

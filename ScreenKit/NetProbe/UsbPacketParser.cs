@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 
 namespace ScreenKit;
@@ -180,6 +181,65 @@ static class UsbPacketParser {
 			12 => "SYNCH_FRAME",
 			_ => "bRequest " + req
 		};
+	}
+
+	/// <summary>不依赖驱动的解析与 pcapng 往返自测。返回 0 表示通过。</summary>
+	public static int SelfTest(Action<string> log) {
+		var bad = 0;
+		void check(bool ok, string name) {
+			log((ok ? "OK  " : "BAD ") + name);
+			if (!ok) bad++;
+		}
+
+		var setup = new byte[27 + 1 + 8];
+		setup[0] = 27; // headerLen
+		setup[16] = 0; // 主机 → 设备
+		setup[17] = 1; // bus 1
+		setup[19] = 5; // device 5
+		setup[21] = 0x00; // EP0 OUT
+		setup[22] = 2; // control
+		setup[27] = 0; // SETUP stage
+		setup[28] = 0x80; // device-to-host, standard, device
+		setup[29] = 6; // GET_DESCRIPTOR
+		setup[30] = 0x00; setup[31] = 0x01; // device descriptor
+		setup[34] = 18; // wLength
+		check(TryParse(setup, out var srow), "解析控制 SETUP");
+		check(srow != null && srow.Protocol == "控制" && srow.ConnKey == "1.5", "控制帧设备键");
+		check(srow != null && srow.Direction == PacketDirection.In, "GET_DESCRIPTOR 方向取数据方向");
+		check(srow != null && (srow.Summary ?? "").Contains("GET_DESCRIPTOR"), "摘要含 GET_DESCRIPTOR");
+		check(srow != null && srow.PayloadLength == 0, "纯 SETUP 无数据");
+
+		var bulk = new byte[27 + 4];
+		bulk[0] = 27;
+		bulk[16] = 1; // 设备 → 主机
+		bulk[17] = 2; bulk[19] = 3;
+		bulk[21] = 0x81; // EP1 IN
+		bulk[22] = 3; // bulk
+		bulk[23] = 4; // dataLength
+		bulk[27] = (byte)'A'; bulk[28] = (byte)'B'; bulk[29] = (byte)'C'; bulk[30] = (byte)'D';
+		check(TryParse(bulk, out var brow), "解析批量传输");
+		check(brow != null && brow.Protocol == "批量" && brow.PayloadLength == 4, "批量载荷 4 字节");
+		check(brow != null && brow.Direction == PacketDirection.In && brow.Flags == "EP1 IN", "批量端点与方向");
+
+		var junk = new byte[] { 1, 2, 3, 4, 5 };
+		check(!TryParse(junk, out _), "过短帧拒绝");
+
+		var dir = Path.Combine(Path.GetTempPath(), "usbcap-selftest-" + Environment.TickCount.ToString("X"));
+		Directory.CreateDirectory(dir);
+		try {
+			var path = Path.Combine(dir, "t.pcapng");
+			PcapNgIo.Write(path, new[] { srow, brow }, DLT_USBPCAP);
+			var back = PcapNgIo.ReadUsb(path, 10);
+			check(back.Count == 2, "pcapng 往返条数");
+			check(back.Count == 2 && back[0].Protocol == "控制" && back[1].Protocol == "批量", "pcapng 往返协议");
+			check(back.Count == 2 && back[1].PayloadLength == 4 && back[1].Payload[0] == (byte)'A', "pcapng 往返载荷");
+			var classic = PcapNgIo.Read(path, 10);
+			check(classic.Count == 0, "USB 帧不进网络抓包解析");
+		} finally {
+			try { Directory.Delete(dir, true); } catch { }
+		}
+		log(bad == 0 ? "全部通过" : $"失败 {bad} 项");
+		return bad == 0 ? 0 : 1;
 	}
 
 	/// <summary>标准描述符的简短说明，供列表摘要。认不出就返回空。</summary>

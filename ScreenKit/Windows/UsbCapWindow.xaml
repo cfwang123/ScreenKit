@@ -1,0 +1,155 @@
+<Window x:Class="ScreenKit.UsbCapWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="USB 抓包"
+        Height="760" Width="1180"
+        MinHeight="480" MinWidth="860"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="usbcap.window">
+	<Window.Resources>
+		<Style TargetType="DataGrid">
+			<Style.Resources>
+				<SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#A5B4FC"/>
+				<SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#1E1B4B"/>
+				<SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#C7D2FE"/>
+				<SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#1E1B4B"/>
+			</Style.Resources>
+			<Setter Property="AutoGenerateColumns" Value="False"/>
+			<Setter Property="IsReadOnly" Value="True"/>
+			<Setter Property="CanUserAddRows" Value="False"/>
+			<Setter Property="CanUserDeleteRows" Value="False"/>
+			<Setter Property="CanUserSortColumns" Value="True"/>
+			<Setter Property="CanUserResizeColumns" Value="True"/>
+			<Setter Property="SelectionMode" Value="Single"/>
+			<Setter Property="SelectionUnit" Value="FullRow"/>
+			<Setter Property="GridLinesVisibility" Value="Horizontal"/>
+			<Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
+			<Setter Property="HeadersVisibility" Value="Column"/>
+			<Setter Property="RowHeaderWidth" Value="0"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="AlternatingRowBackground" Value="#FAFBFC"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="RowHeight" Value="26"/>
+			<Setter Property="EnableRowVirtualization" Value="True"/>
+			<Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
+			<Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
+		</Style>
+	</Window.Resources>
+
+	<Grid Margin="12">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="6"/>
+			<RowDefinition Height="220" MinHeight="120"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="True">
+			<StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+				<Button x:Name="bcaptoggle" Content="● 开始抓包" Style="{StaticResource PrimaryBtn}"
+				        AutomationProperties.AutomationId="usbcap.toggle"
+				        ToolTip="开始或结束抓包。开始后记录所选根集线器上的全部 USB 传输，结束时保留已抓内容"/>
+				<Button x:Name="bcapclear" Content="清空" Style="{StaticResource ToolBtn}"
+				        ToolTip="清空已抓的报文"/>
+				<Button x:Name="bexport" Content="导出 pcapng" Style="{StaticResource ToolBtn}"
+				        ToolTip="导出为 pcapng（链路类型 USBPcap 249，可用 Wireshark 打开）"/>
+				<Button x:Name="bimport" Content="导入" Style="{StaticResource ToolBtn}"
+				        ToolTip="导入 USBPcap 的 pcapng 或 pcap"/>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal">
+				<TextBlock Text="USB 抓包" FontSize="18" FontWeight="Bold" Foreground="#312E81" VerticalAlignment="Center"/>
+				<Button x:Name="badmin" Content="以管理员身份打开" Style="{StaticResource ToolBtn}"
+				        Margin="14,0,0,0" Visibility="Collapsed"
+				        AutomationProperties.AutomationId="usbcap.admin"
+				        ToolTip="USB 抓包需要管理员权限，点此重新以管理员打开"/>
+			</StackPanel>
+		</DockPanel>
+
+		<Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+		        CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+			<DockPanel>
+				<StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+					<CheckBox x:Name="ckscroll" Content="自动滚动" IsChecked="True" VerticalAlignment="Center" Margin="0,0,12,0"
+					          Foreground="#374151" ToolTip="勾选后刷新时滚到底部；点选一行后停止滚动"/>
+					<TextBlock x:Name="lbcount" VerticalAlignment="Center" Foreground="#4F46E5" FontSize="12"/>
+				</StackPanel>
+				<WrapPanel Orientation="Horizontal">
+					<TextBlock Text="根集线器:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#374151"/>
+					<ComboBox x:Name="cdev" Width="150" Height="28" VerticalContentAlignment="Center"
+					          ToolTip="抓哪条 USB 总线。全部表示每条都抓"/>
+					<TextBlock Text="设备:" VerticalAlignment="Center" Margin="14,0,6,0" Foreground="#374151"/>
+					<TextBox x:Name="edev" Width="70" Height="28" VerticalContentAlignment="Center" Padding="6,0"
+					         ToolTip="按设备地址筛选，留空为全部"/>
+					<TextBlock Text="传输:" VerticalAlignment="Center" Margin="14,0,6,0" Foreground="#374151"/>
+					<ComboBox x:Name="cxfer" Width="90" Height="28" VerticalContentAlignment="Center" SelectedIndex="0">
+						<ComboBoxItem Content="全部"/>
+						<ComboBoxItem Content="控制"/>
+						<ComboBoxItem Content="批量"/>
+						<ComboBoxItem Content="中断"/>
+						<ComboBoxItem Content="等时"/>
+					</ComboBox>
+					<TextBlock Text="内容:" VerticalAlignment="Center" Margin="14,0,6,0" Foreground="#374151"/>
+					<TextBox x:Name="eq" Width="160" Height="28" VerticalContentAlignment="Center" Padding="6,0"
+					         ToolTip="匹配摘要、端点或数据里的文本"/>
+				</WrapPanel>
+			</DockPanel>
+		</Border>
+
+		<Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+			<DataGrid x:Name="dglist" AutomationProperties.AutomationId="usbcap.list">
+				<DataGrid.Columns>
+					<DataGridTextColumn Header="No" Binding="{Binding No}" Width="56"/>
+					<DataGridTextColumn Header="时间" Binding="{Binding TimeText}" Width="100"/>
+					<DataGridTextColumn Header="方向" Binding="{Binding DirText}" Width="72"/>
+					<DataGridTextColumn Header="设备" Binding="{Binding ConnKey}" Width="80"/>
+					<DataGridTextColumn Header="端点" Binding="{Binding Flags}" Width="80"/>
+					<DataGridTextColumn Header="传输" Binding="{Binding Protocol}" Width="60"/>
+					<DataGridTextColumn Header="长度" Binding="{Binding PayloadLength}" Width="60"/>
+					<DataGridTextColumn Header="信息" Binding="{Binding InfoText}" Width="*"/>
+				</DataGrid.Columns>
+			</DataGrid>
+		</Border>
+		<GridSplitter Grid.Row="3" Height="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+		<Grid Grid.Row="4">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="1.1*"/>
+				<ColumnDefinition Width="6"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+			<Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+				<DockPanel>
+					<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+						<TextBlock Text="协议详情（点击字段高亮字节）" FontWeight="SemiBold" Foreground="#312E81"/>
+					</Border>
+					<TreeView x:Name="tvproto" BorderThickness="0" Padding="4"/>
+				</DockPanel>
+			</Border>
+			<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+			<Border Grid.Column="2" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+				<DockPanel>
+					<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock Text="十六进制" FontWeight="SemiBold" Foreground="#312E81" VerticalAlignment="Center"/>
+							<RadioButton x:Name="rraw" Content="整帧" Margin="16,0,8,0" IsChecked="True"/>
+							<RadioButton x:Name="rpay" Content="仅数据"/>
+						</StackPanel>
+					</Border>
+					<RichTextBox x:Name="ehex" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+					             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+					             BorderThickness="0" Padding="8"/>
+				</DockPanel>
+			</Border>
+		</Grid>
+
+		<Border x:Name="bdstatus" Grid.Row="5" Margin="0,10,0,0" Background="#1E1B4B" CornerRadius="6" Padding="12,8">
+			<TextBlock x:Name="lbstatus" Foreground="#E0E7FF" FontSize="12" FontWeight="SemiBold"/>
+		</Border>
+	</Grid>
+</Window>

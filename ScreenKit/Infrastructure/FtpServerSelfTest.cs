@@ -358,6 +358,58 @@ static class FtpServerSelfTest {
 				else if (string.IsNullOrEmpty(ent.IconBrush)) bad("FtpEntry.IconBrush 为空");
 				else ok("FtpEntry 上能取到图标与颜色");
 
+				// ---- 快速复制列表的行对象与图标 ----
+				var tmpdir = Path.Combine(Path.GetTempPath(), "sk-fc-" + Guid.NewGuid().ToString("N"));
+				Directory.CreateDirectory(tmpdir);
+				try {
+					var fimg = Path.Combine(tmpdir, "pic.png");
+					File.WriteAllBytes(fimg, new byte[] { 1, 2, 3 });
+					var fvid = Path.Combine(tmpdir, "clip.mp4");
+					File.WriteAllBytes(fvid, new byte[] { 1 });
+					var rowDir = FastCopyRow.From(tmpdir);
+					var rowImg = FastCopyRow.From(fimg);
+					var rowVid = FastCopyRow.From(fvid);
+					if (!rowDir.IsDir) bad("目录行没认成目录");
+					else ok("目录行 IsDir 正确");
+					if (rowImg.IsDir) bad("文件行被认成目录");
+					else ok("文件行 IsDir 正确");
+					if (rowDir.Icon == rowImg.Icon) bad("目录与文件图标相同");
+					else ok("目录与文件图标不同");
+					if (rowImg.Icon == rowVid.Icon) bad("图片与视频图标相同");
+					else ok("图片与视频图标不同");
+					if (rowImg.Icon != FtpIcon.Glyph("x.png", false))
+						bad("快速复制与 FTP 列表图标不一致");
+					else ok("与 FTP 列表共用同一套图标");
+					if (rowImg.Leaf != "pic.png") bad($"取名字失败: {rowImg.Leaf}");
+					else ok("文件名解析正确");
+					if (rowImg.Label != fimg) bad("Label 不是完整路径");
+					else ok("Label 保持完整路径");
+					if (string.IsNullOrEmpty(rowImg.IconBrush)) bad("IconBrush 为空");
+					else ok("IconBrush 有值");
+					var rowRoot = FastCopyRow.From("C:\\");
+					if (string.IsNullOrEmpty(rowRoot.Leaf)) bad("根目录取名字为空");
+					else ok($"根目录也能取到名字: {rowRoot.Leaf}");
+				}
+				finally {
+					try { Directory.Delete(tmpdir, true); } catch { }
+				}
+
+				// ---- 转换器：颜色字符串转 Brush ----
+				var conv = new HexBrushConverter();
+				var br = conv.Convert("#FF0000", typeof(System.Windows.Media.Brush), null,
+					System.Globalization.CultureInfo.InvariantCulture) as System.Windows.Media.SolidColorBrush;
+				if (br == null) bad("HexBrushConverter 没转出纯色画刷");
+				else if (br.Color.R != 255 || br.Color.G != 0) bad("转换后颜色不对");
+				else ok("HexBrushConverter 颜色正确");
+				var same = conv.Convert("#FF0000", typeof(System.Windows.Media.Brush), null,
+					System.Globalization.CultureInfo.InvariantCulture);
+				if (!ReferenceEquals(br, same)) bad("同色没走缓存");
+				else ok("同色复用缓存画刷");
+				var bad1 = conv.Convert("不是颜色", typeof(System.Windows.Media.Brush), null,
+					System.Globalization.CultureInfo.InvariantCulture);
+				if (bad1 == null) bad("非法颜色返回 null，容易让绑定报错");
+				else ok("非法颜色有兜底画刷");
+
 				// ---- 协议表里必须有 tftp，且默认端口 69 ----
 				if (Array.IndexOf(FtpProto.All, FtpProto.Tftp) < 0) bad("协议表里没有 tftp");
 				else ok("协议表含 tftp");
