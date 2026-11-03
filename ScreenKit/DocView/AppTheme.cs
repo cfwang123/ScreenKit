@@ -157,7 +157,10 @@ sealed class AppTheme {
 		Color.FromRgb((byte)((v >> 16) & 0xFF), (byte)((v >> 8) & 0xFF), (byte)(v & 0xFF));
 }
 
-/// <summary>把主题写入 Application.Resources，并通知界面刷新。</summary>
+/// <summary>
+/// 目录侧栏等控件取强调色用。ScreenKit 已有自己的全局配色（App.xaml 的 Accent 等），
+/// 这里只保留当前色板供移植层取色，不再改写 Application.Resources。
+/// </summary>
 static class ThemeService {
 	public static AppTheme Current { get; private set; } = AppTheme.All[0];
 	public static event Action Changed;
@@ -165,46 +168,7 @@ static class ThemeService {
 	public static void Apply(int themeId) {
 		var t = AppTheme.Get(themeId);
 		Current = t;
-		var app = Application.Current;
-		if (app == null) return;
-
-		set(app, "Accent", t.Accent);
-		set(app, "AccentSoft", t.AccentSoft);
-		set(app, "AccentDark", t.AccentDark);
-		set(app, "BgApp", t.BgApp);
-		set(app, "BgPanel", t.BgPanel);
-		set(app, "BgSoft", t.BgSoft);
-		set(app, "BgTitle", t.BgTitle);
-		set(app, "BgToolbar", t.BgToolbar);
-		set(app, "BgStatus", t.BgStatus);
-		set(app, "BgTab", t.BgTab);
-		set(app, "BgTabActive", t.BgTabActive);
-		set(app, "TextPrimary", t.TextPrimary);
-		set(app, "TextMuted", t.TextMuted);
-		set(app, "BorderSoft", t.BorderSoft);
-		set(app, "Danger", t.Danger);
-		set(app, "CapBtnHover", t.CapBtnHover);
-
-		// 系统选中色（部分控件）
-		try {
-			app.Resources[SystemColors.HighlightBrushKey] = brush(t.Accent);
-			app.Resources[SystemColors.HighlightTextBrushKey] = brush(
-				islight(t.Accent) ? Colors.Black : Colors.White);
-			app.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = brush(t.AccentSoft);
-			app.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = brush(t.TextPrimary);
-		} catch { /* ignore */ }
-
 		try { Changed?.Invoke(); } catch { /* ignore */ }
-	}
-
-	public static void ApplyFromSettings() => Apply(DocViewOptions.Current.ThemeId);
-
-	static void set(Application app, string key, Color c) {
-		if (app.Resources[key] is SolidColorBrush b && !b.IsFrozen) {
-			b.Color = c;
-			return;
-		}
-		app.Resources[key] = brush(c);
 	}
 
 	static SolidColorBrush brush(Color c) {

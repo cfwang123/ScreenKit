@@ -662,7 +662,7 @@ sealed class PdfAnnotSurface : Canvas {
 	}
 
 	Border buildpathhost(PdfAnnotItem it) {
-		var path = new Path {
+		var path = new ShapePath {
 			Stroke = makebrush(it),
 			StrokeThickness = it.Kind == PdfAnnotKind.Highlight
 				? Math.Max(6, it.Stroke)
@@ -1088,7 +1088,7 @@ sealed class PdfAnnotSurface : Canvas {
 		}
 
 		if (it.Kind is PdfAnnotKind.Ink or PdfAnnotKind.Highlight) {
-			if (el is Border bp && bp.Child is Path path) {
+			if (el is Border bp && bp.Child is ShapePath path) {
 				path.Data = buildgeometry(it);
 				path.StrokeThickness = (it.Kind == PdfAnnotKind.Highlight
 					? Math.Max(6, it.Stroke)

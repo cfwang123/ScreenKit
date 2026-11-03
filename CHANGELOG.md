@@ -92,6 +92,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web PDF viewer: clicking empty space clears the text selection; clicking a picture clears it and opens the picture
 - Reader: continuous reading no longer stops after a dozen sentences. The prefetched next sentence was timing out while it merely waited behind a long one, and cancelling the whole queue; the 10-second watchdog now only runs once the queue reaches that sentence
 - Document reader page (/doc) showed a blank window: the empty-state hint was hidden behind the idle iframe and a stray 32px gap sat above it
+- Document reader popup (/doc) opened pictures unstyled: the Viewer.js stylesheet was missing, so images rendered at natural size overflowing the window and leftover thumbnails showed at the corner
 
 ### 中文
 
@@ -141,6 +142,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web PDF 查看：点空白取消文字选中，点图取消选中并放大该图
 - 小说阅读器：连续朗读不再读到十几句就自己停下。预取的下一句在前一句后面排队时也被按「10 秒没出声」判超时，一 cancel 就把整队打断；现在排队等待期间不计时，轮到它才开始算
 - 文档阅读页（/doc）打开是空白：空态提示被空的 iframe 盖住，上方还多了 32px 空隙
+- 文档阅读器弹窗（/doc）放大图片样式错乱：漏引 Viewer.js 样式表，图片按原始尺寸超出窗口，左下角还残留原图
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 

@@ -12,6 +12,7 @@ using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using XDrawing = DocumentFormat.OpenXml.Spreadsheet.Drawing;
 
 namespace ScreenKit.DocView;
 
@@ -1026,7 +1027,7 @@ static class XlsxPictures {
 		row.Append(cell);
 		var ws = new Worksheet();
 		ws.Append(new SheetData(row));
-		ws.Append(new Drawing { Id = wsp.GetIdOfPart(dp) });
+		ws.Append(new XDrawing { Id = wsp.GetIdOfPart(dp) });
 		wsp.Worksheet = ws;
 		var ext = wb.AddExtendedPart(
 			"http://www.wps.cn/officeDocument/2017/etCustomData",

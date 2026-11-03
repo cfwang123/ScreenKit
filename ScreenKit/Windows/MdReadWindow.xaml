@@ -2,7 +2,6 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        xmlns:wfi="clr-namespace:System.Windows.Forms.Integration;assembly=WindowsFormsIntegration"
         Title="文档阅读器"
         Width="1040" Height="760"
         MinWidth="680" MinHeight="440"
@@ -169,10 +168,9 @@
 							<MenuItem x:Name="mnclose" Header="关闭当前标签"/>
 							<MenuItem x:Name="mncloseall" Header="关闭全部标签"/>
 							<Separator/>
-							<MenuItem x:Name="mnword" Header="导出 Word…"/>
-							<MenuItem x:Name="mnpdf" Header="导出 PDF…"/>
-							<Separator/>
+							<MenuItem x:Name="mnoutline" Header="显示目录"/>
 							<MenuItem x:Name="mnreload" Header="重新加载当前标签"/>
+							<Separator/>
 							<MenuItem x:Name="mnpath" Header="复制文件路径"/>
 							<MenuItem x:Name="mnsysopen" Header="用系统应用打开"/>
 						</MenuItem>
@@ -205,15 +203,20 @@
 					<StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
 						<Button x:Name="bopen" Style="{StaticResource BarBtn}" Content="打开…"
 						        AutomationProperties.AutomationId="mdread.open"/>
-						<Button x:Name="bword" Style="{StaticResource BarBtn}" Content="导出 Word"
-						        AutomationProperties.AutomationId="mdread.word"/>
-						<Button x:Name="bpdf" Style="{StaticResource BarBtn}" Content="导出 PDF"
-						        AutomationProperties.AutomationId="mdread.pdf"/>
 						<Border Width="1" Height="18" Background="#D8DEE6" Margin="4,0,8,0"/>
-						<TextBlock x:Name="lbtheme" Text="主题" VerticalAlignment="Center" Margin="0,0,6,0"
-						           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-						<ComboBox x:Name="etheme" Width="96" Height="26" VerticalContentAlignment="Center"
-						          AutomationProperties.AutomationId="mdread.theme"/>
+						<Button x:Name="bprev" Style="{StaticResource BarBtn}" Content="◀" ToolTip="上一页"
+						        AutomationProperties.AutomationId="mdread.prev"/>
+						<Button x:Name="bnext" Style="{StaticResource BarBtn}" Content="▶" ToolTip="下一页"
+						        AutomationProperties.AutomationId="mdread.next"/>
+						<Border Width="1" Height="18" Background="#D8DEE6" Margin="4,0,8,0"/>
+						<Button x:Name="bzoomout" Style="{StaticResource BarBtn}" Content="－" ToolTip="缩小"
+						        AutomationProperties.AutomationId="mdread.zoomout"/>
+						<Button x:Name="bzoomin" Style="{StaticResource BarBtn}" Content="＋" ToolTip="放大"
+						        AutomationProperties.AutomationId="mdread.zoomin"/>
+						<Button x:Name="bzoomfit" Style="{StaticResource BarBtn}" Content="适宽" ToolTip="适应宽度"
+						        AutomationProperties.AutomationId="mdread.zoomfit"/>
+						<Button x:Name="bfind" Style="{StaticResource BarBtn}" Content="查找"
+						        AutomationProperties.AutomationId="mdread.find"/>
 					</StackPanel>
 					<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="12,0,4,0"
 					           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
@@ -221,10 +224,23 @@
 				</DockPanel>
 			</Border>
 
-			<!-- 第 3 行：页面 -->
+			<!-- 第 2.5 行：查找条，点「查找」才出现 -->
+			<Border x:Name="pfind" DockPanel.Dock="Top" Visibility="Collapsed" Background="#F7F8FA"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,4">
+				<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+					<TextBox x:Name="efind" Width="240" Height="26" Padding="6,0"
+					         VerticalContentAlignment="Center" FontSize="12.5"
+					         AutomationProperties.AutomationId="mdread.findbox"/>
+					<TextBlock Text="回车向下，Shift+回车向上" Margin="8,0,0,0" VerticalAlignment="Center"
+					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+				</StackPanel>
+			</Border>
+
+			<!-- 第 3 行：文档区，阅读器自己的 FrameworkElement 挂在这里 -->
 			<Border x:Name="phostbox" BorderBrush="{StaticResource BorderSoft}" BorderThickness="0"
 			        Background="White">
-				<wfi:WindowsFormsHost x:Name="phost" AutomationProperties.AutomationId="mdread.view"/>
+				<ContentControl x:Name="phost" Focusable="False"
+				                AutomationProperties.AutomationId="mdread.view"/>
 			</Border>
 		</DockPanel>
 	</Border>

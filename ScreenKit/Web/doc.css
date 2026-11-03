@@ -68,6 +68,8 @@ body { display: flex; flex-direction: column; }
 }
 .doc-drop-card strong { font-size: 15px; }
 .doc-drop-card span { color: var(--muted); font-size: 12.5px; }
+/* 点图放大的宿主容器：只给 Viewer.js 提供 img，本身永远不显示 */
+.doc-pics { display: none; }
 /* 底部小提示 */
 .doc-tip {
 	position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);

@@ -63,8 +63,6 @@ sealed class MdViewer : IDocViewer {
 		root = new Border {
 			Child = grid,
 			Background = Brushes.White,
-			// 字体大小从宿主窗口继承，正文用相对值排版
-			FontSize = DocViewOptions.Current.BodyFontSize,
 		};
 		scroller.SizeChanged += (_, _) => relayout();
 		body.PreviewMouseWheel += (_, e) => {

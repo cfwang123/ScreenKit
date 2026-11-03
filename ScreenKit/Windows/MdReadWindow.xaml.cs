@@ -1,119 +1,70 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shell;
 
 namespace ScreenKit;
 
 /// <summary>
 /// 工具 → 文档阅读器。标题栏自绘：左边菜单、中间 tab 芯片、右边窗口按钮。
-/// 一次可拖入多个文件，每个文件一个 tab：Markdown 按阅读器规则排版，
-/// docx/pdf 由 <see cref="DocViewHtml"/> 转成 HTML 后交给 IE11 内核显示。
+/// 正文交给 <see cref="DocView.IDocViewer"/>：Markdown 用 FlowDocument，docx/xlsx/pdf
+/// 由各自的阅读器按需渲染，图片点开走 ImageOverlay 弹层。
 /// </summary>
 public partial class MdReadWindow : Window {
-	/// <summary>缓存目录里保留的页面上限，超出就把最旧的那批删掉。</summary>
-	const int MAXCACHE = 60;
-	const string CACHEPREFIX = "mdread-";
-
-	/// <summary>一个 tab 的文档状态。Html 是算好待写的页面，切到它时才真正写盘。</summary>
+	/// <summary>一个 tab 的状态。Viewer 为空表示还没加载过，切到它时才建。</summary>
 	sealed class Tab {
 		public string Path = "";
 		public string Name = "";
-		public string Kind = "md";
-		public string Md = "";
-		public string Html = "";
-		public string Page = "";
-		public string Mode = "";
-		public string ImageDir = "";
-		public int Pages;
+		public DocView.DocKind Kind = DocView.DocKind.Unknown;
+		public DocView.IDocViewer Viewer;
+		public FrameworkElement Body;
 		public Border Head;
 		public TextBlock Label;
+		public string Error = "";
 	}
 
-	System.Windows.Forms.WebBrowser browser;
-	MdDrop drop;
-	IntPtr drophwnd;
 	OcrOptions opt;
-	MdRead.MdTheme theme;
 	Tab cur;
-	bool ready;
-	double dpi = 1;
 	readonly List<Tab> tabs = new();
-	/// <summary>写盘过的页面，关窗时统一删。</summary>
-	readonly List<string> pages = new();
-	readonly List<string> imgdirs = new();
 	/// <summary>拖窗时点在标题栏空白处，先记下起点，超过阈值才真的拖。</summary>
 	int titletick;
 	Point titlepoint;
+	bool findopen;
+	string findtext = "";
 
 	public MdReadWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
-		theme = MdRead.ThemeOf(opt.MdReadTheme);
-		MdRead.EnsureIe11();
+		DocView.DocViewOptions.Current.UiFontSize = 12;
 		InitializeComponent();
-		dpi = uiscale();
-		initbrowser();
 		applylang();
-		initetheme();
 		initev();
 		WindowEsc.Attach(this);
 	}
 
-	/// <summary>IE 控件按物理像素排版，窗口 DPI 是 125% 时正文只有四分之三大小，这里取比例补上。</summary>
-	double uiscale() {
-		try {
-			var s = VisualTreeHelper.GetDpi(this).DpiScaleX;
-			if (s >= 1 && s <= 4) return s;
-		}
-		catch { }
-		return 1;
-	}
-
-	void initbrowser() {
-		browser = new System.Windows.Forms.WebBrowser {
-			Dock = System.Windows.Forms.DockStyle.Fill,
-			ScriptErrorsSuppressed = true,
-			AllowWebBrowserDrop = false,
-		};
-		drop = new MdDrop(opendrop);
-		browser.HandleCreated += (_, _) => hookdrop();
-		browser.DocumentCompleted += ondoc;
-		browser.Navigating += onnav;
-		phost.Child = browser;
-	}
-
-	void hookdrop() {
-		if (browser == null || !browser.IsHandleCreated) return;
-		var h = docwnd(browser.Handle);
-		if (h == IntPtr.Zero) h = browser.Handle;
-		if (h == drophwnd) return;
-		if (drophwnd != IntPtr.Zero && drophwnd != h) {
-			try { RevokeDragDrop(drophwnd); } catch { }
-			drophwnd = IntPtr.Zero;
-		}
-		try { RevokeDragDrop(h); } catch { }
-		if (RegisterDragDrop(h, drop) != 0) return;
-		drophwnd = h;
-	}
-
 	void initev() {
 		bopen.Click += (_, _) => pick();
-		bword.Click += (_, _) => export(true);
-		bpdf.Click += (_, _) => export(false);
+		bprev.Click += (_, _) => navpage(-1);
+		bnext.Click += (_, _) => navpage(1);
+		bzoomout.Click += (_, _) => zoomby(1 / 1.15);
+		bzoomin.Click += (_, _) => zoomby(1.15);
+		bzoomfit.Click += (_, _) => cur?.Viewer?.ZoomFitWidth();
+		bfind.Click += (_, _) => togglefind();
 		bmin.Click += (_, _) => WindowState = WindowState.Minimized;
 		bmax.Click += (_, _) => togglemax();
 		bclosewin.Click += (_, _) => Close();
 		mnopen.Click += (_, _) => pick();
 		mnclose.Click += (_, _) => closetab(cur);
 		mncloseall.Click += (_, _) => closeall();
-		mnword.Click += (_, _) => export(true);
-		mnpdf.Click += (_, _) => export(false);
-		mnreload.Click += (_, _) => rerender();
+		mnreload.Click += (_, _) => reload();
 		mnpath.Click += (_, _) => copytext(cur?.Path);
 		mnsysopen.Click += (_, _) => sysopen(cur?.Path);
+		mnoutline.Click += (_, _) => toggleoutline();
 		PreviewDragOver += (_, e) => {
 			e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
 			e.Handled = true;
@@ -137,36 +88,25 @@ public partial class MdReadWindow : Window {
 			catch { }
 		};
 		Loaded += (_, _) => {
-			dpi = uiscale();
-			if (tabs.Count == 0) renderempty();
+			if (tabs.Count == 0) showempty();
 		};
-		DpiChanged += (_, _) => {
-			var s = uiscale();
-			if (Math.Abs(s - dpi) < 0.01) return;
-			dpi = s;
-			rerender();
+		efind.TextChanged += (_, _) => {
+			findtext = efind.Text ?? "";
+			if (findtext.Length == 0) cur?.Viewer?.ClearFind();
 		};
-		etheme.SelectionChanged += (_, _) => {
-			if (!ready) return;
-			var id = (etheme.SelectedItem as ComboBoxItem)?.Tag as string;
-			if (string.Equals(id, theme.Id, StringComparison.Ordinal)) return;
-			theme = MdRead.ThemeOf(id);
-			opt.MdReadTheme = theme.Id;
-			try { AppConfig.Save(opt); } catch { }
-			applytheme();
+		efind.PreviewKeyDown += (_, e) => {
+			if (e.Key == Key.Enter) {
+				e.Handled = true;
+				findnext((Keyboard.Modifiers & ModifierKeys.Shift) == 0);
+			}
+			else if (e.Key == Key.Escape) {
+				e.Handled = true;
+				togglefind();
+			}
 		};
 		Closed += (_, _) => {
-			if (drophwnd != IntPtr.Zero) {
-				try { RevokeDragDrop(drophwnd); } catch { }
-				drophwnd = IntPtr.Zero;
-			}
-			try { browser?.Dispose(); } catch { }
-			foreach (var p in pages) {
-				try { if (File.Exists(p)) File.Delete(p); } catch { }
-			}
-			foreach (var d in imgdirs) {
-				try { if (Directory.Exists(d)) Directory.Delete(d, true); } catch { }
-			}
+			foreach (var t in tabs) dispose(t);
+			DocView.ImageOverlay.CloseIfOpen();
 		};
 	}
 
@@ -176,55 +116,25 @@ public partial class MdReadWindow : Window {
 		mnopen.Header = Loc.T("mdread.open");
 		mnclose.Header = Loc.T("mdread.tabclose");
 		mncloseall.Header = Loc.T("mdread.closeall");
-		mnword.Header = Loc.T("mdread.word");
-		mnpdf.Header = Loc.T("mdread.pdf");
 		mnreload.Header = Loc.T("mdread.reload");
 		mnpath.Header = Loc.T("mdread.copypath");
 		mnsysopen.Header = Loc.T("mdread.sysopen");
+		mnoutline.Header = Loc.T("mdread.outline");
 		bopen.Content = Loc.T("mdread.open");
-		bword.Content = Loc.T("mdread.word");
-		bpdf.Content = Loc.T("mdread.pdf");
-		lbtheme.Text = Loc.T("mdread.theme");
-		etheme.ToolTip = Loc.T("mdread.theme");
+		bprev.ToolTip = Loc.T("mdread.prevpage");
+		bnext.ToolTip = Loc.T("mdread.nextpage");
+		bzoomout.ToolTip = Loc.T("mdread.zoomout");
+		bzoomin.ToolTip = Loc.T("mdread.zoomin");
+		bzoomfit.ToolTip = Loc.T("mdread.zoomfit");
+		bfind.ToolTip = Loc.T("mdread.find");
+		efind.ToolTip = Loc.T("mdread.find");
 		showstat();
 	}
-
-	/// <summary>主题下拉框按 MdRead.Themes 的顺序填。</summary>
-	void initetheme() {
-		etheme.Items.Clear();
-		foreach (var t in MdRead.Themes) {
-			var it = new ComboBoxItem { Content = Loc.T("mdread.theme." + t.Id), Tag = t.Id };
-			etheme.Items.Add(it);
-			if (t.Id == theme.Id) etheme.SelectedItem = it;
-		}
-		ready = true;
-	}
-
-	void applytheme() {
-		try { phostbox.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(theme.Bg)); }
-		catch { }
-		rerender();
-	}
-
-	/// <summary>主题或 DPI 变了：Markdown 重新排版，docx/pdf 的页面不动，只导航一次。</summary>
-	void rerender() {
-		if (cur == null) {
-			renderempty();
-			return;
-		}
-		if (cur.Kind == "md" && cur.Md != null) {
-			cur.Html = MdRead.ToHtml(cur.Md, Path.GetDirectoryName(cur.Path) ?? "", cur.Name, dpi, theme.Id);
-			cur.Page = "";
-		}
-		showpage(cur);
-	}
-
-	void renderempty() => showhtml(MdRead.EmptyHtml(Loc.T("mdread.hint"), dpi, theme.Id));
 
 	void pick() {
 		var ofd = new Microsoft.Win32.OpenFileDialog {
 			Title = Loc.T("mdread.open"),
-			Filter = Loc.T("mdread.filter"),
+			Filter = DocView.DocKindUtil.Filter,
 			Multiselect = true,
 		};
 		if (ofd.ShowDialog(this) != true) return;
@@ -236,7 +146,7 @@ public partial class MdReadWindow : Window {
 		var opened = 0;
 		var bad = 0;
 		foreach (var f in files) {
-			if (openone(MdRead.Resolve(f), true)) opened++;
+			if (openone(MdRead.Resolve(f))) opened++;
 			else bad++;
 		}
 		if (opened == 0) {
@@ -250,124 +160,88 @@ public partial class MdReadWindow : Window {
 	}
 
 	/// <summary>同一个文件已经开着就直接切过去，不重复解析。</summary>
-	bool openone(string path, bool quiet) {
-		if (!File.Exists(path)) return false;
-		var kind = kindof(path);
-		if (kind.Length == 0) return false;
+	bool openone(string path) {
+		if (string.IsNullOrEmpty(path) || !File.Exists(path)) return false;
+		var kind = DocView.DocKindUtil.FromPath(path);
+		if (kind == DocView.DocKind.Unknown) return false;
+		// 浏览器 / 终端标签不在这扇窗里开
+		if (kind == DocView.DocKind.Browser || kind == DocView.DocKind.Console) return false;
 		foreach (var t in tabs) {
 			if (string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase)) {
 				activatetab(t);
 				return true;
 			}
 		}
-		Tab tab = new() { Path = path, Name = Path.GetFileName(path), Kind = kind };
-		try {
-			if (kind == "md") {
-				tab.Md = MdRead.ReadText(path);
-				tab.Html = MdRead.ToHtml(tab.Md, Path.GetDirectoryName(path) ?? "", tab.Name, dpi, theme.Id);
-			}
-			else {
-				if (tab.Kind == "pdf" && !NativeRuntime.HasPdfium()) {
-					if (!FeaturePrompt.EnsureKinds(this, Loc.T("feat.prompt.pdf.title"),
-						Loc.T("feat.prompt.pdf.detail"), FeatureKind.NativePdfium))
-						return false;
-				}
-				var dir = Path.Combine(cachedir(), "img" + Environment.TickCount.ToString("x")
-					+ "_" + Guid.NewGuid().ToString("N").Substring(0, 6));
-				tab.ImageDir = dir;
-				imgdirs.Add(dir);
-				var res = DocViewHtml.Convert(path, dir);
-				tab.Html = res.Html;
-				tab.Pages = res.Pages;
-			}
+		if (kind == DocView.DocKind.Pdf && !NativeRuntime.HasPdfium()) {
+			if (!FeaturePrompt.EnsureKinds(this, Loc.T("feat.prompt.pdf.title"),
+				Loc.T("feat.prompt.pdf.detail"), FeatureKind.NativePdfium))
+				return false;
 		}
-		catch (Exception ex) {
-			if (!quiet) lbstat.Text = Loc.T("mdread." + keyof(ex));
-			cleanup(tab);
-			return false;
-		}
-		tabs.Add(tab);
+		tabs.Add(new Tab {
+			Path = path,
+			Name = System.IO.Path.GetFileName(path),
+			Kind = kind,
+		});
 		return true;
 	}
 
-	static string kindof(string path) {
-		if (MdRead.IsMd(path)) return "md";
-		if (DocViewHtml.IsDoc(path)) return Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
-		return "";
-	}
-
-	/// <summary>转换抛出的异常消息本身就是文案键，认不出来就退回通用失败提示。</summary>
-	static string keyof(Exception ex) {
-		var m = ex?.Message ?? "";
-		if (m is "docview.baddocx" or "docview.badpdf") return m.Substring(8);
-		if (m == "docview.errtype") return "bad";
-		return "empty";
-	}
-
+	/// <summary>懒加载：切到某个 tab 时才建阅读器、读文件。</summary>
 	void activatetab(Tab t) {
 		if (t == null) return;
 		cur = t;
 		Title = t.Name + " - " + Loc.T("mdread.title");
 		showtabstate();
+		ensureviewer(t);
 		showpage(t);
 	}
 
-	/// <summary>懒写盘：算好的 HTML 只在真正显示时才落文件，切 tab 切回来不重复写。</summary>
-	void showpage(Tab t) {
-		if (t == null) return;
-		if (string.IsNullOrEmpty(t.Page)) t.Page = writeshell(t.Html);
-		if (!string.IsNullOrEmpty(t.Page)) browser.Navigate(t.Page);
-		showstat();
-	}
-
-	void showhtml(string html) {
-		var page = writeshell(html);
-		if (!string.IsNullOrEmpty(page)) browser.Navigate(page);
-	}
-
-	string writeshell(string html) {
-		var dir = cachedir();
-		guardcache();
-		var next = Path.Combine(dir, CACHEPREFIX + Environment.TickCount.ToString("x")
-			+ "_" + Guid.NewGuid().ToString("N").Substring(0, 6) + ".html");
+	void ensureviewer(Tab t) {
+		if (t.Viewer != null || t.Error.Length > 0) return;
 		try {
-			File.WriteAllText(next, html ?? "", new UTF8Encoding(true));
-			pages.Add(next);
-			return next;
+			var v = DocView.ViewerFactory.Create(t.Kind);
+			DocView.ImageOverlay.ActiveHost = this;
+			DocView.ImageOverlay.HostAnchor = v.View as FrameworkElement;
+			v.Load(t.Path);
+			v.StatusChanged += () => {
+				if (ReferenceEquals(t, cur)) showstat();
+			};
+			t.Viewer = v;
+			t.Body = v.View;
 		}
-		catch { return ""; }
+		catch (Exception ex) {
+			t.Error = describe(ex);
+			CaptureLog.Ex("docview " + t.Name, ex);
+		}
 	}
 
-	void ondoc(object sender, System.Windows.Forms.WebBrowserDocumentCompletedEventArgs e) {
-		if (e.Url != null && e.Url.IsFile) {
-			try {
-				dynamic dom = browser.Document.DomDocument;
-				if (cur != null) cur.Mode = Convert.ToString(dom.documentMode);
-			}
-			catch { }
-		}
+	/// <summary>把阅读器抛的异常翻成一句能看懂的话；认不出的退回原文。</summary>
+	static string describe(Exception ex) {
+		var m = ex?.Message ?? "";
+		if (string.IsNullOrWhiteSpace(m)) return Loc.T("mdread.empty");
+		return m;
+	}
+
+	void showpage(Tab t) {
+		phost.Content = t?.Body
+			?? (t != null && t.Error.Length > 0 ? errored(t.Error) : null);
+		phost.Visibility = phost.Content == null ? Visibility.Collapsed : Visibility.Visible;
 		showstat();
-		hookdrop();
 	}
 
-	void onnav(object sender, System.Windows.Forms.WebBrowserNavigatingEventArgs e) {
-		var u = e.Url;
-		if (u == null) return;
-		if (u.IsFile) {
-			var p = u.LocalPath;
-			if (openone(p, true)) {
-				e.Cancel = true;
-				updatetabs();
-			}
-			return;
-		}
-		if (u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "mailto") {
-			e.Cancel = true;
-			try {
-				System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(u.AbsoluteUri) { UseShellExecute = true });
-			}
-			catch { }
-		}
+	FrameworkElement errored(string text) {
+		return new TextBlock {
+			Text = text,
+			Margin = new Thickness(24),
+			TextWrapping = TextWrapping.Wrap,
+			Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x91, 0x99)),
+			VerticalAlignment = VerticalAlignment.Top,
+		};
+	}
+
+	void showempty() {
+		phost.Content = errored(Loc.T("mdread.hint"));
+		phost.Visibility = Visibility.Visible;
+		showstat();
 	}
 
 	// ==================== 标题栏 tab 芯片 ====================
@@ -425,7 +299,6 @@ public partial class MdReadWindow : Window {
 			}
 			if (!ReferenceEquals(cur, t)) {
 				activatetab(t);
-				// 切 tab 后芯片样式变了，重新取当前的拖窗判断
 				showstat();
 			}
 			e.Handled = true;
@@ -448,8 +321,6 @@ public partial class MdReadWindow : Window {
 		if (t?.Head == null) return;
 		var on = ReferenceEquals(t, cur);
 		t.Head.Style = (Style)FindResource(on ? "TitleTabActive" : "TitleTab");
-		if (t.Label != null)
-			t.Label.Foreground = new SolidColorBrush(Color.FromRgb(0x11, 0x18, 0x27));
 	}
 
 	void closetab(Tab t) {
@@ -457,45 +328,97 @@ public partial class MdReadWindow : Window {
 		var i = tabs.IndexOf(t);
 		if (i < 0) return;
 		tabs.RemoveAt(i);
-		cleanup(t);
+		dispose(t);
 		updatetabs();
 		if (tabs.Count == 0) {
 			cur = null;
 			Title = Loc.T("mdread.title");
-			renderempty();
-			showstat();
+			showempty();
 			return;
 		}
 		activatetab(tabs[Math.Min(i, tabs.Count - 1)]);
 	}
 
 	void closeall() {
-		foreach (var t in tabs.ToList()) {
-			cleanup(t);
-		}
+		foreach (var t in tabs) dispose(t);
 		tabs.Clear();
 		cur = null;
 		Title = Loc.T("mdread.title");
 		updatetabs();
-		renderempty();
-		showstat();
+		showempty();
 	}
 
-	void cleanup(Tab t) {
-		if (t == null) return;
-		if (!string.IsNullOrEmpty(t.Page)) {
-			pages.Remove(t.Page);
-			try { if (File.Exists(t.Page)) File.Delete(t.Page); } catch { }
-		}
-		if (!string.IsNullOrEmpty(t.ImageDir)) {
-			imgdirs.Remove(t.ImageDir);
-			try { if (Directory.Exists(t.ImageDir)) Directory.Delete(t.ImageDir, true); } catch { }
-		}
+	void dispose(Tab t) {
+		if (t?.Viewer == null) return;
+		try { t.Viewer.Dispose(); } catch { }
+		t.Viewer = null;
+		t.Body = null;
+	}
+
+	void reload() {
+		if (cur == null) return;
+		var t = cur;
+		var was = t.Viewer;
+		// 记住阅读位置，重载后回到原处
+		double h = 0, v = 0, z = 0;
+		var page = 0;
+		try { was.CaptureViewState(out h, out v, out z, out page); } catch { }
+		dispose(t);
+		t.Error = "";
+		ensureviewer(t);
+		showpage(t);
+		if (t.Viewer == null) return;
+		try { t.Viewer.RestoreViewState(h, v, z, page); } catch { }
 	}
 	#endregion
 
-	// ==================== 窗口与菜单动作 ====================
+	// ==================== 工具栏动作 ====================
 	#region
+	void navpage(int delta) {
+		var v = cur?.Viewer;
+		if (v == null) return;
+		if (delta < 0) v.GoPrevPage();
+		else v.GoNextPage();
+		showstat();
+	}
+
+	void zoomby(double factor) {
+		var v = cur?.Viewer;
+		if (v == null) return;
+		v.ZoomBy(factor);
+		showstat();
+	}
+
+	void toggleoutline() {
+		var v = cur?.Viewer;
+		if (v == null) return;
+		v.SetSidePanelVisible(!v.SidePanelVisible);
+		showstat();
+	}
+
+	void togglefind() {
+		findopen = !findopen;
+		pfind.Visibility = findopen ? Visibility.Visible : Visibility.Collapsed;
+		if (!findopen) {
+			efind.Text = "";
+			cur?.Viewer?.ClearFind();
+			return;
+		}
+		efind.Focus();
+		efind.SelectAll();
+	}
+
+	void findnext(bool forward) {
+		var v = cur?.Viewer;
+		if (v == null) return;
+		var text = findtext;
+		if (string.IsNullOrWhiteSpace(text)) return;
+		var r = v.Find(text, forward, true);
+		lbstat.Text = r.Found
+			? string.Format(Loc.T("mdread.find.hit"), r.Current, r.Total)
+			: Loc.T("mdread.find.miss");
+	}
+
 	/// <summary>标题栏空白处拖动/双击最大化；点在按钮、菜单、芯片上时不动窗。</summary>
 	void ontitledrag(object sender, MouseButtonEventArgs e) {
 		if (e.ChangedButton != MouseButton.Left) return;
@@ -559,206 +482,34 @@ public partial class MdReadWindow : Window {
 	}
 	#endregion
 
-	// ==================== 导出（只对 Markdown 开放） ====================
+	// ==================== 状态栏 ====================
 	#region
-	void export(bool word) {
-		if (cur == null || cur.Kind != "md" || string.IsNullOrEmpty(cur.Page) || !File.Exists(cur.Page)) return;
-		var ofd = new Microsoft.Win32.SaveFileDialog {
-			Title = Loc.T(word ? "mdread.word" : "mdread.pdf"),
-			Filter = word ? "Word|*.docx" : "PDF|*.pdf",
-			FileName = Path.GetFileNameWithoutExtension(cur.Path) + (word ? ".docx" : ".pdf"),
-			DefaultExt = word ? ".docx" : ".pdf",
-			AddExtension = true,
-			OverwritePrompt = true,
-		};
-		try {
-			var dir = Path.GetDirectoryName(cur.Path);
-			if (!string.IsNullOrEmpty(dir)) ofd.InitialDirectory = dir;
-		}
-		catch { }
-		if (ofd.ShowDialog(this) != true) return;
-		var dest = ofd.FileName;
-		lbstat.Text = Loc.T("mdread.exporting");
-		lbstat.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
-		Mouse.OverrideCursor = Cursors.Wait;
-		try {
-			var html = MdExport.PrintHtml(File.ReadAllText(cur.Page));
-			if (word) MdExport.ToWord(html, dest);
-			else MdExport.ToPdf(html, dest);
-			lbstat.Text = string.Format(Loc.T("mdread.exported"), dest);
-		}
-		catch (MdExportError ex) {
-			lbstat.Text = Loc.T("mdread." + ex.Key);
-		}
-		catch (Exception ex) {
-			lbstat.Text = string.Format(Loc.T("mdread.exportfail"), ex.Message);
-		}
-		finally {
-			Mouse.OverrideCursor = null;
-		}
-	}
-	#endregion
-
-	// ==================== 缓存与状态 ====================
-	#region
-	static string cachedir() {
-		var dir = Path.Combine(Path.GetTempPath(), "ScreenKit");
-		Directory.CreateDirectory(dir);
-		return dir;
-	}
-
-	/// <summary>缓存目录是各窗口共用的，只清自己这一类文件，别删别的窗口正在用的页面。</summary>
-	static void guardcache() {
-		try {
-			var files = Directory.GetFiles(cachedir(), CACHEPREFIX + "*.html");
-			if (files.Length <= MAXCACHE) return;
-			Array.Sort(files, (a, b) => File.GetLastWriteTimeUtc(a).CompareTo(File.GetLastWriteTimeUtc(b)));
-			for (var i = 0; i < files.Length - MAXCACHE; i++) {
-				try { File.Delete(files[i]); } catch { }
-			}
-		}
-		catch { }
-	}
-
 	void showstat() {
 		mnclose.IsEnabled = cur != null;
 		mncloseall.IsEnabled = tabs.Count > 0;
-		var mdcur = cur != null && cur.Kind == "md";
-		bword.IsEnabled = mdcur;
-		bpdf.IsEnabled = mdcur;
-		mnword.IsEnabled = mdcur;
-		mnpdf.IsEnabled = mdcur;
 		mnreload.IsEnabled = cur != null;
 		mnpath.IsEnabled = cur != null;
 		mnsysopen.IsEnabled = cur != null;
+		var v = cur?.Viewer;
+		mnoutline.IsEnabled = v != null && v.HasOutline;
+		bprev.IsEnabled = v != null && v.PageCount > 1;
+		bnext.IsEnabled = v != null && v.PageCount > 1;
+		bzoomout.IsEnabled = v != null;
+		bzoomin.IsEnabled = v != null;
+		bzoomfit.IsEnabled = v != null;
+		bfind.IsEnabled = v != null;
 		if (cur == null) {
 			lbstat.Text = Loc.T("mdread.hint");
 			return;
 		}
-		List<string> parts = new() { cur.Path };
-		parts.Add(cur.Kind);
-		if (cur.Pages > 0) parts.Add(string.Format(Loc.T("mdread.pages"), cur.Pages));
-		if (!string.IsNullOrEmpty(cur.Mode)) parts.Add(string.Format(Loc.T("mdread.mode"), cur.Mode));
-		if (tabs.Count > 1) parts.Add(string.Format(Loc.T("mdread.tabs"), tabs.Count));
+		var parts = new List<string> { cur.Path };
+		if (cur.Error.Length > 0) parts.Add(cur.Error);
+		else if (v != null) {
+			parts.Add(v.StatusText ?? "");
+			if (tabs.Count > 1) parts.Add(string.Format(Loc.T("mdread.tabs"), tabs.Count));
+		}
+		else parts.Add(Loc.T("mdread.loading"));
 		lbstat.Text = string.Join("  ·  ", parts);
 	}
-
-	static IntPtr docwnd(IntPtr root) {
-		IntPtr found = IntPtr.Zero;
-		EnumChildWindows(root, (h, _) => {
-			var name = new StringBuilder(64);
-			GetClassName(h, name, name.Capacity);
-			if (name.ToString() != "Internet Explorer_Server") return true;
-			found = h;
-			return false;
-		}, IntPtr.Zero);
-		return found;
-	}
-
-	delegate bool EnumProc(IntPtr hwnd, IntPtr lparam);
-
-	[DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr hwnd, EnumProc proc, IntPtr lparam);
-	[DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int len);
-	[DllImport("ole32.dll")] static extern int RegisterDragDrop(IntPtr hwnd, IOleDropTarget target);
-	[DllImport("ole32.dll")] static extern int RevokeDragDrop(IntPtr hwnd);
 	#endregion
-}
-
-sealed class MdDrop : IOleDropTarget {
-	readonly Action<string[]> open;
-	bool ok;
-
-	public MdDrop(Action<string[]> open) { this.open = open; }
-
-	public int DragEnter(IntPtr data, uint key, PointL pt, ref uint effect) {
-		ok = filesof(data) != null;
-		effect = ok ? 1u : 0u;
-		return 0;
-	}
-
-	public int DragOver(uint key, PointL pt, ref uint effect) {
-		effect = ok ? 1u : 0u;
-		return 0;
-	}
-
-	public int DragLeave() {
-		ok = false;
-		return 0;
-	}
-
-	public int Drop(IntPtr data, uint key, PointL pt, ref uint effect) {
-		var files = filesof(data);
-		effect = files != null ? 1u : 0u;
-		if (files != null) {
-			try { open(files); } catch { }
-		}
-		return 0;
-	}
-
-	static string[] filesof(IntPtr data) {
-		if (data == IntPtr.Zero) return null;
-		var obj = (IOleDataObject)Marshal.GetObjectForIUnknown(data);
-		try {
-			var fmt = new FormatEtc {
-				cfFormat = 15,
-				dwAspect = 1,
-				lindex = -1,
-				tymed = 1,
-			};
-			if (obj.GetData(ref fmt, out var med) != 0 || med.data == IntPtr.Zero) return null;
-			try {
-				uint n = DragQueryFile(med.data, 0xFFFFFFFF, null, 0);
-				if (n == 0) return null;
-				var list = new string[n];
-				var sb = new StringBuilder(1024);
-				for (uint i = 0; i < n; i++) {
-					sb.Clear();
-					if (DragQueryFile(med.data, i, sb, sb.Capacity) == 0) return null;
-					list[i] = sb.ToString();
-				}
-				return list;
-			}
-			finally { ReleaseStgMedium(ref med); }
-		}
-		finally { Marshal.ReleaseComObject(obj); }
-	}
-
-	[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-	static extern uint DragQueryFile(IntPtr drop, uint index, StringBuilder file, int len);
-	[DllImport("ole32.dll")] static extern void ReleaseStgMedium(ref StgMedium medium);
-}
-
-[ComImport, Guid("00000122-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IOleDropTarget {
-	[PreserveSig] int DragEnter(IntPtr data, uint key, PointL pt, ref uint effect);
-	[PreserveSig] int DragOver(uint key, PointL pt, ref uint effect);
-	[PreserveSig] int DragLeave();
-	[PreserveSig] int Drop(IntPtr data, uint key, PointL pt, ref uint effect);
-}
-
-[ComImport, Guid("0000010E-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-interface IOleDataObject {
-	[PreserveSig] int GetData(ref FormatEtc format, out StgMedium medium);
-}
-
-[StructLayout(LayoutKind.Sequential)]
-struct PointL {
-	public int x;
-	public int y;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-struct FormatEtc {
-	public short cfFormat;
-	public IntPtr ptd;
-	public int dwAspect;
-	public int lindex;
-	public int tymed;
-}
-
-[StructLayout(LayoutKind.Sequential)]
-struct StgMedium {
-	public int tymed;
-	public IntPtr data;
-	public IntPtr unk;
 }
