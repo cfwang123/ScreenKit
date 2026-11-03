@@ -643,14 +643,16 @@
 				st.enc = dec.enc;
 				$("rd-enc").value = st.enc;
 			}
-			render(st.text, st.ext);
-			var y = 0;
-			if (!jump) {
-				try { y = parseInt(localStorage.getItem("sk-reader-scroll." + name) || "0", 10) || 0; } catch (e) { y = 0; }
-			}
-			var sc = $("rd-scroll");
-			sc.scrollTop = y;
-			paintprog();
+			render(st.text, st.ext).then(function(){
+				if (mine !== st.token || st.cur !== name) return;
+				var y = 0;
+				if (!jump) {
+					try { y = parseInt(localStorage.getItem("sk-reader-scroll." + name) || "0", 10) || 0; } catch (e) { y = 0; }
+				}
+				var sc = $("rd-scroll");
+				sc.scrollTop = y;
+				paintprog();
+			});
 			setmsg("");
 		}).catch(function(e){
 			if (mine !== st.token) return;
@@ -917,6 +919,7 @@
 	}
 
 	// ==================== 正文 ====================
+	// 返回 Promise：md 要等片段回来才有内容，滚动位置恢复得等它落地
 	function render(text, ext){
 		var body = $("rd-body");
 		st.chap = [];
@@ -926,12 +929,13 @@
 		if (!md) {
 			body.innerHTML = txthtml(text);
 			marksents();
-			return;
+			return Promise.resolve();
 		}
 		// md 交给服务端，按 WPF 阅读器那份解析生成片段，几个阅读器的渲染结果才一致
 		var mine = ++st.token;
+		st.sent = [];
 		body.innerHTML = '<p class="rd-empty">' + esc(L("web.reader.loading", "正在打开…")) + "</p>";
-		fetchjson("/api/mdfrag", {
+		return fetchjson("/api/mdfrag", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ text: String(text || ""), sentence: 1 })

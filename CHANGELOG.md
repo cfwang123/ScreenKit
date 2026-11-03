@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Reader: dictionary tabs in the dictionary window stay switchable after picking a dictionary in the toolbar, and both stay in sync
 - Build no longer fails when minify.exe is missing from PATH; web minify is skipped instead.
 - Plot: 3D equations sample within the surface's own extent and pick grid density from its on-screen size, so the mesh no longer thins out after rotating
+- Share one Markdown-to-HTML renderer across the WPF reader, the web MD reader and the novel reader; novel reader MD text no longer renders in bold
 
 #### Fixed
 
@@ -100,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器：在工具栏选过词典后，词典窗口里的标签仍可切换，且与工具栏「词典」保持同步
 - 编译时 PATH 上没有 minify.exe 就跳过 web 压缩，不再报错。
 - 函数图像：三维方程按曲面实际占的范围加密采样，网格线疏密跟着画面大小走，转视角或松手后不再只剩几根线
+- Markdown 转 HTML 提取为 MdHtml 公共方法，WPF MD 阅读器、网页 MD 阅读器、小说阅读器共用一份渲染；小说阅读器 md 正文不再全部粗体
 
 #### 修复
 
