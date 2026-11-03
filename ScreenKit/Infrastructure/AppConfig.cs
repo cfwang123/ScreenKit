@@ -385,6 +385,10 @@ static class AppConfig {
 				o.FtpSrvUser = (ftu ?? "").Trim().Trim('"');
 			if (map.TryGetValue("ftpsrv_pass", out var ftp_))
 				o.FtpSrvPass = (ftp_ ?? "").Trim().Trim('"');
+			if (map.TryGetValue("tftp_enabled", out var tfe))
+				o.TftpEnabled = parsebool(tfe, false);
+			if (map.TryGetValue("tftp_port", out var tfp) && int.TryParse(tfp, out var tftpPort))
+				o.TftpPort = Compat.Clamp(tftpPort, 1, 65535);
 			if (map.TryGetValue("sendfile_enabled", out var sfe))
 				o.SendFileEnabled = parsebool(sfe, true);
 			if (map.TryGetValue("sendfile_udp_port", out var sfup) && int.TryParse(sfup, out var sfUdp))
@@ -843,7 +847,9 @@ static class AppConfig {
 		sb.AppendLine($"ftpsrv_root = \"{esc((o.FtpSrvRoot ?? "").Trim())}\"");
 		sb.AppendLine($"ftpsrv_user = \"{esc((o.FtpSrvUser ?? "").Trim())}\"");
 		sb.AppendLine($"ftpsrv_pass = \"{esc((o.FtpSrvPass ?? "").Trim())}\"");
-		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
+		sb.AppendLine($"# 简易 TFTP 服务端（UDP）。与 FTP 共用根目录；TFTP 协议没有登录，用户名密码对它无效");
+		sb.AppendLine($"tftp_enabled = {(o.TftpEnabled ? "true" : "false")}");
+		sb.AppendLine($"tftp_port = {Compat.Clamp(o.TftpPort <= 0 ? 69 : o.TftpPort, 1, 65535)}");		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 自建更新地址。空=仍查 GitHub。填写后请求该地址下的 latest.json，以及 changelog.json 或 releases.json");
 		sb.AppendLine($"update_url = \"{esc((o.UpdateUrl ?? "").Trim())}\"");

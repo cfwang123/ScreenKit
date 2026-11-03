@@ -8,6 +8,7 @@ namespace ScreenKit;
 /// </summary>
 public partial class MainWindow {
 	readonly FtpServer ftpsrv = new();
+	readonly TftpServer tftpsrv = new();
 	readonly List<string> ftpsrvLog = new();
 	readonly object ftpsrvLogGate = new();
 	DispatcherTimer ftpsrvLogTick;
@@ -21,11 +22,13 @@ public partial class MainWindow {
 		ftpsrvLogTick.Tick += (_, _) => flushftpsrvlog();
 		ftpsrvLogTick.Start();
 		ftpsrv.Log = addftpsrvlog;
+		tftpsrv.Log = addftpsrvlog;
 		ftpsrvLoading = true;
 		eftpsrvdir.Text = opt.FtpSrvRoot ?? "";
 		eftpsrvport.Text = opt.FtpSrvPort <= 0 ? "21" : opt.FtpSrvPort.ToString();
 		eftpsrvuser.Text = opt.FtpSrvUser ?? "";
 		eftpsrvpass.Password = opt.FtpSrvPass ?? "";
+		etftpport.Text = opt.TftpPort <= 0 ? "69" : opt.TftpPort.ToString();
 		ftpsrvLoading = false;
 		applyftpsrvlang();
 		updateftpsrvhint();
@@ -38,6 +41,12 @@ public partial class MainWindow {
 			updateftpsrvhint();
 		};
 		eftpsrvpass.LostFocus += (_, _) => saveftpsrvopts();
+		etftpport.LostFocus += (_, _) => savetftpopts();
+		etftpport.KeyDown += (_, e) => {
+			if (e.Key != Key.Enter) return;
+			e.Handled = true;
+			savetftpopts();
+		};
 		eftpsrvdir.KeyDown += (_, e) => {
 			if (e.Key != Key.Enter) return;
 			e.Handled = true;
@@ -60,6 +69,7 @@ public partial class MainWindow {
 			saveftpsrvopts();
 		};
 		bftpsrvtoggle.Click += (_, _) => toggleftpsrv();
+		btftptoggle.Click += (_, _) => toggletftp();
 		bftpsrvbrowse.Click += (_, _) => browseftpsrvdir();
 		bftpsrvclear.Click += (_, _) => {
 			lock (ftpsrvLogGate) {
@@ -82,6 +92,9 @@ public partial class MainWindow {
 		bftpsrvbrowse.Content = Loc.T("ftpsrv.browse");
 		bftpsrvclear.Content = Loc.T("ftpsrv.clear");
 		lbftpsrvhint.Text = Loc.T("ftpsrv.hint");
+		lbftpsrvtftp.Text = Loc.T("ftpsrv.tftp");
+		lbftpsrvtftphint.Text = Loc.T("ftpsrv.tftp.hint");
+		lbftpsrvtftpport.Text = Loc.T("ftpsrv.tftp.port");
 	}
 
 	/// <summary>用户名留空就是匿名，提示里说明当前是哪种。</summary>
@@ -144,6 +157,7 @@ public partial class MainWindow {
 			addftpsrvlog(string.Format(Loc.T("ftpsrv.startfail"), ex.Message));
 		}
 		syncftpsrvui();
+		synctftpui();
 		syncftpsrvstatus();
 	}
 
@@ -155,6 +169,7 @@ public partial class MainWindow {
 			try { AppConfig.Save(opt); } catch { }
 		}
 		syncftpsrvui();
+		synctftpui();
 		syncftpsrvstatus();
 	}
 
@@ -171,11 +186,66 @@ public partial class MainWindow {
 		eftpsrvuser.IsEnabled = !on;
 		eftpsrvpass.IsEnabled = !on;
 		bftpsrvbrowse.IsEnabled = !on;
+		// TFTP 与 FTP 共用目录，目录被锁时 TFTP 也一起锁
+		etftpport.IsEnabled = !on && !tftpsrv.IsRunning;
+	}
+
+	void savetftpopts() {
+		if (ftpsrvLoading) return;
+		opt.TftpPort = int.TryParse((etftpport.Text ?? "").Trim(), out var p) && p >= 1 && p <= 65535
+			? p : 69;
+		// 根目录与 FTP 共用，这里不动 FtpSrvRoot
+		try { AppConfig.Save(opt); } catch { }
+	}
+
+	void toggletftp() {
+		if (tftpsrv.IsRunning) stoptftp();
+		else starttftp();
+	}
+
+	void starttftp() {
+		savetftpopts();
+		opt.TftpEnabled = true;
+		try { AppConfig.Save(opt); } catch { }
+		try {
+			tftpsrv.Start(opt.TftpOpts());
+			addftpsrvlog(string.Format(Loc.T("tftpsrv.started"), tftpsrv.Port));
+		}
+		catch (Exception ex) {
+			opt.TftpEnabled = false;
+			try { AppConfig.Save(opt); } catch { }
+			addftpsrvlog(string.Format(Loc.T("tftpsrv.startfail"), ex.Message));
+		}
+		synctftpui();
+		syncftpsrvstatus();
+	}
+
+	void stoptftp() {
+		try { tftpsrv.Stop(); } catch { }
+		addftpsrvlog(Loc.T("tftpsrv.stopped"));
+		if (!ftpsrvLoading) {
+			opt.TftpEnabled = false;
+			try { AppConfig.Save(opt); } catch { }
+		}
+		synctftpui();
+		syncftpsrvstatus();
+	}
+
+	/// <summary>按 TFTP 服务实际状态刷新开关文字、端口可编辑性和状态行。</summary>
+	void synctftpui() {
+		if (btftptoggle == null) return;
+		var on = tftpsrv.IsRunning;
+		btftptoggle.Content = on ? Loc.T("tftpsrv.stop") : Loc.T("tftpsrv.start");
+		lbftpsrvtftpstat.Text = on
+			? string.Format(Loc.T("tftpsrv.running"), tftpsrv.Port)
+			: Loc.T("tftpsrv.off");
+		etftpport.IsEnabled = !on;
 	}
 
 	/// <summary>启动时按配置决定要不要拉起服务。</summary>
 	void bootftpsrv() {
 		if (tabftpsrv != null && !opt.TabFtpSrvVisible) return;
+		boottftp();
 		if (!opt.FtpSrvEnabled) {
 			syncftpsrvstatus();
 			return;
@@ -190,14 +260,34 @@ public partial class MainWindow {
 			addftpsrvlog(string.Format(Loc.T("ftpsrv.startfail"), ex.Message));
 		}
 		syncftpsrvui();
+		synctftpui();
 		syncftpsrvstatus();
+	}
+
+	/// <summary>启动时按配置决定要不要拉起 TFTP。</summary>
+	void boottftp() {
+		synctftpui();
+		if (!opt.TftpEnabled) return;
+		try {
+			tftpsrv.Start(opt.TftpOpts());
+			addftpsrvlog(string.Format(Loc.T("tftpsrv.started"), tftpsrv.Port));
+		}
+		catch (Exception ex) {
+			opt.TftpEnabled = false;
+			try { AppConfig.Save(opt); } catch { }
+			addftpsrvlog(string.Format(Loc.T("tftpsrv.startfail"), ex.Message));
+		}
+		synctftpui();
 	}
 
 	/// <summary>功能开关切换时调用：隐藏页面就停服务。</summary>
 	void applyftpsrvvisible() {
 		if (tabftpsrv != null) tabftpsrv.Visibility = opt.TabFtpSrvVisible
 			? Visibility.Visible : Visibility.Collapsed;
-		if (!opt.TabFtpSrvVisible && ftpsrv.IsRunning) stopftpsrv();
+		if (!opt.TabFtpSrvVisible) {
+			if (ftpsrv.IsRunning) stopftpsrv();
+			if (tftpsrv.IsRunning) stoptftp();
+		}
 		else syncftpsrvstatus();
 	}
 
@@ -220,11 +310,16 @@ public partial class MainWindow {
 		catch { }
 	}
 
-	/// <summary>把服务状态写到状态栏（FTP:21）。</summary>
+	/// <summary>把服务状态写到状态栏：FTP:21、TFTP:69，各自独立显示。</summary>
 	void syncftpsrvstatus() {
 		if (bstftpsrv == null) return;
-		var on = ftpsrv.IsRunning && ftpsrv.Port > 0;
-		bstftpsrv.Text = on ? string.Format(Loc.T("stbar.ftpsrv"), ftpsrv.Port) : "";
+		var ftpOn = ftpsrv.IsRunning && ftpsrv.Port > 0;
+		var tftpOn = tftpsrv.IsRunning && tftpsrv.Port > 0;
+		var parts = new List<string>();
+		if (ftpOn) parts.Add(string.Format(Loc.T("stbar.ftpsrv"), ftpsrv.Port));
+		if (tftpOn) parts.Add(string.Format(Loc.T("stbar.tftpsrv"), tftpsrv.Port));
+		bstftpsrv.Text = string.Join(" · ", parts);
+		var on = parts.Count > 0;
 		bstftpsrv.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
 		if (lstftpsrvsep != null)
 			lstftpsrvsep.Visibility = on ? Visibility.Visible : Visibility.Collapsed;

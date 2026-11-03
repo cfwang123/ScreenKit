@@ -92,6 +92,7 @@ static class Cli {
 				or "--test-ftp"
 				or "--test-ftp-drag"
 				or "--test-ftpsrv"
+				or "--test-tftpsrv"
 				or "--test-udpdbg"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
@@ -304,6 +305,8 @@ static class Cli {
 					return testftpdrag(args, i);
 				case "--test-ftpsrv":
 					return testftpsrv();
+				case "--test-tftpsrv":
+					return testtftpsrv();
 				case "--test-rtspsrv":
 					return RtspTestSrv.Test(Out, Err);
 				case "--test-sendfile":
@@ -2695,6 +2698,14 @@ static class Cli {
 		s = s ?? "";
 		if (s.Length <= max) return s;
 		return s.Substring(0, max) + "…";
+	}
+
+	/// <summary>简易 TFTP 服务端自测：临时目录起服务，用自写客户端走下载、上传、选项协商、多块与越界。</summary>
+	static int testtftpsrv() {
+		Out("=== TFTP 服务端自测 ===");
+		var rc = TftpServerSelfTest.Run(Out, Err);
+		Out(rc == 0 ? "全部通过" : $"自测失败 rc={rc}");
+		return rc;
 	}
 
 	/// <summary>简易 FTP 服务端自测：临时目录起服务，用原始命令走完登录、列目录、上下传、改名、删除。</summary>

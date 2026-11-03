@@ -389,6 +389,17 @@ public sealed class OcrOptions {
 	public string FtpSrvUser = "";
 	public string FtpSrvPass = "";
 
+	/// <summary>TFTP 服务端。与 FTP 共用根目录和用户名密码；默认关闭，端口 69。</summary>
+	public bool TftpEnabled;
+	public int TftpPort = 69;
+
+	/// <summary>TFTP 选项。目录沿用 FTP 的设置，用户参数对 TFTP 无效（协议本身没有登录）。</summary>
+	public TftpOptions TftpOpts() => new() {
+		Enabled = TftpEnabled,
+		Port = TftpPort,
+		Root = FtpSrvRoot,
+	};
+
 	/// <summary>把配置里的字段收成一个服务选项对象。</summary>
 	public FtpSrvOptions FtpSrvOpts() => new() {
 		Enabled = FtpSrvEnabled,

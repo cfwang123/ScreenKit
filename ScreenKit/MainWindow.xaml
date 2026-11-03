@@ -228,7 +228,7 @@
 				          AutomationProperties.AutomationId="menu.cat.talk"/>
 				<MenuItem x:Name="mnnetgroup" Header="网络工具(_N)"
 				          AutomationProperties.AutomationId="menu.netgroup"
-				          ToolTip="网络工具、HTTP 请求调试、MQTT、UDP 调试、SOAP 接口调试、端口占用和数据库查询">
+				          ToolTip="网络工具、HTTP 请求调试、MQTT、TCP/UDP 调试、SOAP 接口调试、端口占用和数据库查询">
 					<MenuItem x:Name="mnnet" Header="网络工具(_N)…"
 					          AutomationProperties.AutomationId="menu.net"
 					          ToolTip="Ping、域名解析、端口测试、网络唤醒和网络发现"/>
@@ -238,9 +238,9 @@
 					<MenuItem x:Name="mnmqtt" Header="MQTT 调试(_Q)…"
 					          AutomationProperties.AutomationId="menu.mqtt"
 					          ToolTip="连 MQTT 服务器收发消息，也能在本机起一个服务端"/>
-					<MenuItem x:Name="mnudpdbg" Header="UDP 调试(_P)…"
+					<MenuItem x:Name="mnudpdbg" Header="TCP/UDP 调试(_P)…"
 					          AutomationProperties.AutomationId="menu.udpdbg"
-					          ToolTip="监听一个 UDP 端口，发送 hex 或文本报文，收到后可自动回复"/>
+					          ToolTip="TCP 可连接或监听，UDP 可发送或监听，报文按 hex 或文本收发"/>
 					<MenuItem x:Name="mnsoapdbg" Header="SOAP 接口调试(_S)…"
 					          AutomationProperties.AutomationId="menu.soapdbg"
 					          ToolTip="读取 WSDL，调试 SOAP 接口并启动本地模拟服务"/>
@@ -2386,6 +2386,28 @@
 								        Style="{StaticResource ToolBtn}" Height="32" MinWidth="96"
 								        HorizontalAlignment="Left" Padding="14,4"
 								        AutomationProperties.AutomationId="ftpsrv.toggle"/>
+								<Border Height="1" Background="{StaticResource BorderSoft}" Margin="0,14,0,0"/>
+								<TextBlock x:Name="lbftpsrvtftp" Text="TFTP" FontWeight="SemiBold"
+								           Margin="0,12,0,0" FontSize="13"
+								           Foreground="{StaticResource TextPrimary}"/>
+								<TextBlock x:Name="lbftpsrvtftphint" Margin="0,4,0,0" FontSize="11"
+								           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>
+								<TextBlock x:Name="lbftpsrvtftpport" Text="TFTP 端口" Margin="0,8,0,4"
+								           FontSize="12" Foreground="{StaticResource TextMuted}"/>
+								<DockPanel>
+									<Button x:Name="btftptoggle" DockPanel.Dock="Right" Content="启用"
+									        Style="{StaticResource ToolBtn}" Height="30" MinWidth="76"
+									        Margin="6,0,0,0" Padding="10,2"
+									        AutomationProperties.AutomationId="ftpsrv.tftp.toggle"/>
+									<TextBox x:Name="etftpport" Height="30" Padding="6,3" Width="100"
+									         HorizontalAlignment="Left"
+									         VerticalContentAlignment="Center"
+									         BorderBrush="{StaticResource BorderSoft}"
+									         AutomationProperties.AutomationId="ftpsrv.tftp.port"/>
+								</DockPanel>
+								<TextBlock x:Name="lbftpsrvtftpstat" Text="未启用" FontSize="12" Margin="0,6,0,0"
+								           Foreground="{StaticResource TextMuted}"
+								           AutomationProperties.AutomationId="ftpsrv.tftp.state"/>
 							</StackPanel>
 						</Border>
 						<Border Grid.Column="2" Background="{StaticResource BgPanel}" CornerRadius="12"

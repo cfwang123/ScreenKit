@@ -249,6 +249,10 @@ static class FtpServerSelfTest {
 					("bftpsrvbrowse", "浏览按钮"),
 					("lbftpsrvstat", "状态行"),
 					("eftpsrvlog", "日志框"),
+					("etftpport", "TFTP 端口输入框"),
+					("btftptoggle", "TFTP 启停按钮"),
+					("lbftpsrvtftpstat", "TFTP 状态行"),
+					("lbftpsrvtftphint", "TFTP 说明"),
 				}) {
 					if (w.FindName(name) == null) bad($"缺 {desc}({name})");
 					else ok($"{desc} 在");
@@ -273,6 +277,19 @@ static class FtpServerSelfTest {
 				else ok("用户名留空=匿名");
 				if (o.TabFtpSrvVisible) bad("TabFtpSrvVisible 默认应为 false");
 				else ok("默认不显示页面");
+
+				// TFTP：默认关、端口 69、目录跟 FTP 共用
+				if (o.TftpEnabled) bad("TftpEnabled 默认应为 false");
+				else ok("TFTP 默认不启用");
+				if (o.TftpPort != 69) bad($"TFTP 默认端口应为 69，实际 {o.TftpPort}");
+				else ok("TFTP 默认端口 69");
+				var shared = new OcrOptions { FtpSrvRoot = @"D:\shared-test" };
+				if (shared.TftpOpts().Root != @"D:\shared-test")
+					bad("TFTP 没跟 FTP 共用根目录");
+				else ok("TFTP 与 FTP 共用根目录");
+				var tftpBogus = new TftpOptions { Port = 99999 };
+				if (tftpBogus.PortOr() != 69) bad("TFTP 越界端口没退回 69");
+				else ok("TFTP 越界端口退回 69");
 
 				// 端口越界回收
 				var bogus = new FtpSrvOptions { Port = 99999 };

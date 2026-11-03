@@ -854,6 +854,7 @@ public partial class NetProbeWindow : Window {
 			MessageBox.Show(this, env, "网络监控", MessageBoxButton.OK, MessageBoxImage.Warning);
 			return;
 		}
+		var wasRunning = GlobalPacketCapture.Instance.IsRunning;
 		if (pids != null && pids.Count > 0) {
 			var keys = collectConnKeysForPids(pids);
 			GlobalPacketCapture.Instance.SetProcessFilter(pids, keys);
@@ -861,7 +862,7 @@ public partial class NetProbeWindow : Window {
 			GlobalPacketCapture.Instance.ClearProcessFilter();
 		}
 		mon.KeepHistory = true;
-		if (!GlobalPacketCapture.Instance.IsRunning) {
+		if (!wasRunning) {
 			GlobalPacketCapture.Instance.Start();
 			if (!GlobalPacketCapture.Instance.IsRunning) {
 				MessageBox.Show(this, GlobalPacketCapture.Instance.Status, "网络监控",
@@ -869,6 +870,11 @@ public partial class NetProbeWindow : Window {
 				if (!GlobalPacketCapture.Instance.HasSession) mon.KeepHistory = false;
 				return;
 			}
+		}
+		// 从停止状态开始抓包：清掉上一轮的报文与已断开连接，列表从头开始
+		if (!wasRunning) {
+			GlobalPacketCapture.Instance.ClearAll();
+			mon.ClearConnectionHistory();
 		}
 		clearCapListUi(skipExistingCache: true);
 		capListFrozen = false;
@@ -880,6 +886,8 @@ public partial class NetProbeWindow : Window {
 		Title = pids != null && pids.Count > 0
 			? $"系统网络监控 【抓包中 · PID {string.Join(",", pids)}】"
 			: "系统网络监控 【抓包中】";
+		// 开始抓包就直接切到抓包列表，省得再手动点一次
+		if (tabs != null && tabs.SelectedIndex != 1) tabs.SelectedIndex = 1;
 	}
 
 	/// <summary>
@@ -943,13 +951,9 @@ public partial class NetProbeWindow : Window {
 
 	void mnproccap_Click() {
 		List<int> pids = new();
-		List<string> names = new();
 		if (dgproc?.SelectedItems != null) {
 			foreach (var o in dgproc.SelectedItems) {
-				if (o is ProcessNetRow p && p.Pid > 0) {
-					pids.Add(p.Pid);
-					names.Add($"{p.ProcessName}({p.Pid})");
-				}
+				if (o is ProcessNetRow p && p.Pid > 0) pids.Add(p.Pid);
 			}
 		}
 		if (pids.Count == 0) {
@@ -961,9 +965,6 @@ public partial class NetProbeWindow : Window {
 		updateCapButtons();
 		updateTitles();
 		updateStatusText();
-		MessageBox.Show(this,
-			$"已针对 {pids.Count} 个进程开始/继续抓包：\n{string.Join(", ", names)}\n仅缓存这些进程相关连接的 TCP/UDP 报文。",
-			"抓包", MessageBoxButton.OK, MessageBoxImage.Information);
 	}
 
 	void mnproccapall_Click() {

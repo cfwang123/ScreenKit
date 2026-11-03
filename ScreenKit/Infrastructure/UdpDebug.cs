@@ -61,6 +61,8 @@ static class UdpDebug {
 		public bool Reply { get; set; }
 		public bool Scroll { get; set; } = true;
 		public int Enc { get; set; }
+		/// <summary>0 为 UDP，1 为 TCP。</summary>
+		public int Proto { get; set; }
 	}
 
 	const string SECTION = "udplast";
@@ -145,6 +147,9 @@ static class UdpDebug {
 		var echoed = a.Receive(ref back);
 		if (echoed.Length != 1 || echoed[0] != 0x10 || back.Port != bp.Port) return "reply";
 
+		var tcp = tcpprobe();
+		if (tcp.Length > 0) return tcp;
+
 		var path = Path.Combine(Path.GetTempPath(), "sk-udpdbg-" + Guid.NewGuid().ToString("N") + ".json");
 		try {
 			DataStore.UsePath(path);
@@ -159,5 +164,29 @@ static class UdpDebug {
 			try { File.Delete(path); } catch { }
 		}
 		return "";
+	}
+
+	/// <summary>TCP 回环：客户端连上、发出、服务端读到并回，客户端再读到。</summary>
+	static string tcpprobe() {
+		var listener = new TcpListener(IPAddress.Loopback, 0);
+		listener.Start();
+		try {
+			var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+			using var client = new TcpClient();
+			client.Connect(IPAddress.Loopback, port);
+			using var accepted = listener.AcceptTcpClient();
+			var payload = Parse("10", true, Encoding.UTF8);
+			client.GetStream().Write(payload, 0, payload.Length);
+			var buf = new byte[8];
+			var n = accepted.GetStream().Read(buf, 0, buf.Length);
+			if (n != 1 || buf[0] != 0x10) return "tcp recv";
+			accepted.GetStream().Write(payload, 0, payload.Length);
+			var back = new byte[8];
+			var m = client.GetStream().Read(back, 0, back.Length);
+			if (m != 1 || back[0] != 0x10) return "tcp reply";
+			return "";
+		}
+		catch (Exception ex) { return "tcp " + ex.Message; }
+		finally { try { listener.Stop(); } catch { } }
 	}
 }

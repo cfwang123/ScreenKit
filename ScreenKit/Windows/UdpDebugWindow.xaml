@@ -1,7 +1,7 @@
 <Window x:Class="ScreenKit.UdpDebugWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="UDP 调试"
+        Title="TCP/UDP 调试"
         Width="820" Height="640"
         MinWidth="640" MinHeight="460"
         WindowStartupLocation="CenterOwner"
@@ -19,6 +19,12 @@
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="False">
+			<RadioButton x:Name="rudp" Content="UDP" GroupName="sockproto" IsChecked="True"
+			             VerticalAlignment="Center" Margin="0,0,10,0"
+			             AutomationProperties.AutomationId="udpdbg.proto.udp"/>
+			<RadioButton x:Name="rtcp" Content="TCP" GroupName="sockproto"
+			             VerticalAlignment="Center" Margin="0,0,14,0"
+			             AutomationProperties.AutomationId="udpdbg.proto.tcp"/>
 			<CheckBox x:Name="chexshow" Content="hex 显示" VerticalAlignment="Center" Margin="0,0,12,0"
 			          AutomationProperties.AutomationId="udpdbg.hexshow"/>
 			<TextBlock x:Name="lbenc" Text="编码" VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -74,8 +80,10 @@
 			<TextBlock x:Name="lbms" Text="ms" VerticalAlignment="Center" Margin="0,0,14,0"/>
 			<CheckBox x:Name="creply" Content="自动回复" VerticalAlignment="Center" Margin="0,0,14,0"
 			          AutomationProperties.AutomationId="udpdbg.reply"/>
-			<Button x:Name="bsend" Style="{StaticResource ToolBtn}"
+			<Button x:Name="bsend" Style="{StaticResource ToolBtn}" Margin="0,0,8,0"
 			        AutomationProperties.AutomationId="udpdbg.send"/>
+			<Button x:Name="bconnect" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="udpdbg.connect"/>
 		</DockPanel>
 		<TextBox x:Name="epayload" Grid.Row="4" Margin="0,8,0,0" AcceptsReturn="True"
 		         FontFamily="Consolas, Microsoft YaHei UI" FontSize="13"

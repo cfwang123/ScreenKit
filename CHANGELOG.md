@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - UDP debugger: listen on one local port, send hex or text to a remote address, repeat on a timer, and auto-reply with the typed payload
 - Tools > Network adds Network Monitor: per-process connections, send/receive bytes and rates from TCP ESTATS, plus a packet capture tab with protocol parsing, per-connection packet view, HTTP stream reassembly and pcapng import/export.
 - Built-in simple FTP server: set the root folder, port and one user name and password; leave the user name empty for anonymous access. It can be started from the FTP server tab or left to start with the program, and the status bar shows the listening port.
+- The built-in file server now also speaks TFTP on its own UDP port: share the same folder and start or stop FTP and TFTP independently, with both ports shown in the status bar.
 
 #### Changed
 
@@ -140,6 +141,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增 UDP 调试：监听一个本机端口，按 hex 或文本发到对方地址，可定时重复发送，收到报文时按输入内容自动回复
 - 工具 → 网络工具 新增网络监控：按进程看连接与收发字节、速率（基于 TCP ESTATS），另有抓包页，可解析协议、看单连接报文、重组 HTTP 明文流，并导入导出 pcapng。
 - 内置简易 FTP 服务：可设置根目录、端口和一个用户名密码，用户名留空则允许匿名访问。可在「FTP服务」页就地启停，也能随程序启动；启用后状态栏显示监听端口。
+- 内置文件服务新增 TFTP，用独立的 UDP 端口：与 FTP 共用同一个目录，FTP 和 TFTP 可以分别启停，状态栏同时显示两个端口。
 
 #### 变更
 
