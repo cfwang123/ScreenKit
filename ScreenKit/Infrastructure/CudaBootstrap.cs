@@ -552,6 +552,7 @@ static class CudaBootstrap {
 
 	static void writelog(StringBuilder log) {
 		LastReport = log.ToString();
+		if (!CaptureLog.Enabled) return;
 		try {
 			var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 			Directory.CreateDirectory(logDir);
@@ -850,6 +851,7 @@ static class CudaBootstrap {
 	}
 
 	static void writelogfile() {
+		if (!CaptureLog.Enabled) return;
 		try {
 			var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 			Directory.CreateDirectory(logDir);

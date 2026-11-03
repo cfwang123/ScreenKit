@@ -36,7 +36,9 @@ public partial class App : System.Windows.Application {
 
 		// USB AOA：独立进程请求配件并桥接 TCP，主进程绝不碰 LibUsb
 		if (args.Any(a => a == "--cast-aoa")) {
+			AppConfig.initlogswitch();
 			void lg(string s) {
+				if (!CaptureLog.Enabled) return;
 				try {
 					var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 					Directory.CreateDirectory(dir);
@@ -106,7 +108,10 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		AppConfig.initlogswitch();
+
 		void sesslog(string s) {
+			if (!CaptureLog.Enabled) return;
 			try {
 				var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 				Directory.CreateDirectory(dir);
@@ -191,6 +196,7 @@ public partial class App : System.Windows.Application {
 			}
 			catch { }
 		}
+		if (!CaptureLog.Enabled) return;
 		try {
 			var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 			Directory.CreateDirectory(logDir);

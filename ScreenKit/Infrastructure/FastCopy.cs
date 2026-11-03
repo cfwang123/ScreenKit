@@ -1262,6 +1262,7 @@ public static class FastCopy {
 	}
 
 	static void fclog(string s) {
+		if (!CaptureLog.Enabled) return;
 		try {
 			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 			Directory.CreateDirectory(dir);

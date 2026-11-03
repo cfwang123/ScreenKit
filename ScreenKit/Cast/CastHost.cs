@@ -446,13 +446,15 @@ static class CastHost {
 	}
 
 	static void log(string s) {
-		try {
-			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
-			Directory.CreateDirectory(dir);
-			File.AppendAllText(Path.Combine(dir, "cast_sess.txt"),
-				$"{DateTime.Now:HH:mm:ss} {s}\n");
+		if (CaptureLog.Enabled) {
+			try {
+				var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+				Directory.CreateDirectory(dir);
+				File.AppendAllText(Path.Combine(dir, "cast_sess.txt"),
+					$"{DateTime.Now:HH:mm:ss} {s}\n");
+			}
+			catch { }
 		}
-		catch { }
 		ui(() => set?.AppendLog(s));
 	}
 

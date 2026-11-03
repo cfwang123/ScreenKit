@@ -9,11 +9,15 @@ static class DocViewLog {
 	static readonly object Gate = new();
 	static string logFile;
 
+	/// <summary>是否写入 log/docview_日期.log；由 config.toml 的 capture_log 控制，默认关闭。</summary>
+	public static bool Enabled { get; set; }
+
 	public static void Info(string msg) => write("I", msg, null);
 	public static void Warn(string msg) => write("W", msg, null);
 	public static void Error(string msg, Exception ex = null) => write("E", msg, ex);
 
 	static void write(string level, string msg, Exception ex) {
+		if (!Enabled) return;
 		try {
 			ensure();
 			var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {msg}";

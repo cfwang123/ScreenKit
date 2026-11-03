@@ -84,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Document reader: Office parser libraries (OpenXml for docx/xlsx, NPOI for doc/xls) are installable features instead of shipping with the app; the toolbar is now a row of uniform icon buttons with page and find boxes inline
 - Install features: the document reader is one line under Tools that installs both Word/Excel parser sets at once, matching the single database-driver line
 - All user data besides config.toml now lives in one data.json beside the exe: desk note, performance window, database connections, HTTP debug requests, and the document reader's history and tabs. The separate note.json, perf.json, sql-conns.json, httpdbg.json and mdread.json files are gone
+- Diagnostic logs follow capture_log: cast_sess, cuda_bootstrap, cast.log, fc.txt and the document viewer log are no longer written when it is off
 
 #### Fixed
 
@@ -141,6 +142,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文档阅读器：docx/xlsx 与 doc/xls 的解析库改成可安装功能，不再随包发；工具栏改成一行统一大小的图标按钮，页码和查找框直接放在行内
 - 安装功能：文档阅读器在工具集下只占一行，勾选即同时装两套 Word/Excel 解析库，与数据库驱动一致
 - 除 config.toml 以外的用户数据统一存到 exe 旁的 data.json：便笺、性能小窗、数据库连接、HTTP 调试请求、文档阅读器的历史与标签。原来分散的 note.json、perf.json、sql-conns.json、httpdbg.json、mdread.json 不再生成
+- 诊断日志统一受 capture_log 控制：关闭时不再写 cast_sess.txt、cuda_bootstrap.log、cast.log、fc.txt 和文档阅读器日志
 
 #### 修复
 

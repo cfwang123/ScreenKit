@@ -6426,11 +6426,41 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				pump();
 			}
 		}
+		// —— 关标签之后标签栏要还在、还能再操作 ——
+		if (bad == 0 && win.TabCount >= 2) {
+			Out("  before: " + win.DebugTabs());
+			var r1 = win.HotkeyClose();
+			Out("  hotkey: " + r1);
+			// 芯片数要跟标签数对上：对不上就是标签栏空掉了
+			if (!chipcountok(r1, win.TabCount)) {
+				Err("FAIL: Ctrl+W 后芯片数不等于标签数");
+				bad++;
+			}
+			var r2 = win.DragProbe();
+			Out("  drag: " + r2);
+			if (!chipcountok(r2, win.TabCount)) {
+				Err("FAIL: 拖拽探测后芯片数不等于标签数");
+				bad++;
+			}
+			if (r2.Contains("capture=null") == false) {
+				Err("FAIL: 拖拽结束后还留着鼠标捕获：" + r2);
+				bad++;
+			}
+		}
 		// --hold：把窗口留在那儿给外部脚本点关标签用，别自动收尾
 		if (hold) {
 			Out("holding window for external check");
 			var t1 = Environment.TickCount;
-			while (Environment.TickCount - t1 < 60000) pump();
+			var lastdump = 0;
+			while (Environment.TickCount - t1 < 60000) {
+				pump();
+				var el = Environment.TickCount - t1;
+				if (el - lastdump >= 2000) {
+					lastdump = el;
+					Out("  " + win.DebugTabs());
+					Out("    " + win.DebugChips());
+				}
+			}
 			try { win.Close(); } catch { }
 			return 0;
 		}
@@ -6439,6 +6469,14 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		if (bad == 0) bad += testmdtabs(cfg);
 		Out(bad == 0 ? "=== OK：文档阅读器 ===" : "=== FAIL：文档阅读器 ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	/// <summary>从 DebugTabs 的字符串里读 chips=N，和标签数比对。</summary>
+	static bool chipcountok(string dump, int want) {
+		if (string.IsNullOrEmpty(dump)) return false;
+		var m = System.Text.RegularExpressions.Regex.Match(dump, @"chips=(-?\d+)");
+		if (!m.Success) return false;
+		return int.TryParse(m.Groups[1].Value, out var n) && n == want;
 	}
 
 	/// <summary>

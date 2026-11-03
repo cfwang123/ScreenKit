@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.IO.Pipes;
 using ScreenKit.Json;
 
@@ -548,6 +548,7 @@ sealed class CastRecvSrv : IDisposable {
 	}
 
 	void writestat() {
+		if (!CaptureLog.Enabled) return;
 		try {
 			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 			Directory.CreateDirectory(dir);

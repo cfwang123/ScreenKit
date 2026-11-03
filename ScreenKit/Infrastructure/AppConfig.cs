@@ -11,6 +11,26 @@ static class AppConfig {
 	public static string ConfigPath =>
 		Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.toml");
 
+	/// <summary>
+	/// 启动早期（配置尚未 LoadInto 时）同步诊断日志开关。
+	/// 正常启动由 LoadInto 设置；这里只读 config.toml 的 capture_log，缺省关闭。
+	/// </summary>
+	public static void initlogswitch() {
+		var on = false;
+		try {
+			var path = ConfigPath;
+			if (File.Exists(path)) {
+				var map = parsetoml(File.ReadAllText(path, Encoding.UTF8));
+				if (map.TryGetValue("capture_log", out var cl))
+					on = parsebool(cl, false);
+			}
+		}
+		catch {
+			// 配置读不了就按关闭处理
+		}
+		applylogswitch(on);
+	}
+
 	public static void LoadInto(OcrOptions o) {
 		if (o == null) return;
 		var path = ConfigPath;
@@ -602,10 +622,11 @@ static class AppConfig {
 		LlmLog.Enabled = o.LlmLog;
 	}
 
-	/// <summary>统一诊断日志开关（CaptureLog + RecordLog）。</summary>
+	/// <summary>统一诊断日志开关（CaptureLog + RecordLog + DocViewLog）。</summary>
 	public static void applylogswitch(bool on) {
 		CaptureLog.Enabled = on;
 		RecordLog.Enabled = on;
+		DocView.DocViewLog.Enabled = on;
 	}
 
 	public static void Save(OcrOptions o) {

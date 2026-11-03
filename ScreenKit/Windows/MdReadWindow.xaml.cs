@@ -69,6 +69,7 @@ public partial class MdReadWindow : Window {
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
+		iniwatch();
 		livelist.Add(this);
 		Closed += (_, _) => livelist.Remove(this);
 	}
@@ -170,6 +171,84 @@ public partial class MdReadWindow : Window {
 
 	/// <summary>自测用：历史里最多记几条。</summary>
 	internal static int HistoryMax => MdReadState.HISTORY_MAX;
+
+	/// <summary>自测用：把标签与捕获的现状打出来，定位「芯片不见了」这类问题。</summary>
+	internal string DebugTabs() {
+		var cap = Mouse.Captured;
+		var capname = cap == null ? "null"
+			: cap.GetType().Name + "/" + (cap as FrameworkElement)?.Name
+				+ "/tag=" + ((cap as FrameworkElement)?.Tag is Tab ? "Tab" : "-");
+		var chips = tabhost?.Children.Count ?? -1;
+		var widths = new List<string>();
+		if (tabhost != null) {
+			foreach (var c in tabhost.Children)
+				if (c is FrameworkElement fe) widths.Add($"{fe.ActualWidth:0}x{fe.ActualHeight:0}");
+		}
+		return $"tabs={tabs.Count} chips={chips} cur={(cur == null ? "null" : cur.Name)}"
+			+ $" capture={capname} titlevis={ptitle?.Visibility} svtabs={(svtabs == null ? 0 : svtabs.ActualWidth):0}x{(svtabs == null ? 0 : svtabs.ActualHeight):0}"
+			+ $" hoff={(svtabs == null ? 0 : svtabs.HorizontalOffset):0}/{(svtabs == null ? 0 : svtabs.ScrollableWidth):0}"
+			+ $" chipx=[{chipxs()}]"
+			+ $" chipwh=[{string.Join(",", widths)}] hamburger={(mnhamburger?.IsSubmenuOpen == true ? "open" : "closed")}"
+			+ $" state={WindowState} left={Left:0} top={Top:0} drag={(dragtab == null ? "null" : "on")}";
+	}
+
+	/// <summary>每个芯片相对标签条左边缘的 X，负值或超出宽度就是看不见了。</summary>
+	string chipxs() {
+		var list = new List<string>();
+		if (tabhost == null || svtabs == null) return "";
+		foreach (var c in tabhost.Children) {
+			if (c is not FrameworkElement fe) continue;
+			try {
+				var p = fe.TransformToAncestor(svtabs).Transform(new Point(0, 0));
+				list.Add($"{p.X:0}");
+			}
+			catch { list.Add("?"); }
+		}
+		return string.Join(",", list);
+	}
+
+	/// <summary>自测用：芯片是否真的能看见（可见性、透明度、尺寸、父链）。</summary>
+	internal string DebugChips() {
+		var sb = new System.Text.StringBuilder();
+		sb.Append($"tabhost={(tabhost == null ? "null" : tabhost.Children.Count.ToString())}");
+		sb.Append($" hostvis={tabhost?.Visibility} hostopa={tabhost?.Opacity:0.##}");
+		sb.Append($" svvis={svtabs?.Visibility} svopa={svtabs?.Opacity:0.##}");
+		sb.Append($" svsize={svtabs?.ActualWidth:0}x{svtabs?.ActualHeight:0}");
+		if (tabhost != null) {
+			for (var i = 0; i < tabhost.Children.Count; i++) {
+				if (tabhost.Children[i] is not FrameworkElement fe) { sb.Append($" [{i}]notFE"); continue; }
+				var vis = fe.IsVisible ? "vis" : "HIDDEN";
+				var parent = fe.Parent == null ? "parentNull" : fe.Parent.GetType().Name;
+				sb.Append($" [{i}]{vis} opa={fe.Opacity:0.##} wh={fe.ActualWidth:0}x{fe.ActualHeight:0} p={parent}");
+			}
+		}
+		return sb.ToString();
+	}
+
+	/// <summary>自测用：模拟 Ctrl+W（走和真按键同一条路径），返回关掉后的状态。</summary>
+	internal string HotkeyClose() {
+		var t = cur;
+		onhotkey(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(this),
+			Environment.TickCount, Key.W) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+		Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+		return "closed=" + (t?.Name ?? "null") + " " + DebugTabs();
+	}
+
+	/// <summary>自测用：直接按住芯片走一遍拖拽判定的收尾，检查状态有没有留下垃圾。</summary>
+	internal string DragProbe() {
+		if (tabs.Count == 0) return "no tabs";
+		var head = tabs[0].Head;
+		if (head == null) return "no chip";
+		var screen = head.PointToScreen(new Point(2, 2));
+		dragtab = tabs[0];
+		draghead = head;
+		draggrab = new Point(2, 2);
+		dragging = true;
+		updatetabdrag(screen);
+		endtabdrag(false);
+		Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Loaded);
+		return "afterdrag " + DebugTabs();
+	}
 
 	/// <summary>自测用：把窗口内容渲染成 PNG，看排版是否真的有东西。</summary>
 	internal bool ShotTo(string path) {
@@ -573,10 +652,75 @@ public partial class MdReadWindow : Window {
 
 	// ==================== 标题栏 tab 芯片 ====================
 	#region
+	/// <summary>
+	/// 重建标签条。每个芯片单独兜底：某个标签建不出来时不能连累后面的，
+	/// 否则整条标签栏会空着（状态栏却还说着「共 N 个标签」）。
+	/// </summary>
 	void updatetabs() {
-		tabhost.Children.Clear();
-		foreach (var t in tabs) tabhost.Children.Add(maketab(t));
-		showstat();
+		try {
+			tabhost.Children.Clear();
+			foreach (var t in tabs) {
+				try {
+					var chip = maketab(t);
+					t.Head = chip;
+					tabhost.Children.Add(chip);
+				}
+				catch (Exception ex) {
+					DocView.DocViewLog.Error($"maketab {t?.Name}", ex);
+					CaptureLog.Ex("mdread maketab", ex);
+					// 退一步也要有个能点的芯片，免得这一个标签彻底消失
+					tabhost.Children.Add(maketabfallback(t));
+				}
+			}
+			tabhost.UpdateLayout();
+			showstat();
+		}
+		catch (Exception ex) {
+			DocView.DocViewLog.Error($"updatetabs tabs={tabs.Count}", ex);
+			CaptureLog.Ex("mdread updatetabs", ex);
+		}
+	}
+
+	void iniwatch() {
+		// 标签栏和标签列表不一致时重建一次：这能自愈「有标签但栏是空的」
+		tabhost.LayoutUpdated += (_, _) => {
+			try {
+				if (tabs.Count != tabhost.Children.Count && tabs.Count > 0) {
+					if (Environment.TickCount - lastheal < 400) return;
+					lastheal = Environment.TickCount;
+					DocView.DocViewLog.Warn(
+						$"tab strip out of sync: tabs={tabs.Count} chips={tabhost.Children.Count}, rebuilding");
+					Dispatcher.BeginInvoke(new Action(updatetabs),
+						System.Windows.Threading.DispatcherPriority.Background);
+				}
+			}
+			catch { }
+		};
+	}
+
+	/// <summary>上次自愈的时间，避免 LayoutUpdated 里反复重建。</summary>
+	int lastheal;
+
+	/// <summary>芯片建失败时的最小替代：只剩文件名，点了能切过去。</summary>
+	Border maketabfallback(Tab t) {
+		var bd = new Border {
+			Child = new TextBlock {
+				Text = t?.Name ?? "?",
+				FontSize = 12,
+				VerticalAlignment = VerticalAlignment.Center,
+				Margin = new Thickness(10, 0, 10, 0),
+			},
+			Padding = new Thickness(0),
+			Tag = t,
+			VerticalAlignment = VerticalAlignment.Stretch,
+			Background = Brushes.Transparent,
+			Cursor = Cursors.Hand,
+		};
+		bd.MouseLeftButtonDown += (_, e) => {
+			if (t != null) activatetab(t);
+			e.Handled = true;
+		};
+		return bd;
 	}
 
 	/// <summary>一个芯片：文件名 + 关闭叉。标题栏属于非客户区，芯片要单独标可命中才能点。</summary>
@@ -674,8 +818,7 @@ public partial class MdReadWindow : Window {
 		};
 		t.Head = bd;
 		paintchip(t);
-		return bd;
-	}
+		return bd;	}
 
 	void showtabstate() {
 		foreach (var t in tabs) paintchip(t);
@@ -847,12 +990,21 @@ public partial class MdReadWindow : Window {
 		}
 	}
 
-	/// <summary>清掉拖拽状态，不动标签本身。</summary>
+	/// <summary>清掉拖拽状态，不动标签本身。捕获一定要放，否则整扇窗之后收不到鼠标。</summary>
 	void cleardragstate() {
 		if (draghead != null) {
 			draghead.Opacity = 1;
 			draghead.Cursor = Cursors.Arrow;
+			try {
+				if (ReferenceEquals(Mouse.Captured, draghead)) draghead.ReleaseMouseCapture();
+			}
+			catch { }
 		}
+		// 芯片被重建过时 draghead 可能已脱离，按全局清一次更稳
+		try {
+			if (Mouse.Captured is Border b && b.Tag is Tab) Mouse.Capture(null);
+		}
+		catch { }
 		dragtab = null;
 		draghead = null;
 		dragging = false;
