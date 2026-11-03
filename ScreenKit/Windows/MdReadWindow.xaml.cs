@@ -39,6 +39,29 @@ public partial class MdReadWindow : Window {
 	string findtext = "";
 	/// <summary>窗口还没显示时攒下的待开文件。</summary>
 	readonly List<string> pending = new();
+	/// <summary>历史文件与上次的标签，存 mdread.json。</summary>
+	MdReadState state = new();
+	/// <summary>state 是否已经从磁盘读过；没读过就写会把别人的历史抹掉。</summary>
+	bool stateloaded;
+	/// <summary>自测时把状态文件指到临时目录，免得动真的 mdread.json。</summary>
+	internal static string StatePathOverride;
+	/// <summary>拆出去的子窗口（拖成独立窗口时建，关掉后自然消失）。</summary>
+	static readonly List<MdReadWindow> livelist = new();
+	/// <summary>true = 拖动标签拆出来的窗口，标签全关掉就自己关。</summary>
+	bool secondary;
+
+	// —— 标签拖拽 ——
+	/// <summary>拖动超过这个距离才算拖，避免误触。</summary>
+	const double TAB_DRAG_THRESHOLD = 6;
+	Tab dragtab;
+	FrameworkElement draghead;
+	Point dragstart;
+	Point draggrab;       // 抓点在芯片内的位置
+	bool dragging;
+	/// <summary>已经拆成独立窗口、窗口正跟手。</summary>
+	bool dragfloated;
+	/// <summary>拖拽期间正在跨窗搬标签，用来吞掉 LostCapture。</summary>
+	bool dragmoving;
 
 	public MdReadWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
@@ -48,6 +71,13 @@ public partial class MdReadWindow : Window {
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
+		livelist.Add(this);
+		Closed += (_, _) => livelist.Remove(this);
+	}
+
+	/// <summary>拆出来的子窗口：不进历史恢复，标签关完自动关窗。</summary>
+	MdReadWindow(OcrOptions o, bool isSecondary) : this(o) {
+		secondary = isSecondary;
 	}
 
 	/// <summary>打开一批文件；命令行和外部调用共用。</summary>
@@ -61,6 +91,25 @@ public partial class MdReadWindow : Window {
 			return;
 		}
 		opendrop(list.ToArray());
+	}
+
+	/// <summary>把上次关窗时开着的标签恢复回来；只开第一个，其余按需重建。</summary>
+	public void RestoreLastSession() {
+		loadstate();
+		var files = state.Tabs.Where(File.Exists).ToList();
+		if (files.Count == 0) return;
+		if (!IsLoaded) {
+			pending.AddRange(files);
+			return;
+		}
+		openrestored(files, state.ActiveTab);
+	}
+
+	/// <summary>读一次磁盘上的状态；只读一次，读过后就只在本进程里攒。</summary>
+	void loadstate() {
+		if (stateloaded) return;
+		stateloaded = true;
+		state = MdReadState.Load(StatePathOverride);
 	}
 
 	/// <summary>自测用：当前标签的阅读器状态文字。</summary>
@@ -77,6 +126,52 @@ public partial class MdReadWindow : Window {
 		if (i < 0 || i >= tabs.Count) return;
 		activatetab(tabs[i]);
 	}
+
+	/// <summary>自测用：当前标签顺序。</summary>
+	internal List<string> TabPaths => tabs.Select(t => t.Path).ToList();
+
+	/// <summary>自测用：「历史文件」菜单里的路径。</summary>
+	internal List<string> HistoryPaths =>
+		mnhistory.Items.OfType<MenuItem>()
+			.Where(m => m.Tag is string)
+			.Select(m => (string)m.Tag)
+			.ToList();
+
+	/// <summary>自测用：把第 i 个标签搬到第 to 个位置（模拟条内拖动落点）。</summary>
+	internal void MoveTab(int i, int to) {
+		if (i < 0 || i >= tabs.Count) return;
+		if (to < 0) to = 0;
+		if (to > tabs.Count) to = tabs.Count;
+		var t = tabs[i];
+		tabs.RemoveAt(i);
+		var adj = to > i ? to - 1 : to;
+		tabs.Insert(Math.Min(adj, tabs.Count), t);
+		updatetabs();
+		remember();
+	}
+
+	/// <summary>自测用：把第 i 个标签拆成本窗之外的新窗口，返回新窗口。</summary>
+	internal MdReadWindow DetachTabToWindow(int i) {
+		if (i < 0 || i >= tabs.Count) return null;
+		var t = tabs[i];
+		detacht(t);
+		var nw = new MdReadWindow(opt, isSecondary: true) { Width = 720, Height = 480 };
+		nw.adopttab(t);
+		nw.Show();
+		return nw;
+	}
+
+	/// <summary>自测用：接收另一个窗口的第 i 个标签（模拟拖入合并）。</summary>
+	internal bool PullTabFrom(MdReadWindow from, int i) {
+		if (from == null || i < 0 || i >= from.tabs.Count) return false;
+		var t = from.tabs[i];
+		from.detacht(t);
+		adopttab(t);
+		return tabs.Contains(t);
+	}
+
+	/// <summary>自测用：历史里最多记几条。</summary>
+	internal static int HistoryMax => MdReadState.HISTORY_MAX;
 
 	/// <summary>自测用：把窗口内容渲染成 PNG，看排版是否真的有东西。</summary>
 	internal bool ShotTo(string path) {
@@ -204,6 +299,7 @@ public partial class MdReadWindow : Window {
 				return;
 			}
 			if (tabs.Count == 0) showempty();
+			buildhistorymenu();
 		};
 		efind.TextChanged += (_, _) => {
 			findtext = efind.Text ?? "";
@@ -220,6 +316,7 @@ public partial class MdReadWindow : Window {
 			}
 		};
 		Closed += (_, _) => {
+			remember();
 			foreach (var t in tabs) dispose(t);
 			DocView.ImageOverlay.CloseIfOpen();
 		};
@@ -229,6 +326,8 @@ public partial class MdReadWindow : Window {
 		Title = Loc.T("mdread.title");
 		mnhamburger.ToolTip = Loc.T("mdread.menu");
 		mnopen.Header = Loc.T("mdread.open");
+		mnhistory.Header = Loc.T("mdread.history");
+		mnhistempty.Header = Loc.T("mdread.history.empty");
 		mnclose.Header = Loc.T("mdread.tabclose");
 		mncloseall.Header = Loc.T("mdread.closeall");
 		mnreload.Header = Loc.T("mdread.reload");
@@ -273,7 +372,87 @@ public partial class MdReadWindow : Window {
 		updatetabs();
 		// 一次拖入多个：最后进来的那个留在前台，前面的都在 tab 里。
 		activatetab(tabs[tabs.Count - 1]);
+		remember();
 		if (bad > 0) lbstat.Text = string.Format(Loc.T("mdread.bad.part"), opened, bad);
+	}
+
+	/// <summary>恢复上次的标签：一次建齐，选中上次看的那个。</summary>
+	void openrestored(List<string> files, int active) {
+		var opened = 0;
+		foreach (var f in files) {
+			if (openone(f)) opened++;
+		}
+		if (opened == 0) return;
+		updatetabs();
+		activatetab(tabs[Math.Min(Math.Max(0, active), tabs.Count - 1)]);
+	}
+
+	/// <summary>记住当前标签与历史，写 mdread.json。子窗口不写，免得把主窗状态盖掉。</summary>
+	void remember() {
+		if (secondary) return;
+		try {
+			// 没读过磁盘就写，会把上次的历史和标签覆盖成空的
+			loadstate();
+			state.History.RemoveAll(p => !File.Exists(p));
+			foreach (var t in tabs) state.Touch(t.Path);
+			var active = cur == null ? 0 : Math.Max(0, tabs.IndexOf(cur));
+			state.RememberTabs(tabs.Select(t => t.Path), active);
+			state.Save(StatePathOverride);
+			buildhistorymenu();
+		}
+		catch { }
+	}
+
+	/// <summary>重建「历史文件」子菜单；已开着的排前面并标出来。</summary>
+	void buildhistorymenu() {
+		if (mnhistory == null) return;
+		loadstate();
+		for (var i = mnhistory.Items.Count - 1; i >= 0; i--) {
+			if (!ReferenceEquals(mnhistory.Items[i], mnhistempty))
+				mnhistory.Items.RemoveAt(i);
+		}
+		var any = false;
+		foreach (var path in state.History) {
+			if (!File.Exists(path)) continue;
+			var open = tabs.Any(t => string.Equals(t.Path, path, StringComparison.OrdinalIgnoreCase));
+			var mi = new MenuItem {
+				Header = open ? "✓ " + compact(path) : compact(path),
+				ToolTip = path,
+				Tag = path,
+				IsEnabled = !open,
+			};
+			mi.Click += (_, _) => openhistory(path);
+			mnhistory.Items.Add(mi);
+			if (!any) {
+				mnhistory.Items.Remove(mnhistempty);
+				any = true;
+			}
+		}
+		if (!any && !mnhistory.Items.Contains(mnhistempty))
+			mnhistory.Items.Add(mnhistempty);
+		mnhistempty.Visibility = any ? Visibility.Collapsed : Visibility.Visible;
+	}
+
+	/// <summary>菜单里显示「文件名 — 上级目录」，太长再收一收。</summary>
+	static string compact(string path) {
+		try {
+			var name = System.IO.Path.GetFileName(path);
+			var dir = System.IO.Path.GetDirectoryName(path) ?? "";
+			var up = dir.Length == 0 ? "" : System.IO.Path.GetFileName(dir.TrimEnd('\\', '/'));
+			var s = up.Length > 0 ? name + " — " + up : name;
+			return s.Length > 60 ? s.Substring(0, 58) + "…" : s;
+		}
+		catch { return path ?? ""; }
+	}
+
+	void openhistory(string path) {
+		if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+		if (!openone(path)) {
+			lbstat.Text = Loc.T("mdread.bad");
+			return;
+		}
+		activatetab(tabs[tabs.Count - 1]);
+		remember();
 	}
 
 	/// <summary>同一个文件已经开着就直接切过去，不重复解析。</summary>
@@ -433,7 +612,41 @@ public partial class MdReadWindow : Window {
 				activatetab(t);
 				showstat();
 			}
+			// 记下抓点，鼠标移动超过阈值才开始拖
+			dragtab = t;
+			draghead = bd;
+			dragstart = e.GetPosition(this);
+			draggrab = e.GetPosition(bd);
+			dragging = false;
+			dragfloated = false;
+			bd.CaptureMouse();
 			e.Handled = true;
+		};
+		bd.PreviewMouseMove += (_, e) => {
+			if (dragtab == null) return;
+			if (e.LeftButton != MouseButtonState.Pressed) { endtabdrag(commit: false); return; }
+			if (!dragging) {
+				var now = e.GetPosition(this);
+				if (Math.Abs(now.X - dragstart.X) < TAB_DRAG_THRESHOLD
+					&& Math.Abs(now.Y - dragstart.Y) < TAB_DRAG_THRESHOLD) return;
+				dragging = true;
+				if (draghead != null) {
+					draghead.Opacity = 0.7;
+					draghead.Cursor = Cursors.SizeAll;
+				}
+			}
+			updatetabdrag(PointToScreen(e.GetPosition(this)));
+			e.Handled = true;
+		};
+		bd.PreviewMouseLeftButtonUp += (_, e) => {
+			if (dragtab == null) return;
+			endtabdrag(commit: true, PointToScreen(e.GetPosition(this)));
+			e.Handled = true;
+		};
+		bd.LostMouseCapture += (_, _) => {
+			// 跨窗搬标签时会主动放掉捕获，别当取消
+			if (dragmoving) return;
+			if (dragtab != null) endtabdrag(commit: false);
 		};
 		bd.MouseDown += (_, e) => {
 			if (e.ChangedButton != MouseButton.Middle) return;
@@ -447,6 +660,224 @@ public partial class MdReadWindow : Window {
 
 	void showtabstate() {
 		foreach (var t in tabs) paintchip(t);
+	}
+
+	// ---------- 标签拖拽：条内排序 / 拖出拆窗 / 拖回合并 ----------
+
+	/// <summary>拖动中：判断光标在哪个窗口的标签条上，决定排序、拆窗还是合并。</summary>
+	void updatetabdrag(Point screen) {
+		if (dragtab == null) return;
+		// 已拆成独立窗：窗口跟手；再次进入别的窗口标签条就并回去
+		if (dragfloated) {
+			try {
+				var dip = pointtodip(screen);
+				Left = dip.X - draggrab.X;
+				Top = dip.Y - draggrab.Y;
+			}
+			catch { }
+			var over = hitwindow(screen);
+			if (over != null && !ReferenceEquals(over, this))
+				mergetowindow(over, screen);
+			return;
+		}
+		var hit = hitwindow(screen);
+		if (hit == null) {
+			// 离开标签条：本窗还有别的标签就拆出去；只剩一个则不拆（否则留下空窗）
+			if (tabs.Count > 1) floatout(screen);
+			return;
+		}
+		if (ReferenceEquals(hit, this)) {
+			var to = insertindex(this, screen);
+			var from = tabs.IndexOf(dragtab);
+			if (from >= 0) {
+				var adj = to > from ? to - 1 : to;
+				if (adj != from && adj >= 0 && adj < tabs.Count) {
+					tabs.RemoveAt(from);
+					tabs.Insert(adj, dragtab);
+					updatetabs();
+				}
+			}
+		}
+		else {
+			mergetowindow(hit, screen);
+		}
+	}
+
+	/// <summary>
+	/// 光标落在哪个阅读器窗口的标签条上。排除自己，并优先取最新的窗口
+	/// （拆出去的新窗通常压在旧窗上面，位置又几乎重叠）。
+	/// </summary>
+	static MdReadWindow hitwindow(Point screen, MdReadWindow except = null) {
+		var list = livelist.ToList();
+		list.Reverse();
+		foreach (var w in list) {
+			if (w == null || ReferenceEquals(w, except)) continue;
+			if (!w.IsVisible || w.tabhost == null) continue;
+			try {
+				var tl = w.svtabs.PointToScreen(new Point(0, 0));
+				var br = w.svtabs.PointToScreen(
+					new Point(Math.Max(1, w.svtabs.ActualWidth), Math.Max(28, w.svtabs.ActualHeight)));
+				// 命中区略放大，向下拖出时更好抓
+				if (screen.X >= tl.X - 12 && screen.X <= br.X + 12
+					&& screen.Y >= tl.Y - 10 && screen.Y <= br.Y + 16)
+					return w;
+			}
+			catch { }
+		}
+		return null;
+	}
+
+	/// <summary>标签条上的插入位置（按芯片中线左右判断）。</summary>
+	static int insertindex(MdReadWindow w, Point screen) {
+		var n = w?.tabhost?.Children.Count ?? 0;
+		if (n == 0) return 0;
+		for (var i = 0; i < n; i++) {
+			if (w.tabhost.Children[i] is not FrameworkElement fe) continue;
+			try {
+				var tl = fe.PointToScreen(new Point(0, 0));
+				if (screen.X < tl.X + fe.ActualWidth * 0.5) return i;
+			}
+			catch { }
+		}
+		return n;
+	}
+
+	/// <summary>拖动中拆成独立窗口，窗口跟手；本窗只剩一个标签时不拆。</summary>
+	void floatout(Point screen) {
+		var t = dragtab;
+		if (t == null || dragfloated || tabs.Count <= 1) return;
+		var grab = draggrab;
+		try {
+			dragmoving = true;
+			draghead?.ReleaseMouseCapture();
+			cleardragstate();
+			detacht(t);
+			var w = Math.Max(720, ActualWidth * 0.85);
+			var h = Math.Max(480, ActualHeight * 0.85);
+			var nw = new MdReadWindow(opt, isSecondary: true) {
+				Width = w,
+				Height = h,
+				WindowStartupLocation = WindowStartupLocation.Manual,
+				ShowInTaskbar = true,
+			};
+			nw.adopttab(t);
+			var dip = pointtodip(screen);
+			nw.Left = dip.X - grab.X;
+			nw.Top = dip.Y - grab.Y;
+			nw.Show();
+			// 交接拖拽状态，新窗继续跟手
+			nw.dragtab = t;
+			nw.draghead = t.Head;
+			nw.dragging = true;
+			nw.dragfloated = true;
+			nw.draggrab = grab;
+			nw.dragmoving = false;
+			if (t.Head != null) {
+				t.Head.Opacity = 0.7;
+				t.Head.Cursor = Cursors.SizeAll;
+				try { t.Head.CaptureMouse(); } catch { }
+			}
+			remember();
+		}
+		catch (Exception ex) {
+			DocView.DocViewLog.Error("floatout", ex);
+		}
+		finally {
+			dragmoving = false;
+		}
+	}
+
+	/// <summary>把正在拖的标签并到另一个窗口的标签条上。</summary>
+	void mergetowindow(MdReadWindow target, Point screen) {
+		var t = dragtab;
+		if (t == null || target == null || ReferenceEquals(target, this)) return;
+		try {
+			dragmoving = true;
+			draghead?.ReleaseMouseCapture();
+			cleardragstate();
+			var at = insertindex(target, screen);
+			detacht(t);
+			target.adopttab(t, at);
+			target.Activate();
+			remember();
+			if (tabs.Count == 0 && secondary) Close();
+		}
+		catch (Exception ex) {
+			DocView.DocViewLog.Error("mergetowindow", ex);
+		}
+		finally {
+			dragmoving = false;
+		}
+	}
+
+	/// <summary>清掉拖拽状态，不动标签本身。</summary>
+	void cleardragstate() {
+		if (draghead != null) {
+			draghead.Opacity = 1;
+			draghead.Cursor = Cursors.Arrow;
+		}
+		dragtab = null;
+		draghead = null;
+		dragging = false;
+		dragfloated = false;
+	}
+
+	void endtabdrag(bool commit, Point screen = default) {
+		var t = dragtab;
+		if (t == null) return;
+		if (commit && dragfloated) {
+			// 松手时窗口已经独立，保持现状
+			cleardragstate();
+			remember();
+			return;
+		}
+		if (commit && dragging) {
+			var hit = hitwindow(screen);
+			if (hit != null && !ReferenceEquals(hit, this)) {
+				mergetowindow(hit, screen);
+				return;
+			}
+		}
+		cleardragstate();
+		remember();
+	}
+
+	/// <summary>从本窗摘掉一个标签，交出去之前保留阅读器实例，避免重新解析。</summary>
+	void detacht(Tab t) {
+		var i = tabs.IndexOf(t);
+		if (i < 0) return;
+		tabs.RemoveAt(i);
+		if (ReferenceEquals(cur, t)) {
+			cur = null;
+			phost.Content = null;
+		}
+		updatetabs();
+		if (tabs.Count == 0) {
+			Title = Loc.T("mdread.title");
+			showempty();
+		}
+		else if (cur == null)
+			activatetab(tabs[Math.Min(i, tabs.Count - 1)]);
+	}
+
+	/// <summary>接收外来标签：沿用已经建好的阅读器，插到指定位置并选中。</summary>
+	void adopttab(Tab t, int index = -1) {
+		if (t == null) return;
+		if (index < 0 || index > tabs.Count) tabs.Add(t);
+		else tabs.Insert(index, t);
+		updatetabs();
+		activatetab(t);
+	}
+
+	/// <summary>屏幕像素转 DIP，拆窗时按光标定位用。</summary>
+	Point pointtodip(Point screen) {
+		try {
+			var src = PresentationSource.FromVisual(this);
+			if (src?.CompositionTarget != null)
+				return src.CompositionTarget.TransformFromDevice.Transform(screen);
+		}
+		catch { }
+		return screen;
 	}
 
 	void paintchip(Tab t) {

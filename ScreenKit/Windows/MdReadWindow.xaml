@@ -211,6 +211,9 @@
 								           Foreground="#333A44"/>
 							</MenuItem.Header>
 							<MenuItem x:Name="mnopen" Header="打开…"/>
+							<MenuItem x:Name="mnhistory" Header="历史文件">
+								<MenuItem x:Name="mnhistempty" Header="（暂无）" IsEnabled="False"/>
+							</MenuItem>
 							<MenuItem x:Name="mnclose" Header="关闭当前标签"/>
 							<MenuItem x:Name="mncloseall" Header="关闭全部标签"/>
 							<Separator/>

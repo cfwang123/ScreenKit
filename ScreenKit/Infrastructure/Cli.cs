@@ -6428,8 +6428,109 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		try { win.Close(); } catch { }
 		pump();
+		if (bad == 0) bad += testmdtabs(cfg);
 		Out(bad == 0 ? "=== OK：文档阅读器 ===" : "=== FAIL：文档阅读器 ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	/// <summary>
+	/// 标签状态自测：历史文件菜单、上次标签恢复、跨窗拆分与合并。
+	/// 只用临时文件，不动 exe 旁的 mdread.json。
+	/// </summary>
+	static int testmdtabs(OcrOptions cfg) {
+		var dir = Path.Combine(Path.GetTempPath(), "ScreenKit_mdtabs");
+		try { Directory.CreateDirectory(dir); } catch { }
+		var bad = 0;
+		var a = Path.Combine(dir, "a.md");
+		var b = Path.Combine(dir, "b.txt");
+		var c = Path.Combine(dir, "c.md");
+		File.WriteAllText(a, "# A\n\n正文 A\n");
+		File.WriteAllText(b, "正文 B\n");
+		File.WriteAllText(c, "# C\n\n正文 C\n");
+
+		// —— 历史：最多 10 条，最近的在前，重复只留一条 ——
+		var st = new MdReadState();
+		for (var i = 0; i < 12; i++) st.Touch(a);
+		st.Touch(b);
+		st.Touch(c);
+		st.Touch(a);
+		if (st.History.Count != 3) { Err($"FAIL: 历史条数 {st.History.Count} ≠ 3"); bad++; }
+		if (st.History[0] != a) { Err("FAIL: 历史首项不是最近打开的"); bad++; }
+		var st2 = new MdReadState();
+		for (var i = 0; i < 20; i++) {
+			var p = Path.Combine(dir, $"h{i}.md");
+			File.WriteAllText(p, "x");
+			st2.Touch(p);
+		}
+		if (st2.History.Count != MdReadState.HISTORY_MAX) {
+			Err($"FAIL: 历史上限 {st2.History.Count} ≠ {MdReadState.HISTORY_MAX}");
+			bad++;
+		}
+		Out($"history: count={st.History.Count} cap={st2.History.Count}/{MdReadState.HISTORY_MAX}");
+
+		// —— 存读：标签与选中项要能原样回来 ——
+		var file = Path.Combine(dir, "mdread.json");
+		st.Touch(a);
+		st.RememberTabs(new[] { a, b, c }, 2);
+		st.Save(file);
+		var back = MdReadState.Load(file);
+		if (back.Tabs.Count != 3 || back.Tabs[0] != a || back.ActiveTab != 2) {
+			Err($"FAIL: 存读不一致 tabs={back.Tabs.Count} active={back.ActiveTab}");
+			bad++;
+		}
+		Out($"state: tabs={string.Join(",", back.Tabs.Select(Path.GetFileName))} active={back.ActiveTab}");
+
+		// —— 恢复：重开窗口应带出上次的标签 ——
+		MdReadWindow.StatePathOverride = file;
+		var w = new MdReadWindow(cfg);
+		w.Show();
+		w.RestoreLastSession();
+		var tick = Environment.TickCount;
+		while (Environment.TickCount - tick < 8000) {
+			pump();
+			if (w.CurrentReady && w.TabCount == 3) break;
+		}
+		if (w.TabCount != 3) { Err($"FAIL: 恢复后标签数 {w.TabCount} ≠ 3"); bad++; }
+		else Out($"restore: tabs={w.TabCount} status={w.CurrentStatus}");
+		// 菜单里要真有东西：恢复后历史应至少列出这 3 个文件
+		var hist = w.HistoryPaths;
+		Out($"history menu: {hist.Count} 项 {string.Join(",", hist.Select(Path.GetFileName))}");
+		if (hist.Count < 3) { Err($"FAIL: 历史菜单只有 {hist.Count} 项"); bad++; }
+
+		// —— 条内排序 ——
+		var before = string.Join(",", w.TabPaths.Select(Path.GetFileName));
+		w.MoveTab(0, 3);
+		var after = string.Join(",", w.TabPaths.Select(Path.GetFileName));
+		if (before == after) { Err("FAIL: 条内排序没生效"); bad++; }
+		else Out($"reorder: {before} -> {after}");
+
+		// —— 拆窗：标签搬到新窗口并保持已建好的阅读器 ——
+		var nw = w.DetachTabToWindow(0);
+		pump();
+		if (nw == null || nw.TabCount != 1) { Err("FAIL: 拆窗失败"); bad++; }
+		else {
+			var nt = Environment.TickCount;
+			while (Environment.TickCount - nt < 6000) {
+				pump();
+				if (nw.CurrentReady) break;
+			}
+			Out($"float: src={w.TabCount} dest={nw.TabCount} status={nw.CurrentStatus}");
+			if (!nw.CurrentReady || string.IsNullOrWhiteSpace(nw.CurrentStatus)) {
+				Err("FAIL: 拆出去的标签没加载");
+				bad++;
+			}
+			// —— 合并：从新窗口搬回来 ——
+			if (!w.PullTabFrom(nw, 0)) { Err("FAIL: 合并标签失败"); bad++; }
+			else Out($"merge: back to {w.TabCount} tabs");
+			try { nw.Close(); } catch { }
+			pump();
+		}
+		try { w.Close(); } catch { }
+		pump();
+		MdReadWindow.StatePathOverride = null;
+
+		try { Directory.Delete(dir, true); } catch { }
+		return bad;
 	}
 
 	/// <summary>

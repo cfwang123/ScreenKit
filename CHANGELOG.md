@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web PDF viewer: selectable text layer, zoom (buttons / Ctrl+wheel / fit width / fit page) and drag-to-pan
 - Web document reader: clicking an image in a Markdown or Word document opens it in a Viewer.js lightbox with zoom, rotate and multi-image navigation
 - Web PDF viewer: click a page to open a high-resolution copy of it in the Viewer.js lightbox; dragging pans without triggering it
+- Document reader: a Recent files submenu that remembers the last 10 files, and the files that were open when the window closed reopen as tabs next time. Tabs can be dragged to reorder, dragged out into their own window, and dragged back in to merge
 
 #### Changed
 
@@ -116,6 +117,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web PDF 查看：加文本层可选字复制，支持缩放（按钮、Ctrl+滚轮、适应宽度/页高）和拖动平移
 - web 文档阅读器：点 Markdown/Word 文档里的图片用 Viewer.js 弹层放大，可缩放、旋转、多图翻页
 - web PDF 查看：点页面用 Viewer.js 弹出该页高清图；拖动平移不会误触发
+- 文档阅读器：菜单新增「历史文件」，记住最近 10 个；关窗时开着的标签下次打开自动恢复。标签可以拖动排序、拖出成独立窗口、拖回合并
 
 #### 变更
 

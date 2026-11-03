@@ -4911,7 +4911,12 @@ public partial class MainWindow : Window {
 		opentoolwin(ref glyphModWin, () => new GlyphModWindow(), "menu.glyphmod");
 
 	void openmdread() =>
-		opentoolwin(ref mdReadWin, () => new MdReadWindow(opt), "menu.mdread");
+		opentoolwin(ref mdReadWin, () => {
+			// 上次关窗时开着哪些文件就恢复哪些
+			var w = new MdReadWindow(opt);
+			w.RestoreLastSession();
+			return w;
+		}, "menu.mdread");
 
 	void opendoc2md() =>
 		opentoolwin(ref doc2mdWin, () => new DocToMdWindow(), "menu.doc2md");
