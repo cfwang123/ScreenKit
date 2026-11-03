@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Markdown reader becomes document reader: drop multiple Markdown/Word/PDF files, custom title bar with tab chips, docx and PDF rendering in C#
 - Web tools: document reader opens several Markdown/Word/PDF files as tabs, converted by the same C# renderer as the desktop reader (/api/docview, /api/docasset)
 - Web PDF viewer: selectable text layer, zoom (buttons / Ctrl+wheel / fit width / fit page) and drag-to-pan
+- Web document reader: clicking an image in a Markdown or Word document opens it in a Viewer.js lightbox with zoom, rotate and multi-image navigation
 
 #### Changed
 
@@ -101,6 +102,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - MD 阅读器升级为文档阅读器：可一次拖入多个 Markdown/Word/PDF，自绘标题栏与标签页，docx 与 PDF 由 C# 端转 HTML
 - web 工具集：文档阅读器支持一次拖入多个 Markdown/Word/PDF 并用标签切换，转换复用桌面阅读器的 C# 实现（/api/docview、/api/docasset）
 - web PDF 查看：加文本层可选字复制，支持缩放（按钮、Ctrl+滚轮、适应宽度/页高）和拖动平移
+- web 文档阅读器：点 Markdown/Word 文档里的图片用 Viewer.js 弹层放大，可缩放、旋转、多图翻页
 
 #### 变更
 

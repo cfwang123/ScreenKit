@@ -101,6 +101,8 @@ sealed partial class HttpOcrServer {
 				res = DocViewHtml.Convert(raw, Path.Combine(dir, "img"));
 				res.Html = rewritehtml(res.Html, id, dir);
 			}
+			// md/docx 的页里没有脚本，图片点击要靠这里补一段
+			res.Html = injectclick(res.Html);
 			File.WriteAllText(Path.Combine(dir, "page.html"), res.Html ?? "", new UTF8Encoding(true));
 			// 原文件已经拆成页面和图片，留着占地方；PDF 要留着给按需出页用
 			if (!res.KeepSource) {
@@ -458,9 +460,45 @@ sealed partial class HttpOcrServer {
 	""";
 
 	/// <summary>
-	/// 页面里的 file:// 地址在浏览器里打不开，换成 /api/docasset?id=…&amp;f=…。
-	/// 只换转换目录里的文件；目录外的（如 md 引用了外部图片）原样留着。
+	/// 让文档页里的图片能点开大图：页面在 iframe 里跑，点图时给外层发消息，
+	/// 由工具页挂的 Viewer.js 弹层放大（比在 iframe 里再造一套查看器省事）。
 	/// </summary>
+	const string IMGCLICK_JS = """
+		document.addEventListener("click", function(e){
+			var img = e.target && e.target.closest ? e.target.closest("img") : null;
+			if (!img || !img.src) return;
+			// 只认文档里的插图，把工具栏之类的界面元素排除掉
+			if (img.closest("#bar")) return;
+			e.preventDefault();
+			var list = [], all, i;
+			all = document.querySelectorAll("img");
+			for (i = 0; i < all.length; i++) {
+				if (all[i].src) list.push(all[i].src);
+			}
+			var idx = list.indexOf(img.src);
+			try {
+				parent.postMessage({
+					sk: "docimg",
+					src: img.src,
+					list: list,
+					index: idx < 0 ? 0 : idx
+				}, "*");
+			}
+			catch (err) { }
+		}, true);
+	""";
+
+	/// <summary>
+	/// 在整页 HTML 的 &lt;/body&gt; 前插一段脚本。md/docx 的页没有自己的脚本，图片点击就靠它带出去。
+	/// </summary>
+	static string injectclick(string html) {
+		if (string.IsNullOrEmpty(html)) return html;
+		var tag = "<script>" + IMGCLICK_JS + "</script>";
+		var i = html.LastIndexOf("</body>", StringComparison.OrdinalIgnoreCase);
+		if (i < 0) return html + tag;
+		return html.Substring(0, i) + tag + html.Substring(i);
+	}
+
 	static string rewritehtml(string html, string id, string dir) {
 		if (string.IsNullOrEmpty(html)) return "";
 		var root = Path.GetFullPath(dir);

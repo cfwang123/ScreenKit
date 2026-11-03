@@ -6,6 +6,7 @@
 	var tabs = [];
 	var cur = null;
 	var seq = 0;
+	var pics = null;
 	var THEMES = ["light", "dark", "sepia", "green", "night"];
 	var MAXNAME = 26;
 
@@ -37,7 +38,9 @@
 				{ x: "iframe.md-view", name: "mdView", title: "preview",
 					sandbox: "allow-popups allow-scripts allow-same-origin" },
 				{ x: "div.md-mask.mdread-mask", name: "mdMask" }
-			] }
+			] },
+			// 点图放大用的宿主：Viewer.js 直接挂在这个容器上
+			{ x: "div.mdread-pics", name: "mdPics", hidden: true }
 		] });
 	}
 
@@ -62,11 +65,78 @@
 		F.on(document, "dragover", arm);
 		F.on(document, "drop", ondrop);
 		F.on(document, "dragend", disarm);
+		F.on(window, "message", onmsg);
+	}
+
+	// 文档页在 iframe 里，点图时它把地址发上来，这里用 Viewer.js 弹层放大
+	function onmsg(ev){
+		var d = ev.data;
+		if (!d || d.sk !== "docimg" || !d.src) return;
+		showpic(d.list && d.list.length ? d.list : [d.src], d.index || 0);
+	}
+
+	function showpic(list, index){
+		var box = page && page.doms.mdPics;
+		if (!box || !window.Viewer) return;
+		// 每个标签的图片各不相同，销毁重建最省事；重建前先把上一批写进去
+		if (pics) {
+			try { pics.destroy(); } catch (e) { }
+			pics = null;
+		}
+		while (box.firstChild) box.removeChild(box.firstChild);
+		var i, im;
+		for (i = 0; i < list.length; i++) {
+			im = F.el("img");
+			im.src = list[i];
+			// 弹层标题就用序号，图片自身的文件名在 /api/docasset 地址里看不出什么
+			im.alt = list.length > 1 ? (i + 1) + " / " + list.length : "";
+			box.appendChild(im);
+		}
+		pics = new Viewer(box, {
+			transition: false,
+			url: "src",
+			initialViewIndex: index,
+			navbar: list.length > 1 ? true : false,
+			// 单张不显示标题，多张显示「第几张/共几张」；默认标题会把地址里的文件名抖出来
+			title: list.length > 1 ? function(image){
+				return image.alt || "";
+			} : false,
+			toolbar: {
+				zoomIn: 1,
+				zoomOut: 1,
+				oneToOne: 1,
+				reset: 1,
+				prev: list.length > 1 ? 1 : 0,
+				play: 0,
+				next: list.length > 1 ? 1 : 0,
+				rotateLeft: 1,
+				rotateRight: 1,
+				flipHorizontal: 0,
+				flipVertical: 0
+			},
+			hidden: function(){
+				// 关掉弹层就把图卸掉，免得下次打开还留着上一份
+				while (box.firstChild) box.removeChild(box.firstChild);
+			}
+		});
+		pics.view(index);
+		// Viewer 自己只在全屏时响应 Esc，这里补一个随时能关的
+		F.on(window, "keydown", function(ev){
+			if (ev.key !== "Escape" && ev.keyCode !== 27) return;
+			if (pics) pics.hide();
+		});
 	}
 
 	// 离开工具时清掉标签，再进来是干净的
 	function dispose(){
 		var i;
+		if (pics) {
+			try { pics.destroy(); } catch (e) { }
+			pics = null;
+		}
+		if (page && page.doms.mdPics) {
+			while (page.doms.mdPics.firstChild) page.doms.mdPics.removeChild(page.doms.mdPics.firstChild);
+		}
 		for (i = 0; i < tabs.length; i++) free(tabs[i]);
 		tabs = [];
 		cur = null;

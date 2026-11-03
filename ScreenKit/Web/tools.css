@@ -704,6 +704,8 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 	pointer-events: auto; background: rgba(194, 65, 12, .08);
 	border: 2px dashed #c2410c; border-radius: 10px;
 }
+/* 点图放大的宿主容器：只是给 Viewer.js 提供 img，本身永远不显示 */
+.mdread-pics { display: none; }
 #box.panel.on:has(.rtsp) { min-width: 0; max-width: 100%; overflow: hidden; }
 #box.panel.on:has(.rtsp) #box-body {
 	flex: 1 1 auto; min-height: 0; min-width: 0; max-width: 100%;
