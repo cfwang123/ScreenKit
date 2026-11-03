@@ -181,13 +181,21 @@ button, input, select { font: inherit; }
 .rd-x { flex: none; width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; font-size: 18px; color: var(--muted); }
 .rd-x:hover { background: #f3f4f6; color: var(--ink); }
 .rd-pop-items { overflow: auto; padding: 4px 6px; }
+/* 每行一个词条：词在前、解释在后，两边都单行，行尾省略 */
 .rd-hit {
-	display: block; width: 100%; padding: 6px 6px; border: 0; border-radius: 8px;
-	background: transparent; text-align: left;
+	display: flex; align-items: baseline; gap: 8px; width: 100%;
+	padding: 4px 6px; border: 0; border-radius: 6px;
+	background: transparent; text-align: left; white-space: nowrap;
 }
 .rd-hit:hover { background: #f5f0e9; }
-.rd-hit-w { display: block; font-weight: 600; }
-.rd-hit-g {\n\tdisplay: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;\n\tcolor: var(--muted); font-size: 12px; line-height: 1.45;\n}
+.rd-hit-w {
+	flex: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis;
+	font: 13px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif; color: var(--ink);
+}
+.rd-hit-g {
+	flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+	font: 13px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif; color: var(--muted);
+}
 .rd-pop-ops { display: flex; gap: 6px; padding: 6px 10px 10px; border-top: 1px solid var(--line); }
 .rd-pop-ops button {
 	flex: 1; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff;

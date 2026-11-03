@@ -2193,18 +2193,22 @@
 		});
 	}
 
+	// 与 WPF 划词浮窗一致：一行里先是词，后面接解释，两边都按行尾省略
 	function pophit(h){
 		var b = el("button");
 		b.type = "button";
 		b.className = "rd-hit";
 		var w = el("span");
 		w.className = "rd-hit-w";
-		w.textContent = h.title || h.word || "";
+		w.textContent = dicttitle(h);
+		w.title = w.textContent;
 		b.appendChild(w);
-		if (h.preview) {
+		var text = dictpreview(h);
+		if (text) {
 			var g = el("span");
 			g.className = "rd-hit-g";
-			g.textContent = h.preview;
+			g.textContent = text;
+			g.title = text;
 			b.appendChild(g);
 		}
 		b.onclick = function(){
