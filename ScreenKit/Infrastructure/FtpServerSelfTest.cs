@@ -255,6 +255,16 @@ static class FtpServerSelfTest {
 				if (tab == null) bad("找不到 FTP服务 页");
 				else ok($"FTP服务 页存在，标题 {tab.Header}");
 
+				// 主界面只留日志：清空按钮、状态行、日志框
+				foreach (var (name, desc) in new[] {
+					("bftpsrvclear", "清空按钮"),
+					("lbftpsrvstat", "状态行"),
+					("eftpsrvlog", "日志框"),
+				}) {
+					if (w.FindName(name) == null) bad($"缺 {desc}({name})");
+					else ok($"{desc} 在");
+				}
+				// 参数与启停已移到「参数设置 → 常规」，主界面不该再有这些控件
 				foreach (var (name, desc) in new[] {
 					("eftpsrvdir", "根目录输入框"),
 					("eftpsrvport", "端口输入框"),
@@ -262,15 +272,11 @@ static class FtpServerSelfTest {
 					("eftpsrvpass", "密码框"),
 					("bftpsrvtoggle", "启停按钮"),
 					("bftpsrvbrowse", "浏览按钮"),
-					("lbftpsrvstat", "状态行"),
-					("eftpsrvlog", "日志框"),
 					("etftpport", "TFTP 端口输入框"),
 					("btftptoggle", "TFTP 启停按钮"),
-					("lbftpsrvtftpstat", "TFTP 状态行"),
-					("lbftpsrvtftphint", "TFTP 说明"),
 				}) {
-					if (w.FindName(name) == null) bad($"缺 {desc}({name})");
-					else ok($"{desc} 在");
+					if (w.FindName(name) != null) bad($"主界面不该再有 {desc}({name})");
+					else ok($"主界面已移除 {desc}");
 				}
 
 				// 状态栏项

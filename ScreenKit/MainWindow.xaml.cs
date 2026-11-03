@@ -4479,6 +4479,7 @@ public partial class MainWindow : Window {
 		applymaintabvisibility();
 		applymodui();
 		applyftpsrvvisible();
+		applyftpsrvopts(old);
 		releaseofffeatures(old);
 		syncsnapcopyopts();
 		try { refreshtrllm(); } catch { }

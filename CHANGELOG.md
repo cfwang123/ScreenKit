@@ -51,7 +51,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Tray Tools menu now also offers MQTT, SOAP, TLS certificate check and database query, matching the main window's Tools menu.
 - FTP file manager for FTP, FTPS, SFTP and TFTP: only the server pane is shown, so drag files or folders in from Explorer to upload, drag files out to download, or use Download to...; a finished transfer leaves the list on its own while failed and cancelled ones stay, and the connect button turns into Disconnect (green connect, red disconnect).
-- Built-in FTP and TFTP server sharing one root folder: set port and one user name and password, leave the user name empty for anonymous access, start and stop FTP and TFTP independently, and see both listening ports in the status bar.
+- Built-in FTP and TFTP server sharing one root folder: the folder, port and one user name and password are set under Settings, General, a blank user name allows anonymous access, FTP and TFTP are enabled independently, and both listening ports show in the status bar; the FTP service tab in the main window only shows the log and a Clear button.
 - TCP/UDP debugger: listen on one local port, send hex or text to a remote address, repeat on a timer, and auto-reply with the typed payload; a protocol radio switches between connect and send, the last remote address, port and payload are remembered, and a serial port can be opened with baud, data bits, parity and stop bits.
 - A shared type-icon set now sits before every entry in the FTP file manager list and the fast copy source list: folders, images, video, audio, archives, PDF, documents, code and executables each get their own, with a touch of colour.
 - Tools > Network adds Network Monitor: per-process connections, send/receive bytes and rates from TCP ESTATS, plus a packet capture tab with protocol parsing, per-connection packet view, HTTP stream reassembly and pcapng import/export.
@@ -102,7 +102,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 托盘的「工具」补上 MQTT 调试、SOAP 接口调试、TLS 证书检查和数据库查询，与主窗口工具菜单一致。
 - FTP 文件管理，支持 FTP、FTPS、SFTP 和 TFTP：只显示服务器文件列表，从资源管理器拖入即上传、把文件拖出即下载，也可用「下载到…」；传完的条目自动离开列表，失败和取消的保留，连接成功后按钮变「断开」（连接绿色、断开红色）。
-- 内置 FTP 与 TFTP 服务，共用一个根目录：可设端口和一个用户名密码，用户名留空允许匿名访问，FTP 与 TFTP 能分别启停，状态栏同时显示两个监听端口。
+- 内置 FTP 与 TFTP 服务，共用一个根目录：目录、端口和一个用户名密码在「参数设置 → 常规」里设置，用户名留空允许匿名访问，FTP 与 TFTP 分别启用，状态栏同时显示两个监听端口；主界面的「FTP服务」页只剩日志和清空按钮。
 - TCP/UDP 调试：监听一个本机端口，按 hex 或文本发到对方地址，可定时重复发送，收到报文时按输入内容自动回复；单选切换连接或发送，记住上次的对方地址、端口和报文，还能打开串口并设波特率、数据位、校验和停止位。
 - FTP 文件管理列表和快速复制文件列表都在名称前显示类型图标：文件夹、图片、视频、音频、压缩包、PDF、文档、代码和可执行文件各一种，并带一点颜色区分。
 - 工具 → 网络工具 新增网络监控：按进程看连接与收发字节、速率（基于 TCP ESTATS），另有抓包页，可解析协议、看单连接报文、重组 HTTP 明文流，并导入导出 pcapng。

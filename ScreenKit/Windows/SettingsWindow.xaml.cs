@@ -54,6 +54,8 @@ public partial class SettingsWindow : Window {
 			echatllmprompt.Text = OcrOptions.DefaultChatLlmPrompt();
 		bsfunpair.Click += (_, _) => unpairselected();
 		bsnapdir.Click += (_, _) => browsesnapdir();
+		bsetftpdirbrowse.Click += (_, _) => browseftpdir();
+		esetftpuser.TextChanged += (_, _) => updateftpanonhint();
 		bsetchromebrowse.Click += (_, _) => browsechrome();
 		bsetchromedetect.Click += (_, _) => detectchrome();
 		if (System.IO.Directory.Exists(@"D:\")) {
@@ -240,6 +242,17 @@ public partial class SettingsWindow : Window {
 			etabsfvisible.Content = Loc.T("tab.sendfile");
 			etabcastvisible.Content = Loc.T("tab.cast");
 			etabftpsrvvisible.Content = Loc.T("ftpsrv.tab");
+			lbsetftpsrv.Text = Loc.T("set.ftpsrv");
+			lbsetftpsrvhint.Text = Loc.T("set.ftpsrv.hint");
+			lbsetftpdir.Text = Loc.T("ftpsrv.dir");
+			bsetftpdirbrowse.Content = Loc.T("ftpsrv.browse");
+			esetftpen.Content = Loc.T("set.ftp.enable");
+			lbsetftpport.Text = Loc.T("ftpsrv.port");
+			lbsetftpuser.Text = Loc.T("ftpsrv.user");
+			lbsetftppass.Text = Loc.T("ftpsrv.pass");
+			esettftpen.Content = Loc.T("set.tftp.enable");
+			lbsettftpport.Text = Loc.T("ftpsrv.port");
+			lbsetftpanonhint.Text = Loc.T("ftpsrv.hint");
 			etabdictvisible.Content = Loc.T("tab.dict");
 			lbsetupdate.Text = Loc.T("set.update");
 			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
@@ -656,6 +669,14 @@ public partial class SettingsWindow : Window {
 		etabsfvisible.IsChecked = o.TabSendFileVisible;
 		etabcastvisible.IsChecked = o.TabCastVisible;
 		etabftpsrvvisible.IsChecked = o.TabFtpSrvVisible;
+		esetftpdir.Text = o.FtpSrvRoot ?? "";
+		esetftpport.Text = (o.FtpSrvPort <= 0 ? 21 : o.FtpSrvPort).ToString();
+		esetftpuser.Text = o.FtpSrvUser ?? "";
+		esetftppass.Password = o.FtpSrvPass ?? "";
+		esetftpen.IsChecked = o.FtpSrvEnabled;
+		esettftpport.Text = (o.TftpPort <= 0 ? 69 : o.TftpPort).ToString();
+		esettftpen.IsChecked = o.TftpEnabled;
+		syncftpsrvui();
 		etabdictvisible.IsChecked = o.TabDictVisible && o.ModDict;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		var proxyMode = HttpProxy.NormalizeMode(string.IsNullOrWhiteSpace(o.HttpProxyMode)
@@ -945,6 +966,15 @@ public partial class SettingsWindow : Window {
 		Result.TabSendFileVisible = etabsfvisible.IsChecked == true;
 		Result.TabCastVisible = etabcastvisible.IsChecked == true;
 		Result.TabFtpSrvVisible = etabftpsrvvisible.IsChecked == true;
+		Result.FtpSrvRoot = (esetftpdir.Text ?? "").Trim();
+		if (!tryint(esetftpport, Loc.T("ftpsrv.port"), 1, 65535, out var ftpPort, tabsetgen)) return false;
+		Result.FtpSrvPort = ftpPort;
+		Result.FtpSrvUser = (esetftpuser.Text ?? "").Trim();
+		Result.FtpSrvPass = esetftppass.Password ?? "";
+		Result.FtpSrvEnabled = esetftpen.IsChecked == true;
+		if (!tryint(esettftpport, Loc.T("ftpsrv.port"), 1, 65535, out var tftpPort, tabsetgen)) return false;
+		Result.TftpPort = tftpPort;
+		Result.TftpEnabled = esettftpen.IsChecked == true;
 		Result.TabDictVisible = Result.ModDict = etabdictvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
@@ -1532,6 +1562,32 @@ public partial class SettingsWindow : Window {
 			return;
 		}
 		esetchromepath.Text = path;
+	}
+
+	/// <summary>用户名留空就是匿名，提示里说明当前是哪种。</summary>
+	void updateftpanonhint() {
+		if (lbsetftpanonhint == null) return;
+		var anon = (esetftpuser.Text ?? "").Trim().Length == 0;
+		lbsetftpanonhint.Text = Loc.T(anon ? "ftpsrv.anon" : "ftpsrv.needuser");
+		esetftppass.IsEnabled = !anon;
+	}
+
+	void syncftpsrvui() => updateftpanonhint();
+
+	void browseftpdir() {
+		using var dlg = new System.Windows.Forms.FolderBrowserDialog {
+			Description = Loc.T("ftpsrv.dir"),
+			ShowNewFolderButton = true,
+		};
+		var cur = (esetftpdir.Text ?? "").Trim();
+		if (cur.Length == 0)
+			cur = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ftproot");
+		try {
+			if (System.IO.Directory.Exists(cur)) dlg.SelectedPath = cur;
+		}
+		catch { }
+		if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+		esetftpdir.Text = dlg.SelectedPath ?? "";
 	}
 
 	void browsesnapdir() {

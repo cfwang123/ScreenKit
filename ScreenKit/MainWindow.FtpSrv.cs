@@ -3,8 +3,9 @@ using System.Windows.Threading;
 namespace ScreenKit;
 
 /// <summary>
-/// 功能页「FTP 服务」：设置根目录、端口和单个用户（留空匿名），就地启停，
-/// 右侧只显示每行一条的简单日志。状态同时反映到主窗口状态栏（FTP:21）。
+/// 功能页「FTP 服务」：只显示服务状态和每行一条的日志，右侧可清空。
+/// 服务的启停与参数在「参数设置 → 常规」里设置，点确定后按新配置生效。
+/// 状态同时反映到主窗口状态栏（FTP:21 · TFTP:69）。
 /// </summary>
 public partial class MainWindow {
 	readonly FtpServer ftpsrv = new();
@@ -13,8 +14,6 @@ public partial class MainWindow {
 	readonly object ftpsrvLogGate = new();
 	DispatcherTimer ftpsrvLogTick;
 	bool ftpsrvLogDirty;
-	/// <summary>正在用配置回填控件，别触发保存。</summary>
-	bool ftpsrvLoading;
 
 	void initftpsrv() {
 		if (tabftpsrv == null) return;
@@ -23,54 +22,10 @@ public partial class MainWindow {
 		ftpsrvLogTick.Start();
 		ftpsrv.Log = addftpsrvlog;
 		tftpsrv.Log = addftpsrvlog;
-		ftpsrvLoading = true;
-		eftpsrvdir.Text = opt.FtpSrvRoot ?? "";
-		eftpsrvport.Text = opt.FtpSrvPort <= 0 ? "21" : opt.FtpSrvPort.ToString();
-		eftpsrvuser.Text = opt.FtpSrvUser ?? "";
-		eftpsrvpass.Password = opt.FtpSrvPass ?? "";
-		etftpport.Text = opt.TftpPort <= 0 ? "69" : opt.TftpPort.ToString();
-		ftpsrvLoading = false;
 		applyftpsrvlang();
-		updateftpsrvhint();
 		syncftpsrvui();
+		syncftpsrvstatus();
 
-		eftpsrvdir.LostFocus += (_, _) => saveftpsrvopts();
-		eftpsrvport.LostFocus += (_, _) => saveftpsrvopts();
-		eftpsrvuser.LostFocus += (_, _) => {
-			saveftpsrvopts();
-			updateftpsrvhint();
-		};
-		eftpsrvpass.LostFocus += (_, _) => saveftpsrvopts();
-		etftpport.LostFocus += (_, _) => savetftpopts();
-		etftpport.KeyDown += (_, e) => {
-			if (e.Key != Key.Enter) return;
-			e.Handled = true;
-			savetftpopts();
-		};
-		eftpsrvdir.KeyDown += (_, e) => {
-			if (e.Key != Key.Enter) return;
-			e.Handled = true;
-			saveftpsrvopts();
-		};
-		eftpsrvport.KeyDown += (_, e) => {
-			if (e.Key != Key.Enter) return;
-			e.Handled = true;
-			saveftpsrvopts();
-		};
-		eftpsrvuser.KeyDown += (_, e) => {
-			if (e.Key != Key.Enter) return;
-			e.Handled = true;
-			saveftpsrvopts();
-			updateftpsrvhint();
-		};
-		eftpsrvpass.KeyDown += (_, e) => {
-			if (e.Key != Key.Enter) return;
-			e.Handled = true;
-			saveftpsrvopts();
-		};
-		bftpsrvtoggle.Click += (_, _) => toggleftpsrv();
-		btftptoggle.Click += (_, _) => toggletftp();
-		bftpsrvbrowse.Click += (_, _) => browseftpsrvdir();
 		bftpsrvclear.Click += (_, _) => {
 			lock (ftpsrvLogGate) {
 				ftpsrvLog.Clear();
@@ -83,70 +38,11 @@ public partial class MainWindow {
 
 	void applyftpsrvlang() {
 		tabftpsrv.Header = Loc.T("ftpsrv.tab");
-		lbftpsrvbrand.Text = Loc.T("ftpsrv.title");
-		lbftpsrvdir.Text = Loc.T("ftpsrv.dir");
-		lbftpsrvport.Text = Loc.T("ftpsrv.port");
-		lbftpsrvuser.Text = Loc.T("ftpsrv.user");
-		lbftpsrvpass.Text = Loc.T("ftpsrv.pass");
 		lbftpsrvlog.Text = Loc.T("ftpsrv.log");
-		bftpsrvbrowse.Content = Loc.T("ftpsrv.browse");
 		bftpsrvclear.Content = Loc.T("ftpsrv.clear");
-		lbftpsrvhint.Text = Loc.T("ftpsrv.hint");
-		lbftpsrvtftp.Text = Loc.T("ftpsrv.tftp");
-		lbftpsrvtftphint.Text = Loc.T("ftpsrv.tftp.hint");
-		lbftpsrvtftpport.Text = Loc.T("ftpsrv.tftp.port");
-	}
-
-	/// <summary>用户名留空就是匿名，提示里说明当前是哪种。</summary>
-	void updateftpsrvhint() {
-		var anon = (eftpsrvuser.Text ?? "").Trim().Length == 0;
-		lbftpsrvhint.Text = anon ? Loc.T("ftpsrv.anon") : Loc.T("ftpsrv.needuser");
-		eftpsrvpass.IsEnabled = !anon;
-	}
-
-	void saveftpsrvopts() {
-		if (ftpsrvLoading) return;
-		opt.FtpSrvRoot = (eftpsrvdir.Text ?? "").Trim();
-		opt.FtpSrvPort = int.TryParse((eftpsrvport.Text ?? "").Trim(), out var p) && p >= 1 && p <= 65535
-			? p : 21;
-		opt.FtpSrvUser = (eftpsrvuser.Text ?? "").Trim();
-		opt.FtpSrvPass = eftpsrvpass.Password ?? "";
-		try { AppConfig.Save(opt); } catch { }
-	}
-
-	void browseftpsrvdir() {
-		var dlg = new System.Windows.Forms.FolderBrowserDialog {
-			Description = Loc.T("ftpsrv.dir"),
-			ShowNewFolderButton = true,
-		};
-		var cur = (eftpsrvdir.Text ?? "").Trim();
-		if (cur.Length == 0) cur = opt.FtpSrvRoot;
-		if (string.IsNullOrWhiteSpace(cur)) cur = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ftproot");
-		try {
-			if (Directory.Exists(cur)) dlg.SelectedPath = cur;
-		}
-		catch { }
-		try {
-			if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK) {
-				eftpsrvdir.Text = dlg.SelectedPath;
-				saveftpsrvopts();
-			}
-		}
-		catch { }
-		finally {
-			try { dlg.Dispose(); } catch { }
-		}
-	}
-
-	void toggleftpsrv() {
-		if (ftpsrv.IsRunning) stopftpsrv();
-		else startftpsrv();
 	}
 
 	void startftpsrv() {
-		saveftpsrvopts();
-		opt.FtpSrvEnabled = true;
-		try { AppConfig.Save(opt); } catch { }
 		try {
 			ftpsrv.Start(opt.FtpSrvOpts());
 			addftpsrvlog(string.Format(Loc.T("ftpsrv.started"), ftpsrv.Port));
@@ -157,56 +53,17 @@ public partial class MainWindow {
 			addftpsrvlog(string.Format(Loc.T("ftpsrv.startfail"), ex.Message));
 		}
 		syncftpsrvui();
-		synctftpui();
 		syncftpsrvstatus();
 	}
 
 	void stopftpsrv() {
 		try { ftpsrv.Stop(); } catch { }
 		addftpsrvlog(Loc.T("ftpsrv.stopped"));
-		if (!ftpsrvLoading) {
-			opt.FtpSrvEnabled = false;
-			try { AppConfig.Save(opt); } catch { }
-		}
 		syncftpsrvui();
-		synctftpui();
 		syncftpsrvstatus();
 	}
 
-	/// <summary>按服务实际状态刷新按钮文字和状态行。</summary>
-	void syncftpsrvui() {
-		if (bftpsrvtoggle == null) return;
-		var on = ftpsrv.IsRunning;
-		bftpsrvtoggle.Content = on ? Loc.T("ftpsrv.stop") : Loc.T("ftpsrv.start");
-		lbftpsrvstat.Text = on
-			? string.Format(Loc.T("ftpsrv.running"), ftpsrv.Port)
-			: Loc.T("ftpsrv.off");
-		eftpsrvdir.IsEnabled = !on;
-		eftpsrvport.IsEnabled = !on;
-		eftpsrvuser.IsEnabled = !on;
-		eftpsrvpass.IsEnabled = !on;
-		bftpsrvbrowse.IsEnabled = !on;
-		// TFTP 与 FTP 共用目录，目录被锁时 TFTP 也一起锁
-		etftpport.IsEnabled = !on && !tftpsrv.IsRunning;
-	}
-
-	void savetftpopts() {
-		if (ftpsrvLoading) return;
-		opt.TftpPort = int.TryParse((etftpport.Text ?? "").Trim(), out var p) && p >= 1 && p <= 65535
-			? p : 69;
-		// 根目录与 FTP 共用，这里不动 FtpSrvRoot
-		try { AppConfig.Save(opt); } catch { }
-	}
-
-	void toggletftp() {
-		if (tftpsrv.IsRunning) stoptftp();
-		else starttftp();
-	}
-
 	void starttftp() {
-		savetftpopts();
-		opt.TftpEnabled = true;
-		try { AppConfig.Save(opt); } catch { }
 		try {
 			tftpsrv.Start(opt.TftpOpts());
 			addftpsrvlog(string.Format(Loc.T("tftpsrv.started"), tftpsrv.Port));
@@ -216,68 +73,65 @@ public partial class MainWindow {
 			try { AppConfig.Save(opt); } catch { }
 			addftpsrvlog(string.Format(Loc.T("tftpsrv.startfail"), ex.Message));
 		}
-		synctftpui();
+		syncftpsrvui();
 		syncftpsrvstatus();
 	}
 
 	void stoptftp() {
 		try { tftpsrv.Stop(); } catch { }
 		addftpsrvlog(Loc.T("tftpsrv.stopped"));
-		if (!ftpsrvLoading) {
-			opt.TftpEnabled = false;
-			try { AppConfig.Save(opt); } catch { }
-		}
-		synctftpui();
+		syncftpsrvui();
 		syncftpsrvstatus();
 	}
 
-	/// <summary>按 TFTP 服务实际状态刷新开关文字、端口可编辑性和状态行。</summary>
-	void synctftpui() {
-		if (btftptoggle == null) return;
-		var on = tftpsrv.IsRunning;
-		btftptoggle.Content = on ? Loc.T("tftpsrv.stop") : Loc.T("tftpsrv.start");
-		lbftpsrvtftpstat.Text = on
-			? string.Format(Loc.T("tftpsrv.running"), tftpsrv.Port)
-			: Loc.T("tftpsrv.off");
-		etftpport.IsEnabled = !on;
+	/// <summary>把 FTP 与 TFTP 实际运行状态写到标题旁的状态行。</summary>
+	void syncftpsrvui() {
+		if (lbftpsrvstat == null) return;
+		var parts = new List<string>();
+		if (ftpsrv.IsRunning && ftpsrv.Port > 0)
+			parts.Add(string.Format(Loc.T("ftpsrv.running"), ftpsrv.Port));
+		if (tftpsrv.IsRunning && tftpsrv.Port > 0)
+			parts.Add(string.Format(Loc.T("tftpsrv.running"), tftpsrv.Port));
+		lbftpsrvstat.Text = parts.Count == 0
+			? Loc.T("ftpsrv.off")
+			: string.Join(" · ", parts);
 	}
 
 	/// <summary>启动时按配置决定要不要拉起服务。</summary>
 	void bootftpsrv() {
 		if (tabftpsrv != null && !opt.TabFtpSrvVisible) return;
-		boottftp();
-		if (!opt.FtpSrvEnabled) {
-			syncftpsrvstatus();
-			return;
-		}
-		try {
-			ftpsrv.Start(opt.FtpSrvOpts());
-			addftpsrvlog(string.Format(Loc.T("ftpsrv.started"), ftpsrv.Port));
-		}
-		catch (Exception ex) {
-			opt.FtpSrvEnabled = false;
-			try { AppConfig.Save(opt); } catch { }
-			addftpsrvlog(string.Format(Loc.T("ftpsrv.startfail"), ex.Message));
-		}
+		if (opt.TftpEnabled) starttftp();
+		if (opt.FtpSrvEnabled) startftpsrv();
 		syncftpsrvui();
-		synctftpui();
 		syncftpsrvstatus();
 	}
 
-	/// <summary>启动时按配置决定要不要拉起 TFTP。</summary>
-	void boottftp() {
-		synctftpui();
-		if (!opt.TftpEnabled) return;
-		try {
-			tftpsrv.Start(opt.TftpOpts());
-			addftpsrvlog(string.Format(Loc.T("tftpsrv.started"), tftpsrv.Port));
+	/// <summary>
+	/// 设置窗口点确定后调用：按新旧配置的差异启停服务。
+	/// 端口、目录、账号任一变化都要重建监听，已在运行的服务先停再按新值启动。
+	/// </summary>
+	void applyftpsrvopts(OcrOptions old) {
+		var rootChanged = !string.Equals(old.FtpSrvRoot, opt.FtpSrvRoot, StringComparison.OrdinalIgnoreCase);
+		var ftpChanged = rootChanged
+			|| old.FtpSrvEnabled != opt.FtpSrvEnabled
+			|| old.FtpSrvPort != opt.FtpSrvPort
+			|| !string.Equals(old.FtpSrvUser, opt.FtpSrvUser, StringComparison.Ordinal)
+			|| !string.Equals(old.FtpSrvPass, opt.FtpSrvPass, StringComparison.Ordinal);
+		var tftpChanged = rootChanged
+			|| old.TftpEnabled != opt.TftpEnabled
+			|| old.TftpPort != opt.TftpPort;
+
+		if (!ftpChanged && !tftpChanged) return;
+		if (ftpChanged) {
+			if (ftpsrv.IsRunning) stopftpsrv();
+			if (opt.FtpSrvEnabled) startftpsrv();
 		}
-		catch (Exception ex) {
-			opt.TftpEnabled = false;
-			try { AppConfig.Save(opt); } catch { }
-			addftpsrvlog(string.Format(Loc.T("tftpsrv.startfail"), ex.Message));
+		if (tftpChanged) {
+			if (tftpsrv.IsRunning) stoptftp();
+			if (opt.TftpEnabled) starttftp();
 		}
-		synctftpui();
+		syncftpsrvui();
+		syncftpsrvstatus();
 	}
 
 	/// <summary>功能开关切换时调用：隐藏页面就停服务。</summary>
@@ -288,7 +142,8 @@ public partial class MainWindow {
 			if (ftpsrv.IsRunning) stopftpsrv();
 			if (tftpsrv.IsRunning) stoptftp();
 		}
-		else syncftpsrvstatus();
+		syncftpsrvui();
+		syncftpsrvstatus();
 	}
 
 	/// <summary>状态栏点「FTP:21」时把主窗口带到前台并切到 FTP 服务页。</summary>
