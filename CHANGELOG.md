@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Plot: 3D equations sample within the surface's own extent and pick grid density from its on-screen size, so the mesh no longer thins out after rotating
 - Share one Markdown-to-HTML renderer across the WPF reader, the web MD reader and the novel reader; novel reader MD text no longer renders in bold
 - Reader: the word lookup popup lists one entry per line (word then gloss, both ellipsized) like the WPF popup
+- Web document reader: PDF pages are drawn on demand by pdf.js from CDN instead of being pre-rendered to PNG, so 40 pages open in about 35 ms
 
 #### Fixed
 
@@ -106,6 +107,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 函数图像：三维方程按曲面实际占的范围加密采样，网格线疏密跟着画面大小走，转视角或松手后不再只剩几根线
 - Markdown 转 HTML 提取为 MdHtml 公共方法，WPF MD 阅读器、网页 MD 阅读器、小说阅读器共用一份渲染；小说阅读器 md 正文不再全部粗体
 - 小说阅读器：划词浮窗改为每行一个词条，词与解释同一行、行尾省略，和 WPF 浮窗一致
+- web 文档阅读器：PDF 改由 CDN 上的 pdf.js 按需绘制，不再预渲染成 PNG，40 页文档打开约 35 ms
 
 #### 修复
 

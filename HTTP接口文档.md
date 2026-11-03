@@ -478,7 +478,7 @@ ScreenKit --jpyomi "東京" --mono
 
 ## 5.5.6 POST `/api/docview` · GET `/api/docasset`
 
-把 Markdown、Word (.docx) 或 PDF 转成可浏览的网页，供 web 工具集的文档阅读器使用。转换复用桌面阅读器的同一份实现，网页和桌面排版一致。
+把 Markdown、Word (.docx) 或 PDF 转成可浏览的网页，供 web 工具集的文档阅读器使用。Markdown 和 docx 转成 HTML，PDF 则给一个外壳页，由浏览器端 pdf.js（CDN）滚到哪画到哪，不在服务端出图。
 
 **转换** `POST /api/docview?name=a.docx`
 
@@ -504,11 +504,13 @@ ScreenKit --jpyomi "東京" --mono
 }
 ```
 
-`html` 是整页 HTML，里面的图片地址已经换成 `/api/docasset`；`pages` 只有 PDF 有值。转换产物放在 `tmp/docview/<id>/`，只保留最近 40 份。
+`html` 是整页 HTML，图片地址已经换成 `/api/docasset`；`pages` 只有 PDF 有值。转换产物放在 `tmp/docview/<id>/`，只保留最近 40 份。
+
+PDF 的 `html` 只是一个加载 pdf.js 的外壳（脚本和 worker 走 `cdn.jsdelivr.net`，首次打开需要能联网），原 PDF 留在 `src.pdf` 给浏览器自己解析，所以 PDF 转换很快，几十页一般几十毫秒。翻到哪画到哪，页数再多也不会先卡住。
 
 **取资源** `GET /api/docasset?id=<id>&f=page.html`
 
-`f` 是转换目录里的相对路径，页面本身用 `page.html`，图片形如 `img/001.png`。只接受本进程生成的 `id`，非法路径返回 `{"code":404}`。
+`f` 是转换目录里的相对路径：页面用 `page.html`，docx 的图片形如 `img/001.png`，PDF 的源文件是 `src.pdf`（`application/pdf`）。只接受本进程生成的 `id`，非法路径返回 `{"code":404}`。
 
 ---
 

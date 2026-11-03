@@ -16,6 +16,8 @@ static class DocViewHtml {
 		public string Html = "";
 		public int Pages;
 		public int Images;
+		/// <summary>HTML 只是外壳、还要用原始文件（PDF 按需出页），调用方别删源文件。</summary>
+		public bool KeepSource;
 	}
 
 	static readonly XNamespace W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";

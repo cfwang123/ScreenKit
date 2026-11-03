@@ -33,7 +33,7 @@ static class DocViewPdf {
 		};
 	}
 
-	/// <summary>逐页出图，返回 PNG 绝对路径。pages 只用于自测计数时可为 null。</summary>
+	/// <summary>逐页出图，返回 PNG 绝对路径。桌面阅读器一次要全部页，网页端改走 renderone 按需出页。</summary>
 	public static List<string> renders(byte[] bytes, string imgdir) {
 		List<string> list = new();
 		if (bytes == null || bytes.Length < 8) throw new InvalidOperationException("docview.badpdf");
@@ -56,6 +56,42 @@ static class DocViewPdf {
 		}
 		finally { handle.Free(); }
 		return list;
+	}
+
+	/// <summary>只出第 index 页（0 起），返回 PNG 绝对路径；页号越界返回空串。</summary>
+	public static string renderone(byte[] bytes, int index, string imgdir) {
+		if (bytes == null || bytes.Length < 8) throw new InvalidOperationException("docview.badpdf");
+		Directory.CreateDirectory(imgdir);
+		var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+		try {
+			lock (gate) {
+				if (!load()) throw new DllNotFoundException("pdfium.dll");
+				var doc = FPDF_LoadMemDocument(handle.AddrOfPinnedObject(), bytes.Length, null);
+				if (doc == IntPtr.Zero) throw new InvalidOperationException("docview.badpdf");
+				try {
+					if (index < 0 || index >= FPDF_GetPageCount(doc)) return "";
+					return page(doc, index, imgdir);
+				}
+				finally { FPDF_CloseDocument(doc); }
+			}
+		}
+		finally { handle.Free(); }
+	}
+
+	/// <summary>页数；打不开抛 docview.badpdf。</summary>
+	public static int pagecount(byte[] bytes) {
+		if (bytes == null || bytes.Length < 8) throw new InvalidOperationException("docview.badpdf");
+		var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+		try {
+			lock (gate) {
+				if (!load()) throw new DllNotFoundException("pdfium.dll");
+				var doc = FPDF_LoadMemDocument(handle.AddrOfPinnedObject(), bytes.Length, null);
+				if (doc == IntPtr.Zero) throw new InvalidOperationException("docview.badpdf");
+				try { return FPDF_GetPageCount(doc); }
+				finally { FPDF_CloseDocument(doc); }
+			}
+		}
+		finally { handle.Free(); }
 	}
 
 	static string page(IntPtr doc, int index, string imgdir) {
