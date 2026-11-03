@@ -291,6 +291,46 @@ static class FtpServerSelfTest {
 				if (tftpBogus.PortOr() != 69) bad("TFTP 越界端口没退回 69");
 				else ok("TFTP 越界端口退回 69");
 
+				// ---- 协议表里必须有 tftp，且默认端口 69 ----
+				if (Array.IndexOf(FtpProto.All, FtpProto.Tftp) < 0) bad("协议表里没有 tftp");
+				else ok("协议表含 tftp");
+				if (FtpProto.DefPort(FtpProto.Tftp) != 69) bad("tftp 默认端口不是 69");
+				else ok("tftp 默认端口 69");
+				if (!FtpProto.IsTftp("TFTP")) bad("IsTftp 大小写不敏感失败");
+				else ok("IsTftp 认大写 TFTP");
+				if (FtpProto.IsTftp(FtpProto.Sftp)) bad("IsTftp 把 sftp 认成 tftp 了");
+				else ok("IsTftp 不会误认 sftp");
+				if (FtpBackendFactory.NeedsDeps(FtpProto.Tftp)) bad("tftp 不该要求装库");
+				else ok("tftp 不需要第三方库");
+				if (!FtpBackendFactory.NeedsDeps(FtpProto.Ftp)) bad("ftp 应该要求装库");
+				else ok("ftp 仍需第三方库");
+
+				// ---- FTP 窗口里 TFTP 的控件与模式切换 ----
+				var fw = new FtpWindow();
+				try {
+					foreach (var (name, desc) in new[] {
+						("tftptip", "TFTP 说明区"),
+						("etftpname", "TFTP 文件名框"),
+						("btftpget", "TFTP 下载按钮"),
+						("lbtftptiptext", "TFTP 说明文字"),
+					}) {
+						if (fw.FindName(name) == null) bad($"FTP 窗口缺 {desc}({name})");
+						else ok($"FTP 窗口 {desc} 在");
+					}
+					var tip = fw.FindName("tftptip") as System.Windows.FrameworkElement;
+					if (tip != null && tip.Visibility != System.Windows.Visibility.Collapsed)
+						bad("TFTP 说明区默认不该显示");
+					else ok("TFTP 说明区默认隐藏");
+					var cb = fw.FindName("cbKind") as System.Windows.Controls.ComboBox;
+					if (cb == null) bad("找不到协议下拉框");
+					else if (cb.Items.Count != FtpProto.All.Length)
+						bad($"协议项数 {cb.Items.Count} 与 FtpProto.All 不一致");
+					else ok($"协议下拉 {cb.Items.Count} 项（含 TFTP）");
+				}
+				finally {
+					try { fw.Close(); } catch { }
+				}
+
 				// 端口越界回收
 				var bogus = new FtpSrvOptions { Port = 99999 };
 				if (bogus.PortOr() != 21) bad("越界端口没退回 21");

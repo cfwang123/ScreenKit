@@ -93,6 +93,7 @@ static class Cli {
 				or "--test-ftp-drag"
 				or "--test-ftpsrv"
 				or "--test-tftpsrv"
+				or "--test-tftpcli"
 				or "--test-udpdbg"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
@@ -307,6 +308,8 @@ static class Cli {
 					return testftpsrv();
 				case "--test-tftpsrv":
 					return testtftpsrv();
+				case "--test-tftpcli":
+					return testtftpcli();
 				case "--test-rtspsrv":
 					return RtspTestSrv.Test(Out, Err);
 				case "--test-sendfile":
@@ -2700,6 +2703,14 @@ static class Cli {
 		s = s ?? "";
 		if (s.Length <= max) return s;
 		return s.Substring(0, max) + "…";
+	}
+
+	/// <summary>FTP 文件管理里的 TFTP 客户端自测：本机起服务端，跑上传、下载、大小探测与不支持的操作。</summary>
+	static int testtftpcli() {
+		Out("=== TFTP 客户端自测 ===");
+		var rc = TftpClientSelfTest.Run(Out, Err);
+		Out(rc == 0 ? "全部通过" : $"自测失败 rc={rc}");
+		return rc;
 	}
 
 	/// <summary>简易 TFTP 服务端自测：临时目录起服务，用自写客户端走下载、上传、选项协商、多块与越界。</summary>
