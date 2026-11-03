@@ -20,6 +20,7 @@ public partial class FtpWindow : Window {
 
 	readonly DispatcherTimer tick = new() { Interval = TimeSpan.FromMilliseconds(50) };
 	bool dead;
+	bool connecting;
 	bool localDragBusy;
 	bool remoteDragBusy;
 
@@ -30,6 +31,7 @@ public partial class FtpWindow : Window {
 		lvxfer.ItemsSource = xfer.Jobs;
 		applylang();
 		initconn();
+		setconnstate(false);
 		initsites();
 		initbrowse();
 		initxfer();
@@ -77,12 +79,12 @@ public partial class FtpWindow : Window {
 		ehost.KeyDown += (_, e) => {
 			if (e.Key != Key.Enter) return;
 			e.Handled = true;
-			connect();
+			doconnect();
 		};
 		epass.KeyDown += (_, e) => {
 			if (e.Key != Key.Enter) return;
 			e.Handled = true;
-			connect();
+			doconnect();
 		};
 	}
 
@@ -319,7 +321,38 @@ public partial class FtpWindow : Window {
 
 	// ==================== 连接 ====================
 	#region
+	/// <summary>连接按钮是切换键：没连就连接，已连就断开。</summary>
 	void connect() {
+		if (connecting) return;
+		if (browse != null) {
+			disconnect();
+			return;
+		}
+		doconnect();
+	}
+
+	void disconnect() {
+		connecting = false;
+		try { browse?.Dispose(); } catch { }
+		browse = null;
+		remoteRows.Clear();
+		setconnstate(false);
+		setstat(Loc.T("ftp.disconnected"));
+	}
+
+	/// <summary>按当前是否连着，换按钮文字与配色（绿=连接，红=断开）。</summary>
+	void setconnstate(bool on) {
+		bconn.Content = Loc.T(on ? "ftp.disconnect" : "ftp.connect");
+		bconn.Style = (Style)FindResource(on ? "DisconnectBtn" : "ConnectBtn");
+		bconn.IsEnabled = true;
+		bremotemkdir.IsEnabled = on;
+		bremotedel.IsEnabled = on;
+		bremoterefresh.IsEnabled = on;
+		updateupbtn();
+	}
+
+	void doconnect() {
+		if (connecting) return;
 		if (!FtpDeps.Ensure(this)) {
 			setstat(Loc.T("ftp.need.hint"));
 			return;
@@ -343,6 +376,7 @@ public partial class FtpWindow : Window {
 			browse = null;
 		}
 		setstat(string.Format(Loc.T("ftp.connecting"), host));
+		connecting = true;
 		bconn.IsEnabled = false;
 		var backend = FtpBackendFactory.Create(site.Kind);
 		Task.Run(() => {
@@ -353,7 +387,8 @@ public partial class FtpWindow : Window {
 			catch (Exception ex) {
 				try { backend.Dispose(); } catch { }
 				dispatcher(() => {
-					bconn.IsEnabled = true;
+					connecting = false;
+					setconnstate(false);
 					setstat(string.Format(Loc.T("ftp.err.connect"), ex.Message));
 				});
 			}
@@ -361,13 +396,14 @@ public partial class FtpWindow : Window {
 	}
 
 	void onconnected(FtpSite site, IFtpBackend backend) {
+		connecting = false;
 		if (dead) {
 			try { backend.Dispose(); } catch { }
 			return;
 		}
 		browse = backend;
 		curSite = site;
-		bconn.IsEnabled = true;
+		setconnstate(true);
 		var wd = "/";
 		try { wd = backend.WorkDir(); }
 		catch { }
@@ -710,7 +746,7 @@ public partial class FtpWindow : Window {
 		lbuser.Text = Loc.T("ftp.user");
 		lbpass.Text = Loc.T("ftp.pass");
 		lbkind.Text = Loc.T("ftp.kind");
-		bconn.Content = Loc.T("ftp.connect");
+		bconn.Content = Loc.T(browse != null ? "ftp.disconnect" : "ftp.connect");
 		bsave.Content = Loc.T("ftp.save");
 		lblocal.Text = Loc.T("ftp.local");
 		lbremote.Text = Loc.T("ftp.remote");

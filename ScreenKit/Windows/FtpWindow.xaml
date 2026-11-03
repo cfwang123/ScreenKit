@@ -64,7 +64,7 @@
 			<ComboBox x:Name="cbKind" Grid.Column="11" Height="30"
 			          VerticalContentAlignment="Center" Margin="0,0,8,0"
 			          AutomationProperties.AutomationId="ftp.kind"/>
-			<Button x:Name="bconn" Grid.Column="12" Style="{StaticResource ToolBtn}" Height="30"
+			<Button x:Name="bconn" Grid.Column="12" Style="{StaticResource ConnectBtn}" Height="30"
 			        MinWidth="64" Margin="0,0,6,0" Padding="10,3"
 			        AutomationProperties.AutomationId="ftp.connect"/>
 			<Button x:Name="bsave" Grid.Column="13" Style="{StaticResource ToolBtn}" Height="30"

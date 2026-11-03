@@ -90,6 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Diagnostic logs follow capture_log: cast_sess, cuda_bootstrap, cast.log, fc.txt and the document viewer log are no longer written when it is off
 - Document viewer renders a large Markdown file in blocks around the viewport instead of laying out the whole file at once
 - FTP and SFTP libraries install on demand from the Tools group; slim package size is unchanged
+- FTP: the connect button turns into Disconnect once connected (green connect / red disconnect), and clicking it disconnects.
 
 #### Fixed
 
@@ -156,6 +157,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 诊断日志统一受 capture_log 控制：关闭时不再写 cast_sess.txt、cuda_bootstrap.log、cast.log、fc.txt 和文档阅读器日志
 - 文档阅读器打开超大 Markdown 时只排视口附近的块，不再整篇一次排版
 - FTP 与 SFTP 依赖改为在「安装功能 → 工具集」按需安装，精简包体积不变
+- FTP 文件管理：连接成功后「连接」按钮变为「断开」（连接为绿色、断开为红色），点击即可断开连接。
 
 #### 修复
 
