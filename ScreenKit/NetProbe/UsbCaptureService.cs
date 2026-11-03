@@ -77,7 +77,10 @@ sealed class UsbCaptureService : IDisposable {
 		list.Add(new UsbCapDevice { Path = path, Name = name });
 	}
 
-	public void Start(IReadOnlyList<UsbCapDevice> devs) {
+	public void Start(IReadOnlyList<UsbCapDevice> devs) => Start(devs, null);
+
+	/// <param name="addresses">只抓这些设备地址（0..127）。为空则抓全部，含抓包过程中新插入的。</param>
+	public void Start(IReadOnlyList<UsbCapDevice> devs, IReadOnlyCollection<int> addresses) {
 		if (IsRunning) return;
 		var env = CheckEnvironment();
 		if (env != null) {
@@ -97,7 +100,7 @@ sealed class UsbCaptureService : IDisposable {
 		foreach (var dev in devs) {
 			var h = CreateFile(dev.Path, GENERIC_READ | GENERIC_WRITE, 0, IntPtr.Zero, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, IntPtr.Zero);
 			if (h == INVALID || h == IntPtr.Zero) continue;
-			if (!setup(h)) { CloseHandle(h); continue; }
+			if (!setup(h, addresses)) { CloseHandle(h); continue; }
 			handles.Add(h);
 			opened++;
 			var th = new Thread(() => readloop(h, dev.Name)) { IsBackground = true, Name = "usbcap-" + dev.Name };
@@ -110,20 +113,19 @@ sealed class UsbCaptureService : IDisposable {
 		} else {
 			IsRunning = true;
 			HasSession = true;
-			Status = $"抓包中 · {opened} 个根集线器 · 缓存 {Count} 包";
+			var scope = addresses == null || addresses.Count == 0 ? "全部设备" : $"{addresses.Count} 个地址";
+			Status = $"抓包中 · {opened} 个根集线器 · {scope} · 缓存 {Count} 包";
 		}
 		StatusChanged?.Invoke();
 	}
 
-	/// <summary>snaplen 1MB、内核缓冲 1MB，过滤全部设备（含新插入的）。</summary>
-	static bool setup(IntPtr h) {
+	/// <summary>snaplen 1MB、内核缓冲 1MB，再按地址位图开始过滤。</summary>
+	static bool setup(IntPtr h, IReadOnlyCollection<int> addresses) {
 		var size = new byte[4];
 		writeU32(size, 0, 1024 * 1024);
 		if (!ioctl(h, IOCTL_SET_SNAPLEN, size)) return false;
 		if (!ioctl(h, IOCTL_SETUP_BUFFER, size)) return false;
-		var flt = new byte[17];
-		flt[16] = 1; // filterAll
-		return ioctl(h, IOCTL_START_FILTERING, flt);
+		return ioctl(h, IOCTL_START_FILTERING, UsbPacketParser.AddressFilter(addresses));
 	}
 
 	static bool ioctl(IntPtr h, uint code, byte[] input) {

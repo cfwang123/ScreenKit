@@ -114,6 +114,27 @@ static class UsbPacketParser {
 		return true;
 	}
 
+	/// <summary>USBPCAP_ADDRESS_FILTER：4 组 32 位地址位图，filterAll 在偏移 16。</summary>
+	public const int FILTER_BYTES = 17;
+
+	/// <summary>
+	/// 生成地址过滤。地址 0..127，0 表示未分配地址的新设备。
+	/// 列表为空时 filterAll=1，连同抓包过程中新插入的设备一起抓。
+	/// </summary>
+	public static byte[] AddressFilter(IEnumerable<int> addresses) {
+		var flt = new byte[FILTER_BYTES];
+		var any = false;
+		if (addresses != null) {
+			foreach (var a in addresses) {
+				if (a < 0 || a > 127) continue;
+				flt[a >> 5] |= (byte)(1 << (a & 31));
+				any = true;
+			}
+		}
+		if (!any) flt[16] = 1;
+		return flt;
+	}
+
 	public static byte[] Slice(byte[] src, int off, int len) => slice(src, off, len);
 
 	static byte[] slice(byte[] src, int off, int len) {
@@ -238,6 +259,14 @@ static class UsbPacketParser {
 		} finally {
 			try { Directory.Delete(dir, true); } catch { }
 		}
+
+		var none = AddressFilter(null);
+		check(none.Length == FILTER_BYTES && none[16] == 1 && none[0] == 0, "空过滤抓全部");
+		var one = AddressFilter(new[] { 0, 5, 31, 32, 127 });
+		check(one[16] == 0, "指定地址时不全抓");
+		check(one[0] == (byte)((1 << 0) | (1 << 5)), "低 32 位地址位");
+		check(one[1] == 1 && one[3] == 0x80 && one[4] == 0, "地址 32 与 127 的位");
+		check(AddressFilter(new[] { -1, 128 })[16] == 1, "越界地址回退全抓");
 		log(bad == 0 ? "全部通过" : $"失败 {bad} 项");
 		return bad == 0 ? 0 : 1;
 	}

@@ -39,12 +39,22 @@ public partial class UsbCapWindow : Window {
 		bexport.Click += (_, _) => onexport();
 		bimport.Click += (_, _) => onimport();
 		badmin.Click += (_, _) => reopenelevated();
+		brefresh.Click += (_, _) => loadtree();
 		cdev.SelectionChanged += (_, _) => rebuild(true);
-		edev.TextChanged += (_, _) => rebuild(true);
 		cxfer.SelectionChanged += (_, _) => rebuild(true);
 		eq.TextChanged += (_, _) => rebuild(true);
 		ckscroll.Checked += (_, _) => { frozen = false; rebuild(true); scrollend(); };
 		ckscroll.Unchecked += (_, _) => frozen = true;
+		tvdev.SelectedItemChanged += (_, _) => onpick();
+		tvdev.PreviewMouseLeftButtonDown += (_, e) => {
+			if (e.OriginalSource is not DependencyObject src) return;
+			if (finditem(src) != null) return;
+			tvdev.Focus();
+			picked = null;
+			foreach (var obj in tvdev.Items)
+				if (obj is TreeViewItem it) it.IsSelected = false;
+			onpick();
+		};
 		dglist.SelectionChanged += (_, _) => onselected();
 		dglist.PreviewMouseLeftButtonDown += (_, _) => {
 			frozen = true;
@@ -60,6 +70,7 @@ public partial class UsbCapWindow : Window {
 	void onloaded() {
 		dglist.ItemsSource = view;
 		loaddevs();
+		loadtree();
 		var cap = UsbCaptureService.Instance;
 		cap.StatusChanged += onstatus;
 		lbstatus.Text = cap.Status;
@@ -74,6 +85,59 @@ public partial class UsbCapWindow : Window {
 		var cap = UsbCaptureService.Instance;
 		cap.StatusChanged -= onstatus;
 		if (cap.IsRunning) cap.Stop();
+	}
+
+	UsbTreeNode picked;
+
+	void loadtree() {
+		List<UsbTreeNode> roots;
+		try { roots = UsbList.Tree(); }
+		catch { roots = new List<UsbTreeNode>(); }
+		var keep = picked?.InstanceId ?? "";
+		tvdev.Items.Clear();
+		picked = null;
+		foreach (var n in roots) tvdev.Items.Add(treeitem(n, keep));
+		onpick();
+	}
+
+	TreeViewItem treeitem(UsbTreeNode n, string keep) {
+		var label = n.Name;
+		if (n.Address >= 0) label += "  · 地址 " + n.Address;
+		else if (n.IsHub) label += "  · 集线器";
+		if (n.VidPid.Length > 0) label += "  " + n.VidPid;
+		var it = new TreeViewItem { Header = label, Tag = n, IsExpanded = true };
+		if (keep.Length > 0 && string.Equals(n.InstanceId, keep, StringComparison.OrdinalIgnoreCase)) {
+			it.IsSelected = true;
+			picked = n;
+		}
+		foreach (var c in n.Children) it.Items.Add(treeitem(c, keep));
+		return it;
+	}
+
+	static TreeViewItem finditem(DependencyObject src) {
+		while (src != null) {
+			if (src is TreeViewItem it) return it;
+			src = VisualTreeHelper.GetParent(src);
+		}
+		return null;
+	}
+
+	void onpick() {
+		if (tvdev.SelectedItem is TreeViewItem it && it.Tag is UsbTreeNode n) picked = n;
+		var cap = UsbCaptureService.Instance;
+		if (cap.IsRunning) {
+			lbstatus.Text = "设备选择在下次开始抓包时生效 · " + cap.Status;
+			return;
+		}
+		lbstatus.Text = picktext();
+	}
+
+	string picktext() {
+		if (picked == null) return "未选择设备 · 抓全部";
+		var addrs = picked.Addresses();
+		if (addrs.Count == 0) return $"已选 {picked.Name} · 没有可抓的设备地址";
+		if (picked.Address >= 0 && picked.Children.Count == 0) return $"已选 {picked.Name} · 只抓地址 {picked.Address}";
+		return $"已选 {picked.Name} · 抓 {addrs.Count} 个地址";
 	}
 
 	void loaddevs() {
@@ -118,12 +182,18 @@ public partial class UsbCapWindow : Window {
 			MessageBox.Show(this, "没有可抓的 USB 根集线器。", "USB 抓包", MessageBoxButton.OK, MessageBoxImage.Information);
 			return;
 		}
+		var addrs = picked?.Addresses();
+		if (picked != null && (addrs == null || addrs.Count == 0)) {
+			MessageBox.Show(this, "所选设备没有可抓的地址。请选择它下面的具体设备，或点空白处抓全部。",
+				"USB 抓包", MessageBoxButton.OK, MessageBoxImage.Information);
+			return;
+		}
 		if (!cap.HasSession) cap.Clear();
 		view.Clear();
 		shown = 0;
 		frozen = false;
 		ckscroll.IsChecked = true;
-		cap.Start(pick);
+		cap.Start(pick, addrs != null && addrs.Count > 0 ? addrs : null);
 		lbstatus.Text = cap.Status;
 		updatetoggle();
 	}
@@ -156,12 +226,12 @@ public partial class UsbCapWindow : Window {
 	void rebuild(bool full) {
 		var all = UsbCaptureService.Instance.Snapshot();
 		shown = all.Count;
-		var dev = edev.Text?.Trim() ?? "";
+		var want = picked?.Addresses();
 		var xfer = cxfer.SelectedIndex;
 		var q = eq.Text?.Trim() ?? "";
 		List<PacketRow> hit = new();
 		foreach (var p in all) {
-			if (dev.Length > 0 && (p.ConnKey ?? "").IndexOf(dev, StringComparison.OrdinalIgnoreCase) < 0) continue;
+			if (want != null && want.Count > 0 && !wantaddr(want, p)) continue;
 			if (xfer > 0 && p.Protocol != xfername(xfer)) continue;
 			if (q.Length > 0 && !contains(p, q)) continue;
 			hit.Add(p);
@@ -182,6 +252,14 @@ public partial class UsbCapWindow : Window {
 		}
 		lbcount.Text = $"共 {all.Count} 包 · 显示 {view.Count} 包 · {UsbCaptureService.Instance.DeviceCount} 台设备";
 		if (!frozen && ckscroll.IsChecked == true) scrollend();
+	}
+
+	static bool wantaddr(List<int> want, PacketRow p) {
+		var key = p.ConnKey ?? "";
+		var dot = key.IndexOf('.');
+		if (dot < 0 || dot + 1 >= key.Length) return false;
+		if (!int.TryParse(key.Substring(dot + 1), out var addr)) return false;
+		return want.Contains(addr);
 	}
 
 	static string xfername(int idx) => idx switch { 1 => "控制", 2 => "批量", 3 => "中断", 4 => "等时", _ => "" };

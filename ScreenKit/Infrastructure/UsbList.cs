@@ -25,6 +25,30 @@ public sealed class UsbDev {
 	public uint ProblemCode { get; set; }
 }
 
+/// <summary>USB 设备树的一个节点。地址为 -1 表示集线器，没有可过滤的设备地址。</summary>
+public sealed class UsbTreeNode {
+	public string Name;
+	public string VidPid;
+	public string InstanceId;
+	public int Address = -1;
+	public bool IsHub;
+	public List<UsbTreeNode> Children = new();
+
+	/// <summary>这一支上所有可抓的设备地址：自己的，再加上子节点的。</summary>
+	public List<int> Addresses() {
+		var set = new HashSet<int>();
+		collect(set);
+		var list = new List<int>(set);
+		list.Sort();
+		return list;
+	}
+
+	void collect(HashSet<int> set) {
+		if (Address >= 0 && Address <= 127) set.Add(Address);
+		foreach (var c in Children) c.collect(set);
+	}
+}
+
 /// <summary>参数名和值。</summary>
 public sealed class UsbPair {
 	public string Name { get; set; }
@@ -56,6 +80,77 @@ static class UsbList {
 	static readonly Guid GInst = new Guid("78c34fc8-104a-4aca-9ea4-524d52996e57");
 	static readonly Guid GBox = new Guid("8c7ed206-3f8a-4827-b3ab-ae9e1faefc6c");
 	static readonly Guid GDate = new Guid("83da6326-97a6-4088-9453-a1923f573b29");
+
+	/// <summary>
+	/// 按父子关系列出 USB 设备树。根是没有父节点、或父节点不在本次枚举里的设备。
+	/// 地址取设备管理器的设备地址，集线器没有地址；复合设备的接口挂在设备下面，地址跟父设备相同。
+	/// </summary>
+	public static List<UsbTreeNode> Tree() {
+		var devs = Scan();
+		var byid = new Dictionary<string, UsbTreeNode>(StringComparer.OrdinalIgnoreCase);
+		foreach (var dev in devs) {
+			var id = (dev.InstanceId ?? "").Trim();
+			if (id.Length == 0 || byid.ContainsKey(id)) continue;
+			byid[id] = new UsbTreeNode {
+				Name = dev.Name ?? "",
+				VidPid = dev.VidPid ?? "",
+				InstanceId = id,
+				Address = addressof(dev),
+				IsHub = ishub(dev)
+			};
+		}
+		List<UsbTreeNode> roots = new();
+		foreach (var dev in devs) {
+			var id = (dev.InstanceId ?? "").Trim();
+			if (id.Length == 0 || !byid.TryGetValue(id, out var node)) continue;
+			var parent = (dev.Parent ?? "").Trim();
+			if (parent.Length > 0 && !string.Equals(parent, id, StringComparison.OrdinalIgnoreCase)
+				&& byid.TryGetValue(parent, out var up))
+				up.Children.Add(node);
+			else
+				roots.Add(node);
+		}
+		filladdr(roots, -1);
+		sorttree(roots);
+		return roots;
+	}
+
+	static int addressof(UsbDev dev) {
+		// 根集线器的地址固定是 0，但它不是一台可抓的设备
+		if (ishub(dev) && (dev.InstanceId ?? "").StartsWith("USB\\ROOT_HUB", StringComparison.OrdinalIgnoreCase))
+			return -1;
+		foreach (var p in dev.Props ?? new List<UsbPair>()) {
+			if (!string.Equals(p.Name, "usb.p.addr", StringComparison.OrdinalIgnoreCase)) continue;
+			if (int.TryParse(p.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && n >= 0 && n <= 127)
+				return n;
+		}
+		return -1;
+	}
+
+	static bool ishub(UsbDev dev) {
+		if (string.Equals(dev.Service, "USBHUB3", StringComparison.OrdinalIgnoreCase)) return true;
+		if (string.Equals(dev.Service, "USBHUB", StringComparison.OrdinalIgnoreCase)) return true;
+		if ((dev.ClassName ?? "").IndexOf("USB Hub", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if ((dev.ClassName ?? "").IndexOf("集线器", StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		return false;
+	}
+
+	/// <summary>接口自己没有地址，沿用它所在设备的地址。</summary>
+	static void filladdr(List<UsbTreeNode> nodes, int parentAddr) {
+		foreach (var n in nodes) {
+			if (n.Address < 0 && parentAddr >= 0) n.Address = parentAddr;
+			filladdr(n.Children, n.Address);
+		}
+	}
+
+	static void sorttree(List<UsbTreeNode> nodes) {
+		nodes.Sort((a, b) => {
+			var c = string.Compare(a.Name, b.Name, StringComparison.CurrentCultureIgnoreCase);
+			if (c != 0) return c;
+			return string.Compare(a.InstanceId, b.InstanceId, StringComparison.OrdinalIgnoreCase);
+		});
+		foreach (var n in nodes) sorttree(n.Children);
+	}
 
 	public static List<UsbDev> Scan() {
 		var h = SetupDiGetClassDevs(IntPtr.Zero, "USB", IntPtr.Zero, DIGCF_PRESENT | DIGCF_ALLCLASSES);
