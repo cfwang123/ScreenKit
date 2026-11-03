@@ -5019,3 +5019,4 @@ web.tool.mdread.name = "md 阅读器 markdown 预览 拖入 docx word pdf 文档
 web.tool.mdread.tip = "拖入 Markdown、Word 或 PDF，多文件用标签切换"
 http.doc.docview = "把 md、docx 或 pdf 转成可浏览的网页。\\n请求体就是文件字节，Content-Type 任意（按 name 的扩展名判断类型）。\\nname：文件名，决定格式；theme 和 scale 只对 Markdown 有效。\\n返回 data.id、data.html 和页数、图片数；data.html 里的图片地址指向 /api/docasset。"
 web.mdread.droptitle = "松开即可加入"
+set.hotkey.mdread = "Dokumentbetrachter · anzeigen oder ausblenden. Standard leer (aus)"

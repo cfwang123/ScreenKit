@@ -112,6 +112,7 @@ public partial class SettingsWindow : Window {
 		bindhotkey(ehotkeydict, bhkdictcap, bhkdictclear);
 		bindhotkey(ehotkeydictsel, bhkdictselcap, bhkdictselclear);
 		bindhotkey(ehotkeyweb, bhkwebcap, bhkwebclear);
+		bindhotkey(ehotkeymdread, bhkmdreadcap, bhkmdreadclear);
 		bindhotkey(ehotkeyimecycle, bhkimecyclecap, bhkimecycleclear);
 		bindhotkey(ehotkeyimewubi, bhkimewubicap, bhkimewubiclear);
 		bindhotkey(ehotkeyimeja, bhkimejacap, bhkimejaclear);
@@ -287,6 +288,7 @@ public partial class SettingsWindow : Window {
 			lbhkhintsnapcopy.Text = Loc.T("set.hotkey.snapcopy");
 			lbhkhintDict.Text = Loc.T("set.hotkey.dict");
 			lbhkhintweb.Text = Loc.T("set.hotkey.webhome");
+			lbhkhintmdread.Text = Loc.T("set.hotkey.mdread");
 			lbhkhintImeCycle.Text = Loc.T("set.hotkey.ime.cycle");
 			lbhkhintImeWubi.Text = Loc.T("set.hotkey.ime.wubi");
 			lbhkhintImeJa.Text = Loc.T("set.hotkey.ime.ja");
@@ -453,6 +455,8 @@ public partial class SettingsWindow : Window {
 			bhkdictselcap.Content = Loc.T("set.hotkey.capture");
 			bhkwebclear.Content = Loc.T("set.hotkey.clear");
 			bhkwebcap.Content = Loc.T("set.hotkey.capture");
+			bhkmdreadclear.Content = Loc.T("set.hotkey.clear");
+			bhkmdreadcap.Content = Loc.T("set.hotkey.capture");
 			bhkimecycleclear.Content = Loc.T("set.hotkey.clear");
 			bhkimecyclecap.Content = Loc.T("set.hotkey.capture");
 			bhkimewubiclear.Content = Loc.T("set.hotkey.clear");
@@ -469,6 +473,8 @@ public partial class SettingsWindow : Window {
 			bhkdictselcap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			bhkwebclear.ToolTip = Loc.T("set.hotkey.clear.tip");
 			bhkwebcap.ToolTip = Loc.T("set.hotkey.capture.tip");
+			bhkmdreadclear.ToolTip = Loc.T("set.hotkey.clear.tip");
+			bhkmdreadcap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			bhkimecycleclear.ToolTip = Loc.T("set.hotkey.clear.tip");
 			bhkimecyclecap.ToolTip = Loc.T("set.hotkey.capture.tip");
 			bhkimewubiclear.ToolTip = Loc.T("set.hotkey.clear.tip");
@@ -608,6 +614,7 @@ public partial class SettingsWindow : Window {
 		if (cbimerare != null) cbimerare.IsChecked = o.ImeRare;
 		ehotkeydictsel.Text = GlobalHotkey.Display(o.HotkeyDictSel);
 		ehotkeyweb.Text = GlobalHotkey.Display(o.HotkeyWebHome);
+		ehotkeymdread.Text = GlobalHotkey.Display(o.HotkeyMdRead);
 		cbdictselbar.IsChecked = o.DictSelBar;
 		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
 		edicthold.Text = OnnxIdle.ClampMin(o.DictDbHoldMin).ToString();
@@ -887,6 +894,7 @@ public partial class SettingsWindow : Window {
 		Result.ImeRare = cbimerare != null && cbimerare.IsChecked == true;
 		if (!tryreadhotkey(ehotkeydictsel, Loc.T("set.hotkey.dictsel"), out Result.HotkeyDictSel, tabsetdict)) return false;
 		if (!tryreadhotkey(ehotkeyweb, Loc.T("set.hotkey.webhome"), out Result.HotkeyWebHome, tabsethk)) return false;
+		if (!tryreadhotkey(ehotkeymdread, Loc.T("set.hotkey.mdread"), out Result.HotkeyMdRead, tabsethk)) return false;
 		Result.DictSelBar = cbdictselbar.IsChecked == true;
 		if (!tryint(edictlimit, Loc.T("set.dict.limit"), 1, DictDb.SEARCH_MAX, out var dictLimit, tabsetdict)) return false;
 		Result.DictLimit = dictLimit;

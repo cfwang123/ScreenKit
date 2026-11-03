@@ -775,35 +775,37 @@ public partial class MdReadWindow : Window {
 				activatetab(t);
 				showstat();
 			}
-			// 记下抓点，鼠标移动超过阈值才开始拖
+			// 记下抓点，鼠标移动超过阈值才开始拖（和 docview 一样用 null 参照，窗口挪了也不影响）
 			dragtab = t;
 			draghead = bd;
-			dragstart = e.GetPosition(this);
+			dragstart = e.GetPosition(null);
 			draggrab = e.GetPosition(bd);
 			dragging = false;
 			dragfloated = false;
-			bd.CaptureMouse();
+			try { bd.CaptureMouse(); } catch { }
 			e.Handled = true;
 		};
 		bd.PreviewMouseMove += (_, e) => {
-			if (dragtab == null) return;
+			if (dragtab == null || !ReferenceEquals(dragtab, t)) return;
 			if (e.LeftButton != MouseButtonState.Pressed) { endtabdrag(commit: false); return; }
 			if (!dragging) {
-				var now = e.GetPosition(this);
-				if (Math.Abs(now.X - dragstart.X) < TAB_DRAG_THRESHOLD
-					&& Math.Abs(now.Y - dragstart.Y) < TAB_DRAG_THRESHOLD) return;
+				var pos = e.GetPosition(null);
+				var dx = pos.X - dragstart.X;
+				var dy = pos.Y - dragstart.Y;
+				if (dx * dx + dy * dy < TAB_DRAG_THRESHOLD * TAB_DRAG_THRESHOLD) return;
 				dragging = true;
-				if (draghead != null) {
-					draghead.Opacity = 0.7;
-					draghead.Cursor = Cursors.SizeAll;
-				}
+				bd.Opacity = 0.72;
+				bd.Cursor = Cursors.SizeAll;
+				Panel.SetZIndex(bd, 100);
 			}
-			updatetabdrag(PointToScreen(e.GetPosition(this)));
+			updatetabdrag(bd.PointToScreen(e.GetPosition(bd)));
 			e.Handled = true;
 		};
 		bd.PreviewMouseLeftButtonUp += (_, e) => {
-			if (dragtab == null) return;
-			endtabdrag(commit: true, PointToScreen(e.GetPosition(this)));
+			if (dragtab == null || !ReferenceEquals(dragtab, t)) return;
+			var screen = bd.PointToScreen(e.GetPosition(bd));
+			var was = dragging;
+			endtabdrag(commit: was, screen);
 			e.Handled = true;
 		};
 		bd.LostMouseCapture += (_, _) => {
@@ -818,7 +820,8 @@ public partial class MdReadWindow : Window {
 		};
 		t.Head = bd;
 		paintchip(t);
-		return bd;	}
+		return bd;
+	}
 
 	void showtabstate() {
 		foreach (var t in tabs) paintchip(t);
@@ -826,17 +829,25 @@ public partial class MdReadWindow : Window {
 
 	// ---------- 标签拖拽：条内排序 / 拖出拆窗 / 拖回合并 ----------
 
+	/// <summary>除自己之外还有没有开着的阅读器窗口（有才能把标签拖过去合并）。</summary>
+	bool hasotherwindow() {
+		foreach (var w in livelist) {
+			if (w == null || ReferenceEquals(w, this)) continue;
+			if (w.IsVisible) return true;
+		}
+		return false;
+	}
+
 	/// <summary>拖动中：判断光标在哪个窗口的标签条上，决定排序、拆窗还是合并。</summary>
 	void updatetabdrag(Point screen) {
 		if (dragtab == null) return;
 		// 已拆成独立窗：窗口跟手；再拖到别的窗口标签条上就并回去
 		if (dragfloated) {
-			var dip = pointtodip(screen);
-			Left = dip.X - draggrab.X;
-			Top = dip.Y - draggrab.Y;
+			movefloatwin(screen);
 			var over = hitwindow(screen, except: this);
 			if (over != null) mergetowindow(over, screen);
-			return;		}
+			return;
+		}
 		var hit = hitwindow(screen);
 		if (hit == null) {
 			// 离开标签条：本窗还有别的标签就拆出去；只剩一个则不拆（否则留下空窗）
@@ -844,119 +855,94 @@ public partial class MdReadWindow : Window {
 			return;
 		}
 		if (ReferenceEquals(hit, this)) {
-			var to = insertindex(this, screen);
-			var from = tabs.IndexOf(dragtab);
-			if (from >= 0) {
-				var adj = to > from ? to - 1 : to;
-				if (adj != from && adj >= 0 && adj < tabs.Count) {
-					// 重排会重建芯片，拖拽中的芯片引用要跟着换成新的
-					var grab = draggrab;
-					tabs.RemoveAt(from);
-					tabs.Insert(adj, dragtab);
-					updatetabs();
-					resumereorder(grab);
-				}
-			}
+			// 本窗内：只挪芯片位置与顺序，不重建芯片（重建会把捕获弄丢）
+			livereorder(insertindex(this, screen), screen);
 		}
 		else {
 			mergetowindow(hit, screen);
 		}
 	}
 
-	/// <summary>
-	/// updatetabs 会把芯片全部重建，拖拽状态里的旧芯片已经脱离视觉树（捕获也随之丢了）。
-	/// 这里改指到新芯片，并重新拿走捕获，不然排序一次之后就拖不动了。
-	/// </summary>
-	void resumereorder(Point grab) {
+	/// <summary>条内实时排序：改 tabs 顺序并只挪 tabhost 的子元素，不重建芯片。</summary>
+	void livereorder(int newIndex, Point screen) {
 		var t = dragtab;
-		if (t?.Head == null) return;
-		draghead = t.Head;
-		draggrab = grab;
-		draghead.Opacity = 0.7;
-		draghead.Cursor = Cursors.SizeAll;
+		if (t == null) return;
+		var old = tabs.IndexOf(t);
+		if (old >= 0) {
+			var adj = newIndex > old ? newIndex - 1 : newIndex;
+			if (adj < 0) adj = 0;
+			if (adj > tabs.Count - 1) adj = tabs.Count - 1;
+			if (adj != old) {
+				tabs.RemoveAt(old);
+				tabs.Insert(adj, t);
+				// 只挪芯片，别重建
+				var chip = t.Head;
+				if (chip != null && tabhost.Children.Contains(chip)) {
+					tabhost.Children.Remove(chip);
+					if (adj >= tabhost.Children.Count) tabhost.Children.Add(chip);
+					else tabhost.Children.Insert(adj, chip);
+					Panel.SetZIndex(chip, 100);
+				}
+			}
+		}
+		followdraggedtab(screen);
+	}
+
+	/// <summary>让被拖的芯片跟着光标走（TranslateTransform，不改布局）。</summary>
+	void followdraggedtab(Point screen) {
+		var chip = draghead;
+		if (chip == null) return;
 		try {
-			draghead.CaptureMouse();
-			// 鼠标已经不在新芯片上时 MouseMove 会送到旧元素，补一次位置校正
-			var p = draghead.PointFromScreen(PointToScreen(grab));
-			draggrab = p;
+			if (chip.RenderTransform is not TranslateTransform tt) {
+				tt = new TranslateTransform();
+				chip.RenderTransform = tt;
+			}
+			tt.X = 0;
+			tt.Y = 0;
+			// 布局位置（清零后取）
+			var layout = chip.TransformToAncestor(tabhost).Transform(new Point(0, 0));
+			var mouse = tabhost.PointFromScreen(screen);
+			tt.X = mouse.X - draggrab.X - layout.X;
+			tt.Y = -2;
 		}
 		catch { }
 	}
 
-	/// <summary>
-	/// 光标落在哪个阅读器窗口的标签条上。排除自己，并优先取最新的窗口
-	/// （拆出去的新窗通常压在旧窗上面，位置又几乎重叠）。
-	/// </summary>
-	static MdReadWindow hitwindow(Point screen, MdReadWindow except = null) {
-		var list = livelist.ToList();
-		list.Reverse();
-		foreach (var w in list) {
-			if (w == null || ReferenceEquals(w, except)) continue;
-			if (!w.IsVisible || w.tabhost == null) continue;
-			try {
-				var tl = w.svtabs.PointToScreen(new Point(0, 0));
-				var br = w.svtabs.PointToScreen(
-					new Point(Math.Max(1, w.svtabs.ActualWidth), Math.Max(28, w.svtabs.ActualHeight)));
-				// 命中区略放大，向下拖出时更好抓
-				if (screen.X >= tl.X - 12 && screen.X <= br.X + 12
-					&& screen.Y >= tl.Y - 10 && screen.Y <= br.Y + 16)
-					return w;
-			}
-			catch { }
-		}
-		return null;
-	}
-
-	/// <summary>标签条上的插入位置（按芯片中线左右判断）。</summary>
-	static int insertindex(MdReadWindow w, Point screen) {
-		var n = w?.tabhost?.Children.Count ?? 0;
-		if (n == 0) return 0;
-		for (var i = 0; i < n; i++) {
-			if (w.tabhost.Children[i] is not FrameworkElement fe) continue;
-			try {
-				var tl = fe.PointToScreen(new Point(0, 0));
-				if (screen.X < tl.X + fe.ActualWidth * 0.5) return i;
-			}
-			catch { }
-		}
-		return n;
-	}
-
-	/// <summary>拖动中拆成独立窗口，窗口跟手；本窗只剩一个标签时不拆。</summary>
+	/// <summary>先在光标所在处拆出一扇新窗，窗口顶边贴住光标（之后只有整窗拖动才会动它）。</summary>
 	void floatout(Point screen) {
 		var t = dragtab;
 		if (t == null || dragfloated || tabs.Count <= 1) return;
-		var grab = draggrab;
 		try {
 			dragmoving = true;
-			draghead?.ReleaseMouseCapture();
-			cleardragstate();
+			if (draghead != null) {
+				try { draghead.ReleaseMouseCapture(); } catch { }
+				draghead.Opacity = 1;
+				draghead.Cursor = Cursors.Arrow;
+				draghead.RenderTransform = Transform.Identity;
+				Panel.SetZIndex(draghead, 0);
+			}
+			dragtab = null;
+			draghead = null;
+			dragging = false;
+			dragfloated = false;
+			var grab = draggrab;
 			detacht(t);
 			var w = Math.Max(720, ActualWidth * 0.85);
 			var h = Math.Max(480, ActualHeight * 0.85);
+			var dip = pointtodip(screen);
 			var nw = new MdReadWindow(opt, isSecondary: true) {
 				Width = w,
 				Height = h,
 				WindowStartupLocation = WindowStartupLocation.Manual,
 				ShowInTaskbar = true,
+				// 新窗的标签条落在光标下方一点，光标仍在标签条容错区内，接着拖就能并回去
+				Left = dip.X - Math.Min(grab.X, 60),
+				Top = dip.Y - Math.Min(grab.Y, 14),
 			};
-			nw.adopttab(t);
-			var dip = pointtodip(screen);
-			nw.Left = dip.X - grab.X;
-			nw.Top = dip.Y - grab.Y;
 			nw.Show();
-			// 交接拖拽状态，新窗继续跟手
-			nw.dragtab = t;
-			nw.draghead = t.Head;
-			nw.dragging = true;
-			nw.dragfloated = true;
-			nw.draggrab = grab;
-			nw.dragmoving = false;
-			if (t.Head != null) {
-				t.Head.Opacity = 0.7;
-				t.Head.Cursor = Cursors.SizeAll;
-				try { t.Head.CaptureMouse(); } catch { }
-			}
+			nw.adopttab(t);
+			nw.takefloatdrag(t, new Point(Math.Min(grab.X, 60), Math.Min(grab.Y, 14)), floated: true);
+			nw.Activate();
 			remember();
 		}
 		catch (Exception ex) {
@@ -967,17 +953,58 @@ public partial class MdReadWindow : Window {
 		}
 	}
 
+	/// <summary>
+	/// 接手一个正在拖的标签。floated=true 表示这是刚拆出来的窗，窗口要跟着光标走；
+	/// 并到别的窗里之后传 false，只做条内排序，窗口不动。
+	/// </summary>
+	void takefloatdrag(Tab t, Point grabInHeader, bool floated) {
+		dragtab = t;
+		draghead = t?.Head;
+		dragging = true;
+		dragfloated = floated;
+		draggrab = grabInHeader;
+		dragstart = new Point(0, 0);
+		if (draghead != null) {
+			draghead.Opacity = 0.72;
+			draghead.Cursor = Cursors.SizeAll;
+			Panel.SetZIndex(draghead, 100);
+			try { draghead.CaptureMouse(); } catch { }
+		}
+	}
+
+	/// <summary>拆出来的窗口跟手（只有这一步会动窗口）。</summary>
+	void movefloatwin(Point screen) {
+		try {
+			var dip = pointtodip(screen);
+			Left = dip.X - draggrab.X;
+			Top = dip.Y - draggrab.Y;
+		}
+		catch { }
+	}
+
 	/// <summary>把正在拖的标签并到另一个窗口的标签条上。</summary>
 	void mergetowindow(MdReadWindow target, Point screen) {
 		var t = dragtab;
 		if (t == null || target == null || ReferenceEquals(target, this)) return;
+		var grab = draggrab;
 		try {
 			dragmoving = true;
-			draghead?.ReleaseMouseCapture();
-			cleardragstate();
+			if (draghead != null) {
+				try { draghead.ReleaseMouseCapture(); } catch { }
+				draghead.Opacity = 1;
+				draghead.Cursor = Cursors.Arrow;
+				draghead.RenderTransform = Transform.Identity;
+				Panel.SetZIndex(draghead, 0);
+			}
+			dragtab = null;
+			draghead = null;
+			dragging = false;
+			dragfloated = false;
 			var at = insertindex(target, screen);
 			detacht(t);
 			target.adopttab(t, at);
+			// 并过去后由目标窗继续条内拖动，窗口不再跟着走
+			target.takefloatdrag(t, grab, floated: false);
 			target.Activate();
 			remember();
 			if (tabs.Count == 0 && secondary) Close();
@@ -990,11 +1017,59 @@ public partial class MdReadWindow : Window {
 		}
 	}
 
+	/// <summary>
+	/// 光标落在哪个阅读器窗口的标签条上。排除自己，并优先取最新的窗口
+	/// （拆出去的新窗通常压在旧窗上面，位置又几乎重叠）。
+	/// </summary>
+	static MdReadWindow hitwindow(Point screen, MdReadWindow except = null) {
+		var list = livelist.ToList();
+		list.Reverse();
+		foreach (var w in list) {
+			if (w == null || ReferenceEquals(w, except)) continue;
+			if (!w.IsVisible || w.tabhost == null) continue;
+			if (overtabstrip(w, screen)) return w;
+		}
+		return null;
+	}
+
+	/// <summary>光标是否压在这个窗口的标签条上（含放大后的容错区）。</summary>
+	static bool overtabstrip(MdReadWindow w, Point screen) {
+		try {
+			var el = (FrameworkElement)w.svtabs ?? w.tabhost;
+			if (el == null || !el.IsVisible) return false;
+			var tl = el.PointToScreen(new Point(0, 0));
+			var br = el.PointToScreen(new Point(Math.Max(1, el.ActualWidth), Math.Max(30, el.ActualHeight)));
+			// 容错区：上下各让出一截，拖的时候手一抖也还算在标签条上
+			return screen.X >= tl.X - 16 && screen.X <= br.X + 16
+				&& screen.Y >= tl.Y - 14 && screen.Y <= br.Y + 18;
+		}
+		catch { return false; }
+	}
+
+	/// <summary>标签条上的插入位置（按芯片中线左右判断）。</summary>
+	static int insertindex(MdReadWindow w, Point screen) {
+		var n = w?.tabhost?.Children.Count ?? 0;
+		if (n == 0) return 0;
+		for (var i = 0; i < n; i++) {
+			if (w.tabhost.Children[i] is not FrameworkElement fe) continue;
+			// 被拖的那个芯片有跟手位移，算插入点时要按布局位置，否则会来回抖
+			if (ReferenceEquals(fe, w.draghead)) continue;
+			try {
+				var tl = fe.PointToScreen(new Point(0, 0));
+				if (screen.X < tl.X + fe.ActualWidth * 0.5) return i;
+			}
+			catch { }
+		}
+		return n;
+	}
+
 	/// <summary>清掉拖拽状态，不动标签本身。捕获一定要放，否则整扇窗之后收不到鼠标。</summary>
 	void cleardragstate() {
 		if (draghead != null) {
 			draghead.Opacity = 1;
 			draghead.Cursor = Cursors.Arrow;
+			draghead.RenderTransform = Transform.Identity;
+			Panel.SetZIndex(draghead, 0);
 			try {
 				if (ReferenceEquals(Mouse.Captured, draghead)) draghead.ReleaseMouseCapture();
 			}
@@ -1246,11 +1321,15 @@ public partial class MdReadWindow : Window {
 		catch { }
 	}
 
+	/// <summary>
+	/// 标题栏里哪些东西自己吃鼠标（菜单、窗口按钮、tab 芯片）。
+	/// 注意别把整个标签条 ScrollViewer 算进来：标签条右边的空白属于标题栏，
+	/// 在那里按下应当能拖窗口。
+	/// </summary>
 	static bool istitleinteractive(DependencyObject d) {
 		while (d != null) {
 			if (d is Menu || d is MenuItem || d is Button) return true;
 			if (d is Border br && br.Tag is Tab) return true;
-			if (d is ScrollViewer sv && sv.Name == "svtabs") return true;
 			d = d is Visual || d is System.Windows.Media.Media3D.Visual3D
 				? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
 		}

@@ -115,7 +115,7 @@ sealed class TrayIcon : IDisposable {
 	System.Drawing.Point menuScreenLoc;
 
 	/// <summary>返回 (呼出, 截图识别, 截图标注, 重复上次截图, 屏幕画板, 语音输入, 翻译小窗, 划词浮窗, 切换复制方式, 输入法, web工具主页) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string dictsel, string copy, string hangul, string web)> HotkeyProvider { get; set; }
+	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string dictsel, string copy, string hangul, string web, string mdread)> HotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -489,10 +489,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", dictsel = "", copy = "", hangul = "", web = "";
+		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", dictsel = "", copy = "", hangul = "", web = "", mdread = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, screensnap, board, voice, tr, dictsel, copy, hangul, web) = HotkeyProvider();
+				(show, ocr, snap, screensnap, board, voice, tr, dictsel, copy, hangul, web, mdread) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
@@ -525,7 +525,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miRename, null);
 		setshortcut(miHash, null);
 		setshortcut(miTextTool, null);
-		setshortcut(miMdRead, null);
+		setshortcut(miMdRead, mdread);
 		setshortcut(miPwGen, null);
 		setshortcut(miSciCalc, null);
 		setshortcut(miNote, null);

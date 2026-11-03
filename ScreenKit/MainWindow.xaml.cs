@@ -80,6 +80,7 @@ public partial class MainWindow : Window {
 	GlobalHotkey hotkeyDict;  // 词典
 	GlobalHotkey hotkeyDictSel; // 划词浮窗开关
 	GlobalHotkey hotkeyWeb; // web 工具主页
+	GlobalHotkey hotkeyMdRead; // 文档查看器
 	GlobalHotkey hotkeyImeCycle;
 	GlobalHotkey hotkeyImeWubi;
 	GlobalHotkey hotkeyImeJa;
@@ -652,7 +653,8 @@ public partial class MainWindow : Window {
 				opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "",
 				fmttrayhk(opt.HotkeySnapCopy),
 				fmttrayhk(opt.HotkeyImeCycle),
-				fmttrayhk(opt.HotkeyWebHome));
+				fmttrayhk(opt.HotkeyWebHome),
+				fmttrayhk(opt.HotkeyMdRead));
 			// 构造托盘时还没有热键来源，设置后立刻补一次，菜单一打开就带快捷键
 			try { tray.ApplyHotkeys(); } catch { }
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
@@ -1009,6 +1011,13 @@ public partial class MainWindow : Window {
 					try { setstatus(ex.Message); } catch { }
 				}
 			}));
+			hotkeyMdRead = new GlobalHotkey(this, 0x700E);
+			hotkeyMdRead.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
+				try { togglemdread(); }
+				catch (Exception ex) {
+					try { setstatus(ex.Message); } catch { }
+				}
+			}));
 			hotkeyImeCycle = new GlobalHotkey(this, 0x7010);
 			hotkeyImeCycle.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
 				try {
@@ -1095,6 +1104,7 @@ public partial class MainWindow : Window {
 					|| (hotkeyDict != null && !string.IsNullOrWhiteSpace(opt.HotkeyDict) && !hotkeyDict.IsRegistered)
 					|| (hotkeyDictSel != null && !string.IsNullOrWhiteSpace(opt.HotkeyDictSel) && !hotkeyDictSel.IsRegistered)
 					|| (hotkeyWeb != null && !string.IsNullOrWhiteSpace(opt.HotkeyWebHome) && !hotkeyWeb.IsRegistered)
+					|| (hotkeyMdRead != null && !string.IsNullOrWhiteSpace(opt.HotkeyMdRead) && !hotkeyMdRead.IsRegistered)
 					|| (hotkeyImeCycle != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeCycle) && !hotkeyImeCycle.IsRegistered)
 					|| (hotkeyImeWubi != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeWubi) && !hotkeyImeWubi.IsRegistered)
 					|| (hotkeyImeJa != null && !string.IsNullOrWhiteSpace(opt.HotkeyImeJa) && !hotkeyImeJa.IsRegistered)
@@ -1160,6 +1170,10 @@ public partial class MainWindow : Window {
 		if (hotkeyWeb != null) {
 			hotkeyWeb.Attach();
 			if (!hotkeyWeb.Register(opt.HotkeyWebHome)) errs.Add(hotkeyWeb.LastError);
+		}
+		if (hotkeyMdRead != null) {
+			hotkeyMdRead.Attach();
+			if (!hotkeyMdRead.Register(opt.HotkeyMdRead)) errs.Add(hotkeyMdRead.LastError);
 		}
 		// ime.db 未安装：输入法菜单已禁用，热键也不注册，避免占住组合键
 		var imeok = ImeLex.DbInstalled;
@@ -2326,6 +2340,7 @@ public partial class MainWindow : Window {
 				mndictselbar.InputGestureText = opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "";
 			if (mnhangul != null) mnhangul.InputGestureText = fmttrayhk(opt.HotkeyImeCycle);
 			if (mnwebhome != null) mnwebhome.InputGestureText = fmttrayhk(opt.HotkeyWebHome);
+			if (mnmdread != null) mnmdread.InputGestureText = fmttrayhk(opt.HotkeyMdRead);
 			painthangul();
 			// 只在工具窗口打开时监听，菜单上不标快捷键
 			if (mnautokey != null) mnautokey.InputGestureText = "";
@@ -4464,6 +4479,7 @@ public partial class MainWindow : Window {
 			|| !string.Equals(old.HotkeyDict, opt.HotkeyDict, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyDictSel, opt.HotkeyDictSel, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyWebHome, opt.HotkeyWebHome, StringComparison.OrdinalIgnoreCase)
+			|| !string.Equals(old.HotkeyMdRead, opt.HotkeyMdRead, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeCycle, opt.HotkeyImeCycle, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeWubi, opt.HotkeyImeWubi, StringComparison.OrdinalIgnoreCase)
 			|| !string.Equals(old.HotkeyImeJa, opt.HotkeyImeJa, StringComparison.OrdinalIgnoreCase)
@@ -4918,6 +4934,23 @@ public partial class MainWindow : Window {
 			return w;
 		}, "menu.mdread");
 
+	// 已显示则隐藏；最小化或已隐藏则重新打开。
+	void togglemdread() {
+		var w = mdReadWin;
+		if (w != null && w.IsVisible && w.WindowState != WindowState.Minimized) {
+			w.Hide();
+			return;
+		}
+		if (w != null) {
+			if (w.WindowState == WindowState.Minimized)
+				w.WindowState = WindowState.Normal;
+			if (!w.IsVisible) w.Show();
+			w.Activate();
+			return;
+		}
+		openmdread();
+	}
+
 	void opendoc2md() =>
 		opentoolwin(ref doc2mdWin, () => new DocToMdWindow(), "menu.doc2md");
 
@@ -5224,6 +5257,7 @@ public partial class MainWindow : Window {
 		sb.AppendLine($"Hotkey dictionary: {opt.HotkeyDict}");
 		sb.AppendLine($"Selection popup: {(opt.DictSelBar ? "on" : "off")} hotkey={opt.HotkeyDictSel}");
 		sb.AppendLine($"Hotkey web home: {opt.HotkeyWebHome}");
+		sb.AppendLine($"Hotkey document viewer: {opt.HotkeyMdRead}");
 		sb.AppendLine($"Hotkey auto key: {opt.AutoKeyHotkey} mode={opt.AutoKeyMode} key={opt.AutoKeyKey} ms={opt.AutoKeyIntervalMs}");
 		var httpShow = httpServer != null && httpServer.IsRunning
 			? $"{(httpServer.LanAll ? opt.HttpShowHost() : "127.0.0.1")}:{httpServer.Port}"
