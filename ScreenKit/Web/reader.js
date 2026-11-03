@@ -1203,44 +1203,29 @@
 		pump();
 	}
 
-	// Chrome 离线语音在服务端出声。下一句的请求提前发出，隐藏页会把它排进正在读的队列。
+	// Chrome 语音在这台机器的隐藏窗口里出声，Chrome 自己排一句一句读。
+	// 不能提前把下一句推过去：两句同时在 Chrome 的队列里，前一句读久一点，
+	// 后一句的「10 秒还没出声」就会 cancel 整个队列，把正在读的那句也打断。
+	// 所以读完一句再发下一句。
 	function runblock(queue, token){
-		var nextJob = null;
-		var nextP = null;
-		function start(job){
-			return new Promise(function(resolve){
-				speak(job.text, function(err){ resolve(err || ""); });
-			});
-		}
-		function armnext(){
-			if (nextP || !queue.length || !readlive(token)) return;
-			nextJob = queue.shift();
-			nextP = start(nextJob);
-		}
-		function step(job, p){
+		function step(){
 			if (!readlive(token)) return;
+			var job = queue.shift();
+			if (!job) {
+				readdone(token);
+				return;
+			}
 			highlight(job.i);
-			p.then(function(err){
+			speak(job.text, function(err){
 				if (!readlive(token)) return;
 				if (err) {
 					readfail(token, err);
 					return;
 				}
-				if (!nextJob) {
-					readdone(token);
-					return;
-				}
-				var j = nextJob;
-				var np = nextP;
-				nextJob = null;
-				nextP = null;
-				armnext();
-				step(j, np);
+				step();
 			});
 		}
-		var first = queue.shift();
-		step(first, start(first));
-		setTimeout(function(){ armnext(); }, 80);
+		step();
 	}
 
 	// 本地或在线合成返回 WAV。播放这一句时就把下一句的音频要回来。
