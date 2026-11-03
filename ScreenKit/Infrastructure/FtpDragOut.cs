@@ -410,7 +410,9 @@ static class FtpDragOut {
 		};
 		data.GetData(ref fmtGroup, out var group);
 		var raw = new byte[4 + DESCRIPTOR_SIZE];
-		Marshal.Copy(group.unionmember, raw, 0, raw.Length);
+		var ptr = GlobalLock(group.unionmember);
+		try { Marshal.Copy(ptr, raw, 0, raw.Length); }
+		finally { GlobalUnlock(group.unionmember); }
 		GlobalFree(group.unionmember);
 
 		int count = BitConverter.ToInt32(raw, 0);
