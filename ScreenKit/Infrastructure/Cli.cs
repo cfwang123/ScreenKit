@@ -294,6 +294,8 @@ static class Cli {
 					return ChatRoom.Test(Out, Err);
 				case "--test-rtsp":
 					return RtspFwd.Test(Out, Err);
+				case "--test-ftp":
+					return testftp(args, i);
 				case "--test-rtspsrv":
 					return RtspTestSrv.Test(Out, Err);
 				case "--test-sendfile":
@@ -1208,14 +1210,35 @@ static class Cli {
 		Out($"DirectMl size={FeatureInstaller.FormatBytes(dml)} progress={FeatureInstaller.FormatBytes(dmlNow)} grown={FeatureInstaller.FormatBytes(dmlWas)}");
 		if (dml < 180L * 1024 * 1024 || dmlNow < dml || dmlWas < 190L * 1024 * 1024)
 			return 1;
-		// 语音模型带着的依赖（Sherpa、解压库）没装时，勾选的行要标绿，底部计数与之相同，
-		// 体积仍是确认时实际会下载的组件。否则底部有新增、列表没有绿色项。
+		// 流式 Zipformer 的目录名带 -int8-，不能被 SenseVoice / Whisper 的模型名认走
+		var zipName = "sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30";
+		var nameOk = FeatureInstaller.AsrNameHas(zipName, "streaming-zipformer")
+			&& !FeatureInstaller.AsrNameHas(zipName, "sense-voice")
+			&& !FeatureInstaller.AsrNameHas(zipName, "whisper-tiny")
+			&& !FeatureInstaller.AsrNameHas(zipName, "whisper-base")
+			&& FeatureInstaller.AsrNameHas("sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17", "sense-voice")
+			&& FeatureInstaller.AsrNameHas("sherpa-onnx-whisper-tiny", "whisper-tiny")
+			&& !FeatureInstaller.AsrNameHas("sherpa-onnx-whisper-tiny", "whisper-base");
+		Out($"Asr name match={nameOk}");
+		if (!nameOk) return 1;
+		// 文本归一化已装、语音模型没装：模型行不能因为带上了归一化就被勾上标绿。
+		// 模型已装、归一化没装：这一行要标绿，底部行数与绿色行相同，体积是确认时实际下载的组件。
 		var saved = FeaturePick.Installed;
 		try {
-			var gone = new HashSet<FeatureKind> {
-				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.WetextItn,
-				FeatureKind.AsrSenseVoice, FeatureKind.AsrStreamZipformer,
+			var nomodel = new HashSet<FeatureKind> {
+				FeatureKind.AsrSenseVoice, FeatureKind.AsrWhisperTiny, FeatureKind.AsrWhisperBase,
 			};
+			FeaturePick.Installed = k => !nomodel.Contains(k);
+			var bare = FeaturePick.BuildTree();
+			FeaturePick.ApplyInstalled(bare);
+			FeaturePick.RefreshDiff(bare);
+			var wrongly = FeaturePick.Leaves(bare)
+				.Where(n => n.Id is "asr.sv" or "asr.wtiny" or "asr.wbase" && n.IsChecked == true)
+				.Select(n => n.Id).ToList();
+			Out($"Pick missing models checked={string.Join(",", wrongly)}");
+			if (wrongly.Count > 0) return 1;
+
+			var gone = new HashSet<FeatureKind> { FeatureKind.WetextItn };
 			FeaturePick.Installed = k => !gone.Contains(k);
 			var half = FeaturePick.BuildTree();
 			FeaturePick.ApplyInstalled(half);
@@ -1223,13 +1246,7 @@ static class Cli {
 			FeaturePick.DiffSelection(half, out var halfN, out var halfSz, out var halfDel, out _);
 			var green = FeaturePick.Leaves(half).Where(n => n.Diff == "add").Select(n => n.Id).ToList();
 			Out($"Pick pending deps: add={halfN}/{FeatureInstaller.FormatBytes(halfSz)} green={string.Join(",", green)} del={halfDel}");
-			foreach (var n in FeaturePick.Leaves(half))
-				Out($"  leaf {n.Id} check={n.IsChecked} diff={n.Diff} kinds={string.Join(",", (n.Kinds ?? []).Select(k => k + ":" + (FeaturePick.Installed(k) ? "有" : "无")))}");
-			var wantSz = FeatureInstaller.ExpectedSize(FeatureKind.NativeSherpa)
-				+ FeatureInstaller.ExpectedSize(FeatureKind.SharpCompress)
-				+ FeatureInstaller.ExpectedSize(FeatureKind.WetextItn)
-				+ FeatureInstaller.ExpectedSize(FeatureKind.AsrSenseVoice)
-				+ FeatureInstaller.ExpectedSize(FeatureKind.AsrStreamZipformer);
+			var wantSz = FeatureInstaller.ExpectedSize(FeatureKind.WetextItn);
 			if (halfN != green.Count || halfDel != 0 || halfSz != wantSz
 				|| !green.Contains("asr.sv") || !green.Contains("asr.zip"))
 				return 1;
@@ -2657,6 +2674,26 @@ static class Cli {
 		s = s ?? "";
 		if (s.Length <= max) return s;
 		return s.Substring(0, max) + "…";
+	}
+
+	static int testftp(string[] args, int at) {
+		string arg(int off) => at + off < args.Length ? args[at + off] : null;
+		return testftp(arg(1), arg(2), arg(3), arg(4), arg(5), arg(6));
+	}
+
+	/// <summary>
+	/// 连本地 FTP/SFTP 走一遍：列目录、上传、下载比对、从断点续传、改名删除。
+	/// </summary>
+	static int testftp(string kind, string host, string port, string user, string pw, string rem) {
+		if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(host)) {
+			Err("用法: ScreenKit --test-ftp <ftp|ftps|ftpsi|sftp> <host> <port> <user> <pass> [remoteDir]");
+			return 2;
+		}
+		if (!int.TryParse(port, out var portNo)) portNo = 0;
+		Out($"=== FTP 自测 {kind}://{host}:{portNo} ===");
+		var rc = FtpSelfTest.Run(kind, host, portNo, user ?? "", pw ?? "", rem, Out, Err);
+		Out(rc == 0 ? "自测通过" : $"自测失败 rc={rc}");
+		return rc;
 	}
 
 	/// <summary>最近 1000 条 LLM 请求：用量、地址去查询串、落盘顺序（不去网）。</summary>

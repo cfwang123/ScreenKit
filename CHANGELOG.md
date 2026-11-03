@@ -105,6 +105,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Document reader: closing a tab by its × could freeze the window so nothing responded and the tab would not close. Ctrl+W and Ctrl+F4 now close the current tab, and the drop hint lists Excel, CSV, images and text too
 - Offline update copied the app as ScreenKit_updater.exe, and WPF then failed to load its own resources, so the new package was never applied
 - The updater loaded the code-page assembly before reading its arguments, so it crashed when that DLL was missing from its temp copy
+- Install features no longer treats a speech model as installed just because text normalization is present, so the new-item count matches the green rows.
 
 ### 中文
 
@@ -167,6 +168,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文档阅读器：点标签上的 × 关不掉、窗口随后不响应鼠标（关标签时把按钮从树上摘掉，鼠标捕获留在了脱离的按钮上）；现在 Ctrl+W、Ctrl+F4 关闭当前标签，拖放提示也补上 Excel、CSV、图片和文本
 - 离线更新把程序复制成 ScreenKit_updater.exe，WPF 因此加载不到自身资源，新版本包一直没有被套用
 - 更新进程在读取参数之前就加载了代码页程序集，临时目录里没有这个 DLL 时直接崩溃
+- 安装功能不再因为装了文本归一化就把语音模型算成已装，底部新增项与绿色行一致。
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 

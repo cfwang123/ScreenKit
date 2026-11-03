@@ -74,6 +74,8 @@ public enum FeatureKind {
 	DocOfficeOoxml,
 	/// <summary>doc/xls 解析：NPOI 四件套 + HWPF + SharpZipLib（约 4.7MB）。</summary>
 	DocOfficeLegacy,
+	/// <summary>FTP/FTPS/SFTP 文件管理：FluentFTP + SSH.NET + BouncyCastle（约 5.7MB）。</summary>
+	FtpTools,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -241,6 +243,7 @@ static class FeatureInstaller {
 			make(FeatureKind.NPinyin, "native"),
 			make(FeatureKind.DocOfficeOoxml, "office"),
 			make(FeatureKind.DocOfficeLegacy, "office"),
+			make(FeatureKind.FtpTools, "tools"),
 			make(FeatureKind.NativeSkia, "native"),
 			make(FeatureKind.NativePdfium, "native"),
 			make(FeatureKind.PdfManaged, "native"),
@@ -316,6 +319,7 @@ static class FeatureInstaller {
 		FeatureKind.NPinyin => NativeRuntime.NPinyinSizeHint,
 		FeatureKind.DocOfficeOoxml => NativeRuntime.OfficeOoxmlSizeHint,
 		FeatureKind.DocOfficeLegacy => NativeRuntime.OfficeLegacySizeHint,
+		FeatureKind.FtpTools => FtpDeps.SizeHint,
 		FeatureKind.NativeSkia => NativeRuntime.SkiaSizeHint + NativeRuntime.SkiaManagedSizeHint,
 		FeatureKind.NativePdfium => NativeRuntime.PdfiumSizeHint,
 		FeatureKind.PdfManaged => NativeRuntime.PdfManagedSizeHint,
@@ -408,6 +412,8 @@ static class FeatureInstaller {
 				return NativeRuntime.NpoiDlls.Sum(n => filesize(Path.Combine(BaseDir, n)))
 					+ filesize(Path.Combine(BaseDir, "NPOI.ScratchPad.HWPF.dll"))
 					+ filesize(Path.Combine(BaseDir, "ICSharpCode.SharpZipLib.dll"));
+			case FeatureKind.FtpTools:
+				return FtpDeps.Files.Sum(n => filesize(FtpDeps.PathOf(n)));
 			case FeatureKind.NativeSkia:
 				return filesize(Path.Combine(BaseDir, "libSkiaSharp.dll"))
 					+ filesize(Path.Combine(BaseDir, "SkiaSharp.dll"));
@@ -462,10 +468,34 @@ static class FeatureInstaller {
 		long sum = 0;
 		foreach (var dir in Directory.GetDirectories(AsrModelsDir)) {
 			var name = Path.GetFileName(dir) ?? "";
-			if (name.IndexOf(nameHint, StringComparison.OrdinalIgnoreCase) < 0) continue;
+			if (!asrnamehas(name, nameHint)) continue;
 			sum += dirsize(dir);
 		}
 		return sum;
+	}
+
+	/// <summary>
+	/// 目录名是否属于这个模型。按 '-' 分段整段匹配，
+	/// 这样 sherpa-onnx-streaming-zipformer-zh-int8 不会被 int8 认走。
+	/// </summary>
+	internal static bool AsrNameHas(string dirName, string nameHint) => asrnamehas(dirName, nameHint);
+
+	static bool asrnamehas(string dirName, string nameHint) {
+		if (string.IsNullOrEmpty(dirName) || string.IsNullOrEmpty(nameHint)) return false;
+		var parts = dirName.Split('-');
+		var hint = nameHint.Split('-');
+		if (hint.Length == 0 || hint.Length > parts.Length) return false;
+		for (var i = 0; i <= parts.Length - hint.Length; i++) {
+			var hit = true;
+			for (var j = 0; j < hint.Length; j++) {
+				if (!string.Equals(parts[i + j], hint[j], StringComparison.OrdinalIgnoreCase)) {
+					hit = false;
+					break;
+				}
+			}
+			if (hit) return true;
+		}
+		return false;
 	}
 
 	static long dirsize(string dir) {
@@ -506,6 +536,8 @@ static class FeatureInstaller {
 			return NativeRuntime.HasOfficeOoxml() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.DocOfficeLegacy:
 			return NativeRuntime.HasOfficeLegacy() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
+		case FeatureKind.FtpTools:
+			return FtpDeps.Installed ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.NativeSkia:
 			if (!NativeRuntime.HasSkia()) return FeatureInstallState.Missing;
 			return NativeRuntime.HasSkiaManaged() ? FeatureInstallState.Installed : FeatureInstallState.Partial;
@@ -630,7 +662,8 @@ static class FeatureInstaller {
 		if (!Directory.Exists(root)) return false;
 		foreach (var dir in Directory.GetDirectories(root)) {
 			var name = Path.GetFileName(dir) ?? "";
-			if (name.IndexOf(nameHint, StringComparison.OrdinalIgnoreCase) < 0) continue;
+			// 按 '-' 分段比，避免 streaming-zipformer-zh-int8 里的 int8 被当成模型名
+			if (!asrnamehas(name, nameHint)) continue;
 			var hasModel = modelFiles.Any(f => File.Exists(Path.Combine(dir, f)));
 			var hasTokens = File.Exists(Path.Combine(dir, "tokens.txt"))
 				|| Directory.GetFiles(dir, "*-tokens.txt").Length > 0
@@ -715,6 +748,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.DocOfficeLegacy:
 			await NativeRuntime.InstallOfficeLegacy(log, progress, ct).ConfigureAwait(false);
+			break;
+		case FeatureKind.FtpTools:
+			await FtpDeps.Install(log, progress, ct).ConfigureAwait(false);
 			break;
 		case FeatureKind.NativeSkia:
 			await NativeRuntime.InstallSkia(log, progress, ct).ConfigureAwait(false);
@@ -833,6 +869,9 @@ static class FeatureInstaller {
 		case FeatureKind.DocOfficeLegacy:
 			NativeRuntime.UninstallOfficeLegacy(log);
 			break;
+		case FeatureKind.FtpTools:
+			FtpDeps.Uninstall(log);
+			break;
 		case FeatureKind.NativeSkia:
 			NativeRuntime.UninstallSkia(log);
 			break;
@@ -912,7 +951,7 @@ static class FeatureInstaller {
 		}
 		foreach (var dir in Directory.GetDirectories(AsrModelsDir)) {
 			var name = Path.GetFileName(dir) ?? "";
-			if (name.IndexOf(nameHint, StringComparison.OrdinalIgnoreCase) < 0) continue;
+			if (!asrnamehas(name, nameHint)) continue;
 			deletedir(dir, log);
 		}
 	}

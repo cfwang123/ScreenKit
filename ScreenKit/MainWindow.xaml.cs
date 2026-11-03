@@ -128,6 +128,7 @@ public partial class MainWindow : Window {
 	GlyphModWindow glyphModWin;
 	PortUseWindow portUseWin;
 	TlsWindow tlsWin;
+	FtpWindow ftpWin;
 	MidiSynthWindow midiWin;
 	VoiceRecWindow voiceRecWin;
 	CamWindow camWin;
@@ -1873,6 +1874,7 @@ public partial class MainWindow : Window {
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
 		mntls.Click += (_, _) => opentls();
+		mnftp.Click += (_, _) => openftp();
 		mnmidi.Click += (_, _) => openmidi();
 		mnvoicerec.Click += (_, _) => openvoicerec();
 		mncam.Click += (_, _) => opencam();
@@ -2088,6 +2090,8 @@ public partial class MainWindow : Window {
 			mnmqtt.ToolTip = Loc.T("menu.mqtt.tip");
 			mnsoapdbg.Header = Loc.T("menu.soapdbg");
 			mnsoapdbg.ToolTip = Loc.T("menu.soapdbg.tip");
+			mnftp.Header = Loc.T("menu.ftp");
+			mnftp.ToolTip = Loc.T("menu.ftp.tip");
 			mnzhconv.Header = Loc.T("menu.zhconv");
 			mnzhconv.ToolTip = Loc.T("menu.zhconv.tip");
 			mnpinyin.Header = Loc.T("menu.pinyin");
@@ -4876,6 +4880,9 @@ public partial class MainWindow : Window {
 	void opentls() =>
 		opentoolwin(ref tlsWin, () => new TlsWindow(), "menu.tls");
 
+	void openftp() =>
+		opentoolwin(ref ftpWin, () => new FtpWindow(), "menu.ftp");
+
 	void openzhconv() =>
 		opentoolwin(ref zhConvWin, () => new ZhConvertWindow(), "menu.zhconv");
 
@@ -5098,6 +5105,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(pinyinWin, w)) pinyinWin = null;
 				else if (ReferenceEquals(portUseWin, w)) portUseWin = null;
 				else if (ReferenceEquals(tlsWin, w)) tlsWin = null;
+				else if (ReferenceEquals(ftpWin, w)) ftpWin = null;
 				else if (ReferenceEquals(rtspSrvWin, w)) rtspSrvWin = null;
 				else if (ReferenceEquals(memWin, w)) memWin = null;
 			};

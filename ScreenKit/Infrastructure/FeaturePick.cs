@@ -11,12 +11,14 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	public string Title { get; set; }
 	public string Detail { get; set; }
 	public FeatureKind[] Kinds { get; set; }
+	/// <summary>这一行代表的组件。整包行没有主组件，装过其中任意一个就算已装。</summary>
+	public FeatureKind? Primary { get; set; }
 	public string SizeLabel { get; set; }
 	/// <summary>系统自带，勾选锁住，不参与安装或卸载。</summary>
 	public bool Locked { get; set; }
 	/// <summary>
 	/// 一行代表整套组件（数据库驱动）：装过其中任意一个就算已装，勾选时装齐全部。
-	/// 普通叶子只看 <see cref="Kinds"/> 最后一项是否已装。
+	/// 普通叶子只看 <see cref="Primary"/>。同行带上的依赖无论排在前还是后，都不决定这一行算不算已装。
 	/// 部分安装（缺文件）不算已装：勾选时标成将安装，与底部新增计数同一套判定。
 	/// </summary>
 	public bool WholePack { get; set; }
@@ -88,11 +90,11 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 			return "";
 		}
 		if (Kinds == null || Kinds.Length == 0) return "";
-		// 主组件决定这一行算不算已装。同行带上的依赖（Sherpa、解压库等）若还没装，
+		// 主组件决定这一行算不算已装。同行带上的依赖（Sherpa、解压库、文本归一化）若还没装，
 		// 勾着也要标绿：确认时会一起下载，不能只出现在底部计数里。
 		var primary = WholePack
 			? Kinds.Any(FeaturePick.Installed)
-			: FeaturePick.Installed(Kinds[Kinds.Length - 1]);
+			: Primary is FeatureKind pk && FeaturePick.Installed(pk);
 		var pending = check == true && Kinds.Any(k => !FeaturePick.Installed(k));
 		if (check == true && (!primary || pending)) return "add";
 		if (check != true && primary && !KeepInstalled) return "del";
@@ -134,44 +136,50 @@ static class FeaturePick {
 
 	static List<FeaturePickNode> buildtree() => [
 		group("ocr", "feat.pick.ocr", "feat.pick.ocr.detail",
-			leaf("ocr.ch", "feat.pick.ocr.ch", "feat.OcrRapidCh.detail",
+			withprimary(leaf("ocr.ch", "feat.pick.ocr.ch", "feat.OcrRapidCh.detail",
 				FeatureKind.NativeOpenCv, FeatureKind.OrtCpu, FeatureKind.OcrRapidCh),
-			leaf("ocr.umi", "feat.pick.ocr.umi", "feat.OcrUmi.detail",
+				FeatureKind.OcrRapidCh),
+			withprimary(leaf("ocr.umi", "feat.pick.ocr.umi", "feat.OcrUmi.detail",
 				FeatureKind.NativeOpenCv, FeatureKind.OrtCpu, FeatureKind.OcrUmi),
-			leaf("ocr.i18n", "feat.pick.ocr.i18n", "feat.OcrRapidI18n.detail",
-				FeatureKind.NativeOpenCv, FeatureKind.OrtCpu, FeatureKind.OcrRapidI18n)),
+				FeatureKind.OcrUmi),
+			withprimary(leaf("ocr.i18n", "feat.pick.ocr.i18n", "feat.OcrRapidI18n.detail",
+				FeatureKind.NativeOpenCv, FeatureKind.OrtCpu, FeatureKind.OcrRapidI18n),
+				FeatureKind.OcrRapidI18n)),
 		group("asr", "feat.pick.asr", "feat.pick.asr.detail",
-			leaf("asr.sv", "feat.pick.asr.sv", "feat.AsrSenseVoice.detail",
+			withprimary(leaf("asr.sv", "feat.pick.asr.sv", "feat.AsrSenseVoice.detail",
 				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrSenseVoice,
-				FeatureKind.WetextItn),
-			leaf("asr.zip", "feat.pick.asr.zip", "feat.AsrStreamZipformer.detail",
+				FeatureKind.WetextItn), FeatureKind.AsrSenseVoice),
+			withprimary(leaf("asr.zip", "feat.pick.asr.zip", "feat.AsrStreamZipformer.detail",
 				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrStreamZipformer,
-				FeatureKind.WetextItn),
-			leaf("asr.wtiny", "feat.pick.asr.wtiny", "feat.AsrWhisperTiny.detail",
+				FeatureKind.WetextItn), FeatureKind.AsrStreamZipformer),
+			withprimary(leaf("asr.wtiny", "feat.pick.asr.wtiny", "feat.AsrWhisperTiny.detail",
 				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrWhisperTiny,
-				FeatureKind.WetextItn),
-			leaf("asr.wbase", "feat.pick.asr.wbase", "feat.AsrWhisperBase.detail",
+				FeatureKind.WetextItn), FeatureKind.AsrWhisperTiny),
+			withprimary(leaf("asr.wbase", "feat.pick.asr.wbase", "feat.AsrWhisperBase.detail",
 				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrWhisperBase,
-				FeatureKind.WetextItn),
-			leaf("asr.vad", "feat.pick.asr.vad", "feat.AsrSileroVad.detail",
-				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrSileroVad)),
-		leaf("translate", "feat.pick.translate", "feat.pick.translate.detail",
+				FeatureKind.WetextItn), FeatureKind.AsrWhisperBase),
+			withprimary(leaf("asr.vad", "feat.pick.asr.vad", "feat.AsrSileroVad.detail",
+				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.AsrSileroVad),
+				FeatureKind.AsrSileroVad)),
+		withprimary(leaf("translate", "feat.pick.translate", "feat.pick.translate.detail",
 			FeatureKind.OrtCpu, FeatureKind.Native7za, FeatureKind.TranslateOnnx),
+			FeatureKind.TranslateOnnx),
 		leaf("face", "feat.pick.face", "feat.pick.face.detail", FeatureKind.FaceInsight),
-		leaf("dict", "feat.pick.dict", "feat.pick.dict.detail",
-			FeatureKind.Native7za, FeatureKind.DictDb),
-		leaf("ime", "feat.pick.ime", "feat.pick.ime.detail",
-			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.ImeDb),
-		leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
+		withprimary(leaf("dict", "feat.pick.dict", "feat.pick.dict.detail",
+			FeatureKind.Native7za, FeatureKind.DictDb), FeatureKind.DictDb),
+		withprimary(leaf("ime", "feat.pick.ime", "feat.pick.ime.detail",
+			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.ImeDb), FeatureKind.ImeDb),
+		withprimary(leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium, FeatureKind.PdfManaged),
+			FeatureKind.PdfManaged),
 		leaf("zxing", "feat.pick.zxing", "feat.pick.zxing.detail", FeatureKind.NativeZxing),
 		leaf("sharpcompress", "feat.pick.sharpcompress", "feat.pick.sharpcompress.detail",
 			FeatureKind.SharpCompress),
 		leaf("7za", "feat.pick.7za", "feat.pick.7za.detail", FeatureKind.Native7za),
 		group("rec", "feat.pick.rec", "feat.pick.rec.detail",
 			builtin("rec.mf", "feat.pick.rec.mf", "feat.pick.rec.mf.detail", FeatureKind.MediaFoundation),
-			leaf("rec.ffmpeg", "feat.pick.rec.ffmpeg", "feat.pick.rec.ffmpeg.detail",
-				FeatureKind.Native7za, FeatureKind.Ffmpeg)),
+			withprimary(leaf("rec.ffmpeg", "feat.pick.rec.ffmpeg", "feat.pick.rec.ffmpeg.detail",
+				FeatureKind.Native7za, FeatureKind.Ffmpeg), FeatureKind.Ffmpeg)),
 		group("accel", "feat.pick.accel", "feat.pick.accel.detail",
 			leaf("accel.cuda", "feat.pick.accel.cuda", "feat.CudaGpu.detail", FeatureKind.CudaGpu),
 			leaf("accel.dml", "feat.pick.accel.dml", "feat.DirectMl.detail", FeatureKind.DirectMl),
@@ -218,11 +226,11 @@ static class FeaturePick {
 				n.SetCheck(ids.Contains(n.Id), fromUi: true);
 				continue;
 			}
-			var primary = n.Kinds[n.Kinds.Length - 1];
+			var primary = n.Primary;
 			var have = n.WholePack
 				? n.Kinds.Any(Installed)
-				: Installed(primary);
-			var want = have || ids.Contains(n.Id) || kinds.Contains(primary);
+				: primary is FeatureKind pk && Installed(pk);
+			var want = have || ids.Contains(n.Id) || (primary is FeatureKind pk2 && kinds.Contains(pk2));
 			if (!want) {
 				foreach (var k in n.Kinds) {
 					if (!kinds.Contains(k)) continue;
@@ -359,19 +367,27 @@ static class FeaturePick {
 			Title = Loc.T(titleKey),
 			Detail = Loc.T(detailKey),
 			Kinds = kinds,
+			// 只有一项时它就是主组件；多项时主组件由 withprimary 指定
+			Primary = kinds != null && kinds.Length == 1 ? kinds[0] : (FeatureKind?)null,
 		};
 	}
 
-	/// <summary>单独成行、又被别的功能带上的组件。体积只记在自己那一行，避免合计看起来漏了或重复。</summary>
+	/// <summary>这一行代表 <paramref name="primary"/>，其余种类是它带上的依赖。</summary>
+	static FeaturePickNode withprimary(FeaturePickNode n, FeatureKind primary) {
+		n.Primary = primary;
+		return n;
+	}
+
+	/// <summary>单独成行、又被别的功能当依赖带上的组件。体积只记在自己那一行，避免合计看起来漏了或重复。</summary>
 	static HashSet<FeatureKind> sharedset(List<FeaturePickNode> leaves) {
 		var sole = new HashSet<FeatureKind>();
 		var dep = new HashSet<FeatureKind>();
 		foreach (var n in leaves) {
 			if (n.Kinds == null || n.Kinds.Length == 0) continue;
 			if (n.Kinds.Length == 1) sole.Add(n.Kinds[0]);
-			else {
-				for (var i = 0; i < n.Kinds.Length - 1; i++)
-					dep.Add(n.Kinds[i]);
+			else if (n.Primary is FeatureKind pk) {
+				foreach (var k in n.Kinds)
+					if (k != pk) dep.Add(k);
 			}
 		}
 		sole.IntersectWith(dep);
@@ -387,7 +403,8 @@ static class FeaturePick {
 			var seen = new HashSet<FeatureKind>();
 			foreach (var k in n.Kinds) {
 				if (!seen.Add(k)) continue;
-				if (n.Kinds.Length > 1 && shared.Contains(k)) continue;
+				// 主组件的体积记在这一行；被别的行带上、自己又单独成行的依赖不重复计
+				if (n.Primary is FeatureKind pk && k != pk && shared.Contains(k)) continue;
 				sz += FeatureInstaller.ExpectedSize(k);
 			}
 			n.SizeLabel = sz > 0 ? Loc.T("feat.size.about", FeatureInstaller.FormatBytes(sz)) : "";

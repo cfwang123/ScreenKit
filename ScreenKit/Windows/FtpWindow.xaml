@@ -1,0 +1,264 @@
+<Window x:Class="ScreenKit.FtpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FTP 文件管理"
+        Width="1160" Height="760"
+        MinWidth="860" MinHeight="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="ftp.window">
+	<Grid Margin="12">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- ============ 连接栏 ============ -->
+		<Grid Grid.Row="0" Margin="0,0,0,8">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="150"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="*" MinWidth="100"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="62"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="110"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="88"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="110"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
+			<TextBlock x:Name="lbsite" Text="站点" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<ComboBox x:Name="cbSite" Grid.Column="1" Height="30" Margin="0,0,8,0"
+			          VerticalContentAlignment="Center"
+			          AutomationProperties.AutomationId="ftp.site">
+				<ComboBox.ItemTemplate>
+					<DataTemplate>
+						<TextBlock Text="{Binding Name}"/>
+					</DataTemplate>
+				</ComboBox.ItemTemplate>
+			</ComboBox>
+			<TextBlock x:Name="lbhost" Grid.Column="2" Text="主机" VerticalAlignment="Center" Margin="0,0,6,0"/>
+			<TextBox x:Name="ehost" Grid.Column="3" Height="30" Padding="6,3"
+			         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="ftp.host"/>
+			<TextBlock x:Name="lbport" Grid.Column="4" Text="端口" VerticalAlignment="Center" Margin="8,0,6,0"/>
+			<TextBox x:Name="eport" Grid.Column="5" Height="30" Padding="6,3"
+			         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="ftp.port"/>
+			<TextBlock x:Name="lbuser" Grid.Column="6" Text="用户" VerticalAlignment="Center" Margin="8,0,6,0"/>
+			<TextBox x:Name="euser" Grid.Column="7" Height="30" Padding="6,3"
+			         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+			         AutomationProperties.AutomationId="ftp.user"/>
+			<TextBlock x:Name="lbpass" Grid.Column="8" Text="密码" VerticalAlignment="Center" Margin="8,0,6,0"/>
+			<PasswordBox x:Name="epass" Grid.Column="9" Height="30" Padding="6,3"
+			             VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+			             AutomationProperties.AutomationId="ftp.pass"/>
+			<TextBlock x:Name="lbkind" Grid.Column="10" Text="协议" VerticalAlignment="Center" Margin="8,0,6,0"/>
+			<ComboBox x:Name="cbKind" Grid.Column="11" Height="30"
+			          VerticalContentAlignment="Center" Margin="0,0,8,0"
+			          AutomationProperties.AutomationId="ftp.kind"/>
+			<Button x:Name="bconn" Grid.Column="12" Style="{StaticResource ToolBtn}" Height="30"
+			        MinWidth="64" Margin="0,0,6,0" Padding="10,3"
+			        AutomationProperties.AutomationId="ftp.connect"/>
+			<Button x:Name="bsave" Grid.Column="13" Style="{StaticResource ToolBtn}" Height="30"
+			        MinWidth="64" Padding="10,3"
+			        AutomationProperties.AutomationId="ftp.savesite"/>
+		</Grid>
+
+		<!-- ============ 状态提示 ============ -->
+		<TextBlock x:Name="lbhint" Grid.Row="1" TextWrapping="Wrap" Margin="0,0,0,8"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+
+		<!-- ============ 双栏 ============ -->
+		<Grid Grid.Row="3">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*" MinWidth="240"/>
+				<ColumnDefinition Width="6"/>
+				<ColumnDefinition Width="*" MinWidth="240"/>
+			</Grid.ColumnDefinitions>
+
+			<!-- 本机 -->
+			<Grid Grid.Column="0">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+				<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+					<TextBlock x:Name="lblocal" Text="本机" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<Button x:Name="blocalup" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
+					        AutomationProperties.AutomationId="ftp.local.up"/>
+					<Button x:Name="blocalrefresh" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
+					        AutomationProperties.AutomationId="ftp.local.refresh"/>
+					<Button x:Name="blocalmkdir" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
+					        AutomationProperties.AutomationId="ftp.local.mkdir"/>
+					<Button x:Name="blocaldel" Style="{StaticResource ToolBtnSm}"
+					        AutomationProperties.AutomationId="ftp.local.del"/>
+				</StackPanel>
+				<TextBox x:Name="elocalpath" Grid.Row="1" Height="28" Padding="6,3" Margin="0,0,0,6"
+				         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+				         AutomationProperties.AutomationId="ftp.local.path"/>
+				<ListView x:Name="lvlocal" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+				          SelectionMode="Extended"
+				          AllowDrop="True"
+				          VirtualizingStackPanel.IsVirtualizing="True"
+				          VirtualizingStackPanel.VirtualizationMode="Recycling"
+				          AutomationProperties.AutomationId="ftp.local.list">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn x:Name="colllname" Width="230"
+							                DisplayMemberBinding="{Binding Name}"/>
+							<GridViewColumn x:Name="colllsize" Width="80"
+							                DisplayMemberBinding="{Binding SizeText}"/>
+							<GridViewColumn x:Name="collltime" Width="130"
+							                DisplayMemberBinding="{Binding TimeText}"/>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</Grid>
+
+			<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
+			              Background="Transparent" ResizeBehavior="PreviousAndNext"/>
+
+			<!-- 远程 -->
+			<Grid Grid.Column="2">
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="*"/>
+				</Grid.RowDefinitions>
+				<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+					<TextBlock x:Name="lbremote" Text="远程" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+					<Button x:Name="bremoteup" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
+					        AutomationProperties.AutomationId="ftp.remote.up"/>
+					<Button x:Name="bremoterefresh" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
+					        AutomationProperties.AutomationId="ftp.remote.refresh"/>
+					<Button x:Name="bremotemkdir" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
+					        AutomationProperties.AutomationId="ftp.remote.mkdir"/>
+					<Button x:Name="bremotedel" Style="{StaticResource ToolBtnSm}"
+					        AutomationProperties.AutomationId="ftp.remote.del"/>
+				</StackPanel>
+				<TextBox x:Name="eremotepath" Grid.Row="1" Height="28" Padding="6,3" Margin="0,0,0,6"
+				         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
+				         AutomationProperties.AutomationId="ftp.remote.path"/>
+				<ListView x:Name="lvremote" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+				          SelectionMode="Extended"
+				          AllowDrop="True"
+				          VirtualizingStackPanel.IsVirtualizing="True"
+				          VirtualizingStackPanel.VirtualizationMode="Recycling"
+				          AutomationProperties.AutomationId="ftp.remote.list">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn x:Name="colrname" Width="220"
+							                DisplayMemberBinding="{Binding Name}"/>
+							<GridViewColumn x:Name="colrsize" Width="80"
+							                DisplayMemberBinding="{Binding SizeText}"/>
+							<GridViewColumn x:Name="colrperm" Width="90"
+							                DisplayMemberBinding="{Binding Perms}"/>
+							<GridViewColumn x:Name="colrtime" Width="130"
+							                DisplayMemberBinding="{Binding TimeText}"/>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</Grid>
+		</Grid>
+
+		<!-- ============ 传输区 ============ -->
+		<Border Grid.Row="4" Margin="0,10,0,0" BorderBrush="{StaticResource BorderSoft}"
+		        BorderThickness="1" Background="{StaticResource BgPanel}" CornerRadius="4">
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="150"/>
+				</Grid.RowDefinitions>
+				<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8,6,8,4">
+					<TextBlock x:Name="lbxfer" Text="传输队列" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+					<TextBlock x:Name="lbxfercount" Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+					<TextBlock x:Name="lbparal" Text="并行" VerticalAlignment="Center" Margin="0,0,6,0"/>
+					<ComboBox x:Name="cbParallel" Width="58" Height="24" VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="ftp.parallel"/>
+					<Button x:Name="bclearfinished" Style="{StaticResource ToolBtnSm}" Margin="12,0,0,0"
+					        AutomationProperties.AutomationId="ftp.clear"/>
+				</StackPanel>
+				<ListView x:Name="lvxfer" Grid.Row="1" BorderThickness="0"
+				          SelectionMode="Extended"
+				          VirtualizingStackPanel.IsVirtualizing="True"
+				          VirtualizingStackPanel.VirtualizationMode="Recycling"
+				          AutomationProperties.AutomationId="ftp.xfer.list">
+					<ListView.View>
+						<GridView>
+							<GridViewColumn x:Name="colxdir" Width="60">
+								<GridViewColumn.CellTemplate>
+									<DataTemplate>
+										<TextBlock Text="{Binding DirText}"/>
+									</DataTemplate>
+								</GridViewColumn.CellTemplate>
+							</GridViewColumn>
+							<GridViewColumn x:Name="colxname" Width="180">
+								<GridViewColumn.CellTemplate>
+									<DataTemplate>
+										<TextBlock Text="{Binding DisplayName}" ToolTip="{Binding Remote}"/>
+									</DataTemplate>
+								</GridViewColumn.CellTemplate>
+							</GridViewColumn>
+							<GridViewColumn x:Name="colxprog" Width="150">
+								<GridViewColumn.CellTemplate>
+									<DataTemplate>
+										<ProgressBar Height="14" Minimum="0" Maximum="100"
+										             Value="{Binding Percent, Mode=OneWay}"
+										             Foreground="{StaticResource Accent}"/>
+									</DataTemplate>
+								</GridViewColumn.CellTemplate>
+							</GridViewColumn>
+							<GridViewColumn x:Name="colxpct" Width="56"
+							                DisplayMemberBinding="{Binding Percent, StringFormat={}{0:0}%}"/>
+							<GridViewColumn x:Name="colxsize" Width="130"
+							                DisplayMemberBinding="{Binding SizeText}"/>
+							<GridViewColumn x:Name="colxspeed" Width="90"
+							                DisplayMemberBinding="{Binding SpeedText}"/>
+							<GridViewColumn x:Name="colxstate" Width="90"
+							                DisplayMemberBinding="{Binding StateText}"/>
+							<GridViewColumn x:Name="colxops" Width="130">
+								<GridViewColumn.CellTemplate>
+									<DataTemplate>
+										<StackPanel Orientation="Horizontal">
+											<Button Content="⏵" Width="26" Height="20" FontSize="11" Margin="0,0,2,0"
+											        Style="{StaticResource ToolBtnSm}"
+											        Tag="{Binding}"
+											        Click="OnJobResume"/>
+											<Button Content="⏸" Width="26" Height="20" FontSize="11" Margin="0,0,2,0"
+											        Style="{StaticResource ToolBtnSm}"
+											        Tag="{Binding}"
+											        Click="OnJobPause"/>
+											<Button Content="✕" Width="26" Height="20" FontSize="11"
+											        Style="{StaticResource ToolBtnSm}"
+											        Tag="{Binding}"
+											        Click="OnJobCancel"/>
+										</StackPanel>
+									</DataTemplate>
+								</GridViewColumn.CellTemplate>
+							</GridViewColumn>
+						</GridView>
+					</ListView.View>
+				</ListView>
+			</Grid>
+		</Border>
+
+		<!-- ============ 底部状态 ============ -->
+		<TextBlock x:Name="lbstat" Grid.Row="6" Margin="0,8,0,0" TextWrapping="Wrap"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"
+		           AutomationProperties.AutomationId="ftp.status"/>
+	</Grid>
+</Window>

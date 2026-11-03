@@ -392,6 +392,8 @@
       <_SlimJunk Include="$(_SlimOut)\Microsoft.Data.Sqlite.dll;$(_SlimOut)\SQLitePCLRaw.*.dll;$(_SlimOut)\MySqlConnector.dll;$(_SlimOut)\Oracle.ManagedDataAccess.dll;$(_SlimOut)\System.Formats.Asn1.dll" />
       <!-- 文档阅读器的 Office 解析库也按需安装，旧构建残留一并清掉 -->
       <_SlimJunk Include="$(_SlimOut)\DocumentFormat.OpenXml.dll;$(_SlimOut)\DocumentFormat.OpenXml.Framework.dll;$(_SlimOut)\NPOI.dll;$(_SlimOut)\NPOI.*.dll;$(_SlimOut)\ICSharpCode.SharpZipLib.dll" />
+      <!-- FTP/SFTP 文件管理的第三方库按需安装（工具集 → FTP 工具），不进精简包 -->
+      <_SlimJunk Include="$(_SlimOut)\FluentFTP.dll;$(_SlimOut)\Renci.SshNet.dll;$(_SlimOut)\BouncyCastle.Cryptography.dll;$(_SlimOut)\Microsoft.Bcl.Cryptography.dll" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.x86.exe;$(_SlimOut)\WpfOCR.x86.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\web\jname-s.txt;$(_SlimOut)\web\jname-g.txt" />

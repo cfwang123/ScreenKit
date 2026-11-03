@@ -247,6 +247,9 @@
 					<MenuItem x:Name="mntls" Header="TLS 证书检查(_T)…"
 					          AutomationProperties.AutomationId="menu.tls"
 					          ToolTip="查看服务器证书链、有效期、SAN、指纹和握手参数"/>
+					<MenuItem x:Name="mnftp" Header="FTP 文件管理(_F)…"
+					          AutomationProperties.AutomationId="menu.ftp"
+					          ToolTip="连 FTP、FTPS 或 SFTP，双栏浏览本机和服务器，拖放传输并看进度"/>
 					<MenuItem x:Name="mnsql" Header="数据库查询(_D)…"
 					          AutomationProperties.AutomationId="menu.sql"
 					          ToolTip="拖入 SQLite 文件或连 SQL Server，看表、结构和执行 SQL"/>
