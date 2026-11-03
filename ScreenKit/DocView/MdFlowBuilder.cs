@@ -508,7 +508,8 @@ static class MdFlowBuilder {
 			b.TableRows, cols, pageW,
 			unitDip: MdTableLayout.DEFAULT_UNIT_DIP,
 			pagePadH: 2,
-			cellPadH: cellPadH);
+			cellPadH: cellPadH,
+			fontSize: BASE_FS);
 
 		if (colDip == null || colDip.Length != cols) {
 			for (var c = 0; c < cols; c++)

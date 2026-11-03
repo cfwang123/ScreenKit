@@ -78,6 +78,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web dictionary: the selection popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
 - Web PDF viewer: clicking a picture inside a PDF now opens that picture at its own resolution (not a screenshot of the whole page); clicking plain text does nothing
 - Web document reader is now a standalone popup window (/doc) with only a title bar, opened from the tools page card; the embedded tool panel is gone
+- Document reader rebuilt on a native WPF viewer stack ported from DocviewWPF: md/docx/pdf/xlsx preview (plus images, txt/code and csv), multi-tab chips in the title bar, lazy per-tab rendering, and click-to-zoom images
+- Document reader: Markdown can be exported to Word or PDF again from the title-bar menu
 
 #### Fixed
 
@@ -128,6 +130,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 词典：划词浮窗和 WPF 浮窗一样取 100 条结果，列表超过八行可滚动
 - web PDF 查看：点 PDF 里的图片只放大那张图本身（按原分辨率），点文字不弹
 - web 文档阅读器改成独立页面，从首页卡片弹出一个只有标题栏的窗口（/doc），不再嵌在工具面板里
+- 文档阅读器改用从 DocviewWPF 移植的 WPF 阅读器：支持 md/docx/pdf/xlsx 预览（另含图片、txt/代码、csv），标题栏多标签，切到哪个标签才渲染哪个，点图片可放大
+- 文档阅读器：Markdown 仍可从标题栏菜单导出 Word 或 PDF
 
 #### 修复
 

@@ -167,15 +167,15 @@ static class MdTableLayout {
 	/// 用 FormattedText 量宽，避免 E2026108 等短列被单位估算偏窄后挤断。
 	/// </summary>
 	public static double[] AllocateColumnsDip(IList<string[]> rows, int ncol, double pageWidthDip,
-		double unitDip = DEFAULT_UNIT_DIP, double pagePadH = 56, double cellPadH = 16) {
+		double unitDip = DEFAULT_UNIT_DIP, double pagePadH = 56, double cellPadH = 16, double fontSize = 14) {
 		if (ncol <= 0) return Array.Empty<double>();
 		if (unitDip < 4) unitDip = DEFAULT_UNIT_DIP;
 		var availDip = Math.Max(ncol * 28.0, pageWidthDip - pagePadH);
-		var needDip = ContentNeedsDip(rows, ncol, availDip, fontSize: 14, cellPadH);
+		var needDip = ContentNeedsDip(rows, ncol, availDip, fontSize, cellPadH);
 		// 边框/亚像素余量，短列钉死后仍够一字不拆
 		for (var c = 0; c < needDip.Length; c++)
 			needDip[c] = Math.Max(28, needDip[c] + 4);
-		return AllocateFillNeedDip(needDip, availDip);
+		return AllocateFillNeedDip(needDip, availDip, fontSize);
 	}
 
 	/// <summary>
@@ -210,7 +210,7 @@ static class MdTableLayout {
 	/// <summary>
 	/// need 总和 ≤ avail → 原样返回（表宽=内容宽）；超出则短列钉死、长列分剩余铺满 avail。
 	/// </summary>
-	public static double[] AllocateFillNeedDip(double[] needDip, double availDip) {
+	public static double[] AllocateFillNeedDip(double[] needDip, double availDip, double fontSize = 14) {
 		var ncol = needDip?.Length ?? 0;
 		if (ncol == 0) return Array.Empty<double>();
 		availDip = Math.Max(ncol * 28.0, availDip);
@@ -218,7 +218,8 @@ static class MdTableLayout {
 		var idealDip = new double[ncol];
 		double sumIdeal = 0;
 		for (var c = 0; c < ncol; c++) {
-			idealDip[c] = Math.Max(28, needDip[c]);
+			// 留一点余量：EqualColumns 之类的字挤在一起时容易多折一行
+			idealDip[c] = Math.Max(28, needDip[c]) + Math.Max(2, fontSize * 0.25);
 			sumIdeal += idealDip[c];
 		}
 

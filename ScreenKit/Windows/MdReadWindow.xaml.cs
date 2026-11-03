@@ -37,14 +37,114 @@ public partial class MdReadWindow : Window {
 	Point titlepoint;
 	bool findopen;
 	string findtext = "";
+	/// <summary>窗口还没显示时攒下的待开文件。</summary>
+	readonly List<string> pending = new();
 
 	public MdReadWindow(OcrOptions o) {
 		opt = o ?? new OcrOptions();
 		DocView.DocViewOptions.Current.UiFontSize = 12;
+		DocView.DocViewOptions.Current.MdHeadingAutoNumber = false;
 		InitializeComponent();
 		applylang();
 		initev();
 		WindowEsc.Attach(this);
+	}
+
+	/// <summary>打开一批文件；命令行和外部调用共用。</summary>
+	public void OpenFiles(IEnumerable<string> files) {
+		if (files == null) return;
+		var list = new List<string>(files);
+		if (list.Count == 0) return;
+		// 窗口还没 Loaded 时先攒着，等布局好了再建阅读器
+		if (!IsLoaded) {
+			pending.AddRange(list);
+			return;
+		}
+		opendrop(list.ToArray());
+	}
+
+	/// <summary>自测用：当前标签的阅读器状态文字。</summary>
+	internal string CurrentStatus => cur?.Viewer?.StatusText ?? cur?.Error ?? "";
+
+	/// <summary>自测用：已打开的标签数。</summary>
+	internal int TabCount => tabs.Count;
+
+	/// <summary>自测用：当前标签是否已建好阅读器。</summary>
+	internal bool CurrentReady => cur?.Viewer != null || (cur?.Error?.Length ?? 0) > 0;
+
+	/// <summary>自测用：切到第 i 个标签。</summary>
+	internal void SelectTab(int i) {
+		if (i < 0 || i >= tabs.Count) return;
+		activatetab(tabs[i]);
+	}
+
+	/// <summary>自测用：把窗口内容渲染成 PNG，看排版是否真的有东西。</summary>
+	internal bool ShotTo(string path) {
+		try {
+			UpdateLayout();
+			var w = (int)Math.Round(ActualWidth);
+			var h = (int)Math.Round(ActualHeight);
+			if (w < 8 || h < 8) return false;
+			var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
+				w, h, 96, 96, PixelFormats.Pbgra32);
+			rtb.Render(proot);
+			var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+			enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+			using var fs = System.IO.File.Create(path);
+			enc.Save(fs);
+			return true;
+		}
+		catch { return false; }
+	}
+
+	/// <summary>
+	/// 自测用：在当前 Markdown 标签里找第一个图片元素并触发它的双击放大，
+	/// 确认 ImageOverlay 弹层真的开了。
+	/// </summary>
+	internal bool TestImageOverlay() {
+		if (cur?.Body == null) return false;
+		var img = findimage(cur.Body);
+		if (img?.Source is not System.Windows.Media.Imaging.BitmapSource bmp) return false;
+		try {
+			DocView.ImageOverlay.ActiveHost = this;
+			DocView.ImageOverlay.HostAnchor = cur.Body as FrameworkElement;
+			DocView.ImageOverlay.Show(bmp, "自测图片", null);
+			UpdateLayout();
+			var ok = DocView.ImageOverlay.IsOpen;
+			if (ok) {
+				foreach (Window w in Application.Current.Windows) {
+					if (w == this) continue;
+					if (w.GetType().Name != "OverlayWindow") continue;
+					UpdateLayout();
+					// 弹层自己截一张，确认真的画出来了
+					var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
+						Math.Max(8, (int)w.ActualWidth), Math.Max(8, (int)w.ActualHeight),
+						96, 96, PixelFormats.Pbgra32);
+					rtb.Render(w);
+					var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+					enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+					using var fs = System.IO.File.Create(
+						System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ScreenKit_docview_shot", "overlay.png"));
+					enc.Save(fs);
+					break;
+				}
+			}
+			return ok;
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("docview overlay", ex);
+			return false;
+		}
+	}
+
+	static System.Windows.Controls.Image findimage(DependencyObject d) {
+		if (d is System.Windows.Controls.Image img) return img;
+		var n = VisualTreeHelper.GetChildrenCount(d);
+		for (var i = 0; i < n; i++) {
+			var got = findimage(VisualTreeHelper.GetChild(d, i));
+			if (got != null) return got;
+		}
+		return null;
 	}
 
 	void initev() {
@@ -64,7 +164,8 @@ public partial class MdReadWindow : Window {
 		mnreload.Click += (_, _) => reload();
 		mnpath.Click += (_, _) => copytext(cur?.Path);
 		mnsysopen.Click += (_, _) => sysopen(cur?.Path);
-		mnoutline.Click += (_, _) => toggleoutline();
+		mnword.Click += (_, _) => export(true);
+		mnpdf.Click += (_, _) => export(false);
 		PreviewDragOver += (_, e) => {
 			e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) ? DragDropEffects.Copy : DragDropEffects.None;
 			e.Handled = true;
@@ -88,6 +189,12 @@ public partial class MdReadWindow : Window {
 			catch { }
 		};
 		Loaded += (_, _) => {
+			if (pending.Count > 0) {
+				var queued = pending.ToArray();
+				pending.Clear();
+				opendrop(queued);
+				return;
+			}
 			if (tabs.Count == 0) showempty();
 		};
 		efind.TextChanged += (_, _) => {
@@ -119,7 +226,8 @@ public partial class MdReadWindow : Window {
 		mnreload.Header = Loc.T("mdread.reload");
 		mnpath.Header = Loc.T("mdread.copypath");
 		mnsysopen.Header = Loc.T("mdread.sysopen");
-		mnoutline.Header = Loc.T("mdread.outline");
+		mnword.Header = Loc.T("mdread.word");
+		mnpdf.Header = Loc.T("mdread.pdf");
 		bopen.Content = Loc.T("mdread.open");
 		bprev.ToolTip = Loc.T("mdread.prevpage");
 		bnext.ToolTip = Loc.T("mdread.nextpage");
@@ -172,11 +280,9 @@ public partial class MdReadWindow : Window {
 				return true;
 			}
 		}
-		if (kind == DocView.DocKind.Pdf && !NativeRuntime.HasPdfium()) {
-			if (!FeaturePrompt.EnsureKinds(this, Loc.T("feat.prompt.pdf.title"),
-				Loc.T("feat.prompt.pdf.detail"), FeatureKind.NativePdfium))
-				return false;
-		}
+		// PDF 要用 pdfium 逐页出图；精简包没装时先让用户装
+		if (kind == DocView.DocKind.Pdf && !NativeRuntime.HasPdfium() && !FeaturePrompt.EnsurePdf(this))
+			return false;
 		tabs.Add(new Tab {
 			Path = path,
 			Name = System.IO.Path.GetFileName(path),
@@ -389,13 +495,6 @@ public partial class MdReadWindow : Window {
 		showstat();
 	}
 
-	void toggleoutline() {
-		var v = cur?.Viewer;
-		if (v == null) return;
-		v.SetSidePanelVisible(!v.SidePanelVisible);
-		showstat();
-	}
-
 	void togglefind() {
 		findopen = !findopen;
 		pfind.Visibility = findopen ? Visibility.Visible : Visibility.Collapsed;
@@ -480,6 +579,46 @@ public partial class MdReadWindow : Window {
 		}
 		catch { }
 	}
+
+	/// <summary>把当前 Markdown 导出成 Word / PDF：复用 MdHtml 的排版，不依赖阅读器界面。</summary>
+	void export(bool word) {
+		if (cur == null || cur.Kind != DocView.DocKind.Md) return;
+		var ofd = new Microsoft.Win32.SaveFileDialog {
+			Title = Loc.T(word ? "mdread.word" : "mdread.pdf"),
+			Filter = word ? "Word|*.docx" : "PDF|*.pdf",
+			FileName = System.IO.Path.GetFileNameWithoutExtension(cur.Path) + (word ? ".docx" : ".pdf"),
+			DefaultExt = word ? ".docx" : ".pdf",
+			AddExtension = true,
+			OverwritePrompt = true,
+		};
+		try {
+			var dir = System.IO.Path.GetDirectoryName(cur.Path);
+			if (!string.IsNullOrEmpty(dir)) ofd.InitialDirectory = dir;
+		}
+		catch { }
+		if (ofd.ShowDialog(this) != true) return;
+		var dest = ofd.FileName;
+		lbstat.Text = Loc.T("mdread.exporting");
+		lbstat.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+		Mouse.OverrideCursor = Cursors.Wait;
+		try {
+			var baseDir = System.IO.Path.GetDirectoryName(cur.Path) ?? "";
+			var body = MdHtml.Render(File.ReadAllText(cur.Path), new MdHtml.Opt { BaseDir = baseDir }).Html;
+			var html = MdExport.PrintHtml("<html><head><meta charset=\"utf-8\"></head><body>" + body + "</body></html>");
+			if (word) MdExport.ToWord(html, dest);
+			else MdExport.ToPdf(html, dest);
+			lbstat.Text = string.Format(Loc.T("mdread.exported"), dest);
+		}
+		catch (MdExportError ex) {
+			lbstat.Text = Loc.T("mdread." + ex.Key);
+		}
+		catch (Exception ex) {
+			lbstat.Text = string.Format(Loc.T("mdread.exportfail"), ex.Message);
+		}
+		finally {
+			Mouse.OverrideCursor = null;
+		}
+	}
 	#endregion
 
 	// ==================== 状态栏 ====================
@@ -491,7 +630,6 @@ public partial class MdReadWindow : Window {
 		mnpath.IsEnabled = cur != null;
 		mnsysopen.IsEnabled = cur != null;
 		var v = cur?.Viewer;
-		mnoutline.IsEnabled = v != null && v.HasOutline;
 		bprev.IsEnabled = v != null && v.PageCount > 1;
 		bnext.IsEnabled = v != null && v.PageCount > 1;
 		bzoomout.IsEnabled = v != null;

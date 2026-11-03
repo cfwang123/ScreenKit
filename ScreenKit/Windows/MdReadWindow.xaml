@@ -168,7 +168,9 @@
 							<MenuItem x:Name="mnclose" Header="关闭当前标签"/>
 							<MenuItem x:Name="mncloseall" Header="关闭全部标签"/>
 							<Separator/>
-							<MenuItem x:Name="mnoutline" Header="显示目录"/>
+							<MenuItem x:Name="mnword" Header="导出 Word…"/>
+							<MenuItem x:Name="mnpdf" Header="导出 PDF…"/>
+							<Separator/>
 							<MenuItem x:Name="mnreload" Header="重新加载当前标签"/>
 							<Separator/>
 							<MenuItem x:Name="mnpath" Header="复制文件路径"/>

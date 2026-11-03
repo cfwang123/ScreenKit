@@ -63,7 +63,7 @@ static class Cli {
 				or "--test-hash" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
+				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -393,6 +393,8 @@ static class Cli {
 					return testglyphmod();
 				case "--test-mdread":
 					return testmdread(Opt());
+				case "--test-docview":
+					return testdocview(args, i);
 				case "--test-portuse":
 					return testportuse();
 				case "--test-midisynth":
@@ -6323,7 +6325,83 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		Out("=== MD阅读器 --test-mdread ===");
 		var bad = MdRead.SelfTest(Out);
 		if (bad != 0) return bad;
+		// 网页阅读器仍走 DocViewHtml；桌面阅读器改由 DocView 自测
+		bad = DocView.DocViewSelfTest.Run(Out, pdfpath);
+		if (bad != 0) return bad;
 		return DocViewHtml.SelfTest(Out, pdfpath);
+	}
+
+	/// <summary>
+	/// 文档阅读器窗口 --test-docview file1 file2 …：真开窗、逐个标签加载，
+	/// 核对每个标签都建出阅读器并给出状态文字。不给文件时用自测里造的样例。
+	/// </summary>
+	static int testdocview(string[] args, int start) {
+		Out("=== 文档阅读器窗口 --test-docview ===");
+		if (Application.Current != null)
+			Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+		var files = new List<string>();
+		for (var k = start + 1; k < args.Length; k++) {
+			var a = args[k];
+			if (a == null || a.StartsWith("-", StringComparison.Ordinal)) break;
+			if (File.Exists(a)) files.Add(Path.GetFullPath(a));
+		}
+		if (files.Count == 0) {
+			Err("FAIL: 没有给出存在的文件");
+			return 1;
+		}
+		var cfg = new OcrOptions();
+		try { AppConfig.LoadInto(cfg); } catch { }
+		var win = new MdReadWindow(cfg);
+		try { win.Show(); }
+		catch (Exception ex) {
+			Err("FAIL: 窗口打不开 " + ex.Message);
+			return 1;
+		}
+		win.OpenFiles(files);
+		var t0 = Environment.TickCount;
+		while (Environment.TickCount - t0 < 15000) {
+			pump();
+			if (win.CurrentReady && win.TabCount == files.Count) break;
+		}
+		var bad = 0;
+		var shotdir = Path.Combine(Path.GetTempPath(), "ScreenKit_docview_shot");
+		try { Directory.CreateDirectory(shotdir); } catch { }
+		// 逐个标签切过去，确认每个都能加载并截一张图
+		for (var k = 0; k < win.TabCount; k++) {
+			win.SelectTab(k);
+			var tick = Environment.TickCount;
+			while (Environment.TickCount - tick < 8000) {
+				pump();
+				if (win.CurrentReady) break;
+			}
+			var st = win.CurrentStatus ?? "";
+			Out($"tab{k} ready={win.CurrentReady} status={st}");
+			if (!win.CurrentReady || string.IsNullOrWhiteSpace(st)) {
+				Err($"FAIL: 第 {k + 1} 个标签没加载出来");
+				bad++;
+				continue;
+			}
+			var shot = Path.Combine(shotdir, $"tab{k}.png");
+			if (!win.ShotTo(shot)) {
+				Err($"FAIL: 第 {k + 1} 个标签截图失败");
+				bad++;
+			}
+			else Out("  shot " + shot);
+			// 第一个标签是 Markdown 且带图时，顺带确认点击放大能开出弹层
+			if (k == 0 && files[0].EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
+				if (!win.TestImageOverlay()) {
+					Err("FAIL: Markdown 图片放大弹层没开");
+					bad++;
+				}
+				else Out("  overlay ok");
+				DocView.ImageOverlay.CloseIfOpen();
+				pump();
+			}
+		}
+		try { win.Close(); } catch { }
+		pump();
+		Out(bad == 0 ? "=== OK：文档阅读器 ===" : "=== FAIL：文档阅读器 ===");
+		return bad == 0 ? 0 : 1;
 	}
 
 	static int testportuse() {
@@ -8356,7 +8434,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-autokey  解析按键与间隔，并向探测窗发送一次 F13 和一次左键点击
       --test-fastcopy  复制、跳过、重命名、同分区剪切、硬链接、统计大小，以及多选合并
       --test-glyphmod  点阵按行按列打包，并给 Segoe UI 的 A 和空格生成 C 数组
-      --test-mdread  Markdown 转 HTML，并用 Windows 10 的 IE11 内核核对文档模式
+      --test-mdread  文档阅读器：Markdown 解析与排版、txt/csv/图片/docx/xlsx/pdf 各阅读器加载；给了 PDF 路径时连带核对
       --test-portuse  列出 TCP/UDP 占用，并确认本进程监听的端口在表里
       --test-midisynth  弹琴键位、通用乐器表，以及 MIDI 文件的打开、改音符和保存
       --test-voicerec  录音时长、电平、WAV 往返，并列出麦克风

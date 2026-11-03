@@ -11,8 +11,8 @@ sealed class DocViewOptions {
 	/// <summary>Markdown 缩进列宽（字符）。</summary>
 	public int MdTabSize = 3;
 
-	/// <summary>Markdown 标题自动编号。</summary>
-	public bool MdHeadingAutoNumber = true;
+	/// <summary>Markdown 标题自动编号。文档阅读器默认不加编号，跟原来的阅读器一致。</summary>
+	public bool MdHeadingAutoNumber;
 
 	/// <summary>正文基准字号（DIP）。</summary>
 	public double BodyFontSize = 15;

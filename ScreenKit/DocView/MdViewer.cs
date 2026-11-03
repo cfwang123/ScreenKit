@@ -15,7 +15,8 @@ namespace ScreenKit.DocView;
 /// 不做编辑，工具栏只有缩放与查找；图片可点开大图（<see cref="ImageOverlay"/>）。
 /// </summary>
 sealed class MdViewer : IDocViewer {
-	const double BASE_FONT = 15;
+	/// <summary>正文基准字号。表格列宽在 MdFlowBuilder 里按 14 量字，这里保持一致，缩放再乘上去。</summary>
+	const double BASE_FONT = 14;
 	const double PAD_X = 28;
 	const double PAD_Y = 20;
 
@@ -214,22 +215,24 @@ sealed class MdViewer : IDocViewer {
 		body.Document = new FlowDocument();
 	}
 
-	/// <summary>按当前可用宽度重排；宽度变了才重建，避免滚动时反复排版。</summary>
+	/// <summary>
+	/// 按当前可用宽度重排。FlowDocument 的排版宽度是页宽，缩放靠改字号实现，
+	/// 所以放大时要按比例收窄页宽，等价于把内容放大。
+	/// </summary>
 	void relayout() {
 		if (doc == null) {
 			body.Visibility = Visibility.Collapsed;
 			lbempty.Visibility = Visibility.Visible;
 			return;
 		}
-		var width = scroller.ActualWidth;
-		if (width < 80) width = 720;
-		width = Math.Max(200, width - PAD_X * 2);
-		var fd = MdFlowBuilder.Build(doc, width, onlink, FilePath, true);
+		var viewW = scroller.ActualWidth - PAD_X * 2;
+		if (viewW < 120) viewW = 720;
+		var pageW = Math.Max(160, viewW / zoom);
+		var fd = MdFlowBuilder.Build(doc, pageW, onlink, FilePath, true);
 		fd.FontSize = BASE_FONT * zoom;
 		fd.LineHeight = BASE_FONT * zoom * 1.55;
 		body.Document = fd;
-		if (Math.Abs((body.Padding.Left) - 0) < 0.1)
-			body.Padding = new Thickness(PAD_X, PAD_Y, PAD_X, 40);
+		body.Padding = new Thickness(PAD_X, PAD_Y, PAD_X, 40);
 		body.Visibility = Visibility.Visible;
 		lbempty.Visibility = Visibility.Collapsed;
 	}
