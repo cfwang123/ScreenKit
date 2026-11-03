@@ -89,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Reader: a sentence that fails to synthesize is skipped instead of stopping the whole reading
 - Dictionary detail: blank lines are shown again instead of collapsing to zero height
 - Web PDF viewer: clicking empty space clears the text selection; clicking a picture clears it and opens the picture
+- Reader: continuous reading no longer stops after a dozen sentences. The prefetched next sentence was timing out while it merely waited behind a long one, and cancelling the whole queue; the 10-second watchdog now only runs once the queue reaches that sentence
 
 ### 中文
 
@@ -135,6 +136,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器：单句合成失败时跳过该句继续朗读，不再整段停下
 - 词典详情：空行恢复显示，不再压缩成 0 高
 - web PDF 查看：点空白取消文字选中，点图取消选中并放大该图
+- 小说阅读器：连续朗读不再读到十几句就自己停下。预取的下一句在前一句后面排队时也被按「10 秒没出声」判超时，一 cancel 就把整队打断；现在排队等待期间不计时，轮到它才开始算
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 
