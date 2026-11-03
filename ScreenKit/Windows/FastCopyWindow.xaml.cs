@@ -8,7 +8,6 @@ namespace ScreenKit;
 public partial class FastCopyWindow : Window {
 	readonly OcrOptions opt;
 	readonly ObservableCollection<FastCopyRow> rows = new();
-	readonly DispatcherTimer statwait = new() { Interval = TimeSpan.FromMilliseconds(250) };
 	bool busy;
 	bool dead;
 	bool ready;
@@ -17,11 +16,8 @@ public partial class FastCopyWindow : Window {
 		this.opt = opt ?? new OcrOptions();
 		InitializeComponent();
 		lsrc.ItemsSource = rows;
+		// 列表变化不自动统计：只在用户点「统计文件」时才算
 		rows.CollectionChanged += (_, _) => onrows();
-		statwait.Tick += (_, _) => {
-			statwait.Stop();
-			updatestats();
-		};
 		applylang();
 		initev();
 		if (paths != null) addpaths(paths);
@@ -99,38 +95,31 @@ public partial class FastCopyWindow : Window {
 		bstart.Content = Loc.T("fc.start");
 	}
 
-	/// <summary>源列表有变化：稍等一下再统计，连续添加时只算一次。</summary>
+	/// <summary>
+	/// 源列表变化。这里**不**自动统计——统计要遍历目录，文件多时很慢，
+	/// 加一个文件就重算一遍会卡。只把上一次的旧结果清掉，等用户点「统计文件」。
+	/// </summary>
 	void onrows() {
 		if (dead) return;
-		statwait.Stop();
-		if (rows.Count == 0) {
-			lbtotal.Text = "";
-			return;
-		}
-		statwait.Start();
+		lbtotal.Text = "";
 	}
 
-	/// <summary>「统计文件」：弹出进度窗，只算文件数量和小计大小，不算文件夹。</summary>
+	/// <summary>
+	/// 「统计文件」：弹进度窗算文件数、文件夹数和总大小。
+	/// 结果就摆在那个窗口里（不再自动关窗），关掉后主窗底部再留一行摘要。
+	/// </summary>
 	void countfiles() {
 		if (busy || dead) return;
 		if (rows.Count == 0) { lbstat.Text = Loc.T("fc.empty"); return; }
-		statwait.Stop();
-		var win = new FastCopyProgWindow(rows.Select(r => r.Path).ToList(), true) { Owner = this };
+		var win = new FastCopyProgWindow(rows.Select(r => r.Path).ToList(), false) { Owner = this };
 		win.ShowDialog();
 		if (dead) return;
-		lbtotal.Text = win.Stats == null ? Loc.T("fc.cancelled") : Loc.T("fc.files.msg", win.Stats.Files, FastCopy.FormatBytes(win.Stats.Bytes));
-	}
-
-	/// <summary>源列表变化后统计文件数、文件夹数和大小，进度在单独的窗口里。</summary>
-	void updatestats() {
-		if (dead) return;
-		var paths = rows.Select(r => r.Path).ToList();
-		if (paths.Count == 0) { lbtotal.Text = ""; return; }
-		var win = new FastCopyProgWindow(paths, false) { Owner = this };
-		win.ShowDialog();
-		if (dead) return;
-		if (win.Stats == null) { lbtotal.Text = Loc.T("fc.cancelled"); return; }
-		lbtotal.Text = Loc.T("fc.size.msg", win.Stats.Files, win.Stats.Dirs, FastCopy.FormatBytes(win.Stats.Bytes));
+		if (win.Stats == null) {
+			lbtotal.Text = Loc.T("fc.cancelled");
+			return;
+		}
+		lbtotal.Text = Loc.T("fc.size.msg", win.Stats.Files, win.Stats.Dirs,
+			FastCopy.FormatBytes(win.Stats.Bytes));
 	}
 
 	void fillconflict() {

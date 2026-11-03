@@ -134,16 +134,26 @@ public partial class FastCopyProgWindow : Window {
 	void finishscan(FastCopy.Stats st, bool cancelled) {
 		done = true;
 		try { cts?.Dispose(); } catch { }
+		bar.IsIndeterminate = false;
+		bcancel.Content = Loc.T("fc.close");
 		if (cancelled || st == null) {
 			Code = 3;
-			bcancel.Content = Loc.T("fc.close");
-			bar.IsIndeterminate = false;
+			lbfile.Text = Loc.T("fc.stat.title");
 			lbtotal.Text = Loc.T("fc.cancelled");
+			lbdone.Text = "";
+			lbtotalsize.Text = "";
+			lbdonesize.Text = "";
 			return;
 		}
 		Stats = st;
 		Code = 0;
-		Close();
+		// 统计结果留在窗口里，不自动关：让用户看清楚有多少文件、多大
+		bar.Value = 100;
+		lbfile.Text = Loc.T("fc.stat.done");
+		lbtotal.Text = Loc.T("fc.prog.total", st.Files);
+		lbdone.Text = filesonly ? "" : Loc.T("fc.prog.dirs", st.Dirs);
+		lbtotalsize.Text = Loc.T("fc.prog.totalsize", FastCopy.FormatBytes(st.Bytes));
+		lbdonesize.Text = Loc.T("fc.stat.hint");
 	}
 
 	void finish(FastCopy.Result res) {
@@ -154,14 +164,19 @@ public partial class FastCopyProgWindow : Window {
 		else if (res.Cancelled) Code = 3;
 		else Code = 0;
 		try { cts?.Dispose(); } catch { }
-		if (Code == 0) {
-			Close();
-			return;
-		}
+		// 完成也留着窗口，把结果摆在上面，用户自己关
 		bcancel.Content = Loc.T("fc.close");
 		bar.IsIndeterminate = false;
-		if (res != null && res.Cancelled) lbdonesize.Text = Loc.T("fc.cancelled");
-		else if (res != null) lbdonesize.Text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed)
-			+ (string.IsNullOrEmpty(res.Error) ? "" : "  " + res.Error);
+		if (Code == 0) bar.Value = 100;
+		if (res != null && res.Cancelled) {
+			lbfile.Text = Loc.T("fc.cancelled");
+			lbdonesize.Text = Loc.T("fc.cancelled");
+		}
+		else if (res != null) {
+			lbfile.Text = Loc.T("fc.done.title");
+			lbdone.Text = Loc.T("fc.prog.done", res.Ok);
+			lbdonesize.Text = Loc.T("fc.done", res.Ok, res.Skipped, res.Failed)
+				+ (string.IsNullOrEmpty(res.Error) ? "" : "  " + res.Error);
+		}
 	}
 }

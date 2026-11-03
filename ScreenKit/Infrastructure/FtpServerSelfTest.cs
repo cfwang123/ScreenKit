@@ -358,6 +358,62 @@ static class FtpServerSelfTest {
 				else if (string.IsNullOrEmpty(ent.IconBrush)) bad("FtpEntry.IconBrush 为空");
 				else ok("FtpEntry 上能取到图标与颜色");
 
+				// ---- 快速复制：统计窗口跑完不自动关，结果留在窗口里 ----
+				{
+					var scanroot = Path.Combine(Path.GetTempPath(), "sk-scan-" + Guid.NewGuid().ToString("N"));
+					Directory.CreateDirectory(scanroot);
+					try {
+						// 造 3 个文件 + 1 个子目录，共 4 个文件
+						File.WriteAllBytes(Path.Combine(scanroot, "a.bin"), new byte[100]);
+						File.WriteAllBytes(Path.Combine(scanroot, "b.bin"), new byte[200]);
+						var sub = Path.Combine(scanroot, "sub");
+						Directory.CreateDirectory(sub);
+						File.WriteAllBytes(Path.Combine(sub, "c.bin"), new byte[300]);
+						File.WriteAllBytes(Path.Combine(sub, "d.bin"), new byte[400]);
+
+						var pw = new FastCopyProgWindow(new List<string> { scanroot }, false);
+						pw.Show();
+						// 等统计跑完（小目录，1 秒足够）
+						var waited = 0;
+						while (waited < 5000 && pw.Stats == null) {
+							System.Windows.Threading.Dispatcher.CurrentDispatcher.Invoke(
+								new Action(() => { }), System.Windows.Threading.DispatcherPriority.Background);
+							System.Threading.Thread.Sleep(50);
+							waited += 50;
+						}
+						if (pw.Stats == null) bad("统计没跑完");
+						else {
+							if (pw.Stats.Files == 4) ok($"统计到 4 个文件（实际 {pw.Stats.Files}）");
+							else bad($"统计文件数 {pw.Stats.Files}，期望 4");
+							if (pw.Stats.Bytes == 1000) ok($"统计大小 1000 字节正确");
+							else bad($"统计大小 {pw.Stats.Bytes}，期望 1000");
+
+							// 关键：跑完了窗口还开着
+							if (pw.IsVisible) ok("统计完成后进度窗仍然打开");
+							else bad("统计完成后进度窗被自动关掉了");
+
+							// 结果文字留在窗口里
+							var lbl = pw.FindName("lbdonesize") as System.Windows.Controls.TextBlock;
+							var lbt = pw.FindName("lbtotal") as System.Windows.Controls.TextBlock;
+							var lbf = pw.FindName("lbfile") as System.Windows.Controls.TextBlock;
+							if (lbl != null && !string.IsNullOrEmpty(lbl.Text)) ok("窗口里显示了统计结果提示");
+							else bad("窗口里没有统计结果提示");
+							if (lbt != null && lbt.Text.Contains("4")) ok("窗口里显示了文件数");
+							else bad($"窗口文件数文字是 '{lbt?.Text}'");
+							if (lbf != null && lbf.Text == Loc.T("fc.stat.done")) ok("标题行显示「统计完成」");
+							else bad($"标题行是 '{lbf?.Text}'");
+							var btn = pw.FindName("bcancel") as System.Windows.Controls.Button;
+							if (btn != null && (btn.Content as string) == Loc.T("fc.close"))
+								ok("按钮变成「关闭」");
+							else bad("按钮没变成关闭");
+						}
+						pw.Close();
+					}
+					finally {
+						try { Directory.Delete(scanroot, true); } catch { }
+					}
+				}
+
 				// ---- 快速复制列表的行对象与图标 ----
 				var tmpdir = Path.Combine(Path.GetTempPath(), "sk-fc-" + Guid.NewGuid().ToString("N"));
 				Directory.CreateDirectory(tmpdir);
