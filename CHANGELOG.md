@@ -111,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - In the FTP file manager transfer list, a finished transfer now leaves the list on its own; failed and cancelled ones stay so the reason is visible and retry still works.
 - The Korean conjugation table no longer has a separate Advanced group; those patterns are listed under mood and connective groups.
 - Fast copy shows a cancellable progress window while counting and while copying
+- Fast copy no longer counts files as you add them; counting runs only when you press Count files. The result now stays in the progress window, and that window no longer closes itself when counting or copying finishes.
 
 #### Fixed
 
@@ -199,6 +200,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP 文件管理的传输列表里，传完的条目会自动从列表移除；失败和取消的仍保留，好让用户看到原因并重试。
 - 韩语变形表去掉单独的「高级」分组，这些条目并入语气和连接。
 - 快速复制在统计和传输时弹出可取消的进度窗口
+- 快速复制不再在添加文件后自动统计，只有点「统计文件」才算。统计结果直接显示在进度窗口里，且统计和复制完成时都不再自动关窗。
 
 #### 修复
 
