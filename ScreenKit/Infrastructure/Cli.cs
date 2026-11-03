@@ -90,6 +90,8 @@ static class Cli {
 				or "--test-rtsp"
 				or "--test-rtspsrv"
 				or "--test-ftp"
+				or "--test-ftp-drag"
+				or "--test-ftpsrv"
 				or "--test-udpdbg"
 				or "--test-face-overlay"
 				or "--help" or "-h" or "/?"
@@ -298,6 +300,10 @@ static class Cli {
 					return RtspFwd.Test(Out, Err);
 				case "--test-ftp":
 					return testftp(args, i);
+				case "--test-ftp-drag":
+					return testftpdrag(args, i);
+				case "--test-ftpsrv":
+					return testftpsrv();
 				case "--test-rtspsrv":
 					return RtspTestSrv.Test(Out, Err);
 				case "--test-sendfile":
@@ -2691,6 +2697,19 @@ static class Cli {
 		return s.Substring(0, max) + "…";
 	}
 
+	/// <summary>简易 FTP 服务端自测：临时目录起服务，用原始命令走完登录、列目录、上下传、改名、删除。</summary>
+	static int testftpsrv() {
+		Out("=== FTP 服务端自测 ===");
+		var rc = FtpServerSelfTest.Run(Out, Err);
+		Out("=== FTP 端到端互通（FluentFTP 客户端） ===");
+		var rc2 = FtpServerSelfTest.RunClient(Out, Err);
+		Out("=== FTP 服务页界面 ===");
+		var rc3 = FtpServerSelfTest.UiSmoke(Out, Err);
+		var bad = rc != 0 ? rc : rc2 != 0 ? rc2 : rc3;
+		Out(bad == 0 ? "全部通过" : $"自测失败 rc={bad}");
+		return bad;
+	}
+
 	static int testftp(string[] args, int at) {
 		string arg(int off) => at + off < args.Length ? args[at + off] : null;
 		// --test-ftp-ui：只造窗口验证 XAML 与文案，不连网
@@ -2701,6 +2720,29 @@ static class Cli {
 			return rcui;
 		}
 		return testftp(arg(1), arg(2), arg(3), arg(4), arg(5), arg(6));
+	}
+
+	/// <summary>--test-ftp-drag &lt;kind&gt; &lt;host&gt; &lt;port&gt; &lt;user&gt; &lt;pass&gt; &lt;remoteFile&gt;</summary>
+	static int testftpdrag(string[] args, int at) {
+		string arg(int off) => at + off < args.Length ? args[at + off] : null;
+		var kind = arg(1);
+		var host = arg(2);
+		var rem = arg(6);
+		if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(rem)) {
+			Err("用法: ScreenKit --test-ftp-drag <ftp|ftps|ftpsi|sftp> <host> <port> <user> <pass> <remoteFile>");
+			return 2;
+		}
+		if (!int.TryParse(arg(3), out var port) || port <= 0) port = FtpProto.DefPort(FtpProto.Norm(kind));
+		var site = new FtpSite {
+			Kind = FtpProto.Norm(kind),
+			Host = host,
+			Port = port,
+			User = arg(4) ?? ""
+		};
+		Out("=== FTP 拖出（虚拟文件）自测 ===");
+		var rc = FtpDragOut.SelfTest(site, arg(5) ?? "", rem, Out, Err);
+		Out(rc == 0 ? "自测通过" : $"自测失败 rc={rc}");
+		return rc;
 	}
 
 	/// <summary>

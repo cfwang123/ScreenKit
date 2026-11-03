@@ -203,8 +203,7 @@ public sealed class OcrOptions {
 	/// <summary>拍照较短边上限（像素）。宽高里较小的一边不超过此值。</summary>
 	public int PhotoMaxPx = 2000;
 	/// <summary>局域网投屏接收（UDP 17531 发现 / HTTP /cast 媒体）。</summary>
-	public bool CastRecvEnabled = true;
-	/// <summary>USB 配件主机（AOA）。关闭时不拉起助手；开启后 2 分钟无连接会自动关掉。</summary>
+	public bool CastRecvEnabled = true;	/// <summary>USB 配件主机（AOA）。关闭时不拉起助手；开启后 2 分钟无连接会自动关掉。</summary>
 	public bool CastUsbAccessory;
 	/// <summary>投屏画质档名（流畅 540p / 均衡 720p / 高清 1080p）。</summary>
 	public string CastQuality = "均衡 720p";
@@ -380,6 +379,24 @@ public sealed class OcrOptions {
 	public bool TabSendFileVisible = true;
 	public bool TabCastVisible = true;
 	public bool TabDictVisible = true;
+	/// <summary>FTP 服务页是否显示。隐藏时同时停服务。</summary>
+	public bool TabFtpSrvVisible = false;
+
+	/// <summary>FTP 服务端。默认关闭，端口 21，根目录为程序目录下 ftproot\；用户名留空表示匿名。</summary>
+	public bool FtpSrvEnabled;
+	public int FtpSrvPort = 21;
+	public string FtpSrvRoot = "";
+	public string FtpSrvUser = "";
+	public string FtpSrvPass = "";
+
+	/// <summary>把配置里的字段收成一个服务选项对象。</summary>
+	public FtpSrvOptions FtpSrvOpts() => new() {
+		Enabled = FtpSrvEnabled,
+		Port = FtpSrvPort,
+		Root = FtpSrvRoot,
+		User = FtpSrvUser,
+		Pass = FtpSrvPass,
+	};
 
 	/// <summary>隐藏的功能页同时关掉模块。文件同步和投屏同时停服务。</summary>
 	public void ApplyFeatureOff() {
@@ -392,6 +409,7 @@ public sealed class OcrOptions {
 		if (!TabDictVisible) ModDict = false;
 		if (!TabSendFileVisible) SendFileEnabled = false;
 		if (!TabCastVisible) CastRecvEnabled = false;
+		if (!TabFtpSrvVisible) FtpSrvEnabled = false;
 	}
 
 	/// <summary>启动时自动检查更新的间隔（天）。默认 7；0 = 不自动检查。菜单「检查更新」不受限。</summary>

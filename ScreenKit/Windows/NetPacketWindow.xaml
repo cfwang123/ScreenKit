@@ -1,0 +1,173 @@
+<Window x:Class="ScreenKit.NetPacketWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="连接报文"
+        Height="680" Width="1080"
+        MinHeight="440" MinWidth="760"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="netpacket.window">
+	<Window.Resources>
+		<Style x:Key="HdrGrip" TargetType="Thumb">
+			<Setter Property="Width" Value="6"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Cursor" Value="SizeWE"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Thumb">
+						<Border Background="Transparent"/>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style TargetType="DataGrid">
+			<Setter Property="AutoGenerateColumns" Value="False"/>
+			<Setter Property="IsReadOnly" Value="True"/>
+			<Setter Property="CanUserAddRows" Value="False"/>
+			<Setter Property="CanUserResizeColumns" Value="True"/>
+			<Setter Property="CanUserSortColumns" Value="True"/>
+			<Setter Property="SelectionMode" Value="Single"/>
+			<Setter Property="SelectionUnit" Value="FullRow"/>
+			<Setter Property="GridLinesVisibility" Value="Horizontal"/>
+			<Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
+			<Setter Property="HeadersVisibility" Value="Column"/>
+			<Setter Property="RowHeaderWidth" Value="0"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="AlternatingRowBackground" Value="#FAFBFC"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="RowHeight" Value="26"/>
+			<Setter Property="ColumnHeaderHeight" Value="32"/>
+		</Style>
+
+		<Style TargetType="DataGridColumnHeader">
+			<Setter Property="Padding" Value="10,6"/>
+			<Setter Property="Background" Value="#EEF2FF"/>
+			<Setter Property="Foreground" Value="#312E81"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="BorderBrush" Value="#C7D2FE"/>
+			<Setter Property="BorderThickness" Value="0,0,1,1"/>
+			<Setter Property="HorizontalContentAlignment" Value="Left"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="DataGridColumnHeader">
+						<Grid Background="{TemplateBinding Background}">
+							<Border BorderBrush="{TemplateBinding BorderBrush}"
+							        BorderThickness="{TemplateBinding BorderThickness}"
+							        Background="{TemplateBinding Background}"
+							        Padding="{TemplateBinding Padding}">
+								<ContentPresenter VerticalAlignment="Center"
+								                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+							</Border>
+							<Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left" Style="{StaticResource HdrGrip}"/>
+							<Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right" Style="{StaticResource HdrGrip}"/>
+						</Grid>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style TargetType="DataGridCell">
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Padding" Value="6,0"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="DataGridCell">
+						<Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+						        SnapsToDevicePixels="True">
+							<ContentPresenter VerticalAlignment="Center"/>
+						</Border>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+			<Style.Triggers>
+				<Trigger Property="IsSelected" Value="True">
+					<Setter Property="Background" Value="#C7D2FE"/>
+					<Setter Property="Foreground" Value="#1E1B4B"/>
+				</Trigger>
+			</Style.Triggers>
+		</Style>
+	</Window.Resources>
+
+	<Grid Margin="10">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="1.2*"/>
+			<RowDefinition Height="6"/>
+			<RowDefinition Height="1.1*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<DockPanel Grid.Row="0" Margin="0,0,0,8">
+			<StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+				<CheckBox x:Name="ckscroll" Content="自动滚动" VerticalAlignment="Center" Margin="0,0,12,0"
+				          Foreground="#374151"
+				          ToolTip="勾选后新报文滚到底部；上滑离开底部自动取消，滑回底部自动勾选"/>
+				<Button x:Name="bhttp" Content="HTTP流重组" Style="{StaticResource ToolBtn}" Padding="12,5"
+				        ToolTip="按 TCP Seq 重组两侧流并切分 HTTP/1.x 明文消息"/>
+				<Button x:Name="bpause" Content="暂停" Style="{StaticResource ToolBtn}" Padding="12,5"/>
+				<Button x:Name="bclear" Content="清空" Style="{StaticResource ToolBtn}" Padding="12,5"/>
+			</StackPanel>
+			<StackPanel>
+				<TextBlock x:Name="lbtitle" FontSize="15" FontWeight="SemiBold" Foreground="#312E81" TextWrapping="Wrap"/>
+				<TextBlock x:Name="lbstatus" FontSize="12" Foreground="#718096" Margin="0,4,0,0" TextWrapping="Wrap"/>
+			</StackPanel>
+		</DockPanel>
+
+		<Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="4">
+			<DataGrid x:Name="dgpkts">
+				<DataGrid.Columns>
+					<DataGridTextColumn Header="No" Binding="{Binding No}" Width="50" MinWidth="40"/>
+					<DataGridTextColumn Header="时间" Binding="{Binding TimeText}" Width="100" MinWidth="80"/>
+					<DataGridTextColumn Header="方向" Binding="{Binding DirText}" Width="70" MinWidth="50"/>
+					<DataGridTextColumn Header="协议" Binding="{Binding Protocol}" Width="60" MinWidth="48"/>
+					<DataGridTextColumn Header="长度" Binding="{Binding Length}" Width="56" MinWidth="40"/>
+					<DataGridTextColumn Header="载荷" Binding="{Binding PayloadLength}" Width="56" MinWidth="40"/>
+					<DataGridTextColumn Header="标志" Binding="{Binding Flags}" Width="100" MinWidth="60"/>
+					<DataGridTextColumn Header="信息 / 解析摘要" Binding="{Binding InfoText}" Width="*" MinWidth="120"/>
+				</DataGrid.Columns>
+			</DataGrid>
+		</Border>
+
+		<GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+		<Grid Grid.Row="3">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="6"/>
+				<ColumnDefinition Width="560"/>
+			</Grid.ColumnDefinitions>
+			<Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="4">
+				<DockPanel>
+					<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+						<TextBlock Text="协议详情（点击字段 → 右侧字节高亮）" FontWeight="SemiBold" Foreground="#312E81"/>
+					</Border>
+					<TreeView x:Name="tvproto" BorderThickness="0" Padding="4"/>
+				</DockPanel>
+			</Border>
+			<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+			<Border Grid.Column="2" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="4">
+				<DockPanel>
+					<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+						<StackPanel Orientation="Horizontal">
+							<TextBlock Text="十六进制（点击字节 → 定位字段）" FontWeight="SemiBold" Foreground="#312E81" VerticalAlignment="Center"/>
+							<RadioButton x:Name="rdraw" Content="整帧" Margin="16,0,8,0" IsChecked="True"/>
+							<RadioButton x:Name="rdpayload" Content="仅载荷"/>
+						</StackPanel>
+					</Border>
+					<RichTextBox x:Name="ehex" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+					             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+					             BorderThickness="0" Padding="8" AcceptsReturn="True"
+					             IsDocumentEnabled="True" Cursor="IBeam"/>
+				</DockPanel>
+			</Border>
+		</Grid>
+
+		<TextBlock x:Name="lbfield" Grid.Row="4" Margin="0,8,0,0" Foreground="#4F46E5" FontSize="11" TextWrapping="Wrap"
+		           Text="选中字段或点击十六进制字节以联动高亮。"/>
+	</Grid>
+</Window>

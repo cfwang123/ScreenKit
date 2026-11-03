@@ -5,28 +5,25 @@ namespace ScreenKit;
 
 /// <summary>
 /// 工具 → 网络工具 → FTP 文件管理。
-/// 左本机右远程，拖放即传，底部一条传输队列。浏览和传输各用独立会话。
+/// 只显示服务器一侧：从资源管理器拖文件或文件夹进来即上传，把选中文件拖出去即交给资源管理器下载。
+/// 浏览和传输各用独立会话。
 /// </summary>
 public partial class FtpWindow : Window {
-	readonly ObservableCollection<FtpEntry> localRows = new();
 	readonly ObservableCollection<FtpEntry> remoteRows = new();
 	readonly FtpXfer xfer = new();
 	readonly List<FtpSite> sites = new();
 
 	IFtpBackend browse;
 	FtpSite curSite;
-	string localDir = "";
 	string remoteDir = "/";
 
 	readonly DispatcherTimer tick = new() { Interval = TimeSpan.FromMilliseconds(50) };
 	bool dead;
 	bool connecting;
-	bool localDragBusy;
 	bool remoteDragBusy;
 
 	public FtpWindow() {
 		InitializeComponent();
-		lvlocal.ItemsSource = localRows;
 		lvremote.ItemsSource = remoteRows;
 		lvxfer.ItemsSource = xfer.Jobs;
 		applylang();
@@ -60,6 +57,7 @@ public partial class FtpWindow : Window {
 		bremotedel.IsEnabled = false;
 		bremotemkdir.IsEnabled = false;
 		bremoterefresh.IsEnabled = false;
+		bdownloadto.IsEnabled = false;
 	}
 
 	// ==================== 初始化 ====================
@@ -161,67 +159,29 @@ public partial class FtpWindow : Window {
 		int.TryParse((s ?? "").Trim(), out var v) && v > 0 && v <= 65535 ? v : def;
 
 	void initbrowse() {
-		blocalup.Click += (_, _) => localup();
-		blocalrefresh.Click += (_, _) => loadlocal(localDir);
-		blocalmkdir.Click += (_, _) => localmkdir();
-		blocaldel.Click += (_, _) => localdel();
 		bremoteup.Click += (_, _) => remoteup();
 		bremoterefresh.Click += (_, _) => loadremote(remoteDir);
 		bremotemkdir.Click += (_, _) => remotemkdir();
 		bremotedel.Click += (_, _) => remotedel();
+		bdownloadto.Click += (_, _) => downloadto();
 
-		// 地址栏回车跳转
-		elocalpath.KeyDown += (_, e) => {
-			if (e.Key != Key.Enter) return;
-			e.Handled = true;
-			loadlocal((elocalpath.Text ?? "").Trim());
-		};
 		eremotepath.KeyDown += (_, e) => {
 			if (e.Key != Key.Enter) return;
 			e.Handled = true;
 			loadremote((eremotepath.Text ?? "").Trim());
 		};
 
-		// 双击进目录
-		lvlocal.MouseDoubleClick += (_, _) => {
-			if (lvlocal.SelectedItem is not FtpEntry e || !e.IsDir) return;
-			loadlocal(e.Full);
-		};
 		lvremote.MouseDoubleClick += (_, _) => {
 			if (lvremote.SelectedItem is not FtpEntry e) return;
 			if (!e.IsDir) return;
 			loadremote(e.Full);
 		};
 
-		initlocaldrag();
 		initremotedrag();
 		initremotedrop();
 	}
 
-	/// <summary>把本机选中项拖出去（给资源管理器和远程栏）。</summary>
-	void initlocaldrag() {
-		Point down = default;
-		lvlocal.PreviewMouseLeftButtonDown += (_, e) => down = e.GetPosition(lvlocal);
-		lvlocal.PreviewMouseMove += (_, e) => {
-			if (e.LeftButton != MouseButtonState.Pressed || localDragBusy) return;
-			var now = e.GetPosition(lvlocal);
-			if (Math.Abs(now.X - down.X) < 6 && Math.Abs(now.Y - down.Y) < 6) return;
-			var files = new List<string>();
-			foreach (var one in lvlocal.SelectedItems)
-				if (one is FtpEntry it) files.Add(it.Full);
-			if (files.Count == 0) return;
-			localDragBusy = true;
-			try {
-				// 拖到远程栏由下面的 Drop 接；拖到资源管理器按 Move 不行，用 Copy
-				var data = new DataObject(DataFormats.FileDrop, files.ToArray());
-				DragDrop.DoDragDrop(lvlocal, data, DragDropEffects.Copy);
-			}
-			catch { }
-			finally { localDragBusy = false; }
-		};
-	}
-
-	/// <summary>远程栏选中项拖到本机栏 → 下载。用私有格式传对象，避免和文件拖放混淆。</summary>
+	/// <summary>把选中文件拖到资源管理器：给的是虚拟文件，资源管理器边读边落盘。</summary>
 	void initremotedrag() {
 		Point down = default;
 		lvremote.PreviewMouseLeftButtonDown += (_, e) => down = e.GetPosition(lvremote);
@@ -229,51 +189,64 @@ public partial class FtpWindow : Window {
 			if (e.LeftButton != MouseButtonState.Pressed || remoteDragBusy) return;
 			var now = e.GetPosition(lvremote);
 			if (Math.Abs(now.X - down.X) < 6 && Math.Abs(now.Y - down.Y) < 6) return;
-			var items = lvremote.SelectedItems.Cast<FtpEntry>().ToList();
-			if (items.Count == 0) return;
-			remoteDragBusy = true;
-			try {
-				var data = new DataObject();
-				data.SetData("ScreenKitFtpRemote", items);
-				DragDrop.DoDragDrop(lvremote, data, DragDropEffects.Copy);
-			}
-			catch { }
-			finally { remoteDragBusy = false; }
-		};
-	}
-
-	/// <summary>远程栏接收：本机拖来的文件 → 上传；资源管理器拖来的 → 上传。</summary>
-	void initremotedrop() {
-		lvremote.AllowDrop = true;
-		lvremote.DragOver += (_, e) => {
-			if (!canaccept(e.Data)) { e.Effects = DragDropEffects.None; e.Handled = true; return; }
-			e.Effects = DragDropEffects.Copy;
-			e.Handled = true;
-		};
-		lvremote.Drop += (_, e) => {
-			if (!canaccept(e.Data)) return;
-			e.Handled = true;
 			if (browse == null) {
 				setstat(Loc.T("ftp.err.noconn"));
 				return;
 			}
-			var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
-			if (paths == null) return;
-			uploadpaths(paths);
+			var files = new List<FtpDragOut.Item>();
+			int dirs = 0;
+			foreach (var one in lvremote.SelectedItems) {
+				if (one is not FtpEntry it) continue;
+				if (it.IsDir) { dirs++; continue; }
+				files.Add(new FtpDragOut.Item {
+					Remote = it.Full,
+					Name = it.Name,
+					Size = it.Size,
+					Modified = it.Modified
+				});
+			}
+			if (dirs > 0) setstat(Loc.T("ftp.drag.dirs"));
+			if (files.Count == 0) return;
+			remoteDragBusy = true;
+			try {
+				Mouse.Capture(null);
+				setstat(string.Format(Loc.T("ftp.drag.start"), files.Count));
+				var site = curSite;
+				var pw = epass.Password ?? "";
+				var ok = FtpDragOut.Drag(site, pw, files);
+				setstat(ok ? Loc.T("ftp.drag.done") : Loc.T("ftp.drag.cancel"));
+			}
+			catch (Exception ex) { setstat(ex.Message); }
+			finally { remoteDragBusy = false; }
 		};
+	}
 
-		// 本机栏接收远程拖来的文件 → 下载
-		lvlocal.DragOver += (_, e) => {
-			if (!e.Data.GetDataPresent("ScreenKitFtpRemote")) { e.Effects = DragDropEffects.None; e.Handled = true; return; }
+	/// <summary>资源管理器（本程序选中项也行）拖进列表 → 上传到当前目录。</summary>
+	void initremotedrop() {
+		DragEventHandler over = (_, e) => {
+			if (browse == null || !canaccept(e.Data)) {
+				e.Effects = DragDropEffects.None;
+				e.Handled = true;
+				return;
+			}
 			e.Effects = DragDropEffects.Copy;
 			e.Handled = true;
 		};
-		lvlocal.Drop += (_, e) => {
-			if (!e.Data.GetDataPresent("ScreenKitFtpRemote")) return;
+		DragEventHandler drop = (_, e) => {
+			if (browse == null) {
+				setstat(Loc.T("ftp.err.noconn"));
+				return;
+			}
+			if (!canaccept(e.Data)) return;
 			e.Handled = true;
-			if (e.Data.GetData("ScreenKitFtpRemote") is not List<FtpEntry> items) return;
-			downloaditems(items);
+			var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+			if (paths == null || paths.Length == 0) return;
+			uploadpaths(paths);
 		};
+		lvremote.DragOver += over;
+		lvremote.Drop += drop;
+		dropzone.DragOver += over;
+		dropzone.Drop += drop;
 	}
 
 	static bool canaccept(IDataObject data) =>
@@ -310,12 +283,19 @@ public partial class FtpWindow : Window {
 			var pick = sites.FirstOrDefault(s => s.Name == last.Site) ?? sites[0];
 			cbSite.SelectedItem = pick;
 		}
-		var ld = (last.LocalDir ?? "").Trim();
-		if (ld.Length == 0 || !Directory.Exists(ld)) ld = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-		loadlocal(ld);
 		var rd = (last.RemoteDir ?? "").Trim();
 		remoteDir = rd.Length > 0 ? rd : "/";
 		eremotepath.Text = remoteDir;
+	}
+
+	void savelast() {
+		try {
+			FtpSiteStore.SaveLast(new FtpSiteStore.LastState {
+				Site = curSite?.Name ?? "",
+				RemoteDir = remoteDir
+			});
+		}
+		catch { }
 	}
 	#endregion
 
@@ -348,6 +328,7 @@ public partial class FtpWindow : Window {
 		bremotemkdir.IsEnabled = on;
 		bremotedel.IsEnabled = on;
 		bremoterefresh.IsEnabled = on;
+		bdownloadto.IsEnabled = on;
 		updateupbtn();
 	}
 
@@ -413,83 +394,6 @@ public partial class FtpWindow : Window {
 	}
 	#endregion
 
-	// ==================== 本机浏览 ====================
-	#region
-	void loadlocal(string dir) {
-		var d = (dir ?? "").Trim();
-		if (d.Length == 0) return;
-		// 空路径或相对路径按当前目录解析
-		try { d = Path.GetFullPath(d); }
-		catch {
-			setstat(Loc.T("ftp.err.badpath"));
-			return;
-		}
-		if (!Directory.Exists(d)) {
-			setstat(string.Format(Loc.T("ftp.err.nodir"), d));
-			return;
-		}
-		localRows.Clear();
-		try {
-			var di = new DirectoryInfo(d);
-			foreach (var sub in di.GetDirectories()) {
-				localRows.Add(new FtpEntry {
-					Name = sub.Name,
-					Full = sub.FullName,
-					IsDir = true,
-					Modified = sub.LastWriteTime
-				});
-			}
-			foreach (var f in di.GetFiles()) {
-				localRows.Add(new FtpEntry {
-					Name = f.Name,
-					Full = f.FullName,
-					IsDir = false,
-					Size = f.Length,
-					Modified = f.LastWriteTime
-				});
-			}
-		}
-		catch (Exception ex) {
-			setstat(string.Format(Loc.T("ftp.err.list"), ex.Message));
-			return;
-		}
-		localDir = d;
-		elocalpath.Text = d;
-		updateupbtn();
-	}
-
-	void localup() {
-		var parent = Path.GetDirectoryName(localDir.TrimEnd('\\', '/'));
-		if (string.IsNullOrEmpty(parent)) return;
-		loadlocal(parent);
-	}
-
-	void localmkdir() {
-		var name = askname(Loc.T("ftp.prompt.newdir"));
-		if (string.IsNullOrWhiteSpace(name)) return;
-		try {
-			Directory.CreateDirectory(Path.Combine(localDir, name.Trim()));
-			loadlocal(localDir);
-		}
-		catch (Exception ex) { setstat(ex.Message); }
-	}
-
-	void localdel() {
-		var items = lvlocal.SelectedItems.Cast<FtpEntry>().ToList();
-		if (items.Count == 0) return;
-		if (MessageBox.Show(string.Format(Loc.T("ftp.confirm.del"), items.Count),
-			Loc.T("ftp.title"), MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-		foreach (var it in items) {
-			try {
-				if (it.IsDir) Directory.Delete(it.Full, true);
-				else File.Delete(it.Full);
-			}
-			catch (Exception ex) { setstat(ex.Message); }
-		}
-		loadlocal(localDir);
-	}
-	#endregion
-
 	// ==================== 远程浏览 ====================
 	#region
 	void loadremote(string dir) {
@@ -517,6 +421,7 @@ public partial class FtpWindow : Window {
 				remoteDir = d;
 				eremotepath.Text = d;
 				updateupbtn();
+				savelast();
 				setstat(string.Format(Loc.T("ftp.listed"), got.Count));
 			});
 		});
@@ -588,10 +493,56 @@ public partial class FtpWindow : Window {
 	}
 
 	void updateupbtn() {
-		// 本机已是盘根时禁掉上级
-		var p = Path.GetDirectoryName(localDir.TrimEnd('\\', '/'));
-		blocalup.IsEnabled = !string.IsNullOrEmpty(p);
 		bremoteup.IsEnabled = browse != null && remoteDir.TrimEnd('/').Length > 0;
+	}
+
+	/// <summary>选中项（文件或整个目录）下载到指定本机目录。</summary>
+	void downloadto() {
+		if (browse == null) { setstat(Loc.T("ftp.err.noconn")); return; }
+		var items = lvremote.SelectedItems.Cast<FtpEntry>().ToList();
+		if (items.Count == 0) { setstat(Loc.T("ftp.err.nosel")); return; }
+		string root;
+		using (var dlg = new System.Windows.Forms.FolderBrowserDialog {
+			Description = Loc.T("ftp.prompt.downloaddir"),
+			ShowNewFolderButton = true
+		}) {
+			if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+			root = dlg.SelectedPath;
+		}
+		if (string.IsNullOrWhiteSpace(root)) return;
+		var site = curSite;
+		var pw = epass.Password ?? "";
+		setstat(Loc.T("ftp.loading"));
+		Task.Run(() => {
+			var list = new List<(string remote, string local, long size)>();
+			string err = null;
+			try {
+				var be = FtpBackendFactory.Create(site);
+				try {
+					be.Connect(site, pw);
+					foreach (var it in items) collect(be, it, root, list);
+				}
+				finally { be.Dispose(); }
+			}
+			catch (Exception ex) { err = ex.Message; }
+			dispatcher(() => {
+				if (dead) return;
+				if (err != null) { setstat(err); return; }
+				foreach (var one in list)
+					xfer.EnqueueDownload(site, one.remote, one.local, one.size, pw);
+				setstat(string.Format(Loc.T("ftp.queued.down"), list.Count));
+			});
+		});
+	}
+
+	static void collect(IFtpBackend be, FtpEntry it, string localDir, List<(string remote, string local, long size)> list) {
+		if (it.IsDir) {
+			var sub = Path.Combine(localDir, it.Name);
+			Directory.CreateDirectory(sub);
+			foreach (var one in be.List(it.Full)) collect(be, one, sub, list);
+			return;
+		}
+		list.Add((it.Full, Path.Combine(localDir, it.Name), it.Size));
 	}
 	#endregion
 
@@ -611,47 +562,6 @@ public partial class FtpWindow : Window {
 			}
 		}
 		if (n > 0) setstat(string.Format(Loc.T("ftp.queued.up"), n));
-	}
-
-	void downloaditems(List<FtpEntry> items) {
-		if (curSite == null || browse == null) {
-			setstat(Loc.T("ftp.err.noconn"));
-			return;
-		}
-		var pw = epass.Password ?? "";
-		int n = 0;
-		foreach (var it in items) {
-			if (it.IsDir) {
-				// 目录下载：展开远端目录树，逐文件入队
-				var files = expandRemoteDir(it.Full);
-				foreach (var f in files) {
-					var rel = f.Full.Substring(it.Full.Length).TrimStart('/').Replace('/', '\\');
-					var local = Path.Combine(localDir, it.Name, rel);
-					xfer.EnqueueDownload(curSite, f.Full, local, f.Size, pw);
-					n++;
-				}
-			}
-			else {
-				var local = Path.Combine(localDir, it.Name);
-				xfer.EnqueueDownload(curSite, it.Full, local, it.Size, pw);
-				n++;
-			}
-		}
-		if (n > 0) setstat(string.Format(Loc.T("ftp.queued.down"), n));
-	}
-
-	/// <summary>递归列远端目录。浏览会话在 UI 线程外用时注意串行，这里直接跑在调用方的后台任务里。</summary>
-	List<FtpEntry> expandRemoteDir(string dir) {
-		var list = new List<FtpEntry>();
-		try {
-			var items = browse.List(dir);
-			foreach (var it in items) {
-				if (it.IsDir) list.AddRange(expandRemoteDir(it.Full));
-				else list.Add(it);
-			}
-		}
-		catch { }
-		return list;
 	}
 
 	void OnJobResume(object sender, RoutedEventArgs e) {
@@ -748,22 +658,15 @@ public partial class FtpWindow : Window {
 		lbkind.Text = Loc.T("ftp.kind");
 		bconn.Content = Loc.T(browse != null ? "ftp.disconnect" : "ftp.connect");
 		bsave.Content = Loc.T("ftp.save");
-		lblocal.Text = Loc.T("ftp.local");
 		lbremote.Text = Loc.T("ftp.remote");
-		blocalup.Content = Loc.T("ftp.up");
-		blocalrefresh.Content = Loc.T("ftp.refresh");
-		blocalmkdir.Content = Loc.T("ftp.mkdir");
-		blocaldel.Content = Loc.T("ftp.del");
 		bremoteup.Content = Loc.T("ftp.up");
 		bremoterefresh.Content = Loc.T("ftp.refresh");
 		bremotemkdir.Content = Loc.T("ftp.mkdir");
 		bremotedel.Content = Loc.T("ftp.del");
+		bdownloadto.Content = Loc.T("ftp.downloadto");
 		lbxfer.Text = Loc.T("ftp.xfer");
 		lbparal.Text = Loc.T("ftp.parallel");
 		bclearfinished.Content = Loc.T("ftp.clear");
-		colllname.Header = Loc.T("ftp.colname");
-		colllsize.Header = Loc.T("ftp.colsize");
-		collltime.Header = Loc.T("ftp.coltime");
 		colrname.Header = Loc.T("ftp.colname");
 		colrsize.Header = Loc.T("ftp.colsize");
 		colrperm.Header = Loc.T("ftp.colperm");

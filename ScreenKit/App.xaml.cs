@@ -86,6 +86,16 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		// 网络监控窗口：由主窗口以管理员身份用 start 拉起，只开这一个窗口，不占单实例锁。
+		if (args.Any(a => a == "--netprobe")) {
+			AppConfig.initlogswitch();
+			base.OnStartup(e);
+			var netwin = new NetProbeWindow();
+			MainWindow = netwin;
+			netwin.Show();
+			return;
+		}
+
 		// SOAP 调试窗口冒烟：只开这个窗口，便于 UIA 检查。
 		if (args.Any(a => a == "--test-soap-ui")) {
 			base.OnStartup(e);

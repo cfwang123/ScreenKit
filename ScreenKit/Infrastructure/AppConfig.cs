@@ -323,6 +323,8 @@ static class AppConfig {
 				o.TabCastVisible = parsebool(tcastv, true);
 			if (map.TryGetValue("tab_dict_visible", out var tdictv))
 				o.TabDictVisible = parsebool(tdictv, true);
+			if (map.TryGetValue("tab_ftpsrv_visible", out var tfsv2))
+				o.TabFtpSrvVisible = parsebool(tfsv2, false);
 			if (map.TryGetValue("update_check_days", out var ucd) && int.TryParse(ucd, out var ucDays))
 				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
 			if (map.TryGetValue("update_url", out var uurl))
@@ -373,6 +375,16 @@ static class AppConfig {
 				o.HttpPort = Compat.Clamp(port, 1, 65535);
 			if (map.TryGetValue("http_keepalive", out var hka) && int.TryParse(hka, out var keepalive))
 				o.HttpKeepAlive = Compat.Clamp(keepalive, 0, 300);
+			if (map.TryGetValue("ftpsrv_enabled", out var fte))
+				o.FtpSrvEnabled = parsebool(fte, false);
+			if (map.TryGetValue("ftpsrv_port", out var ftp) && int.TryParse(ftp, out var ftpPort))
+				o.FtpSrvPort = Compat.Clamp(ftpPort, 1, 65535);
+			if (map.TryGetValue("ftpsrv_root", out var ftr))
+				o.FtpSrvRoot = (ftr ?? "").Trim().Trim('"');
+			if (map.TryGetValue("ftpsrv_user", out var ftu))
+				o.FtpSrvUser = (ftu ?? "").Trim().Trim('"');
+			if (map.TryGetValue("ftpsrv_pass", out var ftp_))
+				o.FtpSrvPass = (ftp_ ?? "").Trim().Trim('"');
 			if (map.TryGetValue("sendfile_enabled", out var sfe))
 				o.SendFileEnabled = parsebool(sfe, true);
 			if (map.TryGetValue("sendfile_udp_port", out var sfup) && int.TryParse(sfup, out var sfUdp))
@@ -824,6 +836,13 @@ static class AppConfig {
 		sb.AppendLine($"tab_sendfile_visible = {(o.TabSendFileVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_cast_visible = {(o.TabCastVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_dict_visible = {(o.TabDictVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_ftpsrv_visible = {(o.TabFtpSrvVisible ? "true" : "false")}");
+		sb.AppendLine($"# 简易 FTP 服务端。默认关闭；根目录留空表示程序目录下的 ftproot\\；用户名留空表示允许匿名");
+		sb.AppendLine($"ftpsrv_enabled = {(o.FtpSrvEnabled ? "true" : "false")}");
+		sb.AppendLine($"ftpsrv_port = {Compat.Clamp(o.FtpSrvPort <= 0 ? 21 : o.FtpSrvPort, 1, 65535)}");
+		sb.AppendLine($"ftpsrv_root = \"{esc((o.FtpSrvRoot ?? "").Trim())}\"");
+		sb.AppendLine($"ftpsrv_user = \"{esc((o.FtpSrvUser ?? "").Trim())}\"");
+		sb.AppendLine($"ftpsrv_pass = \"{esc((o.FtpSrvPass ?? "").Trim())}\"");
 		sb.AppendLine($"# 启动时自动检查更新间隔（天）。默认 7；0=不自动检查。菜单「检查更新」不受限");
 		sb.AppendLine($"update_check_days = {Compat.Clamp(o.UpdateCheckDays < 0 ? 0 : o.UpdateCheckDays, 0, 3650)}");
 		sb.AppendLine($"# 自建更新地址。空=仍查 GitHub。填写后请求该地址下的 latest.json，以及 changelog.json 或 releases.json");

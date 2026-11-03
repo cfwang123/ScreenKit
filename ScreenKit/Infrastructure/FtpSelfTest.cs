@@ -148,8 +148,8 @@ static class FtpSelfTest {
 		try {
 			var w = new FtpWindow();
 			// 构造完还没显示，Loaded 里的检查不会跑；直接看关键控件在不在
-			if (w.lvlocal == null) { errLog("本机列表未创建"); return 2; }
 			if (w.lvremote == null) { errLog("远程列表未创建"); return 3; }
+			if (w.bdownloadto == null) { errLog("下载按钮未创建"); return 8; }
 			if (w.lvxfer == null) { errLog("传输列表未创建"); return 4; }
 			if (string.IsNullOrEmpty(w.Title)) { errLog("标题为空"); return 5; }
 			if (w.Title.StartsWith("ftp.", StringComparison.Ordinal)) {

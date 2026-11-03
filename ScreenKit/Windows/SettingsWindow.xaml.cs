@@ -239,6 +239,7 @@ public partial class SettingsWindow : Window {
 			etabhttpvisible.Content = Loc.T("tab.http");
 			etabsfvisible.Content = Loc.T("tab.sendfile");
 			etabcastvisible.Content = Loc.T("tab.cast");
+			etabftpsrvvisible.Content = Loc.T("ftpsrv.tab");
 			etabdictvisible.Content = Loc.T("tab.dict");
 			lbsetupdate.Text = Loc.T("set.update");
 			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
@@ -654,6 +655,7 @@ public partial class SettingsWindow : Window {
 		etabhttpvisible.IsChecked = o.TabHttpVisible;
 		etabsfvisible.IsChecked = o.TabSendFileVisible;
 		etabcastvisible.IsChecked = o.TabCastVisible;
+		etabftpsrvvisible.IsChecked = o.TabFtpSrvVisible;
 		etabdictvisible.IsChecked = o.TabDictVisible && o.ModDict;
 		eupdatedays.Text = Compat.Clamp(o.UpdateCheckDays, 0, 3650).ToString();
 		var proxyMode = HttpProxy.NormalizeMode(string.IsNullOrWhiteSpace(o.HttpProxyMode)
@@ -942,6 +944,7 @@ public partial class SettingsWindow : Window {
 		Result.TabHttpVisible = etabhttpvisible.IsChecked == true;
 		Result.TabSendFileVisible = etabsfvisible.IsChecked == true;
 		Result.TabCastVisible = etabcastvisible.IsChecked == true;
+		Result.TabFtpSrvVisible = etabftpsrvvisible.IsChecked == true;
 		Result.TabDictVisible = Result.ModDict = etabdictvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;

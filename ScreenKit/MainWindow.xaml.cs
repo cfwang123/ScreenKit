@@ -128,6 +128,7 @@ public partial class MainWindow : Window {
 	FastCopyWindow fastCopyWin;
 	GlyphModWindow glyphModWin;
 	PortUseWindow portUseWin;
+	NetProbeWindow netMonWin;
 	TlsWindow tlsWin;
 	FtpWindow ftpWin;
 	MidiSynthWindow midiWin;
@@ -211,11 +212,13 @@ public partial class MainWindow : Window {
 		inithttptab();
 		initsendfiletab();
 		initcasttab();
+		initftpsrv();
 		// 服务模式：启动后后台预热，引擎常驻
 		if (opt.ServiceMode)
 			tryservicewarmup("启动预热");
 		initonnxidle();
 		initstbar();
+		bootftpsrv();
 		StateChanged += onstatechanged;
 		Closing += onclosing;
 		// 调整大小/移动后延迟写入（真正退出时也会再存）
@@ -317,6 +320,7 @@ public partial class MainWindow : Window {
 			(tabhttp, opt.TabHttpVisible),
 			(tabsf, opt.TabSendFileVisible),
 			(tabcast, opt.TabCastVisible),
+			(tabftpsrv, opt.TabFtpSrvVisible),
 			(tabdict, opt.TabDictVisible && opt.ModDict),
 		};
 		TabItem keep = null;
@@ -1874,6 +1878,7 @@ public partial class MainWindow : Window {
 		mnrtspsrv.Click += (_, _) => openrtspsrv();
 		mnnet.Click += (_, _) => opennettool();
 		mnportuse.Click += (_, _) => openportuse();
+		mnnetmon.Click += (_, _) => opennetmon();
 		mntls.Click += (_, _) => opentls();
 		mnftp.Click += (_, _) => openftp();
 		mnmidi.Click += (_, _) => openmidi();
@@ -2072,6 +2077,8 @@ public partial class MainWindow : Window {
 			mninfo.ToolTip = Loc.T("menu.info.tip");
 			mnportuse.Header = Loc.T("menu.portuse");
 			mnportuse.ToolTip = Loc.T("menu.portuse.tip");
+			mnnetmon.Header = Loc.T("menu.netmon");
+			mnnetmon.ToolTip = Loc.T("menu.netmon.tip");
 			mnmidi.Header = Loc.T("menu.midisynth");
 			mnmidi.ToolTip = Loc.T("menu.midisynth.tip");
 			mnvoicerec.Header = Loc.T("menu.voicerec");
@@ -4462,6 +4469,7 @@ public partial class MainWindow : Window {
 		HttpProxy.ApplyFrom(opt);
 		applymaintabvisibility();
 		applymodui();
+		applyftpsrvvisible();
 		releaseofffeatures(old);
 		syncsnapcopyopts();
 		try { refreshtrllm(); } catch { }
@@ -4851,6 +4859,9 @@ public partial class MainWindow : Window {
 	void openportuse() =>
 		opentoolwin(ref portUseWin, () => new PortUseWindow(), "menu.portuse");
 
+	void opennetmon() =>
+		opentoolwin(ref netMonWin, () => new NetProbeWindow(), "menu.netmon");
+
 	void openmidi() =>
 		opentoolwin(ref midiWin, () => new MidiSynthWindow(), "menu.midisynth");
 
@@ -5111,6 +5122,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(perfMonWin, w)) perfMonWin = null;
 				else if (ReferenceEquals(pinyinWin, w)) pinyinWin = null;
 				else if (ReferenceEquals(portUseWin, w)) portUseWin = null;
+				else if (ReferenceEquals(netMonWin, w)) netMonWin = null;
 				else if (ReferenceEquals(tlsWin, w)) tlsWin = null;
 				else if (ReferenceEquals(ftpWin, w)) ftpWin = null;
 				else if (ReferenceEquals(rtspSrvWin, w)) rtspSrvWin = null;

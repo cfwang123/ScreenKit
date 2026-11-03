@@ -75,6 +75,9 @@ static class AppUpdater {
 
 	/// <summary>当前程序版本（InformationalVersion，去 +git 后缀）。</summary>
 	public static string CurrentVersion() {
+		// 只给测试用：副本里无法改写版本资源，用它把当前版本报低，才能测到 GitHub 上的新版本。
+		var over = Environment.GetEnvironmentVariable("SCREENKIT_VERSION");
+		if (!string.IsNullOrWhiteSpace(over)) return over.Trim();
 		try {
 			var asm = Assembly.GetExecutingAssembly();
 			var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;

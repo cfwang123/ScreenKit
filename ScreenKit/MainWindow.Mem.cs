@@ -16,6 +16,7 @@ public partial class MainWindow {
 		bindstclick(lbuse, openmem);
 		bindstclick(bstbar, openmem);
 		bindstclick(bsthttp, () => openhttptools(fromTray: true));
+		bindstclick(bstftpsrv, opentabftpsrv);
 		refreshelev();
 		refreshstbar();
 		stbarTimer = new System.Windows.Threading.DispatcherTimer {
@@ -61,6 +62,7 @@ public partial class MainWindow {
 				if (lstbarsep != null)
 					lstbarsep.Visibility = on ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
 			}
+			syncftpsrvstatus();
 		}
 		catch { }
 	}

@@ -139,6 +139,8 @@
     </PackageReference>
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="LibUsbDotNet" Version="2.2.29" />
+    <!-- 网络监控窗口的报文抓取：运行时需要 Npcap，未安装时窗口内降级提示 -->
+    <PackageReference Include="SharpPcap" Version="6.3.0" />
     <!-- FTP/FTPS 文件管理：SFTP 必须 SSH.NET，FTP 侧用 FluentFTP 兼容各家 LIST 变体和显式/隐式 FTPS -->
     <PackageReference Include="FluentFTP" Version="49.0.2" />
     <!-- 2026.0.0 起加密改走 BouncyCastle（多 4.7MB），换来修掉 SCP 两个高危；别降版本 -->

@@ -1,0 +1,717 @@
+<Window x:Class="ScreenKit.NetProbeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:cv="clr-namespace:ScreenKit"
+        xmlns:ctrl="clr-namespace:ScreenKit"
+        mc:Ignorable="d"
+        Title="系统网络监控"
+        Height="760" Width="1280"
+        MinHeight="520" MinWidth="960"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        AutomationProperties.AutomationId="netprobe.window">
+	<Window.Resources>
+		<cv:BytesFormatConverter x:Key="BytesFmt"/>
+		<cv:RateFormatConverter x:Key="RateFmt"/>
+		<cv:HeatBrushConverter x:Key="HeatBrush"/>
+
+		<!-- 热力单元格：0 无色，越高越绿，最深 #00FF00 -->
+		<Style x:Key="HProcConn" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding ConnectionCount, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.Conn}"/>
+		</Style>
+		<Style x:Key="HProcCap" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding CaptureCount, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.Cap}"/>
+		</Style>
+		<Style x:Key="HProcBytesSent" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding BytesSent, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.BytesSent}"/>
+		</Style>
+		<Style x:Key="HProcBytesRecv" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding BytesRecv, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.BytesRecv}"/>
+		</Style>
+		<Style x:Key="HProcPktsSent" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding PacketsSent, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.PktsSent}"/>
+		</Style>
+		<Style x:Key="HProcPktsRecv" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding PacketsRecv, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.PktsRecv}"/>
+		</Style>
+		<Style x:Key="HProcSendBps" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding SendBps, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.SendBps}"/>
+		</Style>
+		<Style x:Key="HProcRecvBps" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding RecvBps, Converter={StaticResource HeatBrush}, ConverterParameter=Proc.RecvBps}"/>
+		</Style>
+		<Style x:Key="HConnCap" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding CaptureCount, Converter={StaticResource HeatBrush}, ConverterParameter=Conn.Cap}"/>
+		</Style>
+		<Style x:Key="HConnBytesSent" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding BytesSent, Converter={StaticResource HeatBrush}, ConverterParameter=Conn.BytesSent}"/>
+		</Style>
+		<Style x:Key="HConnBytesRecv" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding BytesRecv, Converter={StaticResource HeatBrush}, ConverterParameter=Conn.BytesRecv}"/>
+		</Style>
+		<Style x:Key="HConnSendBps" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding SendBps, Converter={StaticResource HeatBrush}, ConverterParameter=Conn.SendBps}"/>
+		</Style>
+		<Style x:Key="HConnRecvBps" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding RecvBps, Converter={StaticResource HeatBrush}, ConverterParameter=Conn.RecvBps}"/>
+		</Style>
+		<Style x:Key="HHostHit" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding HitCount, Converter={StaticResource HeatBrush}, ConverterParameter=Host.Hit}"/>
+		</Style>
+		<Style x:Key="HHostBytes" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding TotalBytes, Converter={StaticResource HeatBrush}, ConverterParameter=Host.Bytes}"/>
+		</Style>
+		<Style x:Key="HCapLen" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding Length, Converter={StaticResource HeatBrush}, ConverterParameter=Cap.Len}"/>
+		</Style>
+		<Style x:Key="HCapPay" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding PayloadLength, Converter={StaticResource HeatBrush}, ConverterParameter=Cap.Pay}"/>
+		</Style>
+		<Style x:Key="HStatValue" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding Value, Converter={StaticResource HeatBrush}, ConverterParameter=Stat.Value}"/>
+		</Style>
+		<Style x:Key="HStatExtra" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding ExtraValue, Converter={StaticResource HeatBrush}, ConverterParameter=Stat.Extra}"/>
+		</Style>
+		<Style x:Key="HStatHostValue" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding Value, Converter={StaticResource HeatBrush}, ConverterParameter=Stat.HostValue}"/>
+		</Style>
+		<Style x:Key="HStatProtoValue" TargetType="TextBlock">
+			<Setter Property="Padding" Value="4,2"/>
+			<Setter Property="Background" Value="{Binding Value, Converter={StaticResource HeatBrush}, ConverterParameter=Stat.ProtoValue}"/>
+		</Style>
+
+		<!-- 列头拖动手柄（须可命中：全透明 Background 在部分环境下点不到） -->
+		<Style x:Key="ColumnHeaderGripperStyle" TargetType="Thumb">
+			<Setter Property="Width" Value="12"/>
+			<Setter Property="Background" Value="#01000000"/>
+			<Setter Property="Cursor" Value="SizeWE"/>
+			<Setter Property="IsHitTestVisible" Value="True"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Thumb">
+						<Border Background="{TemplateBinding Background}" SnapsToDevicePixels="True"/>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style TargetType="DataGrid">
+			<!-- 仅覆盖选中高亮色；勿覆盖 ControlBrush，避免选中时主题资源重入崩溃 -->
+			<Style.Resources>
+				<SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#A5B4FC"/>
+				<SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#1E1B4B"/>
+				<SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#C7D2FE"/>
+				<SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#1E1B4B"/>
+			</Style.Resources>
+			<Setter Property="AutoGenerateColumns" Value="False"/>
+			<Setter Property="IsReadOnly" Value="True"/>
+			<Setter Property="CanUserAddRows" Value="False"/>
+			<Setter Property="CanUserDeleteRows" Value="False"/>
+			<Setter Property="CanUserSortColumns" Value="True"/>
+			<Setter Property="CanUserResizeColumns" Value="True"/>
+			<Setter Property="CanUserReorderColumns" Value="True"/>
+			<Setter Property="SelectionMode" Value="Single"/>
+			<Setter Property="SelectionUnit" Value="FullRow"/>
+			<Setter Property="GridLinesVisibility" Value="All"/>
+			<Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
+			<Setter Property="VerticalGridLinesBrush" Value="#E2E8F0"/>
+			<Setter Property="HeadersVisibility" Value="Column"/>
+			<Setter Property="RowHeaderWidth" Value="0"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Background" Value="White"/>
+			<Setter Property="AlternatingRowBackground" Value="#FAFBFC"/>
+			<Setter Property="FontSize" Value="12"/>
+			<Setter Property="RowHeight" Value="26"/>
+			<!-- 虚表格：只物化可见行，回收复用容器，实时刷新时大幅减卡顿 -->
+			<Setter Property="EnableRowVirtualization" Value="True"/>
+			<Setter Property="EnableColumnVirtualization" Value="True"/>
+			<Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
+			<Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
+			<Setter Property="VirtualizingPanel.ScrollUnit" Value="Item"/>
+			<Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+			<Setter Property="ScrollViewer.IsDeferredScrollingEnabled" Value="False"/>
+			<Setter Property="RowStyle">
+				<Setter.Value>
+					<Style TargetType="DataGridRow">
+						<Style.Triggers>
+							<Trigger Property="IsSelected" Value="True">
+								<Setter Property="Background" Value="#A5B4FC"/>
+							</Trigger>
+						</Style.Triggers>
+					</Style>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<!-- 可高亮匹配文字的单元格模板 -->
+		<DataTemplate x:Key="HlText">
+			<ctrl:HighlightTextBlock Text="{Binding}" FontSize="12"/>
+		</DataTemplate>
+
+		<!-- 列头：排序箭头 + 左右 Gripper（必须保留 PART_* 才能拖列宽） -->
+		<Style TargetType="DataGridColumnHeader">
+			<Setter Property="Padding" Value="8,6"/>
+			<Setter Property="Background" Value="#EEF2FF"/>
+			<Setter Property="Foreground" Value="#312E81"/>
+			<Setter Property="FontWeight" Value="SemiBold"/>
+			<Setter Property="BorderBrush" Value="#E2E8F0"/>
+			<Setter Property="BorderThickness" Value="0,0,1,1"/>
+			<Setter Property="HorizontalContentAlignment" Value="Left"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<!-- 勿设整头 Hand，否则盖住列宽拖动手势光标 -->
+			<Setter Property="Cursor" Value="Arrow"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="DataGridColumnHeader">
+						<Grid Background="Transparent">
+							<Border x:Name="bd"
+							        Background="{TemplateBinding Background}"
+							        BorderBrush="{TemplateBinding BorderBrush}"
+							        BorderThickness="{TemplateBinding BorderThickness}"
+							        Padding="{TemplateBinding Padding}">
+								<Grid>
+									<Grid.ColumnDefinitions>
+										<ColumnDefinition Width="*"/>
+										<ColumnDefinition Width="Auto"/>
+									</Grid.ColumnDefinitions>
+									<ContentPresenter VerticalAlignment="Center"
+									                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+									                  RecognizesAccessKey="True"/>
+									<TextBlock x:Name="sortMark" Grid.Column="1"
+									           Margin="6,0,2,0" FontSize="10" FontWeight="Bold"
+									           Foreground="#4F46E5" VerticalAlignment="Center"
+									           Visibility="Collapsed"/>
+								</Grid>
+							</Border>
+							<!-- Z 序最上：保证拖列宽优先于排序点击 -->
+							<Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left"
+							       Panel.ZIndex="2" Style="{StaticResource ColumnHeaderGripperStyle}"/>
+							<Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right"
+							       Panel.ZIndex="2" Style="{StaticResource ColumnHeaderGripperStyle}"/>
+						</Grid>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E0E7FF"/>
+							</Trigger>
+							<Trigger Property="SortDirection" Value="Ascending">
+								<Setter TargetName="sortMark" Property="Visibility" Value="Visible"/>
+								<Setter TargetName="sortMark" Property="Text" Value="▲"/>
+								<Setter TargetName="bd" Property="Background" Value="#C7D2FE"/>
+							</Trigger>
+							<Trigger Property="SortDirection" Value="Descending">
+								<Setter TargetName="sortMark" Property="Visibility" Value="Visible"/>
+								<Setter TargetName="sortMark" Property="Text" Value="▼"/>
+								<Setter TargetName="bd" Property="Background" Value="#C7D2FE"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style TargetType="DataGridCell">
+			<Setter Property="BorderBrush" Value="#E2E8F0"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Padding" Value="4,0"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="#1A202C"/>
+			<Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="DataGridCell">
+						<Border x:Name="bd"
+						        Background="{TemplateBinding Background}"
+						        BorderBrush="{TemplateBinding BorderBrush}"
+						        BorderThickness="{TemplateBinding BorderThickness}"
+						        Padding="{TemplateBinding Padding}"
+						        SnapsToDevicePixels="True">
+							<ContentPresenter VerticalAlignment="Center"
+							                  SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<!-- 仅 IsSelected，避免 IsKeyboardFocusWithin 触发布局重入 -->
+							<Trigger Property="IsSelected" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#A5B4FC"/>
+								<Setter Property="Foreground" Value="#1E1B4B"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+	</Window.Resources>
+
+	<Grid Margin="12">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- 工具栏 -->
+		<DockPanel Grid.Row="0" Margin="0,0,0,8" LastChildFill="True">
+			<StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+				<Border x:Name="bdcap" CornerRadius="14" Padding="12,6" Margin="0,0,10,0" VerticalAlignment="Center"
+				        Background="#E8EEF4" BorderBrush="#9CA3AF" BorderThickness="1">
+					<StackPanel Orientation="Horizontal">
+						<Ellipse x:Name="dotcap" Width="10" Height="10" Fill="#6B7280" Margin="0,0,8,0" VerticalAlignment="Center"/>
+						<TextBlock x:Name="lbcap" Text="未抓包" FontWeight="Bold" FontSize="13" Foreground="#374151" VerticalAlignment="Center"/>
+					</StackPanel>
+				</Border>
+				<Button x:Name="bcaptoggle" Content="● 开始抓包" Style="{StaticResource PrimaryBtn}"
+				        AutomationProperties.AutomationId="netprobe.captoggle"
+				        ToolTip="开始/结束抓包。开始后记录全部 TCP/UDP（不限进程）并保留已断开连接；结束时保留历史包"/>
+				<Button x:Name="bcapclear" Content="清空抓包" Style="{StaticResource ToolBtn}"
+				        ToolTip="清空全部报文缓存与已断开连接历史（不影响当前活动连接监控）"/>
+				<Button x:Name="bclearhosts" Content="清空域名记录" Style="{StaticResource ToolBtn}"/>
+				<Button x:Name="brules" Content="规则" Style="{StaticResource ToolBtn}"
+				        ToolTip="进程/IP 黑白名单着色、忽略 LISTEN"/>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal">
+				<TextBlock Text="网络监控" FontSize="18" FontWeight="Bold" Foreground="#312E81" VerticalAlignment="Center"/>
+				<Button x:Name="badmin" Content="以管理员身份打开" Style="{StaticResource ToolBtn}"
+				        Margin="14,0,0,0" Visibility="Collapsed"
+				        AutomationProperties.AutomationId="netprobe.admin"
+				        ToolTip="字节数与报文统计需要管理员权限读取 TCP ESTATS，点此重新以管理员打开"/>
+				<TextBlock x:Name="lbnpadmin" Margin="12,0,0,0" FontSize="12" VerticalAlignment="Center" Foreground="#B45309"/>
+			</StackPanel>
+		</DockPanel>
+
+		<TabControl x:Name="tabs" Grid.Row="1" BorderThickness="0" Background="Transparent">
+			<TabItem Header="连接监控" FontSize="13" FontWeight="SemiBold" Padding="14,6">
+				<Grid Margin="0,8,0,0">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<!-- 筛选工具栏：进程在前，可清空 -->
+					<Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+					        CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+						<Grid>
+							<Grid.RowDefinitions>
+								<RowDefinition Height="Auto"/>
+								<RowDefinition Height="Auto"/>
+							</Grid.RowDefinitions>
+							<WrapPanel Grid.Row="0" Orientation="Horizontal">
+								<TextBlock Text="进程:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#374151"/>
+								<TextBox x:Name="efilter" Width="120" Height="28" VerticalContentAlignment="Center" Padding="6,0"
+								         ToolTip="按进程名或 PID 筛选"
+								         AutomationProperties.AutomationId="netprobe.filter"/>
+								<Button x:Name="bclearprocfilter" Content="×" Width="28" Height="28" Margin="4,0,0,0" Padding="0"
+								        FontSize="14" ToolTip="清空进程筛选" Style="{StaticResource ToolBtn}"/>
+								<ComboBox x:Name="cprocview" Width="110" Height="28" Margin="8,0,0,0" VerticalContentAlignment="Center"
+								          IsEditable="False" IsReadOnly="True" SelectedIndex="0"
+								          ToolTip="全部进程：显示所有连网进程；仅活动：隐藏无连接且无流量的进程">
+									<ComboBoxItem Content="全部进程"/>
+									<ComboBoxItem Content="仅活动进程"/>
+								</ComboBox>
+								<TextBlock Text="域名/IP:" VerticalAlignment="Center" Margin="16,0,6,0" Foreground="#374151"/>
+								<TextBox x:Name="ehostq" Width="140" Height="28" VerticalContentAlignment="Center" Padding="6,0"
+								         ToolTip="边输入边筛选。例如 github.com 或 1.2.3.4"/>
+								<TextBlock Text="协议:" VerticalAlignment="Center" Margin="12,0,6,0" Foreground="#374151"/>
+								<ComboBox x:Name="cproto" Width="110" Height="28" VerticalContentAlignment="Center"
+								          IsEditable="False" IsReadOnly="True"
+								          ToolTip="选择协议筛选（修改即应用）"/>
+								<TextBlock Text="报文:" VerticalAlignment="Center" Margin="12,0,6,0" Foreground="#374151"/>
+								<ComboBox x:Name="cpaymode" Width="72" Height="28" VerticalContentAlignment="Center" SelectedIndex="0"
+								          ToolTip="UTF-8 文本或十六进制字节">
+									<ComboBoxItem Content="UTF-8"/>
+									<ComboBoxItem Content="Hex"/>
+								</ComboBox>
+								<TextBox x:Name="epayq" Width="140" Height="28" Margin="6,0,0,0" VerticalContentAlignment="Center" Padding="6,0"
+								         ToolTip="边输入边筛选。UTF-8 文本或 Hex: 48 54 54 50"/>
+								<Button x:Name="bsearchclear" Content="清除筛选" Style="{StaticResource ToolBtn}" Margin="12,0,0,0" Padding="10,5"/>
+							</WrapPanel>
+							<TextBlock x:Name="lbsearch" Grid.Row="1" Foreground="#4F46E5" FontSize="12" TextWrapping="Wrap"/>
+						</Grid>
+					</Border>
+
+					<Grid Grid.Row="1">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="1.1*" MinWidth="340"/>
+							<ColumnDefinition Width="6"/>
+							<ColumnDefinition Width="1.4*" MinWidth="380"/>
+						</Grid.ColumnDefinitions>
+
+						<!-- 进程列表（Grid 约束高度，虚拟化才能生效） -->
+						<Border Grid.Column="0" Background="White" CornerRadius="6" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+							<Grid>
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="*"/>
+								</Grid.RowDefinitions>
+								<Border x:Name="bdprochd" Grid.Row="0" Background="#EEF2FF" Padding="10,8" CornerRadius="6,6,0,0">
+									<DockPanel>
+										<TextBlock x:Name="lbprochd" Text="连网进程" FontWeight="SemiBold" Foreground="#312E81"/>
+										<TextBlock x:Name="lbproccap" DockPanel.Dock="Right" FontSize="11" Foreground="#6B7280"
+										           VerticalAlignment="Center" HorizontalAlignment="Right"/>
+									</DockPanel>
+								</Border>
+								<DataGrid x:Name="dgproc" Grid.Row="1"
+								          SelectionMode="Extended" SelectionUnit="FullRow"
+								          ToolTip="Ctrl/Shift 多选进程后右键「抓包」">
+									<DataGrid.ContextMenu>
+										<ContextMenu>
+											<MenuItem x:Name="mnproccap" Header="抓包（选中进程）"
+											          ToolTip="开始/继续抓包，仅缓存选中进程（支持 Ctrl 多选）相关连接"/>
+											<MenuItem x:Name="mnproccapall" Header="抓包（全部进程）"
+											          ToolTip="清除进程过滤，抓取全部 TCP/UDP"/>
+										</ContextMenu>
+									</DataGrid.ContextMenu>
+									<DataGrid.Columns>
+										<DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="56" MinWidth="40"/>
+										<DataGridTextColumn Header="进程" Binding="{Binding ProcessName}" Width="100" MinWidth="60"/>
+										<DataGridTextColumn Header="连接" Binding="{Binding ConnectionCount}" Width="48" MinWidth="36"
+										                    ElementStyle="{StaticResource HProcConn}"/>
+										<DataGridTextColumn Header="抓包数" Binding="{Binding CaptureCount}" Width="56" MinWidth="40"
+										                    ElementStyle="{StaticResource HProcCap}"
+										                    ToolTipService.ToolTip="该进程相关连接在抓包缓存中的报文数"/>
+										<DataGridTextColumn Header="发送字节" Binding="{Binding BytesSent, Converter={StaticResource BytesFmt}}" Width="78" MinWidth="50"
+										                    SortMemberPath="BytesSent" ElementStyle="{StaticResource HProcBytesSent}"/>
+										<DataGridTextColumn Header="接收字节" Binding="{Binding BytesRecv, Converter={StaticResource BytesFmt}}" Width="78" MinWidth="50"
+										                    SortMemberPath="BytesRecv" ElementStyle="{StaticResource HProcBytesRecv}"/>
+										<DataGridTextColumn Header="发报文" Binding="{Binding PacketsSent}" Width="64" MinWidth="40"
+										                    ElementStyle="{StaticResource HProcPktsSent}"/>
+										<DataGridTextColumn Header="收报文" Binding="{Binding PacketsRecv}" Width="64" MinWidth="40"
+										                    ElementStyle="{StaticResource HProcPktsRecv}"/>
+										<DataGridTextColumn Header="发送速率" Binding="{Binding SendBps, Converter={StaticResource RateFmt}}" Width="86" MinWidth="50"
+										                    SortMemberPath="SendBps" ElementStyle="{StaticResource HProcSendBps}"/>
+										<DataGridTextColumn Header="接收速率" Binding="{Binding RecvBps, Converter={StaticResource RateFmt}}" Width="86" MinWidth="50"
+										                    SortMemberPath="RecvBps" ElementStyle="{StaticResource HProcRecvBps}"/>
+										<DataGridTemplateColumn Header="速率曲线" Width="100" MinWidth="72" SortMemberPath="SendBps">
+											<DataGridTemplateColumn.CellTemplate>
+												<DataTemplate>
+													<Border ToolTip="近几分钟上下行速率（绿=上行 蓝=下行）">
+														<ctrl:Sparkline Height="22" Margin="2,2"
+														                SendValues="{Binding SendHistory}"
+														                RecvValues="{Binding RecvHistory}"/>
+													</Border>
+												</DataTemplate>
+											</DataGridTemplateColumn.CellTemplate>
+										</DataGridTemplateColumn>
+									</DataGrid.Columns>
+								</DataGrid>
+							</Grid>
+						</Border>
+
+						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+						<!-- 右侧：连接 + 域名 -->
+						<Grid Grid.Column="2">
+							<Grid.RowDefinitions>
+								<RowDefinition Height="1.2*"/>
+								<RowDefinition Height="6"/>
+								<RowDefinition Height="*"/>
+							</Grid.RowDefinitions>
+
+							<Border Grid.Row="0" Background="White" CornerRadius="6" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+								<Grid>
+									<Grid.RowDefinitions>
+										<RowDefinition Height="Auto"/>
+										<RowDefinition Height="*"/>
+									</Grid.RowDefinitions>
+									<Border Grid.Row="0" Background="#EEF2FF" Padding="10,8" CornerRadius="6,6,0,0">
+										<DockPanel>
+											<TextBlock DockPanel.Dock="Right" Text="双击连接查看报文" Foreground="#6366F1" FontSize="11" VerticalAlignment="Center"/>
+											<TextBlock x:Name="lbconn" Text="连接详情（全部）" FontWeight="SemiBold" Foreground="#312E81"/>
+										</DockPanel>
+									</Border>
+									<DataGrid x:Name="dgconn" Grid.Row="1"
+									          AutomationProperties.AutomationId="netprobe.connlist">
+										<DataGrid.Columns>
+											<DataGridTextColumn Header="类型" Binding="{Binding ActiveText}" Width="48" MinWidth="40"/>
+											<DataGridTextColumn Header="协议" Binding="{Binding AppProtocol}" Width="64" MinWidth="48"/>
+											<DataGridTextColumn Header="进程" Binding="{Binding ProcessName}" Width="72" MinWidth="50"/>
+											<DataGridTextColumn Header="本地" Binding="{Binding LocalEndPoint}" Width="120" MinWidth="80"/>
+											<DataGridTemplateColumn Header="远程(域名优先)" Width="140" MinWidth="80" SortMemberPath="RemoteEndPoint">
+												<DataGridTemplateColumn.CellTemplate>
+													<DataTemplate>
+														<ctrl:HighlightTextBlock Text="{Binding RemoteEndPoint}" FontSize="12"/>
+													</DataTemplate>
+												</DataGridTemplateColumn.CellTemplate>
+											</DataGridTemplateColumn>
+											<DataGridTemplateColumn Header="IP:端口" Width="120" MinWidth="80" SortMemberPath="RemoteIpPort">
+												<DataGridTemplateColumn.CellTemplate>
+													<DataTemplate>
+														<ctrl:HighlightTextBlock Text="{Binding RemoteIpPort}" FontSize="12"/>
+													</DataTemplate>
+												</DataGridTemplateColumn.CellTemplate>
+											</DataGridTemplateColumn>
+											<DataGridTextColumn Header="状态" Binding="{Binding StateText}" Width="90" MinWidth="60"/>
+											<DataGridTextColumn Header="抓包数" Binding="{Binding CaptureCount}" Width="64" MinWidth="48"
+											                    SortMemberPath="CaptureCount" ElementStyle="{StaticResource HConnCap}"/>
+											<DataGridTextColumn Header="发送" Binding="{Binding BytesSent, Converter={StaticResource BytesFmt}}" Width="78" MinWidth="50"
+											                    SortMemberPath="BytesSent" ElementStyle="{StaticResource HConnBytesSent}"/>
+											<DataGridTextColumn Header="接收" Binding="{Binding BytesRecv, Converter={StaticResource BytesFmt}}" Width="78" MinWidth="50"
+											                    SortMemberPath="BytesRecv" ElementStyle="{StaticResource HConnBytesRecv}"/>
+											<DataGridTextColumn Header="↑B/s" Binding="{Binding SendBps, StringFormat={}{0:F0}}" Width="64" MinWidth="48"
+											                    ElementStyle="{StaticResource HConnSendBps}"/>
+											<DataGridTextColumn Header="↓B/s" Binding="{Binding RecvBps, StringFormat={}{0:F0}}" Width="64" MinWidth="48"
+											                    ElementStyle="{StaticResource HConnRecvBps}"/>
+										</DataGrid.Columns>
+									</DataGrid>
+								</Grid>
+							</Border>
+
+							<GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+							<Border Grid.Row="2" Background="White" CornerRadius="6" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+								<Grid>
+									<Grid.RowDefinitions>
+										<RowDefinition Height="Auto"/>
+										<RowDefinition Height="*"/>
+									</Grid.RowDefinitions>
+									<Border Grid.Row="0" Background="#EEF2FF" Padding="10,8" CornerRadius="6,6,0,0">
+										<TextBlock x:Name="lbhosts" Text="访问过的域名 / IP:端口" FontWeight="SemiBold" Foreground="#312E81"/>
+									</Border>
+									<DataGrid x:Name="dghosts" Grid.Row="1">
+										<DataGrid.Columns>
+											<DataGridTextColumn Header="进程" Binding="{Binding ProcessName}" Width="90" MinWidth="50"/>
+											<DataGridTemplateColumn Header="域名/主机" Width="140" MinWidth="80" SortMemberPath="Host">
+												<DataGridTemplateColumn.CellTemplate>
+													<DataTemplate>
+														<ctrl:HighlightTextBlock Text="{Binding Host}" FontSize="12"/>
+													</DataTemplate>
+												</DataGridTemplateColumn.CellTemplate>
+											</DataGridTemplateColumn>
+											<DataGridTemplateColumn Header="IP:端口" Width="140" MinWidth="80" SortMemberPath="IpPort">
+												<DataGridTemplateColumn.CellTemplate>
+													<DataTemplate>
+														<ctrl:HighlightTextBlock Text="{Binding IpPort}" FontSize="12"/>
+													</DataTemplate>
+												</DataGridTemplateColumn.CellTemplate>
+											</DataGridTemplateColumn>
+											<DataGridTextColumn Header="协议" Binding="{Binding ProtocolText}" Width="72" MinWidth="48"/>
+											<DataGridTextColumn Header="次数" Binding="{Binding HitCount}" Width="50" MinWidth="40"
+											                    ElementStyle="{StaticResource HHostHit}"/>
+											<DataGridTextColumn Header="流量" Binding="{Binding TotalBytes, Converter={StaticResource BytesFmt}}" Width="80" MinWidth="50"
+											                    SortMemberPath="TotalBytes" ElementStyle="{StaticResource HHostBytes}"/>
+											<DataGridTextColumn Header="首次" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="70" MinWidth="50"/>
+											<DataGridTextColumn Header="最近" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="70" MinWidth="50"/>
+										</DataGrid.Columns>
+									</DataGrid>
+								</Grid>
+							</Border>
+						</Grid>
+					</Grid>
+				</Grid>
+			</TabItem>
+
+			<TabItem Header="抓包列表" FontSize="13" FontWeight="SemiBold" Padding="14,6">
+				<Grid Margin="0,8,0,0">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="1.3*"/>
+						<RowDefinition Height="6"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+					<Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+					        CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+						<DockPanel>
+							<StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+								<CheckBox x:Name="ckcapscroll" Content="自动滚动" IsChecked="True" VerticalAlignment="Center" Margin="0,0,12,0"
+								          Foreground="#374151"
+								          ToolTip="勾选后刷新时滚到底部；上滑离开底部自动取消，滑回底部自动勾选"/>
+								<Button x:Name="bcapexport" Content="导出 pcapng" Style="{StaticResource ToolBtn}" Padding="10,5"
+								        ToolTip="导出当前筛选结果为 pcapng（可用 Wireshark 打开）"/>
+								<Button x:Name="bcapimport" Content="导入 pcapng" Style="{StaticResource ToolBtn}" Padding="10,5"
+								        ToolTip="导入 pcapng/pcap，解析 TCP 并加入抓包列表"/>
+								<Button x:Name="bcaphttp" Content="HTTP流" Style="{StaticResource ToolBtn}" Padding="10,5"
+								        ToolTip="对当前筛选列表尝试 HTTP 明文流重组"/>
+								<Button x:Name="bcaplistrefresh" Content="刷新" Style="{StaticResource ToolBtn}" Padding="10,5"/>
+							</StackPanel>
+							<WrapPanel Orientation="Horizontal">
+								<TextBlock Text="协议:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#374151"/>
+								<ComboBox x:Name="ccapproto" Width="110" Height="28" VerticalContentAlignment="Center"
+								          IsEditable="False" IsReadOnly="True"/>
+								<TextBlock Text="目标域名/IP:" VerticalAlignment="Center" Margin="12,0,6,0" Foreground="#374151"/>
+								<TextBox x:Name="ecapip" Width="130" Height="28" VerticalContentAlignment="Center" Padding="6,0"
+								         ToolTip="匹配源/目的 IP 或主机名子串"/>
+								<TextBlock Text="目标端口:" VerticalAlignment="Center" Margin="12,0,6,0" Foreground="#374151"/>
+								<TextBox x:Name="ecapport" Width="70" Height="28" VerticalContentAlignment="Center" Padding="6,0"
+								         ToolTip="匹配目的端口（DstPort）"/>
+								<TextBlock Text="本地端口:" VerticalAlignment="Center" Margin="12,0,6,0" Foreground="#374151"/>
+								<TextBox x:Name="ecaplport" Width="70" Height="28" VerticalContentAlignment="Center" Padding="6,0"
+								         ToolTip="匹配源端口（SrcPort）"/>
+								<TextBlock x:Name="lbcaplist" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#4F46E5" FontSize="12"/>
+							</WrapPanel>
+						</DockPanel>
+					</Border>
+					<Border Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+						<DataGrid x:Name="dgcaplist"
+						          AutomationProperties.AutomationId="netprobe.caplist">
+							<DataGrid.Columns>
+								<DataGridTextColumn Header="No" Binding="{Binding No}" Width="50"/>
+								<DataGridTextColumn Header="时间" Binding="{Binding TimeText}" Width="100"/>
+								<DataGridTextColumn Header="协议" Binding="{Binding Protocol}" Width="64"/>
+								<DataGridTextColumn Header="进程" Binding="{Binding ProcessText}" Width="120" MinWidth="60"
+								                    ToolTipService.ToolTip="报文归属进程（由连接表反查，可能为空）"/>
+								<DataGridTextColumn Header="源" Binding="{Binding SrcEndPoint}" Width="150"/>
+								<DataGridTextColumn Header="目标" Binding="{Binding DstEndPoint}" Width="150"/>
+								<DataGridTextColumn Header="长度" Binding="{Binding Length}" Width="56"
+								                    ElementStyle="{StaticResource HCapLen}"/>
+								<DataGridTextColumn Header="载荷" Binding="{Binding PayloadLength}" Width="56"
+								                    ElementStyle="{StaticResource HCapPay}"/>
+								<DataGridTextColumn Header="标志" Binding="{Binding Flags}" Width="90"/>
+								<DataGridTextColumn Header="信息" Binding="{Binding InfoText}" Width="*"/>
+							</DataGrid.Columns>
+						</DataGrid>
+					</Border>
+					<GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+					<Grid Grid.Row="3">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="1.1*"/>
+							<ColumnDefinition Width="6"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+						<Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+							<DockPanel>
+								<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+									<TextBlock Text="协议详情（点击字段高亮字节）" FontWeight="SemiBold" Foreground="#312E81"/>
+								</Border>
+								<TreeView x:Name="tvcapproto" BorderThickness="0" Padding="4"/>
+							</DockPanel>
+						</Border>
+						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+						<Border Grid.Column="2" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+							<DockPanel>
+								<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+									<StackPanel Orientation="Horizontal">
+										<TextBlock Text="十六进制" FontWeight="SemiBold" Foreground="#312E81" VerticalAlignment="Center"/>
+										<RadioButton x:Name="rcapraw" Content="整帧" Margin="16,0,8,0" IsChecked="True" Checked="rcapview_Checked"/>
+										<RadioButton x:Name="rcappay" Content="仅载荷" Checked="rcapview_Checked"/>
+									</StackPanel>
+								</Border>
+								<RichTextBox x:Name="ecaphex" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+								             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+								             BorderThickness="0" Padding="8"/>
+							</DockPanel>
+						</Border>
+					</Grid>
+				</Grid>
+			</TabItem>
+
+			<TabItem Header="统计" FontSize="13" FontWeight="SemiBold" Padding="14,6">
+				<Grid Margin="0,8,0,0">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+					<Border Grid.Row="0" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+					        CornerRadius="6" Padding="12,10" Margin="0,0,0,8">
+						<DockPanel>
+							<Button x:Name="bstatrefresh" DockPanel.Dock="Right" Content="刷新统计"
+							        Style="{StaticResource ToolBtn}" Padding="10,5"/>
+							<TextBlock x:Name="lbstatsum" Text="会话统计" FontSize="13" FontWeight="SemiBold"
+							           Foreground="#312E81" VerticalAlignment="Center" TextWrapping="Wrap"/>
+						</DockPanel>
+					</Border>
+					<Grid Grid.Row="1">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="6"/>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="6"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+						<Border Grid.Column="0" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+							<Grid>
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="*"/>
+								</Grid.RowDefinitions>
+								<Border Grid.Row="0" Background="#EEF2FF" Padding="10,8" CornerRadius="6,6,0,0">
+									<TextBlock Text="Top 进程（按总流量）" FontWeight="SemiBold" Foreground="#312E81"/>
+								</Border>
+								<DataGrid x:Name="dgstattopproc" Grid.Row="1" HorizontalScrollBarVisibility="Auto">
+									<DataGrid.Columns>
+										<DataGridTextColumn Header="进程" Binding="{Binding Name}" Width="*" MinWidth="60"/>
+										<DataGridTextColumn Header="PID" Binding="{Binding Pid}" Width="56" MinWidth="40"/>
+										<DataGridTextColumn Header="流量" Binding="{Binding ValueText}" Width="90" MinWidth="50"
+										                    SortMemberPath="Value" ElementStyle="{StaticResource HStatValue}"/>
+										<DataGridTextColumn Header="抓包" Binding="{Binding Extra}" Width="56" MinWidth="40"
+										                    SortMemberPath="ExtraValue" ElementStyle="{StaticResource HStatExtra}"/>
+									</DataGrid.Columns>
+								</DataGrid>
+							</Grid>
+						</Border>
+						<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+						<Border Grid.Column="2" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+							<Grid>
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="*"/>
+								</Grid.RowDefinitions>
+								<Border Grid.Row="0" Background="#EEF2FF" Padding="10,8" CornerRadius="6,6,0,0">
+									<TextBlock Text="Top 域名/主机（按次数）" FontWeight="SemiBold" Foreground="#312E81"/>
+								</Border>
+								<DataGrid x:Name="dgstattophost" Grid.Row="1" HorizontalScrollBarVisibility="Auto">
+									<DataGrid.Columns>
+										<DataGridTextColumn Header="主机" Binding="{Binding Name}" Width="*" MinWidth="60"/>
+										<DataGridTextColumn Header="进程" Binding="{Binding Extra}" Width="80" MinWidth="50"/>
+										<DataGridTextColumn Header="次数" Binding="{Binding ValueText}" Width="70" MinWidth="40"
+										                    SortMemberPath="Value" ElementStyle="{StaticResource HStatHostValue}"/>
+									</DataGrid.Columns>
+								</DataGrid>
+							</Grid>
+						</Border>
+						<GridSplitter Grid.Column="3" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
+						<Border Grid.Column="4" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
+							<Grid>
+								<Grid.RowDefinitions>
+									<RowDefinition Height="Auto"/>
+									<RowDefinition Height="*"/>
+								</Grid.RowDefinitions>
+								<Border Grid.Row="0" Background="#EEF2FF" Padding="10,8" CornerRadius="6,6,0,0">
+									<TextBlock Text="协议分布（连接）" FontWeight="SemiBold" Foreground="#312E81"/>
+								</Border>
+								<DataGrid x:Name="dgstatproto" Grid.Row="1" HorizontalScrollBarVisibility="Auto">
+									<DataGrid.Columns>
+										<DataGridTextColumn Header="协议" Binding="{Binding Name}" Width="*" MinWidth="50"/>
+										<DataGridTextColumn Header="连接数" Binding="{Binding ValueText}" Width="80" MinWidth="50"
+										                    SortMemberPath="Value" ElementStyle="{StaticResource HStatProtoValue}"/>
+										<DataGridTextColumn Header="占比" Binding="{Binding Extra}" Width="70" MinWidth="40"/>
+									</DataGrid.Columns>
+								</DataGrid>
+							</Grid>
+						</Border>
+					</Grid>
+				</Grid>
+			</TabItem>
+		</TabControl>
+
+		<!-- 状态栏：抓包中时整条变红，便于一眼识别 -->
+		<Border x:Name="bdstatus" Grid.Row="2" Margin="0,10,0,0" Background="#1E1B4B" CornerRadius="6" Padding="12,8">
+			<DockPanel>
+				<TextBlock x:Name="lbtotal" DockPanel.Dock="Right" Foreground="#C7D2FE" FontSize="12"/>
+				<TextBlock x:Name="lbstatus" Foreground="#E0E7FF" FontSize="12" FontWeight="SemiBold"/>
+			</DockPanel>
+		</Border>
+	</Grid>
+</Window>

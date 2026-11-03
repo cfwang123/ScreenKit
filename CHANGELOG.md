@@ -67,6 +67,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP file manager supporting FTP, FTPS and SFTP: dual panes, drag to transfer, progress queue
 - UDP debugger: listen on one local port, send hex or text to a remote address, repeat on a timer, and auto-reply with the typed payload
 - Tools > Network adds Network Monitor: per-process connections, send/receive bytes and rates from TCP ESTATS, plus a packet capture tab with protocol parsing, per-connection packet view, HTTP stream reassembly and pcapng import/export.
+- Built-in simple FTP server: set the root folder, port and one user name and password; leave the user name empty for anonymous access. It can be started from the FTP server tab or left to start with the program, and the status bar shows the listening port.
 
 #### Changed
 
@@ -112,6 +113,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Offline update copied the app as ScreenKit_updater.exe, and WPF then failed to load its own resources, so the new package was never applied
 - The updater loaded the code-page assembly before reading its arguments, so it crashed when that DLL was missing from its temp copy
 - Install features no longer treats a speech model as installed just because text normalization is present, so the new-item count matches the green rows.
+- Network monitor no longer shows bogus byte and packet counters when it runs without admin rights; it hides them and offers a one-click elevated reopen instead.
 
 ### 中文
 
@@ -136,6 +138,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增 FTP 文件管理工具，支持 FTP、FTPS、SFTP：双栏浏览、拖放传输、传输队列与进度
 - 新增 UDP 调试：监听一个本机端口，按 hex 或文本发到对方地址，可定时重复发送，收到报文时按输入内容自动回复
 - 工具 → 网络工具 新增网络监控：按进程看连接与收发字节、速率（基于 TCP ESTATS），另有抓包页，可解析协议、看单连接报文、重组 HTTP 明文流，并导入导出 pcapng。
+- 内置简易 FTP 服务：可设置根目录、端口和一个用户名密码，用户名留空则允许匿名访问。可在「FTP服务」页就地启停，也能随程序启动；启用后状态栏显示监听端口。
 
 #### 变更
 
@@ -181,6 +184,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 离线更新把程序复制成 ScreenKit_updater.exe，WPF 因此加载不到自身资源，新版本包一直没有被套用
 - 更新进程在读取参数之前就加载了代码页程序集，临时目录里没有这个 DLL 时直接崩溃
 - 安装功能不再因为装了文本归一化就把语音模型算成已装，底部新增项与绿色行一致。
+- 网络监控在非管理员运行时不再显示异常的字节与报文数，改为隐藏这些数值并提供一键以管理员身份重开。
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 

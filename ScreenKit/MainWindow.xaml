@@ -247,6 +247,9 @@
 					<MenuItem x:Name="mnportuse" Header="网络端口占用(_O)…"
 					          AutomationProperties.AutomationId="menu.portuse"
 					          ToolTip="查看被占用的 TCP 和 UDP 端口，以及对应进程"/>
+					<MenuItem x:Name="mnnetmon" Header="网络监控(_M)…"
+					          AutomationProperties.AutomationId="menu.netmon"
+					          ToolTip="按进程查看连接与收发流量，抓包看报文（需管理员权限与 Npcap）"/>
 					<MenuItem x:Name="mntls" Header="TLS 证书检查(_T)…"
 					          AutomationProperties.AutomationId="menu.tls"
 					          ToolTip="查看服务器证书链、有效期、SAN、指纹和握手参数"/>
@@ -2329,6 +2332,83 @@
 						</Grid>
 					</Grid>
 				</TabItem>
+				<!-- Tab：FTP 服务 -->
+				<TabItem x:Name="tabftpsrv" Header="FTP服务"
+				         AutomationProperties.AutomationId="tab.ftpsrv">
+					<Grid Margin="12">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="300"/>
+							<ColumnDefinition Width="10"/>
+							<ColumnDefinition Width="*" MinWidth="240"/>
+						</Grid.ColumnDefinitions>
+						<Border Grid.Column="0" Background="{StaticResource BgPanel}" CornerRadius="12"
+						        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+							<StackPanel Margin="14">
+								<TextBlock x:Name="lbftpsrvbrand" Text="FTP 服务" FontSize="18"
+								           FontWeight="SemiBold" Foreground="{StaticResource TextPrimary}"/>
+								<TextBlock x:Name="lbftpsrvstat" Text="未启用" FontSize="12" Margin="0,4,0,0"
+								           Foreground="{StaticResource TextMuted}"
+								           AutomationProperties.AutomationId="ftpsrv.state"/>
+								<TextBlock x:Name="lbftpsrvdir" Text="根目录" Margin="0,14,0,4" FontSize="12"
+								           Foreground="{StaticResource TextMuted}"/>
+								<DockPanel>
+									<Button x:Name="bftpsrvbrowse" DockPanel.Dock="Right" Content="浏览"
+									        Style="{StaticResource ToolBtn}" Height="30" MinWidth="56"
+									        Margin="6,0,0,0" Padding="8,2"
+									        AutomationProperties.AutomationId="ftpsrv.browse"/>
+									<TextBox x:Name="eftpsrvdir" Height="30" Padding="6,3"
+									         VerticalContentAlignment="Center"
+									         BorderBrush="{StaticResource BorderSoft}"
+									         AutomationProperties.AutomationId="ftpsrv.dir"/>
+								</DockPanel>
+								<TextBlock x:Name="lbftpsrvport" Text="端口" Margin="0,10,0,4" FontSize="12"
+								           Foreground="{StaticResource TextMuted}"/>
+								<TextBox x:Name="eftpsrvport" Height="30" Padding="6,3" Width="100"
+								         HorizontalAlignment="Left"
+								         VerticalContentAlignment="Center"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         AutomationProperties.AutomationId="ftpsrv.port"/>
+								<TextBlock x:Name="lbftpsrvuser" Text="用户名" Margin="0,10,0,4" FontSize="12"
+								           Foreground="{StaticResource TextMuted}"/>
+								<TextBox x:Name="eftpsrvuser" Height="30" Padding="6,3"
+								         VerticalContentAlignment="Center"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         AutomationProperties.AutomationId="ftpsrv.user"/>
+								<TextBlock x:Name="lbftpsrvpass" Text="密码" Margin="0,10,0,4" FontSize="12"
+								           Foreground="{StaticResource TextMuted}"/>
+								<PasswordBox x:Name="eftpsrvpass" Height="30" Padding="6,3"
+								             VerticalContentAlignment="Center"
+								             BorderBrush="{StaticResource BorderSoft}"
+								             AutomationProperties.AutomationId="ftpsrv.pass"/>
+								<TextBlock x:Name="lbftpsrvhint" Margin="0,8,0,0" FontSize="12"
+								           Foreground="{StaticResource TextMuted}" TextWrapping="Wrap"/>
+								<Button x:Name="bftpsrvtoggle" Content="启用服务" Margin="0,14,0,0"
+								        Style="{StaticResource ToolBtn}" Height="32" MinWidth="96"
+								        HorizontalAlignment="Left" Padding="14,4"
+								        AutomationProperties.AutomationId="ftpsrv.toggle"/>
+							</StackPanel>
+						</Border>
+						<Border Grid.Column="2" Background="{StaticResource BgPanel}" CornerRadius="12"
+						        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+							<DockPanel Margin="12">
+								<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+									<Button x:Name="bftpsrvclear" DockPanel.Dock="Right" Content="清空"
+									        Style="{StaticResource ToolBtn}" Height="28" Padding="10,2"
+									        AutomationProperties.AutomationId="ftpsrv.clear"/>
+									<TextBlock x:Name="lbftpsrvlog" Text="日志" FontWeight="SemiBold"
+									           VerticalAlignment="Center"/>
+								</DockPanel>
+								<TextBox x:Name="eftpsrvlog" IsReadOnly="True"
+								         FontFamily="Consolas" FontSize="12"
+								         VerticalScrollBarVisibility="Auto"
+								         HorizontalScrollBarVisibility="Auto"
+								         TextWrapping="NoWrap" AcceptsReturn="True"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         AutomationProperties.AutomationId="ftpsrv.log"/>
+							</DockPanel>
+						</Border>
+					</Grid>
+				</TabItem>
 				<TabItem x:Name="tabdict" Header="词典"
 				         AutomationProperties.AutomationId="tab.dict">
 					<local:DictWindow x:Name="dicthost"/>
@@ -2362,6 +2442,12 @@
 				<TextBlock x:Name="bsthttp" Text="HTTP" FontSize="12" Cursor="Hand"
 				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
 				           AutomationProperties.AutomationId="status.http"/>
+				<TextBlock x:Name="lstftpsrvsep" Text=" · " FontSize="12" Visibility="Collapsed"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"/>
+				<TextBlock x:Name="bstftpsrv" Text="FTP" FontSize="12" Cursor="Hand"
+				           Visibility="Collapsed"
+				           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+				           AutomationProperties.AutomationId="status.ftpsrv"/>
 			</StackPanel>
 		</Border>
 	</Grid>

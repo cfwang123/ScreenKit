@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="FTP 文件管理"
-        Width="1160" Height="760"
-        MinWidth="860" MinHeight="560"
+        Width="980" Height="760"
+        MinWidth="720" MinHeight="560"
         WindowStartupLocation="CenterOwner"
         ResizeMode="CanResizeWithGrip"
         Background="{StaticResource BgApp}"
@@ -13,9 +13,7 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
@@ -35,7 +33,6 @@
 				<ColumnDefinition Width="88"/>
 				<ColumnDefinition Width="Auto"/>
 				<ColumnDefinition Width="110"/>
-				<ColumnDefinition Width="Auto"/>
 				<ColumnDefinition Width="Auto"/>
 				<ColumnDefinition Width="Auto"/>
 			</Grid.ColumnDefinitions>
@@ -76,59 +73,11 @@
 		<TextBlock x:Name="lbhint" Grid.Row="1" TextWrapping="Wrap" Margin="0,0,0,8"
 		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
 
-		<!-- ============ 双栏 ============ -->
-		<Grid Grid.Row="3">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="*" MinWidth="240"/>
-				<ColumnDefinition Width="6"/>
-				<ColumnDefinition Width="*" MinWidth="240"/>
-			</Grid.ColumnDefinitions>
-
-			<!-- 本机 -->
-			<Grid Grid.Column="0">
-				<Grid.RowDefinitions>
-					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="Auto"/>
-					<RowDefinition Height="*"/>
-				</Grid.RowDefinitions>
-				<StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-					<TextBlock x:Name="lblocal" Text="本机" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-					<Button x:Name="blocalup" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
-					        AutomationProperties.AutomationId="ftp.local.up"/>
-					<Button x:Name="blocalrefresh" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
-					        AutomationProperties.AutomationId="ftp.local.refresh"/>
-					<Button x:Name="blocalmkdir" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
-					        AutomationProperties.AutomationId="ftp.local.mkdir"/>
-					<Button x:Name="blocaldel" Style="{StaticResource ToolBtnSm}"
-					        AutomationProperties.AutomationId="ftp.local.del"/>
-				</StackPanel>
-				<TextBox x:Name="elocalpath" Grid.Row="1" Height="28" Padding="6,3" Margin="0,0,0,6"
-				         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
-				         AutomationProperties.AutomationId="ftp.local.path"/>
-				<ListView x:Name="lvlocal" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
-				          SelectionMode="Extended"
-				          AllowDrop="True"
-				          VirtualizingStackPanel.IsVirtualizing="True"
-				          VirtualizingStackPanel.VirtualizationMode="Recycling"
-				          AutomationProperties.AutomationId="ftp.local.list">
-					<ListView.View>
-						<GridView>
-							<GridViewColumn x:Name="colllname" Width="230"
-							                DisplayMemberBinding="{Binding Name}"/>
-							<GridViewColumn x:Name="colllsize" Width="80"
-							                DisplayMemberBinding="{Binding SizeText}"/>
-							<GridViewColumn x:Name="collltime" Width="130"
-							                DisplayMemberBinding="{Binding TimeText}"/>
-						</GridView>
-					</ListView.View>
-				</ListView>
-			</Grid>
-
-			<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
-			              Background="Transparent" ResizeBehavior="PreviousAndNext"/>
-
-			<!-- 远程 -->
-			<Grid Grid.Column="2">
+		<!-- ============ 服务器文件列表 ============ -->
+		<Border x:Name="dropzone" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+		        BorderThickness="1" Background="{StaticResource BgPanel}"
+		        AllowDrop="True" CornerRadius="4" Padding="6">
+			<Grid>
 				<Grid.RowDefinitions>
 					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="Auto"/>
@@ -142,13 +91,15 @@
 					        AutomationProperties.AutomationId="ftp.remote.refresh"/>
 					<Button x:Name="bremotemkdir" Style="{StaticResource ToolBtnSm}" Margin="0,0,4,0"
 					        AutomationProperties.AutomationId="ftp.remote.mkdir"/>
-					<Button x:Name="bremotedel" Style="{StaticResource ToolBtnSm}"
+					<Button x:Name="bremotedel" Style="{StaticResource ToolBtnSm}" Margin="0,0,12,0"
 					        AutomationProperties.AutomationId="ftp.remote.del"/>
+					<Button x:Name="bdownloadto" Style="{StaticResource ToolBtnSm}"
+					        AutomationProperties.AutomationId="ftp.remote.downloadto"/>
 				</StackPanel>
 				<TextBox x:Name="eremotepath" Grid.Row="1" Height="28" Padding="6,3" Margin="0,0,0,6"
 				         VerticalContentAlignment="Center" BorderBrush="{StaticResource BorderSoft}"
 				         AutomationProperties.AutomationId="ftp.remote.path"/>
-				<ListView x:Name="lvremote" Grid.Row="2" BorderBrush="{StaticResource BorderSoft}"
+				<ListView x:Name="lvremote" Grid.Row="2" BorderThickness="0"
 				          SelectionMode="Extended"
 				          AllowDrop="True"
 				          VirtualizingStackPanel.IsVirtualizing="True"
@@ -156,22 +107,22 @@
 				          AutomationProperties.AutomationId="ftp.remote.list">
 					<ListView.View>
 						<GridView>
-							<GridViewColumn x:Name="colrname" Width="220"
+							<GridViewColumn x:Name="colrname" Width="360"
 							                DisplayMemberBinding="{Binding Name}"/>
-							<GridViewColumn x:Name="colrsize" Width="80"
+							<GridViewColumn x:Name="colrsize" Width="100"
 							                DisplayMemberBinding="{Binding SizeText}"/>
-							<GridViewColumn x:Name="colrperm" Width="90"
+							<GridViewColumn x:Name="colrperm" Width="110"
 							                DisplayMemberBinding="{Binding Perms}"/>
-							<GridViewColumn x:Name="colrtime" Width="130"
+							<GridViewColumn x:Name="colrtime" Width="150"
 							                DisplayMemberBinding="{Binding TimeText}"/>
 						</GridView>
 					</ListView.View>
 				</ListView>
 			</Grid>
-		</Grid>
+		</Border>
 
 		<!-- ============ 传输区 ============ -->
-		<Border Grid.Row="4" Margin="0,10,0,0" BorderBrush="{StaticResource BorderSoft}"
+		<Border Grid.Row="3" Margin="0,10,0,0" BorderBrush="{StaticResource BorderSoft}"
 		        BorderThickness="1" Background="{StaticResource BgPanel}" CornerRadius="4">
 			<Grid>
 				<Grid.RowDefinitions>
@@ -252,7 +203,7 @@
 		</Border>
 
 		<!-- ============ 底部状态 ============ -->
-		<TextBlock x:Name="lbstat" Grid.Row="6" Margin="0,8,0,0" TextWrapping="Wrap"
+		<TextBlock x:Name="lbstat" Grid.Row="4" Margin="0,8,0,0" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}" FontSize="12"
 		           AutomationProperties.AutomationId="ftp.status"/>
 	</Grid>
