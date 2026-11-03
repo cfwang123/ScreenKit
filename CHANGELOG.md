@@ -49,87 +49,49 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Tray Tools menu now also offers MQTT, SOAP, TLS certificate check and database query, matching the main window's Tools menu.
-- Sound recorder: show the current input device and live level blocks for the microphone and system sound, which keep moving even before recording
-- Hidden dev switch in config.toml (default false). When false, startup removes the pre-merge tool scripts under web/tools and the old flattened copies in web/; local dev builds set it to true
-- Screen record options: pick the microphone (system default entry included) and watch inline level bars for the microphone and system sound; the HUD bar shows the same live meters instead of the audio-source text
-- Windows/Linux command cheat sheets add a Media section with ffmpeg/ffprobe examples (convert, trim, extract audio, scale, crf, frames, gif, concat, stream mapping)
-- System info adds BIOS, chassis, install date, language, time zone, memory slots, GPU driver, shared folders, local users, logon sessions, disk partitions, network DHCP and subnet mask, and USB controllers and hubs
-- Reader: the dictionary window searches automatically 200 ms after typing stops
-- Fast copy window now counts the files, folders, and size of the source list, and shows the copied and total bytes while copying.
-- Added a Count files button to the fast copy window that only reports the file count and size.
-- Markdown reader becomes document reader: drop multiple Markdown/Word/PDF files, custom title bar with tab chips, docx and PDF rendering in C#
-- Web tools: document reader opens several Markdown/Word/PDF files as tabs, converted by the same C# renderer as the desktop reader (/api/docview, /api/docasset)
-- Web PDF viewer: selectable text layer, zoom (buttons / Ctrl+wheel / fit width / fit page) and drag-to-pan
-- Web document reader: clicking an image in a Markdown or Word document opens it in a Viewer.js lightbox with zoom, rotate and multi-image navigation
-- Web PDF viewer: click a page to open a high-resolution copy of it in the Viewer.js lightbox; dragging pans without triggering it
-- Document reader: a Recent files submenu that remembers the last 10 files, and the files that were open when the window closed reopen as tabs next time. Tabs can be dragged to reorder, dragged out into their own window, and dragged back in to merge
-- Settings, Hotkeys: a Document viewer entry, empty by default, that shows or hides the document reader
-- FTP file manager supporting FTP, FTPS and SFTP: dual panes, drag to transfer, progress queue
-- UDP debugger: listen on one local port, send hex or text to a remote address, repeat on a timer, and auto-reply with the typed payload
+- FTP file manager for FTP, FTPS, SFTP and TFTP: only the server pane is shown, so drag files or folders in from Explorer to upload, drag files out to download, or use Download to...; a finished transfer leaves the list on its own while failed and cancelled ones stay, and the connect button turns into Disconnect (green connect, red disconnect).
+- Built-in FTP and TFTP server sharing one root folder: set port and one user name and password, leave the user name empty for anonymous access, start and stop FTP and TFTP independently, and see both listening ports in the status bar.
+- TCP/UDP debugger: listen on one local port, send hex or text to a remote address, repeat on a timer, and auto-reply with the typed payload; a protocol radio switches between connect and send, the last remote address, port and payload are remembered, and a serial port can be opened with baud, data bits, parity and stop bits.
+- A shared type-icon set now sits before every entry in the FTP file manager list and the fast copy source list: folders, images, video, audio, archives, PDF, documents, code and executables each get their own, with a touch of colour.
 - Tools > Network adds Network Monitor: per-process connections, send/receive bytes and rates from TCP ESTATS, plus a packet capture tab with protocol parsing, per-connection packet view, HTTP stream reassembly and pcapng import/export.
-- Built-in simple FTP server: set the root folder, port and one user name and password; leave the user name empty for anonymous access. It can be started from the FTP server tab or left to start with the program, and the status bar shows the listening port.
-- The built-in file server now also speaks TFTP on its own UDP port: share the same folder and start or stop FTP and TFTP independently, with both ports shown in the status bar.
+- Tools > Network adds USB capture: USBPcap URB capture with control, bulk, interrupt and isochronous parsing, a device tree that captures only the selected device or a hub and everything under it, per-device filtering and pcapng import/export.
 - Code stats: count lines by language for dropped folders and files, with .gitignore and extra ignore rules
-- The TCP/UDP debugger also opens a serial port, with baud, data bits, parity, and stop bits
-- The FTP file manager can now connect over TFTP as well: pick TFTP as the protocol, type a file name to download it, or drop a file in to upload. TFTP cannot list directories, so that pane switches to a name-based panel and the TFTP libraries are not needed.
-- Korean conjugation tables now include graded grammar levels 1-6 and other uncommon patterns, with particles and noun patterns on nouns.
-- The FTP file manager list now shows a type icon before each name: folders, images, video, audio, archives, PDF, documents, code and executables each get their own, with a touch of colour.
-- Tools > Network adds USB capture: USBPcap URB capture with control, bulk, interrupt and isochronous parsing, per-device filtering, and pcapng import/export.
-- The fast copy source list now shows a type icon before each entry too, using the same icon set as the FTP file manager.
-- The Russian word-form tool now lists graded grammar for verbs, adjectives and nouns, including case prepositions.
-- Russian nouns can now set gender, declension and animacy by hand.
-- USB capture shows the connected device tree and captures only the selected device, or a hub and everything under it.
+- Fast copy: counting runs only when you press Count files and reports files, folders and size; while copying a cancellable progress window shows the copied and total bytes, and the result stays in that window instead of the window closing itself when counting or copying finishes.
+- Document reader: the Markdown reader becomes a document reader that takes several Markdown/Word/PDF files at once and previews md/docx/doc/xlsx (plus images, txt, code and csv) through a C# renderer, with a custom title bar carrying tab chips, lazy per-tab rendering, block-wise layout for huge Markdown files, click-to-zoom images and a Recent files submenu; tabs reopen next time, can be dragged to reorder, torn out into their own window and merged back, Markdown still exports to Word or PDF, and an empty-by-default Document viewer hotkey shows or hides the window.
+- Web document reader: several Markdown/Word/PDF files open as tabs in a standalone /doc popup converted by the same C# renderer as the desktop reader (/api/docview, /api/docasset); PDF pages are drawn on demand by pdf.js with a selectable text layer, zoom buttons, Ctrl+wheel and fit width/fit page at 100% actual size by default, plus drag-to-pan, and clicking an image or a PDF page opens it in a Viewer.js lightbox with zoom, rotate and multi-image navigation.
+- Sound recorder: show the current input device and live level blocks for the microphone and system sound, which keep moving even before recording
+- Screen record options: pick the microphone (system default entry included) and watch inline level bars for the microphone and system sound; the HUD bar shows the same live meters instead of the audio-source text
+- System info adds BIOS, chassis, install date, language, time zone, memory slots, GPU driver, shared folders, local users, logon sessions, disk partitions, network DHCP and subnet mask, and USB controllers and hubs
+- Windows/Linux command cheat sheets add a Media section with ffmpeg/ffprobe examples (convert, trim, extract audio, scale, crf, frames, gif, concat, stream mapping)
+- Reader: the dictionary window searches automatically 200 ms after typing stops
+- Korean conjugation tables now include graded grammar levels 1-6 and other uncommon patterns, with particles and noun patterns on nouns; the separate Advanced group is gone and those patterns sit under mood and connective groups.
+- The Russian word-form tool now lists graded grammar for verbs, adjectives and nouns, including case prepositions, and Russian nouns can set gender, declension and animacy by hand.
 - Common ports now include Modbus TCP 502 and other industrial and service ports.
+- Hidden dev switch in config.toml (default false). When false, startup removes the pre-merge tool scripts under web/tools and the old flattened copies in web/; local dev builds set it to true
 
 #### Changed
 
-- Install features: move the Tools group to the bottom of the feature tree.
+- Install features: the Tools group moves to the bottom of the feature tree, the document reader takes one line that installs both Word/Excel parser sets at once, and the FTP/SFTP libraries install on demand from the same group.
 - Web tools lookup tables share one Chinese key list across languages, shrinking the published tools.js by about 1 MB
 - Reader: dictionary tabs in the dictionary window stay switchable after picking a dictionary in the toolbar, and both stay in sync
-- Build no longer fails when minify.exe is missing from PATH; web minify is skipped instead.
-- Plot: 3D equations sample within the surface's own extent and pick grid density from its on-screen size, so the mesh no longer thins out after rotating
+- The reader and web dictionary lookup popups list one entry per line (word then gloss, both ellipsized) like the WPF popup, ask for 100 results, and scroll past eight lines
 - Share one Markdown-to-HTML renderer across the WPF reader, the web MD reader and the novel reader; novel reader MD text no longer renders in bold
-- Reader: the word lookup popup lists one entry per line (word then gloss, both ellipsized) like the WPF popup
-- Web document reader: PDF pages are drawn on demand by pdf.js from CDN instead of being pre-rendered to PNG, so 40 pages open in about 35 ms
-- Reader: the word lookup popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
-- Web PDF viewer opens at 100% actual size by default (1:1 button, plus fit width / fit page)
-- Web dictionary: the selection popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
-- Web PDF viewer: clicking a picture inside a PDF now opens that picture at its own resolution (not a screenshot of the whole page); clicking plain text does nothing
-- Web document reader is now a standalone popup window (/doc) with only a title bar, opened from the tools page card; the embedded tool panel is gone
-- Document reader rebuilt on a native WPF viewer stack ported from DocviewWPF: md/docx/pdf/xlsx preview (plus images, txt/code and csv), multi-tab chips in the title bar, lazy per-tab rendering, and click-to-zoom images
-- Document reader: Markdown can be exported to Word or PDF again from the title-bar menu
-- Document reader: Office parser libraries (OpenXml for docx/xlsx, NPOI for doc/xls) are installable features instead of shipping with the app; the toolbar is now a row of uniform icon buttons with page and find boxes inline
-- Install features: the document reader is one line under Tools that installs both Word/Excel parser sets at once, matching the single database-driver line
+- Plot: 3D equations sample within the surface's own extent and pick grid density from its on-screen size, so the mesh no longer thins out after rotating
 - All user data besides config.toml now lives in one data.json beside the exe: desk note, performance window, database connections, HTTP debug requests, and the document reader's history and tabs. The separate note.json, perf.json, sql-conns.json, httpdbg.json and mdread.json files are gone
 - Diagnostic logs follow capture_log: cast_sess, cuda_bootstrap, cast.log, fc.txt and the document viewer log are no longer written when it is off
-- Document viewer renders a large Markdown file in blocks around the viewport instead of laying out the whole file at once
-- FTP and SFTP libraries install on demand from the Tools group; slim package size is unchanged
-- FTP: the connect button turns into Disconnect once connected (green connect / red disconnect), and clicking it disconnects.
-- UDP debugger remembers the last remote address, port, and payload
-- FTP file manager now shows only the server list: drag files or folders in from Explorer to upload, drag files out to download through Explorer, or use Download to...
-- UDP debugger is now a TCP/UDP debugger, with a protocol radio that shows connect or send
-- In the FTP file manager transfer list, a finished transfer now leaves the list on its own; failed and cancelled ones stay so the reason is visible and retry still works.
-- The Korean conjugation table no longer has a separate Advanced group; those patterns are listed under mood and connective groups.
-- Fast copy shows a cancellable progress window while counting and while copying
-- Fast copy no longer counts files as you add them; counting runs only when you press Count files. The result now stays in the progress window, and that window no longer closes itself when counting or copying finishes.
+- Build no longer fails when minify.exe is missing from PATH; web minify is skipped instead.
 
 #### Fixed
 
 - The release script builds its 7z -x! excludes from the actual junk directory and file names again; they had been written as source-file paths, so the archive-level filter never matched and the pre-pack cleanup was the only guard.
 - Fix tool menu: Japanese name reading entry opened the Korean conjugation page because the card-name regex ran past the card into the next entry.
-- Install features: the Chrome model buttons now open Chrome with the same profile as the speech-synthesis and translation pages, instead of the user's default Chrome profile.
-- Chrome TTS: the status no longer stays on 'speaking n/n' after playback ends. Chrome's speechSynthesis does not always fire onend, so a watchdog estimated from the text length now closes the job.
-- Chrome model page now also checks the extension IndexedDB for downloaded voices, so installed voices no longer show as missing
+- Install features: the Chrome model buttons now open Chrome with the same profile as the speech-synthesis and translation pages, instead of the user's default Chrome profile, and the model page also checks the extension IndexedDB for downloaded voices so installed voices no longer show as missing
+- Chrome TTS: the status no longer stays on 'speaking n/n' after playback ends, since Chrome's speechSynthesis does not always fire onend and a watchdog estimated from the text length now closes the job; continuous reading also sends one sentence at a time, so a long sentence no longer lets the queued one hit its 'no sound yet' watchdog and cancel the queue
 - Web tool menu entries now read the merged tools.js instead of a stale web/tools/00-home.js left by older installs
 - Reader: a sentence that fails to synthesize is skipped instead of stopping the whole reading
 - Dictionary detail: blank lines are shown again instead of collapsing to zero height
-- Web PDF viewer: clicking empty space clears the text selection; clicking a picture clears it and opens the picture
-- Reader: continuous reading with Chrome voices no longer stops after a dozen sentences. The next sentence used to be pushed to Chrome before the current one finished, so when a long sentence ran past 10 seconds the queued one hit its "no sound yet" watchdog and cancelled the queue, cutting off the sentence actually being read; sentences are now sent one at a time
-- Document reader page (/doc) showed a blank window: the empty-state hint was hidden behind the idle iframe and a stray 32px gap sat above it
-- Document reader popup (/doc) opened pictures unstyled: the Viewer.js stylesheet was missing, so images rendered at natural size overflowing the window and leftover thumbnails showed at the corner
-- Document reader: closing a tab by its × could freeze the window so nothing responded and the tab would not close. Ctrl+W and Ctrl+F4 now close the current tab, and the drop hint lists Excel, CSV, images and text too
-- Offline update copied the app as ScreenKit_updater.exe, and WPF then failed to load its own resources, so the new package was never applied
-- The updater loaded the code-page assembly before reading its arguments, so it crashed when that DLL was missing from its temp copy
+- Document reader: the /doc page opened blank and its pictures rendered unstyled (missing Viewer.js stylesheet, natural-size overflow, leftover thumbnails), clicking a page to zoom could fire while drag-panning, and closing a tab by its x froze the window; Ctrl+W and Ctrl+F4 now close the current tab and the drop hint lists Excel, CSV, images and text too
+- Offline update copied the app as ScreenKit_updater.exe so WPF failed to load its own resources and the new package was never applied, and the updater loaded the code-page assembly before reading its arguments, so it crashed when that DLL was missing from its temp copy
 - Install features no longer treats a speech model as installed just because text normalization is present, so the new-item count matches the green rows.
 - Network monitor no longer shows bogus byte and packet counters when it runs without admin rights; it hides them and offers a one-click elevated reopen instead.
 
@@ -138,87 +100,49 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 托盘的「工具」补上 MQTT 调试、SOAP 接口调试、TLS 证书检查和数据库查询，与主窗口工具菜单一致。
-- 录音机：显示当前录音设备，以及麦克风和系统声音的实时电平块，未开始录音时也随声音波动
-- config.toml 新增隐藏的 dev 开关（默认 false）。为 false 时启动自动清理 web/tools 里合并前的工具脚本和旧版摊平在 web/ 的副本；本地开发目录设为 true 保留
-- 录屏选项：可单独选择麦克风（含「系统默认（当前设备）」），并显示麦克风和系统声音的行内电平条；录屏控制条也用同样的实时电平条代替声音来源文字
-- Windows/Linux 命令速查表新增「音视频」分类，补 ffmpeg/ffprobe 示例（转格式、截取、提取音频、缩放、CRF、抽帧、GIF、拼接、轨道映射）
-- 系统信息补充 BIOS、机箱、安装日期、语言、时区、内存插槽、显卡驱动、共享目录、本地用户、登录会话、磁盘分区、网卡 DHCP 和子网掩码，以及 USB 控制器和集线器
-- 小说阅读器：词典窗口输入停下 200 ms 即自动查询，不用再按回车
-- 快速复制窗口新增源列表统计：文件数、文件夹数和大小；复制过程中显示已完成和总共的字节数。
-- 快速复制窗口新增「统计文件」按钮，只统计文件数量和大小。
-- MD 阅读器升级为文档阅读器：可一次拖入多个 Markdown/Word/PDF，自绘标题栏与标签页，docx 与 PDF 由 C# 端转 HTML
-- web 工具集：文档阅读器支持一次拖入多个 Markdown/Word/PDF 并用标签切换，转换复用桌面阅读器的 C# 实现（/api/docview、/api/docasset）
-- web PDF 查看：加文本层可选字复制，支持缩放（按钮、Ctrl+滚轮、适应宽度/页高）和拖动平移
-- web 文档阅读器：点 Markdown/Word 文档里的图片用 Viewer.js 弹层放大，可缩放、旋转、多图翻页
-- web PDF 查看：点页面用 Viewer.js 弹出该页高清图；拖动平移不会误触发
-- 文档阅读器：菜单新增「历史文件」，记住最近 10 个；关窗时开着的标签下次打开自动恢复。标签可以拖动排序、拖出成独立窗口、拖回合并
-- 参数设置的快捷键页增加「文档查看器」，默认留空；按下时打开或关闭文档阅读器
-- 新增 FTP 文件管理工具，支持 FTP、FTPS、SFTP：双栏浏览、拖放传输、传输队列与进度
-- 新增 UDP 调试：监听一个本机端口，按 hex 或文本发到对方地址，可定时重复发送，收到报文时按输入内容自动回复
+- FTP 文件管理，支持 FTP、FTPS、SFTP 和 TFTP：只显示服务器文件列表，从资源管理器拖入即上传、把文件拖出即下载，也可用「下载到…」；传完的条目自动离开列表，失败和取消的保留，连接成功后按钮变「断开」（连接绿色、断开红色）。
+- 内置 FTP 与 TFTP 服务，共用一个根目录：可设端口和一个用户名密码，用户名留空允许匿名访问，FTP 与 TFTP 能分别启停，状态栏同时显示两个监听端口。
+- TCP/UDP 调试：监听一个本机端口，按 hex 或文本发到对方地址，可定时重复发送，收到报文时按输入内容自动回复；单选切换连接或发送，记住上次的对方地址、端口和报文，还能打开串口并设波特率、数据位、校验和停止位。
+- FTP 文件管理列表和快速复制文件列表都在名称前显示类型图标：文件夹、图片、视频、音频、压缩包、PDF、文档、代码和可执行文件各一种，并带一点颜色区分。
 - 工具 → 网络工具 新增网络监控：按进程看连接与收发字节、速率（基于 TCP ESTATS），另有抓包页，可解析协议、看单连接报文、重组 HTTP 明文流，并导入导出 pcapng。
-- 内置简易 FTP 服务：可设置根目录、端口和一个用户名密码，用户名留空则允许匿名访问。可在「FTP服务」页就地启停，也能随程序启动；启用后状态栏显示监听端口。
-- 内置文件服务新增 TFTP，用独立的 UDP 端口：与 FTP 共用同一个目录，FTP 和 TFTP 可以分别启停，状态栏同时显示两个端口。
+- 工具 → 网络工具 新增 USB 抓包：经 USBPcap 抓 URB，解析控制、批量、中断、等时传输，显示设备树并可只抓选中设备或连同集线器下的设备一起抓，可按设备筛选，并导入导出 pcapng。
 - 代码统计：拖入目录和文件后按语言统计行数，可沿用 .gitignore 并另写忽略规则
-- TCP/UDP 调试增加串口，可设波特率、数据位、校验和停止位
-- FTP 文件管理新增 TFTP 协议：协议里选 TFTP，输入文件名即可下载，把文件拖进来即按原文件名上传。TFTP 没有列目录命令，所以连接后列表区换成按文件名操作的提示面板；TFTP 自带实现，不需要装那两个库。
-- 韩语变形表加入 1–6 级和其它不常用语法；助词和名词后置接在名词上。
-- FTP 文件管理的列表在名称前显示类型图标：文件夹、图片、视频、音频、压缩包、PDF、文档、代码和可执行文件各一种，并带一点颜色区分。
-- 工具 → 网络工具 新增 USB 抓包：经 USBPcap 抓 URB，解析控制、批量、中断、等时传输，可按设备筛选，并导入导出 pcapng。
-- 快速复制的文件列表也在每项前面显示类型图标，和 FTP 文件管理用同一套。
-- 俄语词形变化加入动词、形容词、名词的分级语法，名词前置词按格接上。
-- 俄语名词可以手选性、变格和动物性。
-- USB 抓包显示已连接的设备树，选中一台设备后只抓它，选中集线器则连同它下面的设备一起抓。
+- 快速复制：只有点「统计文件」才统计，并给出文件数、文件夹数和大小；复制时弹出可取消的进度窗口显示已完成和总字节数，统计或复制结束后结果留在窗口里，不再自动关窗。
+- 文档阅读器：MD 阅读器升级为文档阅读器，可一次拖入多个 Markdown/Word/PDF，用 C# 渲染 md/docx/doc/xlsx（另含图片、txt/代码、csv），自绘标题栏带标签页，切到哪个标签才渲染哪个，超大 Markdown 只排视口附近的块，点图片可放大，菜单里有记住最近文件的「历史文件」；下次打开恢复上次的标签，标签可拖动排序、拖出成独立窗口、拖回合并，Markdown 仍可导出 Word 或 PDF，「文档查看器」快捷键默认留空、按下即开或关窗口。
+- web 文档阅读器：从工具页弹出独立的 /doc 窗口，一次打开多个 Markdown/Word/PDF 用标签切换，转换复用桌面端的 C# 实现（/api/docview、/api/docasset）；PDF 由 CDN 上的 pdf.js 按需绘制，带可选字复制的文本层，支持缩放（按钮、Ctrl+滚轮、适应宽度/页高，默认 100% 实际大小）和拖动平移，点图片或 PDF 页面用 Viewer.js 弹层放大，可缩放、旋转、多图翻页。
+- 录音机：显示当前录音设备，以及麦克风和系统声音的实时电平块，未开始录音时也随声音波动
+- 录屏选项：可单独选择麦克风（含「系统默认（当前设备）」），并显示麦克风和系统声音的行内电平条；录屏控制条也用同样的实时电平条代替声音来源文字
+- 系统信息补充 BIOS、机箱、安装日期、语言、时区、内存插槽、显卡驱动、共享目录、本地用户、登录会话、磁盘分区、网卡 DHCP 和子网掩码，以及 USB 控制器和集线器
+- Windows/Linux 命令速查表新增「音视频」分类，补 ffmpeg/ffprobe 示例（转格式、截取、提取音频、缩放、CRF、抽帧、GIF、拼接、轨道映射）
+- 小说阅读器：词典窗口输入停下 200 ms 即自动查询，不用再按回车
+- 韩语变形表加入 1–6 级和其它不常用语法，助词和名词后置接在名词上；去掉单独的「高级」分组，这些条目并入语气和连接。
+- 俄语词形变化加入动词、形容词、名词的分级语法，名词前置词按格接上；俄语名词可以手选性、变格和动物性。
 - 常见端口号补上 Modbus TCP 502，以及其它工控和服务端口。
+- config.toml 新增隐藏的 dev 开关（默认 false）。为 false 时启动自动清理 web/tools 里合并前的工具脚本和旧版摊平在 web/ 的副本；本地开发目录设为 true 保留
 
 #### 变更
 
-- 安装功能：把「工具集」移到功能树最后。
+- 安装功能：「工具集」移到功能树最后，文档阅读器在工具集下只占一行、勾选即同时装两套 Word/Excel 解析库，FTP 与 SFTP 依赖也改为在同一组里按需安装。
 - web 工具速查表的各语言译文共用一份中文键表，发布包 tools.js 小约 1 MB
 - 小说阅读器：在工具栏选过词典后，词典窗口里的标签仍可切换，且与工具栏「词典」保持同步
-- 编译时 PATH 上没有 minify.exe 就跳过 web 压缩，不再报错。
-- 函数图像：三维方程按曲面实际占的范围加密采样，网格线疏密跟着画面大小走，转视角或松手后不再只剩几根线
+- 小说阅读器和 web 词典的划词浮窗改为每行一个词条（词与解释同一行、行尾省略），和 WPF 浮窗一致，都取 100 条结果，列表超过八行可滚动
 - Markdown 转 HTML 提取为 MdHtml 公共方法，WPF MD 阅读器、网页 MD 阅读器、小说阅读器共用一份渲染；小说阅读器 md 正文不再全部粗体
-- 小说阅读器：划词浮窗改为每行一个词条，词与解释同一行、行尾省略，和 WPF 浮窗一致
-- web 文档阅读器：PDF 改由 CDN 上的 pdf.js 按需绘制，不再预渲染成 PNG，40 页文档打开约 35 ms
-- 小说阅读器：划词浮窗和 WPF 一样取 100 条结果，列表超过八行可滚动
-- web PDF 查看默认按 100% 实际大小打开（工具栏 1:1 按钮，另有适应宽度/页高）
-- web 词典：划词浮窗和 WPF 浮窗一样取 100 条结果，列表超过八行可滚动
-- web PDF 查看：点 PDF 里的图片只放大那张图本身（按原分辨率），点文字不弹
-- web 文档阅读器改成独立页面，从首页卡片弹出一个只有标题栏的窗口（/doc），不再嵌在工具面板里
-- 文档阅读器改用从 DocviewWPF 移植的 WPF 阅读器：支持 md/docx/pdf/xlsx 预览（另含图片、txt/代码、csv），标题栏多标签，切到哪个标签才渲染哪个，点图片可放大
-- 文档阅读器：Markdown 仍可从标题栏菜单导出 Word 或 PDF
-- 文档阅读器：docx/xlsx 与 doc/xls 的解析库改成可安装功能，不再随包发；工具栏改成一行统一大小的图标按钮，页码和查找框直接放在行内
-- 安装功能：文档阅读器在工具集下只占一行，勾选即同时装两套 Word/Excel 解析库，与数据库驱动一致
+- 函数图像：三维方程按曲面实际占的范围加密采样，网格线疏密跟着画面大小走，转视角或松手后不再只剩几根线
 - 除 config.toml 以外的用户数据统一存到 exe 旁的 data.json：便笺、性能小窗、数据库连接、HTTP 调试请求、文档阅读器的历史与标签。原来分散的 note.json、perf.json、sql-conns.json、httpdbg.json、mdread.json 不再生成
 - 诊断日志统一受 capture_log 控制：关闭时不再写 cast_sess.txt、cuda_bootstrap.log、cast.log、fc.txt 和文档阅读器日志
-- 文档阅读器打开超大 Markdown 时只排视口附近的块，不再整篇一次排版
-- FTP 与 SFTP 依赖改为在「安装功能 → 工具集」按需安装，精简包体积不变
-- FTP 文件管理：连接成功后「连接」按钮变为「断开」（连接为绿色、断开为红色），点击即可断开连接。
-- UDP 调试记住上次填写的对方地址、端口和报文
-- FTP 文件管理改为单栏，只显示服务器文件列表：从资源管理器拖入即上传，把文件拖出即交给资源管理器下载，也可用「下载到…」下载选中项。
-- UDP 调试改为 TCP/UDP 调试，单选切换协议，分别显示连接或发送
-- FTP 文件管理的传输列表里，传完的条目会自动从列表移除；失败和取消的仍保留，好让用户看到原因并重试。
-- 韩语变形表去掉单独的「高级」分组，这些条目并入语气和连接。
-- 快速复制在统计和传输时弹出可取消的进度窗口
-- 快速复制不再在添加文件后自动统计，只有点「统计文件」才算。统计结果直接显示在进度窗口里，且统计和复制完成时都不再自动关窗。
+- 编译时 PATH 上没有 minify.exe 就跳过 web 压缩，不再报错。
 
 #### 修复
 
 - 发布脚本的 7z -x! 排除项重新按实际的垃圾目录和文件名生成；此前误写成了源码文件路径，打包层的过滤一直没生效，只剩打包前的清理在兜底。
 - 修复工具菜单：「日本姓名读法」点开后进入韩语词形变化，原因是卡片名字的正则跨过卡片边界取到了下一张卡片的键。
-- 安装功能里打开 Chrome 模型改为和语音合成、翻译页一致，用程序自己的模型页配置，不再打开用户默认 Chrome 配置。
-- Chrome 朗读：读完不再停在「朗读中 n/n」。Chrome 的 speechSynthesis 不一定触发 onend，现在按文本长度估一个上限兜底收尾。
-- Chrome 模型页的语音包状态同时检查扩展的 IndexedDB，已下载的语音不再显示为未安装
+- 安装功能里打开 Chrome 模型改为和语音合成、翻译页一致，用程序自己的模型页配置，不再打开用户默认 Chrome 配置；模型页的语音包状态同时检查扩展的 IndexedDB，已下载的语音不再显示为未安装
+- Chrome 朗读：读完不再停在「朗读中 n/n」，因为 speechSynthesis 不一定触发 onend，改为按文本长度估一个上限兜底收尾；连续朗读也改成读完一句再发下一句，长句读超过 10 秒时排队那句不会再触发「没出声」超时而 cancel 整队
 - 升级后工具菜单的 web 工具目录改读合并后的 tools.js，不再被旧版本残留的 web/tools/00-home.js 带偏
 - 小说阅读器：单句合成失败时跳过该句继续朗读，不再整段停下
 - 词典详情：空行恢复显示，不再压缩成 0 高
-- web PDF 查看：点空白取消文字选中，点图取消选中并放大该图
-- 小说阅读器：连续朗读 Chrome 语音不再读到十几句就自己停下。原来前一句还没读完就把下一句推给 Chrome，长句读超过 10 秒时排队那句触发「没出声」超时并 cancel 整队，把正在读的那句一起打断；现在读完一句再发下一句
-- 文档阅读页（/doc）打开是空白：空态提示被空的 iframe 盖住，上方还多了 32px 空隙
-- 文档阅读器弹窗（/doc）放大图片样式错乱：漏引 Viewer.js 样式表，图片按原始尺寸超出窗口，左下角还残留原图
-- 文档阅读器：点标签上的 × 关不掉、窗口随后不响应鼠标（关标签时把按钮从树上摘掉，鼠标捕获留在了脱离的按钮上）；现在 Ctrl+W、Ctrl+F4 关闭当前标签，拖放提示也补上 Excel、CSV、图片和文本
-- 离线更新把程序复制成 ScreenKit_updater.exe，WPF 因此加载不到自身资源，新版本包一直没有被套用
-- 更新进程在读取参数之前就加载了代码页程序集，临时目录里没有这个 DLL 时直接崩溃
+- 文档阅读器：/doc 页打开是空白，放大图片也样式错乱（漏引 Viewer.js 样式表、图片按原始尺寸超出窗口、左下角残留原图）；点页面放大会被拖动平移误触发，点标签上的 × 会关不掉并让窗口失去响应。现在 Ctrl+W、Ctrl+F4 关闭当前标签，拖放提示也补上 Excel、CSV、图片和文本
+- 离线更新把程序复制成 ScreenKit_updater.exe，WPF 因此加载不到自身资源，新版本包一直没被套用；更新进程还在读取参数之前就加载了代码页程序集，临时目录里没有这个 DLL 时直接崩溃
 - 安装功能不再因为装了文本归一化就把语音模型算成已装，底部新增项与绿色行一致。
 - 网络监控在非管理员运行时不再显示异常的字节与报文数，改为隐藏这些数值并提供一键以管理员身份重开。
 
