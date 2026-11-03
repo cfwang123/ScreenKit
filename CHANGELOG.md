@@ -88,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web tool menu entries now read the merged tools.js instead of a stale web/tools/00-home.js left by older installs
 - Reader: a sentence that fails to synthesize is skipped instead of stopping the whole reading
 - Dictionary detail: blank lines are shown again instead of collapsing to zero height
+- Web PDF viewer: clicking empty space clears the text selection; clicking a picture clears it and opens the picture
 
 ### 中文
 
@@ -133,6 +134,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 升级后工具菜单的 web 工具目录改读合并后的 tools.js，不再被旧版本残留的 web/tools/00-home.js 带偏
 - 小说阅读器：单句合成失败时跳过该句继续朗读，不再整段停下
 - 词典详情：空行恢复显示，不再压缩成 0 高
+- web PDF 查看：点空白取消文字选中，点图取消选中并放大该图
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 

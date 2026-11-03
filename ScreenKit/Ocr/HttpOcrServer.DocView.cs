@@ -530,6 +530,8 @@ sealed partial class HttpOcrServer {
 			downat = { x: e.clientX, y: e.clientY };
 			moved = false;
 			scroller.className = space ? "grab" : "";
+			// 下面要 preventDefault 挡住拖选，浏览器就不会自己清掉旧选择，这里手动清
+			clrsel();
 			e.preventDefault();
 		});
 		window.addEventListener("mousemove", function(e){
@@ -549,16 +551,23 @@ sealed partial class HttpOcrServer {
 			downat = null;
 			scroller.className = space ? "grab" : "";
 			if (!wasclick) return;
-			// 刚选完字不算点击
-			var sel = window.getSelection ? String(window.getSelection()) : "";
-			if (sel && sel.length) return;
 			var el = document.elementFromPoint(e.clientX, e.clientY);
 			var pg = el && el.closest ? el.closest(".pg") : null;
+			// 点一下就先把之前选中的文字取消掉：选中后点空白、点图都算重新开始
+			clrsel();
 			if (!pg) return;
 			// 点击位置换到这一页自己的 CSS 坐标，用来判断点中了哪张图
 			var r = pg.getBoundingClientRect();
 			bigimage(slots.indexOf(pg), e.clientX - r.left, e.clientY - r.top);
 		});
+
+		function clrsel(){
+			try {
+				var s = window.getSelection && window.getSelection();
+				if (s && s.rangeCount) s.removeAllRanges();
+			}
+			catch (err) { }
+		}
 		// 按住空格再拖，空白处和文字上都能平移
 		window.addEventListener("keydown", function(e){
 			if (e.code === "Space" && !space) {
