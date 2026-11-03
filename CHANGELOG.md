@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Document reader: a Recent files submenu that remembers the last 10 files, and the files that were open when the window closed reopen as tabs next time. Tabs can be dragged to reorder, dragged out into their own window, and dragged back in to merge
 - Settings, Hotkeys: a Document viewer entry, empty by default, that shows or hides the document reader
 - FTP file manager supporting FTP, FTPS and SFTP: dual panes, drag to transfer, progress queue
+- UDP debugger: listen on one local port, send hex or text to a remote address, repeat on a timer, and auto-reply with the typed payload
 
 #### Changed
 
@@ -130,6 +131,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 文档阅读器：菜单新增「历史文件」，记住最近 10 个；关窗时开着的标签下次打开自动恢复。标签可以拖动排序、拖出成独立窗口、拖回合并
 - 参数设置的快捷键页增加「文档查看器」，默认留空；按下时打开或关闭文档阅读器
 - 新增 FTP 文件管理工具，支持 FTP、FTPS、SFTP：双栏浏览、拖放传输、传输队列与进度
+- 新增 UDP 调试：监听一个本机端口，按 hex 或文本发到对方地址，可定时重复发送，收到报文时按输入内容自动回复
 
 #### 变更
 
