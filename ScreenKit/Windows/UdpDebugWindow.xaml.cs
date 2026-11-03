@@ -198,17 +198,20 @@ public partial class UdpDebugWindow : Window {
 		savelast();
 	}
 
-	void listenlabel() =>
-		ToolBtnUi.Set(blisten, listening() ? ToolBtnUi.Cancel : ToolBtnUi.Play,
-			Loc.T(listening() ? "udpdbg.stop" : "udpdbg.listen"));
+	void listenlabel() => statebtn(blisten, listening(),
+		ToolBtnUi.Play, "udpdbg.listen", ToolBtnUi.Cancel, "udpdbg.stop");
 
-	void connectlabel() =>
-		ToolBtnUi.Set(bconnect, tcp == null ? ToolBtnUi.Play : ToolBtnUi.Cancel,
-			Loc.T(tcp == null ? "udpdbg.connect" : "udpdbg.disconnect"));
+	void connectlabel() => statebtn(bconnect, tcp != null,
+		ToolBtnUi.Play, "udpdbg.connect", ToolBtnUi.Cancel, "udpdbg.disconnect");
 
-	void openlabel() =>
-		ToolBtnUi.Set(bopen, com == null ? ToolBtnUi.Play : ToolBtnUi.Cancel,
-			Loc.T(com == null ? "udpdbg.com.open" : "udpdbg.com.close"));
+	void openlabel() => statebtn(bopen, com != null,
+		ToolBtnUi.Play, "udpdbg.com.open", ToolBtnUi.Cancel, "udpdbg.com.close");
+
+	/// <summary>未连上是绿，连上是红，和 FTP 的连接按钮一样。</summary>
+	void statebtn(Button b, bool on, string offglyph, string offkey, string onglyph, string onkey) {
+		b.Style = (Style)FindResource(on ? "DisconnectBtn" : "ConnectBtn");
+		ToolBtnUi.Set(b, on ? onglyph : offglyph, Loc.T(on ? onkey : offkey));
+	}
 
 	Encoding encof() =>
 		eenc.SelectedIndex == 1 ? Encoding.GetEncoding(936) : Encoding.UTF8;

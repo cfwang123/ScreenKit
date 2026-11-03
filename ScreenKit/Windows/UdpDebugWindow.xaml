@@ -69,7 +69,7 @@
 			<TextBox x:Name="elocal" Grid.Column="5" Height="30" Padding="6,2" Margin="0,0,10,0"
 			         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 			         AutomationProperties.AutomationId="udpdbg.local"/>
-			<Button x:Name="blisten" Grid.Column="7" Style="{StaticResource ToolBtn}"
+			<Button x:Name="blisten" Grid.Column="7" Style="{StaticResource ConnectBtn}"
 			        AutomationProperties.AutomationId="udpdbg.listen"/>
 		</Grid>
 		<DockPanel x:Name="comrow" Grid.Row="3" Margin="0,10,0,0" LastChildFill="False" Visibility="Collapsed">
@@ -110,9 +110,9 @@
 			          AutomationProperties.AutomationId="udpdbg.reply"/>
 			<Button x:Name="bsend" Style="{StaticResource ToolBtn}" Margin="0,0,8,0"
 			        AutomationProperties.AutomationId="udpdbg.send"/>
-			<Button x:Name="bconnect" Style="{StaticResource ToolBtn}"
+			<Button x:Name="bconnect" Style="{StaticResource ConnectBtn}"
 			        AutomationProperties.AutomationId="udpdbg.connect"/>
-			<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Visibility="Collapsed"
+			<Button x:Name="bopen" Style="{StaticResource ConnectBtn}" Visibility="Collapsed"
 			        AutomationProperties.AutomationId="udpdbg.com.open"/>
 		</DockPanel>
 		<TextBox x:Name="epayload" Grid.Row="5" Margin="0,8,0,0" AcceptsReturn="True"
