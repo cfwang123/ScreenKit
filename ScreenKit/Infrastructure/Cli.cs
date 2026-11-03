@@ -6372,13 +6372,13 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var a = args[k];
 			if (a == null || a.StartsWith("-", StringComparison.Ordinal)) break;
 			if (File.Exists(a)) files.Add(Path.GetFullPath(a));
-		}
-		if (files.Count == 0) {
+		}		if (files.Count == 0) {
 			Err("FAIL: 没有给出存在的文件");
 			return 1;
 		}
 		var cfg = new OcrOptions();
 		try { AppConfig.LoadInto(cfg); } catch { }
+		var hold = Array.IndexOf(args, "--hold") >= 0;
 		var win = new MdReadWindow(cfg);
 		try { win.Show(); }
 		catch (Exception ex) {
@@ -6425,6 +6425,14 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				DocView.ImageOverlay.CloseIfOpen();
 				pump();
 			}
+		}
+		// --hold：把窗口留在那儿给外部脚本点关标签用，别自动收尾
+		if (hold) {
+			Out("holding window for external check");
+			var t1 = Environment.TickCount;
+			while (Environment.TickCount - t1 < 60000) pump();
+			try { win.Close(); } catch { }
+			return 0;
 		}
 		try { win.Close(); } catch { }
 		pump();

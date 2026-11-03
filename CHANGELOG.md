@@ -99,6 +99,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Reader: continuous reading with Chrome voices no longer stops after a dozen sentences. The next sentence used to be pushed to Chrome before the current one finished, so when a long sentence ran past 10 seconds the queued one hit its "no sound yet" watchdog and cancelled the queue, cutting off the sentence actually being read; sentences are now sent one at a time
 - Document reader page (/doc) showed a blank window: the empty-state hint was hidden behind the idle iframe and a stray 32px gap sat above it
 - Document reader popup (/doc) opened pictures unstyled: the Viewer.js stylesheet was missing, so images rendered at natural size overflowing the window and leftover thumbnails showed at the corner
+- Document reader: closing a tab by its × could freeze the window so nothing responded and the tab would not close. Ctrl+W and Ctrl+F4 now close the current tab, and the drop hint lists Excel, CSV, images and text too
 
 ### 中文
 
@@ -155,6 +156,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 小说阅读器：连续朗读 Chrome 语音不再读到十几句就自己停下。原来前一句还没读完就把下一句推给 Chrome，长句读超过 10 秒时排队那句触发「没出声」超时并 cancel 整队，把正在读的那句一起打断；现在读完一句再发下一句
 - 文档阅读页（/doc）打开是空白：空态提示被空的 iframe 盖住，上方还多了 32px 空隙
 - 文档阅读器弹窗（/doc）放大图片样式错乱：漏引 Viewer.js 样式表，图片按原始尺寸超出窗口，左下角还残留原图
+- 文档阅读器：点标签上的 × 关不掉、窗口随后不响应鼠标（关标签时把按钮从树上摘掉，鼠标捕获留在了脱离的按钮上）；现在 Ctrl+W、Ctrl+F4 关闭当前标签，拖放提示也补上 Excel、CSV、图片和文本
 
 ## v1.0.32 (2026-10-29 ~ 11-02)
 

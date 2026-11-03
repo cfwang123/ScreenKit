@@ -318,15 +318,33 @@ public partial class MdReadWindow : Window {
 			foreach (var t in tabs) dispose(t);
 			DocView.ImageOverlay.CloseIfOpen();
 		};
+		// Ctrl+W / Ctrl+F4 关当前标签；Ctrl+F 打开查找
+		PreviewKeyDown += (_, e) => onhotkey(e);
+	}
+
+	void onhotkey(KeyEventArgs e) {
+		if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
+		if (e.Key is Key.W or Key.F4) {
+			e.Handled = true;
+			if (cur != null) closetab(cur);
+			return;
+		}
+		if (e.Key == Key.F) {
+			e.Handled = true;
+			if (!findopen) togglefind();
+			else {
+				efind.Focus();
+				efind.SelectAll();
+			}
+		}
 	}
 
 	void applylang() {
 		Title = Loc.T("mdread.title");
 		mnhamburger.ToolTip = Loc.T("mdread.menu");
 		mnopen.Header = Loc.T("mdread.open");
-		mnhistory.Header = Loc.T("mdread.history");
-		mnhistempty.Header = Loc.T("mdread.history.empty");
 		mnclose.Header = Loc.T("mdread.tabclose");
+		mnclose.InputGestureText = "Ctrl+W";
 		mncloseall.Header = Loc.T("mdread.closeall");
 		mnreload.Header = Loc.T("mdread.reload");
 		mnpath.Header = Loc.T("mdread.copypath");
@@ -581,6 +599,8 @@ public partial class MdReadWindow : Window {
 			Tag = t,
 			VerticalAlignment = VerticalAlignment.Center,
 		};
+		System.Windows.Automation.AutomationProperties.SetAutomationId(bclose, "mdread.tabclose");
+		System.Windows.Automation.AutomationProperties.SetName(bclose, Loc.T("mdread.tabclose"));
 		bclose.Click += (_, e) => {
 			e.Handled = true;
 			closetab(t);
@@ -598,6 +618,7 @@ public partial class MdReadWindow : Window {
 			ToolTip = t.Path,
 		};
 		WindowChrome.SetIsHitTestVisibleInChrome(bd, true);
+		System.Windows.Automation.AutomationProperties.SetAutomationId(bd, "mdread.tab");
 		bd.PreviewMouseLeftButtonDown += (_, e) => {
 			if (e.ChangedButton != MouseButton.Left) return;
 			// 点关闭叉不切 tab
@@ -665,19 +686,14 @@ public partial class MdReadWindow : Window {
 	/// <summary>拖动中：判断光标在哪个窗口的标签条上，决定排序、拆窗还是合并。</summary>
 	void updatetabdrag(Point screen) {
 		if (dragtab == null) return;
-		// 已拆成独立窗：窗口跟手；再次进入别的窗口标签条就并回去
+		// 已拆成独立窗：窗口跟手；再拖到别的窗口标签条上就并回去
 		if (dragfloated) {
-			try {
-				var dip = pointtodip(screen);
-				Left = dip.X - draggrab.X;
-				Top = dip.Y - draggrab.Y;
-			}
-			catch { }
-			var over = hitwindow(screen);
-			if (over != null && !ReferenceEquals(over, this))
-				mergetowindow(over, screen);
-			return;
-		}
+			var dip = pointtodip(screen);
+			Left = dip.X - draggrab.X;
+			Top = dip.Y - draggrab.Y;
+			var over = hitwindow(screen, except: this);
+			if (over != null) mergetowindow(over, screen);
+			return;		}
 		var hit = hitwindow(screen);
 		if (hit == null) {
 			// 离开标签条：本窗还有别的标签就拆出去；只剩一个则不拆（否则留下空窗）
@@ -690,15 +706,38 @@ public partial class MdReadWindow : Window {
 			if (from >= 0) {
 				var adj = to > from ? to - 1 : to;
 				if (adj != from && adj >= 0 && adj < tabs.Count) {
+					// 重排会重建芯片，拖拽中的芯片引用要跟着换成新的
+					var grab = draggrab;
 					tabs.RemoveAt(from);
 					tabs.Insert(adj, dragtab);
 					updatetabs();
+					resumereorder(grab);
 				}
 			}
 		}
 		else {
 			mergetowindow(hit, screen);
 		}
+	}
+
+	/// <summary>
+	/// updatetabs 会把芯片全部重建，拖拽状态里的旧芯片已经脱离视觉树（捕获也随之丢了）。
+	/// 这里改指到新芯片，并重新拿走捕获，不然排序一次之后就拖不动了。
+	/// </summary>
+	void resumereorder(Point grab) {
+		var t = dragtab;
+		if (t?.Head == null) return;
+		draghead = t.Head;
+		draggrab = grab;
+		draghead.Opacity = 0.7;
+		draghead.Cursor = Cursors.SizeAll;
+		try {
+			draghead.CaptureMouse();
+			// 鼠标已经不在新芯片上时 MouseMove 会送到旧元素，补一次位置校正
+			var p = draghead.PointFromScreen(PointToScreen(grab));
+			draggrab = p;
+		}
+		catch { }
 	}
 
 	/// <summary>
@@ -867,10 +906,10 @@ public partial class MdReadWindow : Window {
 		activatetab(t);
 	}
 
-	/// <summary>屏幕像素转 DIP，拆窗时按光标定位用。</summary>
-	Point pointtodip(Point screen) {
+	/// <summary>屏幕像素转 DIP。拆窗时按光标定位、跨窗判命中都要用。</summary>
+	static Point pointtodip(Window w, Point screen) {
 		try {
-			var src = PresentationSource.FromVisual(this);
+			var src = PresentationSource.FromVisual(w);
 			if (src?.CompositionTarget != null)
 				return src.CompositionTarget.TransformFromDevice.Transform(screen);
 		}
@@ -878,13 +917,29 @@ public partial class MdReadWindow : Window {
 		return screen;
 	}
 
+	Point pointtodip(Point screen) => pointtodip(this, screen);
+
 	void paintchip(Tab t) {
 		if (t?.Head == null) return;
 		var on = ReferenceEquals(t, cur);
 		t.Head.Style = (Style)FindResource(on ? "TitleTabActive" : "TitleTab");
 	}
 
+	/// <summary>
+	/// 关一个标签。真正的移除要等这一轮输入事件走完再做：关闭叉是 Button，
+	/// 在它自己的 Click 里把按钮从树里摘掉，WPF 的鼠标捕获会留在这个已经脱离的
+	/// 按钮上，之后整扇窗收不到鼠标输入，看起来就是卡死、关不掉。
+	/// 中键关标签同理（在 MouseDown 里摘掉自己）。
+	/// </summary>
 	void closetab(Tab t) {
+		if (t == null) return;
+		if (tabs.IndexOf(t) < 0) return;
+		Mouse.Capture(null);
+		Dispatcher.BeginInvoke(new Action(() => removetab(t)),
+			System.Windows.Threading.DispatcherPriority.Background);
+	}
+
+	void removetab(Tab t) {
 		if (t == null) return;
 		var i = tabs.IndexOf(t);
 		if (i < 0) return;
@@ -895,6 +950,8 @@ public partial class MdReadWindow : Window {
 			cur = null;
 			Title = Loc.T("mdread.title");
 			showempty();
+			// 拖出来的子窗标签关完就自己关，别留个空窗
+			if (secondary) Close();
 			return;
 		}
 		activatetab(tabs[Math.Min(i, tabs.Count - 1)]);
