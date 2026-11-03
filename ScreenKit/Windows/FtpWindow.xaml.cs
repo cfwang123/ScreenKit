@@ -507,7 +507,7 @@ public partial class FtpWindow : Window {
 			try { got = backend.List(d); }
 			catch (Exception ex) { err = ex.Message; }
 			dispatcher(() => {
-				if (dead) return;
+				if (dead || browse != backend) return;
 				if (err != null) {
 					setstat(string.Format(Loc.T("ftp.err.list"), err));
 					return;
