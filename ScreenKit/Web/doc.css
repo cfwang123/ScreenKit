@@ -1,0 +1,70 @@
+/* 文档阅读器独立页：只有标签条和内容区，浏览器自己的标题栏就当窗口标题栏用 */
+:root {
+	--ink: #1c1915;
+	--muted: #6b645c;
+	--line: #e4ddd4;
+	--card: #fffcf8;
+	--bg: #f6f2ec;
+	--accent: #c2410c;
+}
+* { box-sizing: border-box; }
+html, body {
+	height: 100%; margin: 0; padding: 0; overflow: hidden;
+	background: var(--bg); color: var(--ink);
+	font: 13px/1.5 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+/* 标签条：一条细带，够放几个芯片就行 */
+.doc-tabs {
+	display: flex; align-items: flex-end; gap: 3px;
+	height: 32px; padding: 4px 8px 0;
+	background: #efe9e1; border-bottom: 1px solid var(--line);
+	overflow-x: auto; overflow-y: hidden; flex: 0 0 auto;
+}
+.doc-tabs::-webkit-scrollbar { height: 5px; }
+.doc-tab {
+	display: flex; align-items: center; gap: 6px; flex: 0 0 auto;
+	max-width: 220px; height: 26px; padding: 0 4px 0 10px; cursor: pointer;
+	border: 1px solid var(--line); border-bottom: 0; border-radius: 7px 7px 0 0;
+	background: #e8e1d8; color: var(--muted); font-size: 12.5px;
+}
+.doc-tab.on { background: #fff; color: var(--ink); border-color: #d6cec2; }
+.doc-tab.wait .doc-tabname { opacity: .55; }
+.doc-tabname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-tabx {
+	flex: 0 0 auto; width: 16px; height: 16px; padding: 0; line-height: 1;
+	border: 0; border-radius: 3px; background: transparent; cursor: pointer;
+	color: var(--muted); font-size: 13px;
+}
+.doc-tabx:hover { background: #fecaca; color: #b42318; }
+/* 内容区 */
+.doc-stage { position: relative; flex: 1 1 auto; min-height: 0; height: calc(100% - 0px); }
+body.hastabs .doc-stage { height: calc(100% - 32px); }
+.doc-stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+.doc-empty {
+	position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+	color: var(--muted); font-size: 14px; padding: 24px; text-align: center;
+}
+.doc-empty[hidden] { display: none; }
+/* 拖入提示 */
+.doc-drop {
+	position: absolute; inset: 0; z-index: 5; display: flex;
+	align-items: center; justify-content: center;
+	background: rgba(194, 65, 12, .07);
+	border: 2px dashed var(--accent); border-radius: 0;
+}
+.doc-drop[hidden] { display: none; }
+.doc-drop-card {
+	display: flex; flex-direction: column; gap: 6px; align-items: center;
+	padding: 20px 28px; border-radius: 12px; background: #fff;
+	box-shadow: 0 6px 24px rgba(15, 23, 42, .12); text-align: center;
+}
+.doc-drop-card strong { font-size: 15px; }
+.doc-drop-card span { color: var(--muted); font-size: 12.5px; }
+/* 底部小提示 */
+.doc-tip {
+	position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%);
+	padding: 5px 12px; border-radius: 14px; background: rgba(31, 35, 40, .78);
+	color: #fff; font-size: 12.5px; pointer-events: none;
+	opacity: 0; transition: opacity .2s; z-index: 10;
+}
+.doc-tip.on { opacity: 1; }

@@ -204,6 +204,14 @@ sealed partial class HttpOcrServer : IDisposable {
 				handledictpage(ctx, path);
 				return;
 			}
+			if (path is "/doc" or "/sk/doc.css" or "/sk/doc.js") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "文档阅读器页仅支持 GET"));
+					return;
+				}
+				handledocpage(ctx, path);
+				return;
+			}
 			if (path is "/reader" or "/sk/reader.css" or "/sk/reader.js" or "/sk/dictdoc.js") {
 				if (!isget(req)) {
 					writejson(ctx, 405, err(805, "小说阅读器页仅支持 GET"));

@@ -113,6 +113,13 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 				else show(tool);
 				return;
 			}
+			// 独立页面：data-popup 的卡片用弹窗打开（只有标题栏，没有标签条和地址栏按钮）
+			var pop = el.getAttribute && F.attr(el, "data-popup");
+			if (pop) {
+				F.pd(ev);
+				openpopup(F.attr(el, "href") || ("/" + pop));
+				return;
+			}
 			var cat = el.getAttribute && F.attr(el, "data-cat");
 			if (cat && el.tagName === "BUTTON" && !F.attr(el, "data-tool")) {
 				jumpcat(cat);
@@ -129,6 +136,23 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 
 	function opentab(name){
 		window.open(location.pathname + location.search + "#" + name, "_blank");
+	}
+
+	// 独立页面弹窗：只留标题栏，隐藏地址栏和工具栏，看起来就像个应用窗口
+	function openpopup(href){
+		var w = Math.min(1280, Math.max(760, Math.round(screen.availWidth * 0.72)));
+		var h = Math.min(900, Math.max(560, Math.round(screen.availHeight * 0.8)));
+		var left = Math.max(0, Math.round((screen.availWidth - w) / 2));
+		var top = Math.max(0, Math.round((screen.availHeight - h) / 2));
+		var feat = "popup=yes,width=" + w + ",height=" + h + ",left=" + left + ",top=" + top
+			+ ",menubar=no,toolbar=no,location=no,status=no,scrollbars=yes,resizable=yes";
+		var win = window.open(href, "_blank", feat);
+		if (win) {
+			try { win.focus(); } catch (e) { }
+			return win;
+		}
+		// 被拦了就退回普通窗口
+		return window.open(href, "_blank");
 	}
 
 	function toolhash(){

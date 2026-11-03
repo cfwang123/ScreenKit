@@ -1667,6 +1667,10 @@
 		return b;
 	}
 
+	// 我们交给浏览器的句子按顺序排队。只有排在队首、轮到它却还没出声的才算卡住：
+	// 排在后面时前一句读多久都在正常等待，不能按超时把整队 cancel 掉。
+	var synq = [];
+
 	function speakbrowser(text, done, onstart){
 		var syn = window.speechSynthesis;
 		if (!syn || typeof SpeechSynthesisUtterance !== "function") {
@@ -1687,16 +1691,16 @@
 		u.volume = 1;
 		var settled = false;
 		var started = false;
+		var mine = { done: false };
+		synq.push(mine);
 		// 在线语音没代理时不会报错，只是迟迟不出声，10 秒判超时。
-		// 但排在别的句子后面时只是在队列里等着，前一句读十几秒很正常，这时一直延期；
-		// 轮到自己了才开始计时，免得超时把正在读的那句一起 cancel 掉。
 		var deadline = Date.now() + 10000;
 		var tick = setInterval(function(){
 			if (settled || started) {
 				clearInterval(tick);
 				return;
 			}
-			if (syn.speaking) {
+			if (synq[0] !== mine) {
 				deadline = Date.now() + 10000;
 				return;
 			}
@@ -1705,14 +1709,21 @@
 			try { syn.cancel(); } catch (e) {}
 			finish(L("web.reader.timeout", "10 秒还没出声，在线语音可能需要代理"));
 		}, 500);
+		function dequeue(){
+			var i = synq.indexOf(mine);
+			if (i >= 0) synq.splice(i, 1);
+		}
 		function finish(err){
 			if (settled) return;
 			settled = true;
+			mine.done = true;
+			dequeue();
 			clearInterval(tick);
 			done(err || "");
 		}
 		u.onstart = function(){
 			started = true;
+			dequeue();
 			clearInterval(tick);
 			if (onstart) onstart();
 		};
@@ -1747,6 +1758,7 @@
 	}
 
 	function stopsynth(){
+		synq.length = 0;
 		var syn = window.speechSynthesis;
 		if (!syn) return;
 		try { syn.cancel(); } catch (e) {}

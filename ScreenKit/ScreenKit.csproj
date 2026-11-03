@@ -72,6 +72,9 @@
     <None Include="Web\chrome.html" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.html" />
     <None Include="Web\chrome.css" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.css" />
     <None Include="Web\chrome.js" CopyToOutputDirectory="PreserveNewest" Link="web\chrome.js" />
+    <None Include="Web\doc.html" CopyToOutputDirectory="PreserveNewest" Link="web\doc.html" />
+    <None Include="Web\doc.css" CopyToOutputDirectory="PreserveNewest" Link="web\doc.css" />
+    <None Include="Web\doc.js" CopyToOutputDirectory="PreserveNewest" Link="web\doc.js" />
     <EmbeddedResource Include="Web\tools.html" LogicalName="web.tools.html" />
     <EmbeddedResource Include="Web\tools.css" LogicalName="web.tools.css" />
     <EmbeddedResource Include="Web\tools.js" LogicalName="web.tools.js" Condition="Exists('Web\tools.js')" />
@@ -89,6 +92,9 @@
     <EmbeddedResource Include="Web\chrome.html" LogicalName="web.chrome.html" />
     <EmbeddedResource Include="Web\chrome.css" LogicalName="web.chrome.css" />
     <EmbeddedResource Include="Web\chrome.js" LogicalName="web.chrome.js" />
+    <EmbeddedResource Include="Web\doc.html" LogicalName="web.doc.html" />
+    <EmbeddedResource Include="Web\doc.css" LogicalName="web.doc.css" />
+    <EmbeddedResource Include="Web\doc.js" LogicalName="web.doc.js" />
     <EmbeddedResource Include="Infrastructure\cmn-voices.json" LogicalName="chrome.cmn.voices.json" />
     <EmbeddedResource Include="SendFile\web\index.html" LogicalName="web.index.html" />
     <EmbeddedResource Include="SendFile\web\m.html" LogicalName="web.m.html" />

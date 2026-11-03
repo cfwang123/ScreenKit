@@ -295,16 +295,16 @@
 					]
 					},
 					{
-						x:"button",
-						"type":"button",
-						"data-tool":"u-mdread",
+						x:"a",
+						"href":"/doc",
+						"data-popup":"doc",
 						"data-cat":"text",
-						"data-name":"md 阅读器 markdown 预览 拖入 docx word pdf 文档 标签",
-						"title":"拖入 Markdown、Word 或 PDF，多文件用标签切换",
+						"data-name":"md 阅读器 markdown 预览 拖入 docx word pdf 文档 标签 文档阅读器",
+						"title":"弹一个只有标题栏的窗口，拖入 Markdown、Word 或 PDF，多文件用标签切换",
 						c:[
 						{x:"i.fa-solid.fa-book-open"},
 						{x:"span","data-k":"web.tool.mdread",c:"文档阅读器"},
-						{x:"i.star.fa-solid.fa-star","data-fav":"u-mdread","title":"收藏"}
+						{x:"i.star.fa-solid.fa-star","data-fav":"doc","title":"收藏"}
 					]
 					},
 					{

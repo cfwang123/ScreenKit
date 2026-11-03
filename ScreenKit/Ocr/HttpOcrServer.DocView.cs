@@ -647,6 +647,25 @@ sealed partial class HttpOcrServer {
 		return html.Substring(0, i) + tag + html.Substring(i);
 	}
 
+	/// <summary>文档阅读器的独立页：/doc 以及它的样式和脚本。</summary>
+	void handledocpage(SockCtx ctx, string path) {
+		string name;
+		string mime;
+		if (path == "/sk/doc.css") {
+			name = "doc.css";
+			mime = "text/css; charset=utf-8";
+		}
+		else if (path == "/sk/doc.js") {
+			name = "doc.js";
+			mime = "application/javascript; charset=utf-8";
+		}
+		else {
+			name = "doc.html";
+			mime = "text/html; charset=utf-8";
+		}
+		sendwebasset(ctx, name, mime, name == "doc.html");
+	}
+
 	static string rewritehtml(string html, string id, string dir) {
 		if (string.IsNullOrEmpty(html)) return "";
 		var root = Path.GetFullPath(dir);

@@ -77,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Web PDF viewer opens at 100% actual size by default (1:1 button, plus fit width / fit page)
 - Web dictionary: the selection popup asks for 100 results like the WPF popup, and its list scrolls past eight lines
 - Web PDF viewer: clicking a picture inside a PDF now opens that picture at its own resolution (not a screenshot of the whole page); clicking plain text does nothing
+- Web document reader is now a standalone popup window (/doc) with only a title bar, opened from the tools page card; the embedded tool panel is gone
 
 #### Fixed
 
@@ -124,6 +125,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web PDF 查看默认按 100% 实际大小打开（工具栏 1:1 按钮，另有适应宽度/页高）
 - web 词典：划词浮窗和 WPF 浮窗一样取 100 条结果，列表超过八行可滚动
 - web PDF 查看：点 PDF 里的图片只放大那张图本身（按原分辨率），点文字不弹
+- web 文档阅读器改成独立页面，从首页卡片弹出一个只有标题栏的窗口（/doc），不再嵌在工具面板里
 
 #### 修复
 
