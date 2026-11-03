@@ -45,7 +45,7 @@ static class KoGrammar {
 	public static List<ConjRow> NounRows(int li, string noun, bool bat) {
 		var rows = new List<ConjRow>();
 		foreach (var c in KoGrammarCatalog.Noun) {
-			var text = applynoun(noun, bat, c[1]);
+			var text = applynoun(noun, bat, c[1], c[2]);
 			if (text.Length == 0) continue;
 			rows.Add(new ConjRow(label(c, li), text, grp(c[0], li)));
 		}
@@ -179,13 +179,13 @@ static class KoGrammar {
 
 	static bool endsrieul(KoPatForms f) => f.Rl.Length > 0 && f.Rl[f.Rl.Length - 1] == 'ㄹ' && f.Stem.Length > 0 && f.Stem[f.Stem.Length - 1] == 'ㄹ';
 
-	static string applynoun(string noun, bool bat, string pos) {
+	static string applynoun(string noun, bool bat, string pos, string form) {
 		var plus = pos.IndexOf('+');
 		var key = plus < 0 ? pos : pos.Substring(0, plus);
 		var tail = plus < 0 ? "" : pos.Substring(plus + 1);
 		string head;
 		switch (key) {
-			case "noun": head = particle(noun, bat, ref tail); break;
+			case "noun": head = particle(noun, bat, bat && !endsrieuln(noun), form, ref tail); break;
 			case "cop": head = noun + (bat && !endsrieuln(noun) ? "으" : "") + tail; tail = ""; break;
 			case "copb": head = noun + (bat ? "이" : ""); break;
 			case "eul": head = noun + (bat ? "을" : "를"); break;
@@ -196,20 +196,24 @@ static class KoGrammar {
 		return head + tail;
 	}
 
-	static string particle(string noun, bool bat, ref string tail) {
-		var slash = tail.IndexOf('/');
-		if (slash > 0) {
-			var left = tail.Substring(0, slash);
-			var right = tail.Substring(slash + 1);
-			var cut = right.IndexOfAny(new[] { ' ', ',', '/' });
-			var pair = cut < 0 ? right : right.Substring(0, cut);
-			var rest = cut < 0 ? "" : right.Substring(cut);
-			if (left.Length > 0 && pair.Length > 0 && left.Length <= 2 && pair.Length <= 2) {
-				tail = "";
-				return noun + (bat ? left : pair) + rest;
-			}
-		}
-		return noun;
+	// 助词本身写在标签里：이/가、에、에게 / 한테。开音节取斜杠后，闭音节取斜杠前。
+	static string particle(string noun, bool bat, bool eu, string form, ref string tail) {
+		var body = form.StartsWith("-") ? form.Substring(1) : form;
+		var bits = body.Split(new[] { " / " }, System.StringSplitOptions.None);
+		for (var i = 0; i < bits.Length; i++) bits[i] = noun + pickpair(bat, eu, bits[i].Trim());
+		tail = "";
+		return string.Join(" / ", bits);
+	}
+
+	static string pickpair(bool bat, bool eu, string bit) {
+		if (bit.StartsWith("(이)")) return (bat ? "이" : "") + bit.Substring(3);
+		if (bit.StartsWith("(으)")) return (eu ? "으" : "") + bit.Substring(3);
+		var slash = bit.IndexOf('/');
+		if (slash <= 0) return bit;
+		var left = bit.Substring(0, slash);
+		var right = bit.Substring(slash + 1);
+		if (left.Length == 0 || right.Length == 0 || left.Length > 2 || right.Length > 2) return bit;
+		return bat ? left : right;
 	}
 
 	static bool endsrieuln(string noun) {
@@ -222,6 +226,7 @@ static class KoGrammar {
 	static string specialn(string noun, bool bat, string pos) {
 		switch (pos) {
 			case "and": return noun + (bat ? "과" : "와") + ", " + noun + "하고, " + noun + (bat ? "이랑" : "랑");
+			case "bare": return "하다못해";
 			case "ieyo": return noun + (bat ? "이에요" : "예요");
 			case "anida": return noun + (bat ? "이" : "가") + " 아니에요";
 			case "copb+라고 하다": return noun + (bat ? "이라고" : "라고") + " 하다";
