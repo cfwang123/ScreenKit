@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Built-in simple FTP server: set the root folder, port and one user name and password; leave the user name empty for anonymous access. It can be started from the FTP server tab or left to start with the program, and the status bar shows the listening port.
 - The built-in file server now also speaks TFTP on its own UDP port: share the same folder and start or stop FTP and TFTP independently, with both ports shown in the status bar.
 - Code stats: count lines by language for dropped folders and files, with .gitignore and extra ignore rules
+- The TCP/UDP debugger also opens a serial port, with baud, data bits, parity, and stop bits
 
 #### Changed
 
@@ -145,6 +146,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 内置简易 FTP 服务：可设置根目录、端口和一个用户名密码，用户名留空则允许匿名访问。可在「FTP服务」页就地启停，也能随程序启动；启用后状态栏显示监听端口。
 - 内置文件服务新增 TFTP，用独立的 UDP 端口：与 FTP 共用同一个目录，FTP 和 TFTP 可以分别启停，状态栏同时显示两个端口。
 - 代码统计：拖入目录和文件后按语言统计行数，可沿用 .gitignore 并另写忽略规则
+- TCP/UDP 调试增加串口，可设波特率、数据位、校验和停止位
 
 #### 变更
 

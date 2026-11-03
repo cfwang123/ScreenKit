@@ -156,7 +156,7 @@ public partial class UdpDebugWindow : Window {
 		lbdata.Text = Loc.T("udpdbg.com.data");
 		lbparity.Text = Loc.T("udpdbg.com.parity");
 		lbstop.Text = Loc.T("udpdbg.com.stop");
-		ToolBtnUi.Set(brefresh, ToolBtnUi.Clear, Loc.T("udpdbg.com.refresh"));
+		ToolBtnUi.Set(brefresh, ToolBtnUi.Swap, Loc.T("udpdbg.com.refresh"));
 		chexshow.Content = Loc.T("udpdbg.hexshow");
 		lbenc.Text = Loc.T("udpdbg.enc");
 		cscroll.Content = Loc.T("udpdbg.scroll");
