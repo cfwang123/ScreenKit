@@ -67,7 +67,7 @@
 						          AutomationProperties.AutomationId="codestat.files">
 							<ListView.View>
 								<GridView>
-									<GridViewColumn x:Name="colfname" Header="文件" Width="220" DisplayMemberBinding="{Binding Name}"/>
+									<GridViewColumn x:Name="colfname" Header="文件" Width="320" DisplayMemberBinding="{Binding Name}"/>
 									<GridViewColumn x:Name="colflines" Header="行" Width="60" DisplayMemberBinding="{Binding Lines}"/>
 									<GridViewColumn x:Name="colfcode" Header="代码" Width="60" DisplayMemberBinding="{Binding Code}"/>
 								</GridView>

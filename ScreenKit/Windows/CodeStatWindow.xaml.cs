@@ -26,6 +26,7 @@ public partial class CodeStatWindow : Window {
 	readonly ObservableCollection<CodeStatLangView> langs = new();
 	readonly ObservableCollection<CodeStatFileView> files = new();
 	CodeStatResult last;
+	List<string> roots = new();
 	int seq;
 
 	public CodeStatWindow() {
@@ -120,6 +121,7 @@ public partial class CodeStatWindow : Window {
 		}
 		var n = ++seq;
 		var list = paths.ToList();
+		roots = list;
 		var rules = (eignore.Text ?? "").Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
 		var git = cgit.IsChecked == true;
 		lbstat.Text = Loc.T("codestat.working");
@@ -185,12 +187,32 @@ public partial class CodeStatWindow : Window {
 		foreach (var row in last.Files) {
 			if (lang.Length > 0 && !string.Equals(row.Lang, lang, StringComparison.Ordinal)) continue;
 			files.Add(new CodeStatFileView {
-				Name = row.Name,
+				Name = relname(row.Path),
 				Path = row.Path,
 				Lines = row.Lines,
 				Code = row.Code,
 			});
 		}
+	}
+
+	string relname(string path) {
+		var best = path;
+		foreach (var root in roots) {
+			string full, dir;
+			try {
+				full = Path.GetFullPath(path);
+				dir = Directory.Exists(root) ? Path.GetFullPath(root) : Path.GetDirectoryName(Path.GetFullPath(root));
+			}
+			catch { continue; }
+			if (string.IsNullOrEmpty(dir)) continue;
+			dir = dir.TrimEnd('\\', '/');
+			if (full.StartsWith(dir + "\\", StringComparison.OrdinalIgnoreCase)
+				|| full.StartsWith(dir + "/", StringComparison.OrdinalIgnoreCase)) {
+				var rel = full.Substring(dir.Length + 1);
+				if (rel.Length < best.Length) best = rel;
+			}
+		}
+		return best;
 	}
 
 	void openfile() {

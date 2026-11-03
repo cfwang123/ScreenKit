@@ -164,10 +164,10 @@ static class CodeStat {
 				foreach (var sub in parseembed(row))
 					addlang(kids, row.Lang + "\t" + sub.Lang, sub, true);
 			}
-			foreach (var row in bag.Values.OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)) {
+			foreach (var row in bag.Values.OrderByDescending(r => r.Lines).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)) {
 				result.Langs.Add(row);
 				foreach (var kid in kids.Values.Where(k => k.Name.StartsWith(row.Name + "\t", StringComparison.Ordinal))
-					.OrderBy(k => k.Name, StringComparer.OrdinalIgnoreCase)) {
+					.OrderByDescending(k => k.Lines)) {
 					kid.Name = kid.Name.Substring(row.Name.Length + 1);
 					result.Langs.Add(kid);
 				}
