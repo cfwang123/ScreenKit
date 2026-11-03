@@ -5600,3 +5600,5 @@ ftp.drag.start = "マウスを離すと {0} 個のファイルをダウンロー
 ftp.drag.done = "エクスプローラーに引き渡しました"
 ftp.drag.cancel = "ドラッグをキャンセルしました"
 ftp.drag.dirs = "フォルダーは直接ドラッグできません。ダウンロード先…を使ってください"
+feat.pick.ftptools = "FTP ツール"
+feat.pick.ftptools.detail = "FTP / FTPS / SFTP ファイル管理に必要なライブラリをまとめて導入します（FluentFTP + SSH.NET）。配布パッケージには含まれません。"

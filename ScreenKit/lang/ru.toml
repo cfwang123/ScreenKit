@@ -5151,3 +5151,5 @@ ftp.drag.start = "Отпустите мышь, чтобы скачать фай�
 ftp.drag.done = "Передано Проводнику"
 ftp.drag.cancel = "Перетаскивание отменено"
 ftp.drag.dirs = "Папки нельзя перетащить; используйте Скачать в..."
+feat.pick.ftptools = "Инструмент FTP"
+feat.pick.ftptools.detail = "Устанавливает библиотеки для файлового менеджера FTP/FTPS/SFTP (FluentFTP + SSH.NET); в пакет не входят."

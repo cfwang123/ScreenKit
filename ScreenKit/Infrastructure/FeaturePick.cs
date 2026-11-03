@@ -191,7 +191,9 @@ static class FeaturePick {
 			// 文档阅读器只有一行：勾上就把 docx/xlsx 与 doc/xls 两套解析库一起装
 			wholedocview(),
 			// 数据库驱动只有一行：勾上就把 SQLite / MySQL / Oracle 一起装（SQL Server 用系统自带，不用装）
-			wholedb()),
+			wholedb(),
+			// FTP 工具：FluentFTP + SSH.NET，装到 exe 旁的 ftp\ 子目录
+			leaf("ftptools", "feat.pick.ftptools", "feat.FtpTools.detail", FeatureKind.FtpTools)),
 	];
 
 	public static IEnumerable<FeaturePickNode> Leaves(IEnumerable<FeaturePickNode> roots) {
