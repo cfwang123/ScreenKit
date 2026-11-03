@@ -1411,20 +1411,22 @@ public partial class MdReadWindow : Window {
 		bfindnext.IsEnabled = v != null;
 		syncpagebox();
 		if (cur == null) {
-			lbstat.Text = Loc.T("mdread.hint");
+			lbstat.Text = "";
+			lbstat.ToolTip = null;
 			return;
 		}
-		// 状态栏只留格式和缩放这些随文件变的信息；完整路径放在提示里，免得太长把工具条挤没
-		var parts = new List<string>();
-		if (cur.Error.Length > 0) parts.Add(cur.Error);
-		else if (v != null) {
-			var s = v.StatusText ?? "";
-			if (s.Length > 0) parts.Add(s);
-			if (tabs.Count > 1) parts.Add(string.Format(Loc.T("mdread.tabs"), tabs.Count));
-		}
-		else parts.Add(Loc.T("mdread.loading"));
-		lbstat.Text = string.Join("  ·  ", parts);
 		lbstat.ToolTip = cur.Path;
+		if (cur.Error.Length > 0) {
+			lbstat.Text = cur.Error;
+			return;
+		}
+		if (v == null) {
+			lbstat.Text = Loc.T("mdread.loading");
+			return;
+		}
+		var page = Math.Max(1, v.CurrentPage);
+		var count = Math.Max(page, v.PageCount);
+		lbstat.Text = $"第{page}/{count}页 · {(int)(v.Zoom * 100)}%";
 	}
 	#endregion
 }

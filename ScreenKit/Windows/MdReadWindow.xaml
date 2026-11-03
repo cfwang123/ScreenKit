@@ -250,13 +250,7 @@
 			<!-- 第 2 行：工具栏。参照 docview：一行图标按钮，页码和查找是行内输入框 -->
 			<Border x:Name="ptoolbar" DockPanel.Dock="Top" Background="#F7F8FA"
 			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="6,2">
-				<!-- 左列按内容宽度，右列吃掉剩余宽度：状态文字被裁剪，按钮不会被挤变形 -->
-				<Grid>
-					<Grid.ColumnDefinitions>
-						<ColumnDefinition Width="Auto"/>
-						<ColumnDefinition Width="*"/>
-					</Grid.ColumnDefinitions>
-					<StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+				<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 						<!-- 打开 -->
 						<Button x:Name="bopen" Style="{StaticResource BarBtn}" ToolTip="打开文件"
 						        AutomationProperties.AutomationId="mdread.open">
@@ -319,16 +313,19 @@
 						        Visibility="Collapsed" AutomationProperties.AutomationId="mdread.findnext">
 							<Path Style="{StaticResource BarIcon}" Data="M9,6 L15,12 L9,18"/>
 						</Button>
-					</StackPanel>
-
-					<!-- 状态文字：格式、页数、缩放 -->
-					<TextBlock x:Name="lbstat" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,4,0"
-					           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
-					           FontSize="12" AutomationProperties.AutomationId="mdread.stat"/>
-				</Grid>
+				</StackPanel>
 			</Border>
 
-			<!-- 第 3 行：文档区，阅读器自己的 FrameworkElement 挂在这里 -->
+			<!-- 状态栏：只显示当前页和缩放 -->
+			<Border DockPanel.Dock="Bottom" Background="#F7F8FA"
+			        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0" Padding="8,0"
+			        Height="24">
+				<TextBlock x:Name="lbstat" VerticalAlignment="Center"
+				           TextTrimming="CharacterEllipsis" Foreground="{StaticResource TextMuted}"
+				           FontSize="12" AutomationProperties.AutomationId="mdread.stat"/>
+			</Border>
+
+			<!-- 文档区，阅读器自己的 FrameworkElement 挂在这里 -->
 			<Border x:Name="phostbox" BorderBrush="{StaticResource BorderSoft}" BorderThickness="0"
 			        Background="White">
 				<ContentControl x:Name="phost" Focusable="False"
