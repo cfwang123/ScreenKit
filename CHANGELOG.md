@@ -94,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP and SFTP libraries install on demand from the Tools group; slim package size is unchanged
 - FTP: the connect button turns into Disconnect once connected (green connect / red disconnect), and clicking it disconnects.
 - UDP debugger remembers the last remote address, port, and payload
+- FTP file manager now shows only the server list: drag files or folders in from Explorer to upload, drag files out to download through Explorer, or use Download to...
 
 #### Fixed
 
@@ -165,6 +166,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - FTP 与 SFTP 依赖改为在「安装功能 → 工具集」按需安装，精简包体积不变
 - FTP 文件管理：连接成功后「连接」按钮变为「断开」（连接为绿色、断开为红色），点击即可断开连接。
 - UDP 调试记住上次填写的对方地址、端口和报文
+- FTP 文件管理改为单栏，只显示服务器文件列表：从资源管理器拖入即上传，把文件拖出即交给资源管理器下载，也可用「下载到…」下载选中项。
 
 #### 修复
 

@@ -444,7 +444,7 @@ static class FtpDragOut {
 		}
 		finally {
 			Marshal.FreeHGlobal(pcb);
-			Marshal.ReleaseComObject(stm);
+			// 进程内取回的可能是本程序自己的托管对象，不能用 ReleaseComObject
 			Marshal.Release(rawStream);
 		}
 		log($"流读取完成: {total} 字节");
