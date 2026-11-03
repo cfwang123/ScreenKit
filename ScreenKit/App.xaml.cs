@@ -17,9 +17,26 @@ public partial class App : System.Windows.Application {
 	EventWaitHandle exitEvent;
 	volatile bool exitRequested;
 
-	protected override void OnStartup(StartupEventArgs e) {
+	static void registerenc() =>
 		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+	static bool applyupdate(string[] args) {
+		if (!AppUpdater.IsApplyUpdateArgs(args)) return false;
+		var code = AppUpdater.RunApplyUpdate(args);
+		Environment.Exit(code);
+		return true;
+	}
+
+	protected override void OnStartup(StartupEventArgs e) {
 		var args = e.Args ?? Array.Empty<string>();
+
+		// 自更新应用最先处理：这一步之前不能碰需要额外程序集的代码。
+		// 更新进程从 tmp/ 启动，依赖可能还没拷全，这里一加载就直接崩溃，覆盖永远不会发生。
+		// 单独成方法：OnStartup 里还要用 CodePages，JIT 会在进方法前就把那个程序集加载进来。
+		// 更新进程从 tmp/ 启动时这个程序集未必在，一加载就崩溃，覆盖一步到不了。
+		if (applyupdate(args)) return;
+
+		registerenc();
 
 		// 文件 → 重启：等旧进程退出后再打开，不占单实例锁
 		if (restartafter(args)) {
@@ -53,13 +70,6 @@ public partial class App : System.Windows.Application {
 			}
 			catch (Exception ex) { lg($"AOA 助手异常: {ex.Message}"); }
 			Environment.Exit(0);
-			return;
-		}
-
-		// 自更新应用：尽早处理，不初始化 CUDA / 不占单实例锁 / 不启动 GUI
-		if (AppUpdater.IsApplyUpdateArgs(args)) {
-			var code = AppUpdater.RunApplyUpdate(args);
-			Environment.Exit(code);
 			return;
 		}
 

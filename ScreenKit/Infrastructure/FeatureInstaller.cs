@@ -295,6 +295,13 @@ static class FeatureInstaller {
 	/// <summary>探测安装状态（供使用前提示）。</summary>
 	public static FeatureInstallState Probe(FeatureKind kind) => probe(kind);
 
+	/// <summary>装完整才算已有。部分安装（缺文件）不算，功能选择要把它标成将补全。</summary>
+	public static bool Has(FeatureKind kind) => Has(probe(kind));
+
+	/// <summary>装完整才算已有。</summary>
+	public static bool Has(FeatureInstallState state) =>
+		state == FeatureInstallState.Installed || state == FeatureInstallState.Update;
+
 	/// <summary>各功能包预期体积（约数，用于列表与进度分母）。</summary>
 	public static long ExpectedSize(FeatureKind kind) => kind switch {
 		FeatureKind.NativeOpenCv => NativeRuntime.OpenCvSizeHint,

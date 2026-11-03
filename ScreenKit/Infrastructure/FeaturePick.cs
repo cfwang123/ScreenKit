@@ -17,6 +17,7 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 	/// <summary>
 	/// 一行代表整套组件（数据库驱动）：装过其中任意一个就算已装，勾选时装齐全部。
 	/// 普通叶子只看 <see cref="Kinds"/> 最后一项是否已装。
+	/// 部分安装（缺文件）不算已装：勾选时标成将安装，与底部新增计数同一套判定。
 	/// </summary>
 	public bool WholePack { get; set; }
 	/// <summary>取消勾选已装功能时不记为卸载（首次启动向导）。</summary>
@@ -87,11 +88,14 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 			return "";
 		}
 		if (Kinds == null || Kinds.Length == 0) return "";
-		var have = WholePack
-			? Kinds.Any(k => FeatureInstaller.Probe(k) != FeatureInstallState.Missing)
-			: FeatureInstaller.Probe(Kinds[Kinds.Length - 1]) != FeatureInstallState.Missing;
-		if (check == true && !have) return "add";
-		if (check != true && have && !KeepInstalled) return "del";
+		// 主组件决定这一行算不算已装。同行带上的依赖（Sherpa、解压库等）若还没装，
+		// 勾着也要标绿：确认时会一起下载，不能只出现在底部计数里。
+		var primary = WholePack
+			? Kinds.Any(FeaturePick.Installed)
+			: FeaturePick.Installed(Kinds[Kinds.Length - 1]);
+		var pending = check == true && Kinds.Any(k => !FeaturePick.Installed(k));
+		if (check == true && (!primary || pending)) return "add";
+		if (check != true && primary && !KeepInstalled) return "del";
 		return "";
 	}
 
@@ -118,6 +122,9 @@ sealed class FeaturePickNode : INotifyPropertyChanged {
 /// <summary>功能选择树：用户勾选产品功能，确认后映射到 FeatureKind 组件。</summary>
 static class FeaturePick {
 	public static readonly string[] RecommendedIds = ["ocr.ch", "asr.sv", "asr.zip", "rec.ffmpeg"];
+
+	/// <summary>装完整才算已有。测试可替换，避免探测本机磁盘。</summary>
+	internal static Func<FeatureKind, bool> Installed = k => FeatureInstaller.Has(k);
 
 	public static List<FeaturePickNode> BuildTree() {
 		var roots = buildtree();
@@ -213,8 +220,8 @@ static class FeaturePick {
 			}
 			var primary = n.Kinds[n.Kinds.Length - 1];
 			var have = n.WholePack
-				? n.Kinds.Any(k => FeatureInstaller.Probe(k) != FeatureInstallState.Missing)
-				: FeatureInstaller.Probe(primary) != FeatureInstallState.Missing;
+				? n.Kinds.Any(Installed)
+				: Installed(primary);
 			var want = have || ids.Contains(n.Id) || kinds.Contains(primary);
 			if (!want) {
 				foreach (var k in n.Kinds) {
@@ -256,21 +263,24 @@ static class FeaturePick {
 		add = new HashSet<FeatureKind>();
 		del = new HashSet<FeatureKind>();
 		foreach (FeatureKind k in Enum.GetValues(typeof(FeatureKind))) {
-			var st = FeatureInstaller.Probe(k);
 			var on = sel.Contains(k);
 			if (builtin(k)) continue;
-			var have = st == FeatureInstallState.Installed || st == FeatureInstallState.Update;
+			var have = Installed(k);
 			if (on && !have) add.Add(k);
-			else if (!keepInstalled && !on && st != FeatureInstallState.Missing) del.Add(k);
+			else if (!keepInstalled && !on && have) del.Add(k);
 		}
 	}
 
-	/// <summary>相对当前磁盘：将安装的组件 / 将卸载的组件。</summary>
+	/// <summary>相对当前磁盘：将安装 / 将卸载的行数与体积。行数与树上的绿、红一致，体积按实际组件算。</summary>
 	public static void DiffSelection(IEnumerable<FeaturePickNode> roots,
 		out int addN, out long addSz, out int delN, out long delSz, bool keepInstalled = false) {
 		CollectDelta(roots, out var add, out var del, keepInstalled);
-		addN = add.Count;
-		delN = del.Count;
+		addN = 0;
+		delN = 0;
+		foreach (var n in Leaves(roots)) {
+			if (n.Diff == "add") addN++;
+			else if (n.Diff == "del") delN++;
+		}
 		addSz = 0;
 		delSz = 0;
 		foreach (var k in add) addSz += FeatureInstaller.ExpectedSize(k);
@@ -279,8 +289,7 @@ static class FeaturePick {
 
 	public static void SelectMissing(IEnumerable<FeaturePickNode> roots) {
 		foreach (var n in Leaves(roots)) {
-			var need = n.Kinds != null && n.Kinds.Any(k =>
-				FeatureInstaller.Probe(k) != FeatureInstallState.Installed);
+			var need = n.Kinds != null && n.Kinds.Any(k => !Installed(k));
 			n.SetCheck(need, fromUi: true);
 		}
 	}

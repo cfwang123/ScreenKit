@@ -55,7 +55,9 @@ static class AppUpdater {
 	const string REPO_API_LIST = "https://api.github.com/repos/cfwang123/ScreenKit/releases?per_page=30";
 	const string REPO_API_PAGE = "https://api.github.com/repos/cfwang123/ScreenKit/releases?per_page=100&page=";
 	const string REPO_PAGE = "https://github.com/cfwang123/ScreenKit/releases";
-	const string UPDATER_EXE = "ScreenKit_updater.exe";
+	// 必须保持原文件名。改名后 WPF 的 Application.LoadComponent 仍按程序集名
+	// ScreenKit 找资源，会抛 FileNotFoundException，更新进程还没解压就退出。
+	const string UPDATER_EXE = "ScreenKit.exe";
 
 	static readonly HttpClient Http = createhttp();
 
@@ -798,18 +800,32 @@ static class AppUpdater {
 
 	static void copyupdaterdeps(string baseDir, string tmpDir) {
 		try {
-			foreach (var f in Directory.EnumerateFiles(baseDir)) {
-				var name = Path.GetFileName(f);
-				if (string.IsNullOrEmpty(name)) continue;
+			foreach (var f in Directory.EnumerateFiles(baseDir, "*", SearchOption.AllDirectories)) {
+				var rel = relpath(baseDir, f);
+				if (string.IsNullOrEmpty(rel)) continue;
+				// 用户数据和体积大的运行库，更新进程用不到
+				if (relstartswith(rel, "ocrmodels") || relstartswith(rel, "asrmodels")
+					|| relstartswith(rel, "ttsmodels") || relstartswith(rel, "tmp")
+					|| relstartswith(rel, "log") || relstartswith(rel, "screenshots")
+					|| relstartswith(rel, "onnxgpu64") || relstartswith(rel, "onnxdml64")
+					|| relstartswith(rel, "onnxcpu64") || relstartswith(rel, "ffmpeg64")
+					|| relstartswith(rel, "translatemodels") || relstartswith(rel, "facemodels")
+					|| relstartswith(rel, "web"))
+					continue;
+				var name = Path.GetFileName(rel);
 				var ext = Path.GetExtension(name).ToLowerInvariant();
-				// 主程序本体已单独复制为 ScreenKit_updater.exe，跳过
-				if (name.Equals(AppNames.ExeFile, StringComparison.OrdinalIgnoreCase)) continue;
-				if (name.Equals(UPDATER_EXE, StringComparison.OrdinalIgnoreCase)) continue;
 				if (ext is not (".dll" or ".config" or ".json" or ".exe")) continue;
-				// 跳过体积大的独立工具，更新进程不需要
 				if (name.StartsWith("processor_", StringComparison.OrdinalIgnoreCase)) continue;
+				// 主程序本体已单独复制，跳过
+				if (!rel.Contains("\\") && !rel.Contains("/")
+					&& (name.Equals(AppNames.ExeFile, StringComparison.OrdinalIgnoreCase)
+						|| name.Equals(UPDATER_EXE, StringComparison.OrdinalIgnoreCase)))
+					continue;
 				try {
-					File.Copy(f, Path.Combine(tmpDir, name), true);
+					var dest = Path.Combine(tmpDir, rel);
+					var parent = Path.GetDirectoryName(dest);
+					if (!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
+					File.Copy(f, dest, true);
 				}
 				catch { }
 			}
@@ -933,7 +949,8 @@ static class AppUpdater {
 			var dirs = Directory.GetDirectories(extractDir);
 			if (dirs.Length == 1 && hasmainexe(dirs[0]))
 				return dirs[0];
-			var found = Directory.GetFiles(extractDir, AppNames.ExeFile, SearchOption.AllDirectories).FirstOrDefault();
+			var found = Directory.GetFiles(extractDir, AppNames.ExeFile, SearchOption.AllDirectories)
+				.FirstOrDefault(f => !relstartswith(relpath(extractDir, f), "tmp"));
 			if (found != null)
 				return Path.GetDirectoryName(found) ?? extractDir;
 		}
@@ -966,6 +983,9 @@ static class AppUpdater {
 			copywithretry(file, dest, 8);
 		}
 	}
+
+	static string relpath(string root, string full) =>
+		full.Substring(root.Length).TrimStart('\\', '/');
 
 	static bool relstartswith(string rel, string folder) =>
 		rel.StartsWith(folder + "\\", StringComparison.OrdinalIgnoreCase)

@@ -1208,6 +1208,35 @@ static class Cli {
 		Out($"DirectMl size={FeatureInstaller.FormatBytes(dml)} progress={FeatureInstaller.FormatBytes(dmlNow)} grown={FeatureInstaller.FormatBytes(dmlWas)}");
 		if (dml < 180L * 1024 * 1024 || dmlNow < dml || dmlWas < 190L * 1024 * 1024)
 			return 1;
+		// 语音模型带着的依赖（Sherpa、解压库）没装时，勾选的行要标绿，底部计数与之相同，
+		// 体积仍是确认时实际会下载的组件。否则底部有新增、列表没有绿色项。
+		var saved = FeaturePick.Installed;
+		try {
+			var gone = new HashSet<FeatureKind> {
+				FeatureKind.NativeSherpa, FeatureKind.SharpCompress, FeatureKind.WetextItn,
+				FeatureKind.AsrSenseVoice, FeatureKind.AsrStreamZipformer,
+			};
+			FeaturePick.Installed = k => !gone.Contains(k);
+			var half = FeaturePick.BuildTree();
+			FeaturePick.ApplyInstalled(half);
+			FeaturePick.RefreshDiff(half);
+			FeaturePick.DiffSelection(half, out var halfN, out var halfSz, out var halfDel, out _);
+			var green = FeaturePick.Leaves(half).Where(n => n.Diff == "add").Select(n => n.Id).ToList();
+			Out($"Pick pending deps: add={halfN}/{FeatureInstaller.FormatBytes(halfSz)} green={string.Join(",", green)} del={halfDel}");
+			foreach (var n in FeaturePick.Leaves(half))
+				Out($"  leaf {n.Id} check={n.IsChecked} diff={n.Diff} kinds={string.Join(",", (n.Kinds ?? []).Select(k => k + ":" + (FeaturePick.Installed(k) ? "有" : "无")))}");
+			var wantSz = FeatureInstaller.ExpectedSize(FeatureKind.NativeSherpa)
+				+ FeatureInstaller.ExpectedSize(FeatureKind.SharpCompress)
+				+ FeatureInstaller.ExpectedSize(FeatureKind.WetextItn)
+				+ FeatureInstaller.ExpectedSize(FeatureKind.AsrSenseVoice)
+				+ FeatureInstaller.ExpectedSize(FeatureKind.AsrStreamZipformer);
+			if (halfN != green.Count || halfDel != 0 || halfSz != wantSz
+				|| !green.Contains("asr.sv") || !green.Contains("asr.zip"))
+				return 1;
+		}
+		finally {
+			FeaturePick.Installed = saved;
+		}
 		return 0;
 	}
 
