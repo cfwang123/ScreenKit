@@ -414,7 +414,7 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .rv-out { overflow-x: auto; }
 .rv-row { align-items: flex-end; flex-wrap: wrap; }
 .rv-row > label { width: auto; }
-.rv-row > .rv-kind { flex: 0 0 118px; }
+.rv-row > .rv-kind, .rv-row > .rv-gender, .rv-row > .rv-decl, .rv-row > .rv-anim { flex: 0 0 118px; }
 .rv-row > .rv-word { flex: 0 1 320px; width: 320px; max-width: 320px; min-width: 200px; }
 .rv-out .jv-tab { width: auto; }
 .ev-out { overflow-x: auto; }

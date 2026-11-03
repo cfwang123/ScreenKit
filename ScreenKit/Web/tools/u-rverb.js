@@ -529,8 +529,8 @@
 	];
 	var LAB = {
 		title: ["俄语词形变化", "Russian word forms"],
-		hint: ["先选类型（自动/动词/形容词/名词），再输入原形，所有变化一次列出。动词按自动判断的体列出现在时或将来时、过去时、命令式、假定式、语气、分词、副动词，以及口语和方言形式；形容词列出长尾变格、短尾、比较级、最高级和语体/方言形式；名词列出单复数六格、动物性、特殊形式和方言说明。方言组之前是 1–6 级语法和其它不常用语法，前置词按格接在名词上。完成体没有现在时。重音不标，方言形式仅供参考。",
-			"Pick a type (auto, verb, adjective or noun), then enter the base form. Every available form is listed at once: verbs show present or future, past, imperative, subjunctive, mood, participles, gerunds, plus colloquial and dialect forms; adjectives show long declension, short forms, comparative, superlative and register/dialect forms; nouns show all six cases in both numbers, animacy, special forms and dialect notes. Before the dialect group are levels 1–6 and other less common patterns; prepositions attach to the matching noun case. Perfective verbs have no present. Stress is not marked; dialect forms are illustrative."],
+		hint: ["先选类型（自动/动词/形容词/名词），再输入原形，所有变化一次列出。动词按自动判断的体列出现在时或将来时、过去时、命令式、假定式、语气、分词、副动词，以及口语和方言形式；形容词列出长尾变格、短尾、比较级、最高级和语体/方言形式；名词列出单复数六格、动物性、特殊形式和方言说明。选了名词后可以手选性、变格和动物性，不选就按词尾判断。方言组之前是 1–6 级语法和其它不常用语法，前置词按格接在名词上。完成体没有现在时。重音不标，方言形式仅供参考。",
+			"Pick a type (auto, verb, adjective or noun), then enter the base form. Every available form is listed at once: verbs show present or future, past, imperative, subjunctive, mood, participles, gerunds, plus colloquial and dialect forms; adjectives show long declension, short forms, comparative, superlative and register/dialect forms; nouns show all six cases in both numbers, animacy, special forms and dialect notes. After choosing a noun, gender, declension and animacy can be set by hand; otherwise they follow the ending. Before the dialect group are levels 1–6 and other less common patterns; prepositions attach to the matching noun case. Perfective verbs have no present. Stress is not marked; dialect forms are illustrative."],
 		word: ["原形", "Word"],
 		aspect: ["体", "Aspect"],
 		ph: ["动词不定式、形容词阳性单数或名词，如 читать、красивый、книга", "Infinitive, masculine adjective, or noun, e.g. читать, красивый, книга"],
@@ -578,6 +578,7 @@
 		verb: ["动词", "Verb"],
 		adj: ["形容词", "Adjective"],
 		noun: ["名词", "Noun"],
+		decl: ["变格", "Declension"],
 		anim: ["动物性", "Animacy"],
 		gender: ["性", "Gender"],
 		anim_yes: ["动物", "Animate"],
@@ -1164,15 +1165,23 @@
 
 	function nounInfo(w, opt){
 		var gender = opt.gender || "auto";
-		if (NOUN_IRR[w]) {
+		var decl = opt.decl || "auto";
+		if (decl === "indek") {
+			return { type: "indek", g: gender !== "auto" ? gender : (INDEK_G[w] || guessGender(w)), word: w };
+		}
+		if (decl === "mya") return { type: "mya", g: "n", forms: NOUN_IRR[w] || null, stem: w.replace(/мя$/, "м") };
+		if (NOUN_IRR[w] && decl === "auto") {
 			var gg = gender !== "auto" ? gender : guessGender(w);
 			return { type: "irr", g: gg, forms: NOUN_IRR[w], decl: guessDecl(w, gg) };
 		}
-		if (INDEK[w]) {
+		if (INDEK[w] && decl === "auto") {
 			var ig = gender !== "auto" ? gender : (INDEK_G[w] || "n");
 			return { type: "indek", g: ig, word: w };
 		}
-		if (MYA[w]) return { type: "mya", g: "n", forms: NOUN_IRR[w] || null };
+		if (MYA[w] && decl === "auto") return { type: "mya", g: "n", forms: NOUN_IRR[w] || null };
+		if (decl === "1") return nounByDecl(w, "1", gender);
+		if (decl === "2") return nounByDecl(w, "2", gender);
+		if (decl === "3") return nounByDecl(w, "3", gender);
 		if (/ия$/.test(w)) return { type: "ia", g: "f", stem: w.slice(0, -3) };
 		if (/ие$/.test(w)) return { type: "ie", g: "n", stem: w.slice(0, -2) };
 		if (/[ая]$/.test(w)) {
@@ -1185,9 +1194,27 @@
 		}
 		if (/й$/.test(w)) return { type: "msoft", g: "m", stem: w.slice(0, -1), soft: "y" };
 		if (/ё$/.test(w)) return { type: "yo", g: "n", stem: w.slice(0, -1) };
-		if (/о$/.test(w)) return { type: "o", g: "n", stem: w.slice(0, -1) };
-		if (/е$/.test(w)) return { type: "e", g: "n", stem: w.slice(0, -1) };
-		return { type: "m", g: "m", stem: w };
+		if (/о$/.test(w)) return { type: "o", g: gender !== "auto" ? gender : "n", stem: w.slice(0, -1) };
+		if (/е$/.test(w)) return { type: "e", g: gender !== "auto" ? gender : "n", stem: w.slice(0, -1) };
+		return { type: "m", g: gender !== "auto" ? gender : "m", stem: w };
+	}
+
+	function nounByDecl(w, decl, gender){
+		var g = gender !== "auto" ? gender : guessGender(w);
+		if (decl === "1") {
+			var stem = /[ая]$/.test(w) ? w.slice(0, -1) : w;
+			return { type: /я$/.test(w) || /[ьй]$/.test(stem) ? "ya" : "a", g: g === "m" ? "m" : "f", stem: stem };
+		}
+		if (decl === "3") {
+			var st3 = /ь$/.test(w) ? w.slice(0, -1) : w;
+			return { type: "i", g: "f", stem: st3, soft: "b" };
+		}
+		if (/й$/.test(w) || /ь$/.test(w)) return { type: "msoft", g: "m", stem: w.slice(0, -1), soft: /й$/.test(w) ? "y" : "b" };
+		if (/ё$/.test(w)) return { type: "yo", g: g === "m" ? "m" : "n", stem: w.slice(0, -1) };
+		if (/о$/.test(w)) return { type: "o", g: g === "m" ? "m" : "n", stem: w.slice(0, -1) };
+		if (/е$/.test(w)) return { type: "e", g: g === "m" ? "m" : "n", stem: w.slice(0, -1) };
+		var st = /[ая]$/.test(w) ? w.slice(0, -1) : w;
+		return { type: "m", g: g === "n" ? "n" : "m", stem: st };
 	}
 
 	function nounForms(info, anim){
@@ -1204,12 +1231,14 @@
 			var ins = (sibilant(last(st)) || last(st) === "ц") ? "ей" : "ой";
 			var pl = st + i;
 			var gp = NOUN_GENPL[info.word] || (/[жшчщ]к$/.test(st) ? st.slice(0, -1) + "ек" : st);
-			return [st + "а", st + i, st + "е", st + "у", st + ins, st + "е", pl, gp, st + "ам", anim ? gp : pl, st + "ами", st + "ах"];
+			var acc1 = anim && info.g === "m" ? gp : st + "у";
+			return [st + "а", st + i, st + "е", acc1, st + ins, st + "е", pl, gp, st + "ам", anim ? gp : pl, st + "ами", st + "ах"];
 		}
 		if (info.type === "ya") {
 			var pl2 = st + "и";
 			var gp2 = NOUN_GENPL[info.word] || (vowel(last(st)) ? st + "й" : st + "ь");
-			return [st + "я", st + "и", st + "е", st + "ю", st + "ей", st + "е", pl2, gp2, st + "ям", anim ? gp2 : pl2, st + "ями", st + "ях"];
+			var acc2 = anim && info.g === "m" ? gp2 : st + "ю";
+			return [st + "я", st + "и", st + "е", acc2, st + "ей", st + "е", pl2, gp2, st + "ям", anim ? gp2 : pl2, st + "ями", st + "ях"];
 		}
 		if (info.type === "ia") {
 			var pl3 = st + "ии";
@@ -1772,6 +1801,20 @@
 	}
 
 	// 选了类型就把下拉换成这个类型的例词；回到自动再列全部。
+	function kindvalue(){
+		var kind = page && page.doms.rvSelKind;
+		return kind ? kind.value : "auto";
+	}
+
+	function shownoun(kind){
+		var on = kind === "noun";
+		var ids = ["rvGender", "rvDecl", "rvAnim"];
+		for (var i = 0; i < ids.length; i++) {
+			var el = page && page.doms[ids[i]];
+			if (el) el.style.display = on ? "" : "none";
+		}
+	}
+
 	function ontype(){
 		SK.combofill("rv-in", pickgroups(langcode()));
 		run();
@@ -1854,6 +1897,15 @@
 			F.CreateDOM(t, { x: "p.rv-hint.hint", name: "rvHint" }),
 			F.CreateDOM(t, { x: "div.row.rv-row", name: "rvRow", c: [
 				{ x: "label.rv-kind", name: "rvKind", c: sel },
+				{ x: "label.rv-gender", name: "rvGender", c: F.CreateDOM(t, { x: "select.rv-sel-gender", name: "rvSelGender", c: [
+					{ x: "option", value: "auto" }, { x: "option", value: "m" }, { x: "option", value: "f" }, { x: "option", value: "n" }
+				] }) },
+				{ x: "label.rv-decl", name: "rvDecl", c: F.CreateDOM(t, { x: "select.rv-sel-decl", name: "rvSelDecl", c: [
+					{ x: "option", value: "auto" }, { x: "option", value: "1" }, { x: "option", value: "2" }, { x: "option", value: "3" }, { x: "option", value: "indek" }
+				] }) },
+				{ x: "label.rv-anim", name: "rvAnim", c: F.CreateDOM(t, { x: "select.rv-sel-anim", name: "rvSelAnim", c: [
+					{ x: "option", value: "auto" }, { x: "option", value: "anim" }, { x: "option", value: "inan" }
+				] }) },
 				{ x: "label.rv-word", name: "rvWord", c: SK.combo("rv-in", "читать", "不定式、形容词或名词") }
 			] }),
 			F.CreateDOM(t, { x: "div.rv-out", name: "rvOut" })
@@ -1871,18 +1923,37 @@
 		var title = SK.doms.boxTitle;
 		if (title) title.textContent = tx("web.tool.rverb", L(lang, LAB.title));
 		setlab("rv-kind", "web.rverb.kind", L(lang, LAB.kind));
+		setlab("rv-gender", "web.rverb.gender", L(lang, LAB.gender));
+		setlab("rv-decl", "web.rverb.decl", L(lang, LAB.decl));
+		setlab("rv-anim", "web.rverb.anim", L(lang, LAB.anim));
 		setlab("rv-word", "web.rverb.word", L(lang, LAB.word));
 		SK.combofill("rv-in", pickgroups(lang));
 		setopt("rv-sel-kind", "auto", "web.rverb.auto", L(lang, LAB.auto));
 		setopt("rv-sel-kind", "verb", "web.rverb.verb", L(lang, LAB.verb));
 		setopt("rv-sel-kind", "adj", "web.rverb.adj", L(lang, LAB.adj));
 		setopt("rv-sel-kind", "noun", "web.rverb.noun", L(lang, LAB.noun));
+		setopt("rv-sel-gender", "auto", "web.rverb.auto", L(lang, LAB.auto));
+		setopt("rv-sel-gender", "m", "web.rverb.g_m", L(lang, LAB.g_m));
+		setopt("rv-sel-gender", "f", "web.rverb.g_f", L(lang, LAB.g_f));
+		setopt("rv-sel-gender", "n", "web.rverb.g_n", L(lang, LAB.g_n));
+		setopt("rv-sel-decl", "auto", "web.rverb.auto", L(lang, LAB.auto));
+		setopt("rv-sel-decl", "1", "web.rverb.n_1", L(lang, LAB.n_1));
+		setopt("rv-sel-decl", "2", "web.rverb.n_2", L(lang, LAB.n_2));
+		setopt("rv-sel-decl", "3", "web.rverb.n_3", L(lang, LAB.n_3));
+		setopt("rv-sel-decl", "indek", "web.rverb.n_indek", L(lang, LAB.n_indek));
+		setopt("rv-sel-anim", "auto", "web.rverb.auto", L(lang, LAB.auto));
+		setopt("rv-sel-anim", "anim", "web.rverb.anim_yes", L(lang, LAB.anim_yes));
+		setopt("rv-sel-anim", "inan", "web.rverb.anim_no", L(lang, LAB.anim_no));
 		var box = page.doms.rvIn;
 		if (box) {
 			F.seta(box, "data-kph", "web.rverb.ph");
 			box.placeholder = tx("web.rverb.ph", L(lang, LAB.ph));
 		}
 		bind("rv-sel-kind", ontype);
+		bind("rv-sel-gender", run);
+		bind("rv-sel-decl", run);
+		bind("rv-sel-anim", run);
+		shownoun(kindvalue());
 		var out = page.doms.rvOut;
 		if (out && !F.attr(out, "data-bind")) {
 			F.seta(out, "data-bind", "1");
@@ -1916,6 +1987,10 @@
 		var box = page.doms.rvIn;
 		var word = box ? box.value : "";
 		var kind = page.doms.rvSelKind;
+		var gender = page.doms.rvSelGender;
+		var decl = page.doms.rvSelDecl;
+		var anim = page.doms.rvSelAnim;
+		shownoun(kind ? kind.value : "auto");
 		if (!norm(word)) {
 			ui.paint("", "", []);
 			SK.msg("box-msg", "");
@@ -1925,8 +2000,9 @@
 		var built = build(word, langcode(), {
 			kind: kind ? kind.value : "auto",
 			aspect: "auto",
-			anim: "auto",
-			gender: "auto",
+			anim: anim ? anim.value : "auto",
+			gender: gender ? gender.value : "auto",
+			decl: decl ? decl.value : "auto",
 			variant: "all"
 		});
 		var tcalc = ui.now() - t0;
