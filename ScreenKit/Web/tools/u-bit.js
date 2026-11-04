@@ -194,8 +194,9 @@
 	}
 
 	function placeblack(){
-		var whites = F.qa(".bit-keys .w");
-		var blacks = F.qa(".bit-keys .b");
+		var root = page.doms.bitKeys;
+		var whites = root ? root.querySelectorAll("button.w") : [];
+		var blacks = root ? root.querySelectorAll("button.b") : [];
 		var i, w, bw;
 		if (!whites.length) return;
 		for (i = 0; i < blacks.length; i++) {
@@ -213,7 +214,9 @@
 	function layoutkeys(){
 		var root = page.doms.bitKeys;
 		if (!root) return;
-		root.className = "bitkeys " + (root.clientWidth >= 21 * 40 + 20 ? "onerow" : "rows3");
+		// 只换排布用的类，别把根节点的 bit-keys 一起冲掉：别的选择器还靠它
+		root.classList.toggle("onerow", root.clientWidth >= 21 * 40 + 20);
+		root.classList.toggle("rows3", root.clientWidth < 21 * 40 + 20);
 		placeblack();
 	}
 
