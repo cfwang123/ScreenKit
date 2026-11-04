@@ -83,73 +83,6 @@
 							<CheckBox x:Name="etabdictvisible" Content="词典" Width="140" Margin="0,0,0,6"/>
 						</WrapPanel>
 
-						<TextBlock x:Name="lbsetftpsrv" Text="FTP / TFTP 服务" FontWeight="SemiBold" Margin="0,0,0,6"/>
-						<TextBlock x:Name="lbsetftpsrvhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,0,0,8"
-						           Text="勾选启用后点确定才启动；取消勾选或关闭该功能页会停掉服务。TFTP 与 FTP 共用目录，协议本身没有登录。"/>
-						<Grid Margin="0,0,0,4">
-							<Grid.ColumnDefinitions>
-								<ColumnDefinition Width="70"/>
-								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="8"/>
-								<ColumnDefinition Width="Auto"/>
-							</Grid.ColumnDefinitions>
-							<TextBlock x:Name="lbsetftpdir" Text="根目录" Grid.Column="0" VerticalAlignment="Center"
-							           FontSize="12" Foreground="{StaticResource TextMuted}"/>
-							<TextBox x:Name="esetftpdir" Grid.Column="1" Height="30" Padding="6,3"
-							         VerticalContentAlignment="Center"
-							         BorderBrush="{StaticResource BorderSoft}"
-							         AutomationProperties.AutomationId="set.ftp.dir"/>
-							<Button x:Name="bsetftpdirbrowse" Grid.Column="3" Content="浏览"
-							        Style="{StaticResource ToolBtn}" Height="30" MinWidth="56" Padding="8,2"
-							        AutomationProperties.AutomationId="set.ftp.dirbrowse"/>
-						</Grid>
-						<WrapPanel Margin="0,6,0,4">
-							<CheckBox x:Name="esetftpen" Content="启用 FTP" Width="120" Margin="0,0,0,6"
-							          VerticalAlignment="Center"
-							          AutomationProperties.AutomationId="set.ftp.enabled"/>
-							<StackPanel Orientation="Horizontal" Margin="0,0,16,6">
-								<TextBlock x:Name="lbsetftpport" Text="端口" VerticalAlignment="Center"
-								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
-								<TextBox x:Name="esetftpport" Width="80" Height="28" Padding="6,3"
-								         Text="21" VerticalContentAlignment="Center"
-								         BorderBrush="{StaticResource BorderSoft}"
-								         AutomationProperties.AutomationId="set.ftp.port"/>
-							</StackPanel>
-							<StackPanel Orientation="Horizontal" Margin="0,0,16,6">
-								<TextBlock x:Name="lbsetftpuser" Text="用户名" VerticalAlignment="Center"
-								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
-								<TextBox x:Name="esetftpuser" Width="110" Height="28" Padding="6,3"
-								         VerticalContentAlignment="Center"
-								         BorderBrush="{StaticResource BorderSoft}"
-								         AutomationProperties.AutomationId="set.ftp.user"/>
-							</StackPanel>
-							<StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-								<TextBlock x:Name="lbsetftppass" Text="密码" VerticalAlignment="Center"
-								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
-								<PasswordBox x:Name="esetftppass" Width="110" Height="28" Padding="6,3"
-								             VerticalContentAlignment="Center"
-								             BorderBrush="{StaticResource BorderSoft}"
-								             AutomationProperties.AutomationId="set.ftp.pass"/>
-							</StackPanel>
-						</WrapPanel>
-						<WrapPanel Margin="0,0,0,4">
-							<CheckBox x:Name="esettftpen" Content="启用 TFTP" Width="120" Margin="0,0,0,6"
-							          VerticalAlignment="Center"
-							          AutomationProperties.AutomationId="set.tftp.enabled"/>
-							<StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-								<TextBlock x:Name="lbsettftpport" Text="端口" VerticalAlignment="Center"
-								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
-								<TextBox x:Name="esettftpport" Width="80" Height="28" Padding="6,3"
-								         Text="69" VerticalContentAlignment="Center"
-								         BorderBrush="{StaticResource BorderSoft}"
-								         AutomationProperties.AutomationId="set.tftp.port"/>
-							</StackPanel>
-						</WrapPanel>
-						<TextBlock x:Name="lbsetftpanonhint" FontSize="11" Foreground="{StaticResource TextMuted}"
-						           TextWrapping="Wrap" Margin="0,0,0,16"
-						           Text="用户名留空即允许匿名访问。69 等低于 1024 的端口需要管理员权限。"/>
-
 						<TextBlock x:Name="lbsetupdate" Text="自动更新间隔" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<DockPanel Margin="0,0,0,4">
 							<TextBlock x:Name="lbsetupdatedaysunit" DockPanel.Dock="Right"
@@ -1114,6 +1047,73 @@
 						<Button x:Name="bsfunpair" Content="解除配对" Style="{StaticResource ToolBtn}"
 						        HorizontalAlignment="Left" Padding="12,6"
 						        AutomationProperties.AutomationId="set.sendfile.unpair"/>
+
+						<TextBlock x:Name="lbsetftpsrv" Text="FTP / TFTP 服务" FontWeight="SemiBold" Margin="0,16,0,6"/>
+						<TextBlock x:Name="lbsetftpsrvhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,8"
+						           Text="勾选启用后点确定才启动；取消勾选或关闭该功能页会停掉服务。TFTP 与 FTP 共用目录，协议本身没有登录。"/>
+						<Grid Margin="0,0,0,4">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="70"/>
+								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="8"/>
+								<ColumnDefinition Width="Auto"/>
+							</Grid.ColumnDefinitions>
+							<TextBlock x:Name="lbsetftpdir" Text="根目录" Grid.Column="0" VerticalAlignment="Center"
+							           FontSize="12" Foreground="{StaticResource TextMuted}"/>
+							<TextBox x:Name="esetftpdir" Grid.Column="1" Height="30" Padding="6,3"
+							         VerticalContentAlignment="Center"
+							         BorderBrush="{StaticResource BorderSoft}"
+							         AutomationProperties.AutomationId="set.ftp.dir"/>
+							<Button x:Name="bsetftpdirbrowse" Grid.Column="3" Content="浏览"
+							        Style="{StaticResource ToolBtn}" Height="30" MinWidth="56" Padding="8,2"
+							        AutomationProperties.AutomationId="set.ftp.dirbrowse"/>
+						</Grid>
+						<WrapPanel Margin="0,6,0,4">
+							<CheckBox x:Name="esetftpen" Content="启用 FTP" Width="120" Margin="0,0,0,6"
+							          VerticalAlignment="Center"
+							          AutomationProperties.AutomationId="set.ftp.enabled"/>
+							<StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+								<TextBlock x:Name="lbsetftpport" Text="端口" VerticalAlignment="Center"
+								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
+								<TextBox x:Name="esetftpport" Width="80" Height="28" Padding="6,3"
+								         Text="21" VerticalContentAlignment="Center"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         AutomationProperties.AutomationId="set.ftp.port"/>
+							</StackPanel>
+							<StackPanel Orientation="Horizontal" Margin="0,0,16,6">
+								<TextBlock x:Name="lbsetftpuser" Text="用户名" VerticalAlignment="Center"
+								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
+								<TextBox x:Name="esetftpuser" Width="110" Height="28" Padding="6,3"
+								         VerticalContentAlignment="Center"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         AutomationProperties.AutomationId="set.ftp.user"/>
+							</StackPanel>
+							<StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+								<TextBlock x:Name="lbsetftppass" Text="密码" VerticalAlignment="Center"
+								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
+								<PasswordBox x:Name="esetftppass" Width="110" Height="28" Padding="6,3"
+								             VerticalContentAlignment="Center"
+								             BorderBrush="{StaticResource BorderSoft}"
+								             AutomationProperties.AutomationId="set.ftp.pass"/>
+							</StackPanel>
+						</WrapPanel>
+						<WrapPanel Margin="0,0,0,4">
+							<CheckBox x:Name="esettftpen" Content="启用 TFTP" Width="120" Margin="0,0,0,6"
+							          VerticalAlignment="Center"
+							          AutomationProperties.AutomationId="set.tftp.enabled"/>
+							<StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+								<TextBlock x:Name="lbsettftpport" Text="端口" VerticalAlignment="Center"
+								           FontSize="12" Foreground="{StaticResource TextMuted}" Margin="0,0,6,0"/>
+								<TextBox x:Name="esettftpport" Width="80" Height="28" Padding="6,3"
+								         Text="69" VerticalContentAlignment="Center"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         AutomationProperties.AutomationId="set.tftp.port"/>
+							</StackPanel>
+						</WrapPanel>
+						<TextBlock x:Name="lbsetftpanonhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap"
+						           Text="用户名留空即允许匿名访问。69 等低于 1024 的端口需要管理员权限。"/>
 					</StackPanel>
 				</ScrollViewer>
 			</TabItem>

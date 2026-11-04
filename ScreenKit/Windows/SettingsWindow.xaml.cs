@@ -967,12 +967,12 @@ public partial class SettingsWindow : Window {
 		Result.TabCastVisible = etabcastvisible.IsChecked == true;
 		Result.TabFtpSrvVisible = etabftpsrvvisible.IsChecked == true;
 		Result.FtpSrvRoot = (esetftpdir.Text ?? "").Trim();
-		if (!tryint(esetftpport, Loc.T("ftpsrv.port"), 1, 65535, out var ftpPort, tabsetgen)) return false;
+		if (!tryint(esetftpport, Loc.T("ftpsrv.port"), 1, 65535, out var ftpPort, tabsethttp)) return false;
 		Result.FtpSrvPort = ftpPort;
 		Result.FtpSrvUser = (esetftpuser.Text ?? "").Trim();
 		Result.FtpSrvPass = esetftppass.Password ?? "";
 		Result.FtpSrvEnabled = esetftpen.IsChecked == true;
-		if (!tryint(esettftpport, Loc.T("ftpsrv.port"), 1, 65535, out var tftpPort, tabsetgen)) return false;
+		if (!tryint(esettftpport, Loc.T("ftpsrv.port"), 1, 65535, out var tftpPort, tabsethttp)) return false;
 		Result.TftpPort = tftpPort;
 		Result.TftpEnabled = esettftpen.IsChecked == true;
 		Result.TabDictVisible = Result.ModDict = etabdictvisible.IsChecked == true;
