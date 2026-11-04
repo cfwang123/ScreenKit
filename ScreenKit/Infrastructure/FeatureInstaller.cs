@@ -153,7 +153,7 @@ static class FeatureInstaller {
 	const string TRANSLATE7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/translatemodels.7z";
 	const long TRANSLATE7Z_BYTES = 1028366964L;
 	const string FFMPEG7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/ffmpeg.7z";
-	const long FFMPEG7Z_BYTES = 34126488L;
+	const long FFMPEG7Z_BYTES = 36148421L;
 	/// <summary>WeText C++ ITN（processor_pipe.exe + 中文 FST），自打包，随 dict-db 标签发布。</summary>
 	const string WETEXT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/wetext.7z";
 	const long WETEXT7Z_BYTES = 338408L;
@@ -195,6 +195,50 @@ static class FeatureInstaller {
 	public static string OnnxDmlDir => Path.Combine(BaseDir, "onnxdml64");
 	public static string OnnxCpuDir => Path.Combine(BaseDir, "onnxcpu64");
 	public static string FfmpegDir => Path.Combine(BaseDir, "ffmpeg64");
+
+	/// <summary>ffmpeg64 可用性缓存：-1 未检测，1 可用，2 不可用。</summary>
+	static int ffmpegok = -1;
+
+	/// <summary>
+	/// ffmpeg64 里的 ffmpeg.exe 与同目录 DLL 是否配套、能运行。
+	/// 只查文件存在不够：目录里可能是 DLL 4.x 配一个很旧的 exe，跑起来只报 Option not found。
+	/// </summary>
+	public static bool FfmpegUsable() {
+		if (ffmpegok >= 0) return ffmpegok == 1;
+		ffmpegok = ffmpegcanrun() ? 1 : 2;
+		return ffmpegok == 1;
+	}
+
+	static bool ffmpegcanrun() {
+		var exe = Path.Combine(FfmpegDir, "ffmpeg.exe");
+		try {
+			if (!File.Exists(exe)) return false;
+			if (Directory.GetFiles(FfmpegDir, "avcodec-*.dll").Length == 0) return false;
+			using var p = Process.Start(new ProcessStartInfo {
+				FileName = exe,
+				Arguments = "-hide_banner -version",
+				UseShellExecute = false,
+				CreateNoWindow = true,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+			});
+			if (p == null) return false;
+			var o = p.StandardOutput.ReadToEndAsync();
+			var e = p.StandardError.ReadToEndAsync();
+			if (!p.WaitForExit(8000)) {
+				try { p.Kill(); } catch { }
+				return false;
+			}
+			var text = o.GetAwaiter().GetResult() + e.GetAwaiter().GetResult();
+			// 4.x 才认识 -hide_banner；2013 版会直接报 Option not found。
+			return p.ExitCode == 0
+				&& (text.Contains("version 4.") || text.Contains("version n4."));
+		}
+		catch {
+			return false;
+		}
+	}
+
 	public static string FaceModelsDir => Path.Combine(BaseDir, "facemodels");
 	public static string TranslateModelsDir => Path.Combine(BaseDir, "translatemodels");
 
@@ -581,9 +625,7 @@ static class FeatureInstaller {
 		case FeatureKind.OrtCpu:
 			return probecpu();
 		case FeatureKind.Ffmpeg:
-			return Directory.Exists(FfmpegDir)
-				&& Directory.GetFiles(FfmpegDir, "avcodec-*.dll").Length > 0
-				? FeatureInstallState.Installed : FeatureInstallState.Missing;
+			return FfmpegUsable() ? FeatureInstallState.Installed : FeatureInstallState.Missing;
 		case FeatureKind.MediaFoundation:
 		case FeatureKind.Mjpeg:
 			return FeatureInstallState.Installed;
@@ -922,6 +964,7 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.Ffmpeg:
 			deletedir(FfmpegDir, log);
+			ffmpegok = -1;
 			break;
 		case FeatureKind.MediaFoundation:
 		case FeatureKind.Mjpeg:
@@ -2053,7 +2096,7 @@ arabic_dict.txt
 
 	static async Task installffmpeg(IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
 		Directory.CreateDirectory(FfmpegDir);
-		if (Directory.GetFiles(FfmpegDir, "avcodec-*.dll").Length > 0) {
+		if (FfmpegUsable()) {
 			log?.Report("ffmpeg64 已存在");
 			reportprog(progress, 1, note: "已存在");
 			return;
@@ -2074,6 +2117,9 @@ arabic_dict.txt
 			}
 			reportprog(progress, 1, done, total, note: "本地复制完成");
 			log?.Report("ffmpeg64 完成（本地）");
+			ffmpegok = -1;
+			if (!FfmpegUsable())
+				throw new InvalidOperationException("本地 FFmpeg 的 ffmpeg.exe 无法运行，请换一份 4.4 shared 构建");
 			return;
 		}
 
@@ -2105,6 +2151,9 @@ arabic_dict.txt
 		foreach (var f in Directory.GetFiles(binDir))
 			File.Copy(f, Path.Combine(FfmpegDir, Path.GetFileName(f)), true);
 		try { Directory.Delete(unpack, true); } catch { }
+		ffmpegok = -1;
+		if (!FfmpegUsable())
+			throw new InvalidOperationException("下载的 ffmpeg.7z 里 ffmpeg.exe 无法运行，安装包可能已损坏");
 		reportprog(progress, 1, zlen, zlen, Path.GetFileName(av), "完成");
 		log?.Report("ffmpeg64 完成 ← " + Path.GetFileName(av));
 	}

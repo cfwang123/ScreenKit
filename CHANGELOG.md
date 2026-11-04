@@ -44,6 +44,28 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Changed
+
+- Copying a screenshot path always uses /
+
+#### Fixed
+
+- Batch video convert no longer fails with a raw 'Error splitting the argument list: Option not found': ffmpeg64 is checked for a working ffmpeg.exe and a clear reinstall hint is shown when the exe and its DLLs do not match.
+
+### 中文
+
+#### 变更
+
+- 复制截图路径固定用 /，并去掉对应参数开关
+
+#### 修复
+
+- 修复视频批量转换报「Error splitting the argument list: Option not found」：检查 ffmpeg64 里的 ffmpeg.exe 能否与同目录 DLL 配套运行，不匹配时给出重新安装提示，而不是直接显示 ffmpeg 原始错误。
+
 ## v1.0.34 (2026-11-04)
 
 ### English

@@ -3413,11 +3413,11 @@ static class Cli {
 			bad++;
 		}
 		else Out("OK display dir");
-		if (ImageUtil.ScreenshotNameDefault != "dd_##" || !new OcrOptions().SnapPathSlash) {
+		if (ImageUtil.ScreenshotNameDefault != "dd_##") {
 			Err("FAIL defaults name=" + ImageUtil.ScreenshotNameDefault);
 			bad++;
 		}
-		else Out("OK defaults dd_## slash");
+		else Out("OK defaults dd_##");
 		if (ImageUtil.NormScreenshotName("0001") != "####"
 			|| ImageUtil.NormScreenshotName("") != ImageUtil.ScreenshotNameDefault
 			|| ImageUtil.NormScreenshotName("time") != ImageUtil.ScreenshotNameDefault

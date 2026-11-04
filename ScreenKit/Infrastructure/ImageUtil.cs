@@ -622,9 +622,6 @@ static class ImageUtil {
 	/// <summary>截图完成时是否以路径文本放入剪贴板（与 AsImage / AsFile 三选一；主窗配置同步）。</summary>
 	public static bool CurrentSnapCopyAsPath = false;
 
-	/// <summary>复制截图路径时把反斜杠写成正斜杠（主窗配置同步）。默认开。</summary>
-	public static bool CurrentSnapPathSlash = true;
-
 	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。</summary>
 	public static string CurrentSnapAnnTool = "rect";
 
@@ -914,7 +911,7 @@ static class ImageUtil {
 	static void copysnapshotclipboard(BitmapSource src, string path,
 		bool asImage, bool asFile, bool asPath) {
 		if (asPath)
-			copypathtoclipboard(path, CurrentSnapPathSlash);
+			copypathtoclipboard(path, true);
 		else if (asFile && !asImage)
 			copyfiletoclipboard(path);
 		else

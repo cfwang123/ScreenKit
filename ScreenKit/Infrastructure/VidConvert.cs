@@ -245,6 +245,8 @@ static class VidConvert {
 		var exe = FindExe();
 		if (string.IsNullOrEmpty(exe))
 			throw new InvalidOperationException(Loc.T("vidconv.noffmpeg"));
+		if (!FeatureInstaller.FfmpegUsable())
+			throw new InvalidOperationException(Loc.T("vidconv.badffmpeg"));
 		fmt = NormFmt(fmt);
 		crf = NormCrf(fmt, crf);
 		mode = NormOutMode(mode);
