@@ -19,12 +19,15 @@ public partial class UsbCapWindow : Window {
 	readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromMilliseconds(400) };
 
 	List<UsbCapDevice> devs = new();
+	Dictionary<string, UsbDev> devmap = new(StringComparer.OrdinalIgnoreCase);
 	PacketRow current;
 	int shown;
 	bool frozen;
 	int hlStart = -1;
 	int hlLen;
 	bool syncing;
+	int descgen;
+	bool dead;
 
 	public UsbCapWindow() {
 		InitializeComponent();
@@ -40,6 +43,8 @@ public partial class UsbCapWindow : Window {
 		bimport.Click += (_, _) => onimport();
 		badmin.Click += (_, _) => reopenelevated();
 		brefresh.Click += (_, _) => loadtree();
+		bdesc.Click += (_, _) => readdesc();
+		bdesccopy.Click += (_, _) => copydesc();
 		cdev.SelectionChanged += (_, _) => rebuild(true);
 		cxfer.SelectionChanged += (_, _) => rebuild(true);
 		eq.TextChanged += (_, _) => rebuild(true);
@@ -76,11 +81,13 @@ public partial class UsbCapWindow : Window {
 		lbstatus.Text = cap.Status;
 		updatetoggle();
 		if (!SysDeviceAdmin.IsAdmin()) badmin.Visibility = Visibility.Visible;
+		initdevui();
 		timer.Start();
 		WindowEsc.Attach(this);
 	}
 
 	void onclosed() {
+		dead = true;
 		timer.Stop();
 		var cap = UsbCaptureService.Instance;
 		cap.StatusChanged -= onstatus;
@@ -91,8 +98,16 @@ public partial class UsbCapWindow : Window {
 
 	void loadtree() {
 		List<UsbTreeNode> roots;
+		List<UsbDev> all = null;
+		try { all = UsbList.Scan(); }
+		catch { }
 		try { roots = UsbList.Tree(); }
 		catch { roots = new List<UsbTreeNode>(); }
+		devmap = new Dictionary<string, UsbDev>(StringComparer.OrdinalIgnoreCase);
+		foreach (var d in all ?? new List<UsbDev>()) {
+			var id = (d.InstanceId ?? "").Trim();
+			if (id.Length > 0 && !devmap.ContainsKey(id)) devmap[id] = d;
+		}
 		var keep = picked?.InstanceId ?? "";
 		tvdev.Items.Clear();
 		picked = null;
@@ -125,11 +140,122 @@ public partial class UsbCapWindow : Window {
 	void onpick() {
 		if (tvdev.SelectedItem is TreeViewItem it && it.Tag is UsbTreeNode n) picked = n;
 		var cap = UsbCaptureService.Instance;
+		showdevdetail();
+		// 选设备就看设备：右下角切到详情页，读描述符就在眼前
+		if (picked != null && tabdetail != null && tabdesc != null) tabdetail.SelectedItem = tabdesc;
 		if (cap.IsRunning) {
 			lbstatus.Text = "设备选择在下次开始抓包时生效 · " + cap.Status;
 			return;
 		}
 		lbstatus.Text = picktext();
+	}
+
+	// ───────── 设备详情 / 描述符 ─────────
+
+	/// <summary>按钮初始化：读描述符在选中设备后才可用，详情区先给提示。</summary>
+	void initdevui() {
+		ToolBtnUi.Set(bdesc, ToolBtnUi.Read, "读取描述符");
+		ToolBtnUi.Set(bdesccopy, ToolBtnUi.Copy, "复制");
+		bdesc.ToolTip = "只读设备的描述符：设备、配置、接口、端点和字符串。不重置设备";
+		bdesccopy.ToolTip = "复制右侧的描述符文本";
+		showdevdetail();
+	}
+
+	UsbDev pickeddev() {
+		var id = picked?.InstanceId ?? "";
+		return id.Length > 0 && devmap.TryGetValue(id, out var dev) ? dev : null;
+	}
+
+	/// <summary>把系统信息里 USB 页的参数字段搬到树的下方；换设备就清掉上次的描述符。</summary>
+	void showdevdetail() {
+		descgen++;
+		var dev = pickeddev();
+		var rows = new List<UsbPair>();
+		if (picked == null) {
+			lbdevtitle.Text = "设备详情";
+			lbdevstat.Text = "选择设备后显示";
+		}
+		else if (dev != null) {
+			lbdevtitle.Text = string.IsNullOrWhiteSpace(dev.Name) ? "设备详情" : dev.Name;
+			rows = dev.Props ?? new List<UsbPair>();
+			var bits = new List<string>();
+			if (!string.IsNullOrWhiteSpace(dev.VidPid)) bits.Add(dev.VidPid);
+			if (!string.IsNullOrWhiteSpace(dev.Status)) bits.Add(dev.Status);
+			lbdevstat.Text = string.Join(" · ", bits);
+		}
+		else {
+			// 树的节点不一定都能在枚举里找到同名实例：至少给出手上有的信息
+			lbdevtitle.Text = string.IsNullOrWhiteSpace(picked.Name) ? "设备详情" : picked.Name;
+			if (!string.IsNullOrWhiteSpace(picked.VidPid))
+				rows.Add(new UsbPair { Name = "VID:PID", Value = picked.VidPid });
+			if (picked.Address >= 0)
+				rows.Add(new UsbPair { Name = Loc.T("usb.p.addr"), Value = picked.Address.ToString() });
+			if (picked.IsHub)
+				rows.Add(new UsbPair { Name = Loc.T("usb.p.cls"), Value = "USB Hub" });
+			lbdevstat.Text = "系统枚举里没有对应实例";
+		}
+		icdevprops.ItemsSource = rows;
+		svdevprops.ScrollToTop();
+		bdesc.IsEnabled = dev != null;
+		bdesccopy.IsEnabled = !string.IsNullOrEmpty(edesc.Text);
+		edesc.Text = "";
+		lbdescstat.Text = dev == null ? "" : "点「读取描述符」查看设备的描述符";
+	}
+
+	/// <summary>点「读取描述符」才读，只读所选设备所在的集线器端口。</summary>
+	void readdesc() {
+		var dev = pickeddev();
+		if (dev == null) {
+			lbdescstat.Text = "先在左侧选择一台设备";
+			return;
+		}
+		var id = dev.InstanceId;
+		var gen = ++descgen;
+		setdescbusy(true);
+		edesc.Text = "";
+		lbdescstat.Text = "正在读取…";
+		if (tabdetail != null && tabdesc != null) tabdetail.SelectedItem = tabdesc;
+		Task.Run(() => {
+			UsbDescDev row = null;
+			string err = null;
+			try { row = UsbDesc.Read(dev); }
+			catch (Exception ex) { err = ex.Message; }
+			Dispatcher.BeginInvoke(new Action(() => {
+				if (dead || gen != descgen) return;
+				setdescbusy(false);
+				if (err != null) {
+					lbdescstat.Text = "读取失败：" + err;
+					return;
+				}
+				var cur = pickeddev();
+				if (cur == null || !string.Equals(cur.InstanceId, id, StringComparison.OrdinalIgnoreCase)) return;
+				if (row == null || string.IsNullOrWhiteSpace(row.Text)) {
+					lbdescstat.Text = "这台设备没有可读取的描述符";
+					return;
+				}
+				edesc.Text = row.Text;
+				edesc.ScrollToHome();
+				bdesccopy.IsEnabled = true;
+				lbdescstat.Text = "已读取描述符 · 写入描述符总长 " + row.Text.Length + " 字符";
+			}));
+		});
+	}
+
+	void setdescbusy(bool busy) {
+		bdesc.IsEnabled = !busy && pickeddev() != null;
+		bdesccopy.IsEnabled = !busy && !string.IsNullOrEmpty(edesc.Text);
+	}
+
+	void copydesc() {
+		var text = edesc.Text;
+		if (string.IsNullOrEmpty(text)) return;
+		try {
+			Clipboard.SetText(text);
+			lbdescstat.Text = "已复制描述符";
+		}
+		catch (Exception ex) {
+			lbdescstat.Text = "复制失败：" + ex.Message;
+		}
 	}
 
 	string picktext() {

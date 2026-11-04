@@ -112,9 +112,52 @@
 						<TextBlock Text="设备" FontWeight="SemiBold" Foreground="#312E81" VerticalAlignment="Center"/>
 					</DockPanel>
 				</Border>
-				<TreeView x:Name="tvdev" BorderThickness="0" Padding="4"
-				          AutomationProperties.AutomationId="usbcap.devices"
-				          ToolTip="选中一台设备后只抓它的包；选中集线器则连同它下面的设备一起抓。点空白处取消选择，抓全部"/>
+				<!-- 设备树占上半，选中设备后下半显示系统信息里的设备详情 -->
+				<Grid>
+					<Grid.RowDefinitions>
+						<RowDefinition Height="*" MinHeight="80"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="1.1*" MinHeight="120"/>
+					</Grid.RowDefinitions>
+					<TreeView x:Name="tvdev" Grid.Row="0" BorderThickness="0" Padding="4"
+					          AutomationProperties.AutomationId="usbcap.devices"
+					          ToolTip="选中一台设备后只抓它的包；选中集线器则连同它下面的设备一起抓。点空白处取消选择，抓全部"/>
+					<GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+					<Grid Grid.Row="2">
+						<Grid.RowDefinitions>
+							<RowDefinition Height="Auto"/>
+							<RowDefinition Height="*"/>
+						</Grid.RowDefinitions>
+						<Border Grid.Row="0" Background="#EEF2FF" Padding="8,4">
+							<DockPanel>
+								<TextBlock x:Name="lbdevtitle" DockPanel.Dock="Left" Text="设备详情" FontWeight="SemiBold"
+								           Foreground="#312E81" VerticalAlignment="Center"/>
+								<TextBlock x:Name="lbdevstat" DockPanel.Dock="Right" FontSize="11" Margin="8,0,0,0"
+								           Foreground="#4F46E5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+							</DockPanel>
+						</Border>
+						<ScrollViewer x:Name="svdevprops" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+						              HorizontalScrollBarVisibility="Disabled"
+						              AutomationProperties.AutomationId="usbcap.devprops">
+							<ItemsControl x:Name="icdevprops" Margin="6,4">
+								<ItemsControl.ItemTemplate>
+									<DataTemplate>
+										<Grid Margin="0,0,0,3">
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="86"/>
+												<ColumnDefinition Width="*"/>
+											</Grid.ColumnDefinitions>
+											<TextBlock Text="{Binding Name}" FontSize="11" Foreground="#718096"
+											           VerticalAlignment="Top" TextWrapping="Wrap"/>
+											<TextBlock Grid.Column="1" Text="{Binding Value}" FontSize="11"
+											           Foreground="#1A202C" VerticalAlignment="Top" TextWrapping="Wrap"/>
+										</Grid>
+									</DataTemplate>
+								</ItemsControl.ItemTemplate>
+							</ItemsControl>
+						</ScrollViewer>
+					</Grid>
+				</Grid>
 			</DockPanel>
 		</Border>
 		<GridSplitter Grid.Row="2" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
@@ -151,23 +194,51 @@
 			</Border>
 			<GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"/>
 			<Border Grid.Column="2" Background="White" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" CornerRadius="6">
-				<DockPanel>
-					<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock Text="十六进制" FontWeight="SemiBold" Foreground="#312E81" VerticalAlignment="Center"/>
-							<RadioButton x:Name="rraw" Content="整帧" Margin="16,0,8,0" IsChecked="True"/>
-							<RadioButton x:Name="rpay" Content="仅数据"/>
-						</StackPanel>
-					</Border>
-					<RichTextBox x:Name="ehex" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
-					             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-					             BorderThickness="0" Padding="8"/>
-				</DockPanel>
+				<TabControl x:Name="tabdetail" BorderThickness="0">
+					<TabItem x:Name="tabhex" Header="十六进制"
+					         AutomationProperties.AutomationId="usbcap.tab.hex">
+						<DockPanel>
+							<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+								<StackPanel Orientation="Horizontal">
+									<TextBlock Text="十六进制" FontWeight="SemiBold" Foreground="#312E81" VerticalAlignment="Center"/>
+									<RadioButton x:Name="rraw" Content="整帧" Margin="16,0,8,0" IsChecked="True"/>
+									<RadioButton x:Name="rpay" Content="仅数据"/>
+								</StackPanel>
+							</Border>
+							<RichTextBox x:Name="ehex" IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+							             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							             BorderThickness="0" Padding="8"/>
+						</DockPanel>
+					</TabItem>
+					<TabItem x:Name="tabdesc" Header="设备详情"
+					         AutomationProperties.AutomationId="usbcap.tab.desc">
+						<DockPanel>
+							<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="8,6">
+								<WrapPanel Orientation="Horizontal">
+									<Button x:Name="bdesc" Style="{StaticResource ToolBtn}" Padding="8,2" Margin="0,0,6,0"
+									        AutomationProperties.AutomationId="usbcap.desc"
+									        ToolTip="只读设备的描述符：设备、配置、端点、接口和字符串"/>
+									<Button x:Name="bdesccopy" Style="{StaticResource ToolBtn}" Padding="8,2"
+									        AutomationProperties.AutomationId="usbcap.desccopy"
+									        ToolTip="复制上面的描述符文本"/>
+									<TextBlock x:Name="lbdescstat" VerticalAlignment="Center" FontSize="11" Margin="4,0,0,0"
+									           Foreground="#4F46E5" TextTrimming="CharacterEllipsis"/>
+								</WrapPanel>
+							</Border>
+							<TextBox x:Name="edesc" IsReadOnly="True" AcceptsReturn="True"
+							         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+							         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							         TextWrapping="Wrap" BorderThickness="0" Padding="8"
+							         AutomationProperties.AutomationId="usbcap.desctext"/>
+						</DockPanel>
+					</TabItem>
+				</TabControl>
 			</Border>
 		</Grid>
 
 		<Border x:Name="bdstatus" Grid.Row="5" Grid.ColumnSpan="3" Margin="0,10,0,0" Background="#1E1B4B" CornerRadius="6" Padding="12,8">
-			<TextBlock x:Name="lbstatus" Foreground="#E0E7FF" FontSize="12" FontWeight="SemiBold"/>
+			<TextBlock x:Name="lbstatus" Foreground="#E0E7FF" FontSize="12" FontWeight="SemiBold"
+			           AutomationProperties.AutomationId="usbcap.status"/>
 		</Border>
 	</Grid>
 </Window>

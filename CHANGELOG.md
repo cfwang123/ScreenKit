@@ -50,12 +50,22 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Tray Tools menu now also offers the TCP/UDP/serial debugger, network monitor, USB capture and FTP manager, matching the main window's Tools menu.
+- USB capture now shows the selected device's details under the tree, the same fields as Tools > System Info's USB page, and a Read Descriptors button reads the device, configuration, interface, endpoint and string descriptors without resetting the device.
+
+#### Fixed
+
+- USB capture: picking a device no longer fails to start with 'no capture address'; the address was looked up by the localized property name, so on non-English systems it never matched.
 
 ### 中文
 
 #### 新增
 
 - 托盘的「工具」补上 TCP/UDP/串口调试、网络监控、USB 抓包和 FTP 文件管理，与主窗口工具菜单一致。
+- USB 抓包选中设备后，树下方直接显示设备详情（与「系统信息 → USB 设备」的参数一致），并可点「读取描述符」只读地取设备、配置、接口、端点和字符串描述符。
+
+#### 修复
+
+- USB 抓包：选中设备后开始抓包不再报「没有可抓的地址」。此前按本地化后的属性名找地址，中文系统上永远匹配不到。
 
 ## v1.0.33 (2026-11-02 ~ 11-04)
 

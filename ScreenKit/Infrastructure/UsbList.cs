@@ -49,10 +49,11 @@ public sealed class UsbTreeNode {
 	}
 }
 
-/// <summary>参数名和值。</summary>
+/// <summary>参数名和值。Key 是本地化前的原始键，按键判断用途时用它。</summary>
 public sealed class UsbPair {
 	public string Name { get; set; }
 	public string Value { get; set; }
+	public string Key { get; set; }
 }
 
 /// <summary>用 SetupAPI 只读列出当前 USB 枚举器上的设备，不打开设备。</summary>
@@ -115,12 +116,16 @@ static class UsbList {
 		return roots;
 	}
 
+	/// <summary>
+	/// 从系统参数里取设备地址。参数名是本地化后的显示名，必须按 Key 比对，
+	/// 否则中文系统下拿不到地址，选中设备后过滤位图全空，抓包直接失败。
+	/// </summary>
 	static int addressof(UsbDev dev) {
 		// 根集线器的地址固定是 0，但它不是一台可抓的设备
 		if (ishub(dev) && (dev.InstanceId ?? "").StartsWith("USB\\ROOT_HUB", StringComparison.OrdinalIgnoreCase))
 			return -1;
 		foreach (var p in dev.Props ?? new List<UsbPair>()) {
-			if (!string.Equals(p.Name, "usb.p.addr", StringComparison.OrdinalIgnoreCase)) continue;
+			if (!string.Equals(p.Key, "usb.p.addr", StringComparison.OrdinalIgnoreCase)) continue;
 			if (int.TryParse(p.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) && n >= 0 && n <= 127)
 				return n;
 		}
@@ -396,7 +401,7 @@ static class UsbList {
 		value = (value ?? "").Trim();
 		if (value.Length == 0) return;
 		if (value.Length > 2000) value = value.Substring(0, 2000);
-		props.Add(new UsbPair { Name = Loc.T(key), Value = value });
+		props.Add(new UsbPair { Name = Loc.T(key), Value = value, Key = key });
 	}
 
 	static void addparams(List<UsbPair> props, string id) {
