@@ -49,45 +49,45 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Tray Tools menu now also offers the TCP/UDP/serial debugger, network monitor, USB capture and FTP manager, matching the main window's Tools menu.
-- USB capture now shows the selected device's details under the tree, the same fields as Tools > System Info's USB page, and a Read Descriptors button reads the device, configuration, interface, endpoint and string descriptors without resetting the device.
-- Main window Tools tab lists every desktop and web tool by category, with favorites, search, and a click to open. All groups the cards under a heading for each category.
-- The tray shows a Favorites menu beside Tools and before it, only when at least one tool is favorited.
+- Tray Tools menu adds the TCP/UDP/serial debugger, network monitor, USB capture, and FTP manager, matching the main window.
+- USB capture shows the selected device's details under the tree, same as System Info's USB page, and Read Descriptors reads them without resetting the device.
+- The main window has a Tools tab: desktop and web tools by category, with favorites, search, and a click to open. All groups cards under a heading per category.
+- The tray shows Favorites beside Tools, and before it, only when something is favorited.
 
 #### Changed
 
-- Font Awesome is now a subset of the icons actually used: the font and stylesheet dropped from about 260 KB to about 16 KB. The USB ID card uses the plug icon, since the old font had no USB glyph.
-- Copy clipboard image as file now puts the picture straight into the screenshot folder. A picture already in that folder is copied as is, without saving another copy.
+- Font Awesome keeps only the icons in use, dropping from about 260 KB to about 16 KB. The USB ID card uses the plug icon.
+- Copy clipboard image as file saves straight into the screenshot folder, and copies a picture already there as is.
 
 #### Fixed
 
-- USB capture: picking a device no longer fails to start with 'no capture address'; the address was looked up by the localized property name, so on non-English systems it never matched.
-- USB capture: selecting a device now filters by the device address the hub reports rather than the Windows 'device address' property, which on many machines is just the hub port number, so a selected device could capture nothing while All devices worked.
-- 8bit synth: the black keys were all stacked in the top-left corner instead of sitting between the white keys; the layout routine overwrote the root element's class name, so the black-key positioning looked up white keys with a selector that no longer matched.
-- Web tools: switching the interface language while a verb-conjugation tool was open threw 'Cannot read properties of undefined (reading doms)', and its field labels doubled; the language hook rebuilt the page without passing the current page object, and label text was appended instead of replaced.
-- HTTP debugger: opening a saved sample no longer drops its query parameters. The address was filled first, and that change cleared the parameter box before the parameters were written, so the sample URL stayed without a query string.
+- USB capture: picking a device no longer fails with "no capture address" on non-English systems.
+- USB capture: a selected device is filtered by the hub's device address, so it captures packets instead of nothing.
+- 8bit synth: black keys sit between the white keys instead of stacking in the top-left corner.
+- Web tools: switching language in a conjugation tool no longer throws an error or doubles the field labels.
+- HTTP debugger: opening a saved sample keeps its query parameters.
 
 ### 中文
 
 #### 新增
 
-- 托盘的「工具」补上 TCP/UDP/串口调试、网络监控、USB 抓包和 FTP 文件管理，与主窗口工具菜单一致。
-- USB 抓包选中设备后，树下方直接显示设备详情（与「系统信息 → USB 设备」的参数一致），并可点「读取描述符」只读地取设备、配置、接口、端点和字符串描述符。
-- 主界面新增「工具」页，按分类列出本机窗口和网页工具，可收藏、搜索，单击打开。「全部」里按分类另起一行标题。
-- 托盘新增「收藏工具」，和「工具」并列、排在它前面，有收藏才显示。
+- 托盘「工具」补上 TCP/UDP/串口调试、网络监控、USB 抓包和 FTP 文件管理，与主窗口一致。
+- USB 抓包在树下显示选中设备的详情（同「系统信息 → USB 设备」），「读取描述符」只读读取、不复位设备。
+- 主界面新增「工具」页，按分类列出本机窗口和网页工具，可收藏、搜索、单击打开。「全部」按分类另起标题。
+- 托盘新增「收藏工具」，与「工具」并列并排在前面，有收藏才显示。
 
 #### 变更
 
-- Font Awesome 只保留实际用到的图标，字体和样式从约 260 KB 降到约 16 KB。常见 USB ID 的卡片改用插头图标，原来的字体里没有 USB 字形。
-- 复制剪贴板图片为文件时直接放进截图目录。图片本来就在这个目录里时直接复制，不再另存一份。
+- Font Awesome 只保留用到的图标，从约 260 KB 降到约 16 KB。常见 USB ID 的卡片改用插头图标。
+- 复制剪贴板图片为文件时直接放进截图目录；图片已在该目录则直接复制，不再另存。
 
 #### 修复
 
-- USB 抓包：选中设备后开始抓包不再报「没有可抓的地址」。此前按本地化后的属性名找地址，中文系统上永远匹配不到。
-- USB 抓包：选中设备后按集线器报的真实设备地址过滤。此前读的是系统的「设备地址」属性，不少机器上它其实是集线器端口号，导致选中具体设备时一包抓不到（选「全部」才正常）。
-- 8bit 合成器：黑键不再全挤在左上角，现在正常落在白键之间（排布时整组覆盖了根节点的类名，黑键定位用的选择器因此匹配不到白键）。
-- 网工具：词形变化类工具打开时切换界面语言会报「Cannot read properties of undefined (reading 'doms')」，字段标签也会重复；换语言时重绘没有把当前页面对象传进去，标签文字又是追加而非替换。
-- HTTP 请求调试：打开已保存的示例不再丢掉查询参数。此前先填地址，这次改动把参数框清空，参数还没写进去，示例地址就一直没有查询串。
+- USB 抓包：选中设备后不再因非英文系统报「没有可抓的地址」。
+- USB 抓包：选中设备按集线器报的设备地址过滤，不再一包抓不到。
+- 8bit 合成器：黑键落在白键之间，不再全挤在左上角。
+- 网页工具：词形变化工具打开时切换界面语言不再报错，字段标签也不再重复。
+- HTTP 请求调试：打开已保存的示例会保留查询参数。
 
 ## v1.0.33 (2026-11-02 ~ 11-04)
 
