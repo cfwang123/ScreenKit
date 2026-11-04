@@ -2159,6 +2159,8 @@ public partial class MainWindow : Window {
 			mnabout.ToolTip = Loc.T("menu.about.tip");
 			mngithub.Header = Loc.T("menu.github");
 			mngithub.ToolTip = Loc.T("menu.github.tip");
+			// 菜单名称不显示 (_X) 这种快捷键提示
+			stripmenuacc(mnmain);
 
 			tabocr.Header = Loc.T("tab.ocr");
 			tabtts.Header = Loc.T("tab.tts");
@@ -5758,6 +5760,16 @@ public partial class MainWindow : Window {
 	static bool ispdf(string path) {
 		var ext = System.IO.Path.GetExtension(path)?.ToLowerInvariant();
 		return ext == ".pdf";
+	}
+
+	static void stripmenuacc(ItemsControl menu) {
+		if (menu == null) return;
+		foreach (var obj in menu.Items) {
+			if (obj is not MenuItem item) continue;
+			if (item.Header is string text)
+				item.Header = ToolHub.Plain(text);
+			stripmenuacc(item);
+		}
 	}
 
 	// ==================== 工具页 ====================

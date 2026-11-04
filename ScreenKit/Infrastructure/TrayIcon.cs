@@ -680,7 +680,7 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	static void settext(Forms.ToolStripMenuItem mi, string key) {
-		if (mi != null) mi.Text = Loc.T(key);
+		if (mi != null) mi.Text = ToolHub.Plain(Loc.T(key));
 	}
 
 	public event Action ClipboardAsFileRequested;

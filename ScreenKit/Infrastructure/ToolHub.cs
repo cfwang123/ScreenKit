@@ -147,14 +147,17 @@ static class ToolHub {
 		return keep;
 	}
 
-	static string strip(string text) {
+	/// <summary>去掉名称末尾的菜单快捷键提示，如「简繁转换(_S)…」。</summary>
+	public static string Plain(string text) {
 		var s = text ?? "";
 		var i = s.IndexOf("(_", StringComparison.Ordinal);
-		if (i >= 0 && i + 4 == s.Length && s[s.Length - 1] == ')')
-			s = s.Substring(0, i);
+		if (i >= 0 && i + 3 < s.Length && s[i + 3] == ')')
+			s = s.Substring(0, i) + s.Substring(i + 4);
 		if (s.EndsWith("…")) s = s.Substring(0, s.Length - 1);
 		return s.Trim();
 	}
+
+	static string strip(string text) => Plain(text);
 
 	static List<ToolCard> webcards() {
 		var stamp = Environment.TickCount / 2000;
