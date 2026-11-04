@@ -116,14 +116,14 @@ public partial class PortUseWindow : Window {
 
 	void showsel() {
 		if (lv.SelectedItem is not Item it) {
-			lbdetail.Text = "";
+			edetail.Text = "";
 			bopen.IsEnabled = false;
 			return;
 		}
 		var remote = "";
 		if (!string.IsNullOrEmpty(it.Remote))
 			remote = "  →  " + it.Remote + (it.RemotePortText.Length > 0 ? ":" + it.RemotePortText : "");
-		lbdetail.Text = it.Proto + "  " + it.Local + ":" + it.LocalPort + remote
+		edetail.Text = it.Proto + "  " + it.Local + ":" + it.LocalPort + remote
 			+ (it.State.Length > 0 ? "  " + it.State : "")
 			+ "\nPID " + it.Pid + "  " + it.Proc
 			+ (string.IsNullOrEmpty(it.Path) ? "" : "\n" + it.Path);
