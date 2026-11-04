@@ -5908,7 +5908,7 @@ public partial class MainWindow : Window {
 			MaxWidth = 150,
 		});
 		var star = new TextBlock {
-			Text = "\uE734",
+			Text = fav ? "\uE735" : "\uE734",
 			FontFamily = ToolBtnUi.Mdl2,
 			FontSize = 14,
 			Width = 28,

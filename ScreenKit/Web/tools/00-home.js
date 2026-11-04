@@ -835,7 +835,7 @@
 						"data-name":"usb id 厂家 产品 型号 vid pid 罗技 苹果 微软",
 						"title":"列出常见 USB 设备的厂家、产品和型号，点一行可再查接口",
 						c:[
-						{x:"i.fa-solid.fa-usb"},
+						{x:"i.fa-solid.fa-plug"},
 						{x:"span","data-k":"web.tool.usbid",c:"常见 USB ID"},
 						{x:"i.star.fa-solid.fa-star","data-fav":"u-usbid","title":"收藏"}
 					]
