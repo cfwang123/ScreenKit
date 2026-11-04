@@ -52,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tray Tools menu now also offers the TCP/UDP/serial debugger, network monitor, USB capture and FTP manager, matching the main window's Tools menu.
 - USB capture now shows the selected device's details under the tree, the same fields as Tools > System Info's USB page, and a Read Descriptors button reads the device, configuration, interface, endpoint and string descriptors without resetting the device.
 - Main window Tools tab lists every desktop and web tool by category, with favorites, search, and a click to open. All groups the cards under a heading for each category.
+- Tray Tools menu starts with a Favorites submenu, shown only when at least one tool is favorited.
 
 #### Changed
 
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 托盘的「工具」补上 TCP/UDP/串口调试、网络监控、USB 抓包和 FTP 文件管理，与主窗口工具菜单一致。
 - USB 抓包选中设备后，树下方直接显示设备详情（与「系统信息 → USB 设备」的参数一致），并可点「读取描述符」只读地取设备、配置、接口、端点和字符串描述符。
 - 主界面新增「工具」页，按分类列出本机窗口和网页工具，可收藏、搜索，单击打开。「全部」里按分类另起一行标题。
+- 托盘「工具」菜单顶部新增「收藏工具」，有收藏才显示。
 
 #### 变更
 

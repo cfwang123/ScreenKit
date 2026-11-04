@@ -728,7 +728,14 @@ public partial class MainWindow : Window {
 			tray.WebHomeRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true)));
 			tray.WebFilesRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpfiles(fromTray: true)));
 			tray.WebDictRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdict(fromTray: true)));
-			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true, tool: id)));
+			tray.ToolFavProvider = () => opt.ToolFav;
+			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => {
+				if (id != null && id.StartsWith("fav:")) {
+					opentoolcard(ToolHub.Find(id.Substring(4)));
+					return;
+				}
+				openhttptools(fromTray: true, tool: id);
+			}));
 			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv()));
 			tray.CharArtRequested += () => Dispatcher.BeginInvoke(new Action(() => opencharart()));
 			tray.PixelArtRequested += () => Dispatcher.BeginInvoke(new Action(() => openpixel()));

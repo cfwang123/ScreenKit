@@ -269,6 +269,7 @@ sealed class TrayIcon : IDisposable {
 		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
 		miWebDict = item("web.dict", () => WebDictRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
+		miTools.DropDownItems.Add(new Forms.ToolStripMenuItem(Loc.T("web.cat.fav")) { Tag = "favhost" });
 		miTools.DropDownItems.Add(miWebHome);
 		miTools.DropDownItems.Add(miWebFiles);
 		miTools.DropDownItems.Add(miWebDict);
@@ -701,8 +702,11 @@ sealed class TrayIcon : IDisposable {
 	public event Action WebFilesRequested;
 	public event Action WebDictRequested;
 	public event Action<string> WebToolRequested;
+	/// <summary>收藏的卡片 id，逗号分隔。空时托盘不显示「收藏工具」。</summary>
+	public Func<string> ToolFavProvider;
 
 	void fillwebtools() {
+		filltrayfav();
 		stripweb(miCatText);
 		stripweb(miCatCalc);
 		stripweb(miCatSpeech);
@@ -730,6 +734,35 @@ sealed class TrayIcon : IDisposable {
 					try { WebToolRequested?.Invoke(id); } catch { }
 				}) { Tag = "web" });
 			}
+		}
+	}
+
+	/// <summary>有收藏才在「工具」顶部放「收藏工具」，里面按收藏顺序排列。</summary>
+	void filltrayfav() {
+		Forms.ToolStripMenuItem host = null;
+		for (int i = miTools.DropDownItems.Count - 1; i >= 0; i--) {
+			if (!Equals(miTools.DropDownItems[i].Tag, "favhost")) continue;
+			host = (Forms.ToolStripMenuItem)miTools.DropDownItems[i];
+			break;
+		}
+		if (host == null) return;
+		host.DropDownItems.Clear();
+		var raw = "";
+		try { raw = ToolFavProvider?.Invoke() ?? ""; } catch { }
+		var ids = ToolHub.KeepFav((raw ?? "").Split(','));
+		host.Visible = ids.Count > 0;
+		if (ids.Count == 0) return;
+		host.Text = ToolHub.Plain(Loc.T("web.cat.fav"));
+		foreach (var id in ids) {
+			var card = ToolHub.Find(id);
+			if (card == null) continue;
+			var name = ToolHub.NameOf(card);
+			if (name.Length == 0) name = card.Search ?? card.Id;
+			if (card.Kind == "web") name += " (web)";
+			var open = card.Id;
+			host.DropDownItems.Add(new Forms.ToolStripMenuItem(name, null, (_, _) => {
+				try { WebToolRequested?.Invoke("fav:" + open); } catch { }
+			}));
 		}
 	}
 
