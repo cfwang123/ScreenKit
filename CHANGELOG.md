@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - USB capture: selecting a device now filters by the device address the hub reports rather than the Windows 'device address' property, which on many machines is just the hub port number, so a selected device could capture nothing while All devices worked.
 - 8bit synth: the black keys were all stacked in the top-left corner instead of sitting between the white keys; the layout routine overwrote the root element's class name, so the black-key positioning looked up white keys with a selector that no longer matched.
 - Web tools: switching the interface language while a verb-conjugation tool was open threw 'Cannot read properties of undefined (reading doms)', and its field labels doubled; the language hook rebuilt the page without passing the current page object, and label text was appended instead of replaced.
+- HTTP debugger: opening a saved sample no longer drops its query parameters. The address was filled first, and that change cleared the parameter box before the parameters were written, so the sample URL stayed without a query string.
 
 ### 中文
 
@@ -72,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - USB 抓包：选中设备后按集线器报的真实设备地址过滤。此前读的是系统的「设备地址」属性，不少机器上它其实是集线器端口号，导致选中具体设备时一包抓不到（选「全部」才正常）。
 - 8bit 合成器：黑键不再全挤在左上角，现在正常落在白键之间（排布时整组覆盖了根节点的类名，黑键定位用的选择器因此匹配不到白键）。
 - 网工具：词形变化类工具打开时切换界面语言会报「Cannot read properties of undefined (reading 'doms')」，字段标签也会重复；换语言时重绘没有把当前页面对象传进去，标签文字又是追加而非替换。
+- HTTP 请求调试：打开已保存的示例不再丢掉查询参数。此前先填地址，这次改动把参数框清空，参数还没写进去，示例地址就一直没有查询串。
 
 ## v1.0.33 (2026-11-02 ~ 11-04)
 

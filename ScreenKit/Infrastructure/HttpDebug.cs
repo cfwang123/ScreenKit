@@ -95,6 +95,7 @@ static class HttpDebug {
 			seedself(book);
 			book.Seeded = true;
 		}
+		mergequery(book);
 		return book;
 	}
 
@@ -644,8 +645,17 @@ static class HttpDebug {
 			var fx = fresh.Items.FirstOrDefault(it => it.Id == "self-fx");
 			if (self == null || self.Name != "测试" || fresh.Items.Count(it => it.Group == SELF_GROUP) != 6)
 				fail("seed group");
-			if (usb == null || usb.Method != "GET" || usb.Url != SELF_ORIGIN + "/api/usb" || usb.Query.IndexOf("vid=046d", StringComparison.Ordinal) < 0)
+			if (usb == null || usb.Method != "GET" || usb.Url != SELF_ORIGIN + "/api/usb?vid=046d&pid=c52b"
+				|| usb.Query.IndexOf("vid=046d", StringComparison.Ordinal) < 0)
 				fail("seed usb");
+			var oldq = new HttpDbgBook { Seeded = true };
+			normalize(oldq, "未分组");
+			oldq.Items.Add(new HttpDbgItem {
+				Id = "old", Url = SELF_ORIGIN + "/api/pinyin", Query = "text=中国",
+			});
+			mergequery(oldq);
+			if (oldq.Items[0].Url != SELF_ORIGIN + "/api/pinyin?text=%E4%B8%AD%E5%9B%BD")
+				fail("merge query " + oldq.Items[0].Url);
 			if (fx == null || fx.Method != "POST" || fx.Body != "json" || fx.Json.IndexOf("USD", StringComparison.Ordinal) < 0)
 				fail("seed fx");
 			fresh.Groups.RemoveAll(g => g.Id == SELF_GROUP);
@@ -844,6 +854,15 @@ static class HttpDebug {
 
 	static string newid(string prefix) => prefix + Guid.NewGuid().ToString("N").Substring(0, 12);
 
+	/// <summary>地址还没有查询串、参数行里却有内容时，把参数编进地址。旧示例就是这样分开存的。</summary>
+	static void mergequery(HttpDbgBook book) {
+		foreach (var it in book.Items) {
+			if (it == null || string.IsNullOrEmpty(it.Query) || string.IsNullOrEmpty(it.Url)) continue;
+			if (it.Url.IndexOf('?') >= 0) continue;
+			it.Url = UrlWithQuery(it.Url, it.Query);
+		}
+	}
+
 	/// <summary>补上分组「测试」和本程序默认端口上的几条接口。分组已在时不改用户删过的请求。</summary>
 	static void seedself(HttpDbgBook book) {
 		if (book.Groups.Any(g => g.Id == SELF_GROUP)) return;
@@ -865,7 +884,7 @@ static class HttpDebug {
 				Group = SELF_GROUP,
 				Name = name,
 				Method = method,
-				Url = SELF_ORIGIN + path,
+				Url = UrlWithQuery(SELF_ORIGIN + path, query),
 				Query = query,
 				Json = json ?? "",
 				Body = string.IsNullOrEmpty(json) ? "params" : "json",

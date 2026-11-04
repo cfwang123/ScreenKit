@@ -176,8 +176,9 @@ public partial class HttpDebugWindow : Window {
 		curid = id;
 		loading = true;
 		ename.Text = item.Name ?? "";
-		eurl.Text = item.Url ?? "";
+		// 先填参数再写地址：地址变化会按查询串重写参数框，地址本身没有 ? 时会把参数清掉。
 		equery.Text = (item.Url ?? "").IndexOf('?') >= 0 ? HttpDebug.QueryOfUrl(item.Url) : (item.Query ?? "");
+		eurl.Text = item.Url ?? "";
 		eheaders.Text = item.Headers ?? "";
 		emethod.SelectedItem = item.Method == "POST" ? "POST" : "GET";
 		draftform = item.Form ?? "";
