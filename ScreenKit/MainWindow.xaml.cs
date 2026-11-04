@@ -713,10 +713,7 @@ public partial class MainWindow : Window {
 				if (selBarMenuUi) return;
 				applyselbar(on, true, true);
 			}));
-			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(() => {
-				if (tray != null) tray.showwindow();
-				saveimage();
-			}));
+			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(clipimageasfile));
 			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench()));
 			// 截图历史：打开截图历史窗口，不唤起主窗
 			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(() => openhistory()));
@@ -4136,6 +4133,25 @@ public partial class MainWindow : Window {
 		}
 		catch (Exception ex) {
 			setstatus($"复制图片失败: {ex.Message}");
+		}
+	}
+
+	/// <summary>托盘：剪贴板图片变成可粘贴的文件。已在截图目录里的直接复制。</summary>
+	void clipimageasfile() {
+		try {
+			var path = ImageUtil.ClipboardImageAsFile();
+			if (string.IsNullOrEmpty(path)) {
+				var msg = Loc.T("img.paste.empty");
+				setstatus(msg);
+				try { UiToast.Show(null, msg); } catch { }
+				return;
+			}
+			setstatus(Loc.T("st.clip_file", Path.GetFileName(path)));
+			try { UiToast.Show(null, Loc.T("st.clip_file", Path.GetFileName(path))); } catch { }
+		}
+		catch (Exception ex) {
+			setstatus(Loc.T("st.clip_file_fail", ex.Message));
+			try { UiToast.Show(null, Loc.T("st.clip_file_fail", ex.Message)); } catch { }
 		}
 	}
 

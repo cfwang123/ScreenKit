@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Font Awesome is now a subset of the icons actually used: the font and stylesheet dropped from about 260 KB to about 16 KB. The USB ID card uses the plug icon, since the old font had no USB glyph.
+- Copy clipboard image as file now puts the picture straight into the screenshot folder. A picture already in that folder is copied as is, without saving another copy.
 
 #### Fixed
 
@@ -78,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - Font Awesome 只保留实际用到的图标，字体和样式从约 260 KB 降到约 16 KB。常见 USB ID 的卡片改用插头图标，原来的字体里没有 USB 字形。
+- 复制剪贴板图片为文件时直接放进截图目录。图片本来就在这个目录里时直接复制，不再另存一份。
 
 #### 修复
 

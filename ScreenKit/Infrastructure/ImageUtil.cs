@@ -850,6 +850,52 @@ static class ImageUtil {
 	public static string SaveScreenshotAndCopyAsFile(BitmapSource src, string prefix = "shot") =>
 		SaveScreenshotAndCopy(src, prefix, copyAsImage: false, copyAsFile: true, copyAsPath: false);
 
+	/// <summary>
+	/// 剪贴板图片变成可粘贴的文件。已在截图目录里的图片文件直接复制，不再另存一份。
+	/// </summary>
+	/// <returns>放入剪贴板的文件路径。</returns>
+	public static string ClipboardImageAsFile() {
+		var src = clipboardimagefile();
+		if (src != null && inscreenshotsdir(src)) {
+			copyfiletoclipboard(src);
+			return src;
+		}
+		var bmp = Fromclipboard(out var path);
+		if (bmp == null) return null;
+		if (!string.IsNullOrEmpty(path) && inscreenshotsdir(path)) {
+			copyfiletoclipboard(path);
+			return path;
+		}
+		return SaveScreenshotAndCopyAsFile(bmp, "clip");
+	}
+
+	/// <summary>剪贴板里的图片文件路径。不是文件、或不是图片时返回 null。</summary>
+	static string clipboardimagefile() {
+		try {
+			if (!Clipboard.ContainsFileDropList()) return null;
+			var files = Clipboard.GetFileDropList();
+			if (files == null) return null;
+			string found = null;
+			foreach (string f in files) {
+				if (string.IsNullOrWhiteSpace(f) || !File.Exists(f) || !isimagepath(f)) continue;
+				if (found != null) return null;
+				found = Path.GetFullPath(f);
+			}
+			return found;
+		}
+		catch { return null; }
+	}
+
+	static bool inscreenshotsdir(string path) {
+		try {
+			var dir = Path.GetFullPath(ScreenshotsDir).TrimEnd(Path.DirectorySeparatorChar);
+			var full = Path.GetFullPath(path);
+			var parent = Path.GetDirectoryName(full);
+			return string.Equals(parent, dir, StringComparison.OrdinalIgnoreCase);
+		}
+		catch { return false; }
+	}
+
 	/// <summary>按当前复制方式把已有截图写入剪贴板，不新建文件。</summary>
 	public static void CopyExistingScreenshot(BitmapSource src, string path) {
 		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))

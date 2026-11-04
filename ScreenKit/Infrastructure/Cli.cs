@@ -55,7 +55,7 @@ static class Cli {
 				or "--test-overlay-layout" or "--test-overlay-span-adj" or "--test-ocr-overlay-fit"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
 				or "--test-record-cursor"
-				or "--test-clipboard-path"
+				or "--test-clipboard-path" or "--test-clipboard-file"
 				or "--test-sendfile"
 				or "--test-lang"
 				or "--test-apk-qr"
@@ -164,6 +164,7 @@ static class Cli {
 		bool doTestRecordCodec = false;
 		bool doTestRecordCursor = false;
 		bool doTestClipboardPath = false;
+		bool doTestClipboardFile = false;
 		string testRecordCodec = "av1";
 		int testRecordRepeat = 1;
 		string recordRegion = null; // L,T,W,H 物理像素
@@ -255,6 +256,9 @@ static class Cli {
 						break;
 					case "--test-clipboard-path":
 						doTestClipboardPath = true;
+						break;
+					case "--test-clipboard-file":
+						doTestClipboardFile = true;
 						break;
 					case "--repeat":
 						testRecordRepeat = int.Parse(Next());
@@ -742,6 +746,16 @@ static class Cli {
 			}
 			finally {
 				try { log?.Dispose(); } catch { }
+			}
+		}
+
+		if (doTestClipboardFile) {
+			try {
+				return runtestclipboardfile();
+			}
+			catch (Exception ex) {
+				Err($"剪贴板图片为文件测试失败: {ex.Message}");
+				return 1;
 			}
 		}
 
@@ -2980,6 +2994,82 @@ static class Cli {
 			fail("ParseNumbered miss got=" + string.Join("|", numbered.Select(x => x ?? "(null)")));
 
 		Out(bad == 0 ? "=== OK：续写判定与拼接 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	/// <summary>已在截图目录的图片文件直接复制，不另存；位图则落盘后再复制。</summary>
+	static int runtestclipboardfile() {
+		int code = 1;
+		Exception threadEx = null;
+		var t = new Thread(() => {
+			try { code = runtestclipboardfileCore(); }
+			catch (Exception ex) {
+				threadEx = ex;
+				code = 1;
+			}
+		});
+		t.SetApartmentState(ApartmentState.STA);
+		t.IsBackground = false;
+		t.Start();
+		t.Join();
+		if (threadEx != null) {
+			Err(threadEx.ToString());
+			return 1;
+		}
+		return code;
+	}
+
+	static int runtestclipboardfileCore() {
+		Out("=== 剪贴板图片为文件 --test-clipboard-file ===");
+		var bad = 0;
+		var dir = ImageUtil.ScreenshotsDir;
+		var bmp = new WriteableBitmap(8, 8, 96, 96, PixelFormats.Bgra32, null);
+		bmp.Freeze();
+		var inside = Path.Combine(dir, "clipfile_in_" + Environment.TickCount + ".png");
+		var outside = Path.Combine(Path.GetTempPath(), "clipfile_out_" + Environment.TickCount + ".png");
+		try {
+			ImageUtil.Savefile(bmp, inside);
+			ImageUtil.Savefile(bmp, outside);
+			var before = Directory.GetFiles(dir).Length;
+
+			var data = new DataObject();
+			data.SetFileDropList(new System.Collections.Specialized.StringCollection { inside });
+			Clipboard.SetDataObject(data, true);
+			var got = ImageUtil.ClipboardImageAsFile();
+			Out("inside -> " + got);
+			if (!string.Equals(got, Path.GetFullPath(inside), StringComparison.OrdinalIgnoreCase)) {
+				Err("FAIL: 截图目录内的文件被另存了");
+				bad++;
+			}
+			if (Directory.GetFiles(dir).Length != before) {
+				Err("FAIL: 截图目录文件数变了");
+				bad++;
+			}
+
+			data = new DataObject();
+			data.SetFileDropList(new System.Collections.Specialized.StringCollection { outside });
+			Clipboard.SetDataObject(data, true);
+			got = ImageUtil.ClipboardImageAsFile();
+			Out("outside -> " + got);
+			if (string.IsNullOrEmpty(got) || string.Equals(got, Path.GetFullPath(outside), StringComparison.OrdinalIgnoreCase)
+				|| !File.Exists(got)) {
+				Err("FAIL: 目录外的文件没有存进截图目录");
+				bad++;
+			}
+
+			Clipboard.SetImage(bmp);
+			got = ImageUtil.ClipboardImageAsFile();
+			Out("bitmap -> " + got);
+			if (string.IsNullOrEmpty(got) || !File.Exists(got)) {
+				Err("FAIL: 位图没有落盘");
+				bad++;
+			}
+		}
+		finally {
+			try { File.Delete(inside); } catch { }
+			try { File.Delete(outside); } catch { }
+		}
+		Out(bad == 0 ? "=== OK：截图目录内直接复制 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}
 
