@@ -84,19 +84,28 @@ static class UsbList {
 
 	/// <summary>
 	/// 按父子关系列出 USB 设备树。根是没有父节点、或父节点不在本次枚举里的设备。
-	/// 地址取设备管理器的设备地址，集线器没有地址；复合设备的接口挂在设备下面，地址跟父设备相同。
+	/// 地址用集线器端口报的设备地址（USBPcap 过滤和报文头用的就是它），集线器没有地址；
+	/// 复合设备的接口挂在设备下面，地址跟父设备相同。
 	/// </summary>
 	public static List<UsbTreeNode> Tree() {
 		var devs = Scan();
+		// DEVPKEY_Device_Address 在部分机器上是集线器端口号，不能当总线地址用；取不到时退回它。
+		Dictionary<string, int> real = null;
+		try { real = UsbDesc.Addresses(); }
+		catch { }
 		var byid = new Dictionary<string, UsbTreeNode>(StringComparer.OrdinalIgnoreCase);
 		foreach (var dev in devs) {
 			var id = (dev.InstanceId ?? "").Trim();
 			if (id.Length == 0 || byid.ContainsKey(id)) continue;
+			var addr = -1;
+			if (real != null && real.TryGetValue(id, out var busaddr)) addr = busaddr;
+			// 接口（&MI_xx）不是集线器端口上的设备，自己的地址没有意义：留给 filladdr 跟父设备
+			if (addr < 0 && id.IndexOf("&MI_", StringComparison.OrdinalIgnoreCase) < 0) addr = addressof(dev);
 			byid[id] = new UsbTreeNode {
 				Name = dev.Name ?? "",
 				VidPid = dev.VidPid ?? "",
 				InstanceId = id,
-				Address = addressof(dev),
+				Address = addr,
 				IsHub = ishub(dev)
 			};
 		}

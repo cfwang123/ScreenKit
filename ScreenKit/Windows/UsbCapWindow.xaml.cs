@@ -177,7 +177,7 @@ public partial class UsbCapWindow : Window {
 		}
 		else if (dev != null) {
 			lbdevtitle.Text = string.IsNullOrWhiteSpace(dev.Name) ? "设备详情" : dev.Name;
-			rows = dev.Props ?? new List<UsbPair>();
+			rows = new List<UsbPair>(dev.Props ?? new List<UsbPair>());
 			var bits = new List<string>();
 			if (!string.IsNullOrWhiteSpace(dev.VidPid)) bits.Add(dev.VidPid);
 			if (!string.IsNullOrWhiteSpace(dev.Status)) bits.Add(dev.Status);
@@ -194,6 +194,12 @@ public partial class UsbCapWindow : Window {
 				rows.Add(new UsbPair { Name = Loc.T("usb.p.cls"), Value = "USB Hub" });
 			lbdevstat.Text = "系统枚举里没有对应实例";
 		}
+		// 抓包过滤用的是总线地址，与系统属性里的「设备地址」可能不同，单独列一行说清楚
+		if (picked != null && picked.Address >= 0)
+			rows.Insert(0, new UsbPair {
+				Name = "抓包地址",
+				Value = picked.Address + "（按它过滤报文）",
+			});
 		icdevprops.ItemsSource = rows;
 		svdevprops.ScrollToTop();
 		bdesc.IsEnabled = dev != null;

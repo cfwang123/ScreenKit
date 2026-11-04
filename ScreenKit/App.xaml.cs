@@ -130,6 +130,30 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		// USB 抓包真抓自测：按地址过滤跑几秒，看有没有读到包（需管理员）
+		if (args.Any(a => a == "--test-usbcap-live")) {
+			var lines = new System.Collections.Generic.List<string>();
+			var secs = 5;
+			List<int> addrs = new();
+			foreach (var a in args) {
+				if (a.StartsWith("--secs=", StringComparison.Ordinal) && int.TryParse(a.Substring(7), out var s)) secs = s;
+				if (a.StartsWith("--addr=", StringComparison.Ordinal))
+					foreach (var part in a.Substring(7).Split(','))
+						if (int.TryParse(part.Trim(), out var n)) addrs.Add(n);
+			}
+			var code = 1;
+			try { code = UsbCaptureService.LiveTest(lines.Add, secs, addrs.Count > 0 ? addrs : null); }
+			catch (Exception ex) { lines.Add("[ERR] " + ex); }
+			try {
+				var text = string.Join("\n", lines);
+				File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "usbcap_live.log"), text, new UTF8Encoding(false));
+				Console.Out.Write(text);
+			}
+			catch { }
+			Environment.Exit(code);
+			return;
+		}
+
 		// SOAP 调试核心自测：不启动 GUI，结果写到 soap_selftest.log
 		if (args.Any(a => a == "--test-soap")) {
 			var lines = new System.Collections.Generic.List<string>();

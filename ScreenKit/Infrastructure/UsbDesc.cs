@@ -67,6 +67,58 @@ static class UsbDesc {
 		return one.Count > 0 ? one[0] : null;
 	}
 
+	/// <summary>
+	/// 取一批设备在总线上真正的设备地址，按实例 ID 返回。
+	/// DEVPKEY_Device_Address 在不少机器上给的是集线器端口号，和 USBPcap 过滤、报文头里的地址不是一回事；
+	/// 这里直接读集线器端口的 NODE_CONNECTION_INFORMATION_EX，拿到驱动实际用的 DeviceAddress。
+	/// </summary>
+	public static Dictionary<string, int> Addresses() {
+		var map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+		var bykey = new Dictionary<string, UsbDev>(StringComparer.OrdinalIgnoreCase);
+		foreach (var dev in UsbList.Scan()) {
+			var key = (dev.DriverKey ?? "").Trim();
+			if (key.Length > 0 && !bykey.ContainsKey(key)) bykey[key] = dev;
+		}
+		var hub = GHub;
+		var h = SetupDiGetClassDevsGuid(ref hub, IntPtr.Zero, IntPtr.Zero, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+		if (h == IntPtr.Zero || h == new IntPtr(-1)) return map;
+		try {
+			for (var i = 0; ; i++) {
+				var ifd = new SpDevInterfaceData { CbSize = Marshal.SizeOf(typeof(SpDevInterfaceData)) };
+				if (!SetupDiEnumDeviceInterfaces(h, IntPtr.Zero, ref hub, i, ref ifd)) break;
+				var path = detail(h, ref ifd);
+				if (path.Length == 0) continue;
+				collectaddr(map, path, bykey);
+			}
+		}
+		finally { SetupDiDestroyDeviceInfoList(h); }
+		return map;
+	}
+
+	static void collectaddr(Dictionary<string, int> map, string hubpath, Dictionary<string, UsbDev> bykey) {
+		var h = CreateFileW(hubpath, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
+		if (h == new IntPtr(-1)) return;
+		try {
+			var ni = new byte[512];
+			if (!DeviceIoControl(h, IOCTL_GET_NODE_INFO, ni, ni.Length, ni, ni.Length, out _, IntPtr.Zero)) return;
+			var ports = ni[6];
+			for (var port = 1; port <= ports; port++) {
+				var buf = new byte[4096];
+				BitConverter.GetBytes((uint)port).CopyTo(buf, 0);
+				if (!DeviceIoControl(h, IOCTL_GET_NODE_CONN_INFO_EX, buf, 35, buf, buf.Length, out _, IntPtr.Zero))
+					continue;
+				if (BitConverter.ToInt32(buf, 31) != CONN_CONNECTED) continue;
+				var addr = BitConverter.ToUInt16(buf, 25);
+				if (addr < 1 || addr > 127) continue;
+				var key = drvkey(h, port);
+				if (key.Length == 0 || !bykey.TryGetValue(key, out var dev)) continue;
+				var id = (dev.InstanceId ?? "").Trim();
+				if (id.Length > 0 && !map.ContainsKey(id)) map[id] = addr;
+			}
+		}
+		finally { CloseHandle(h); }
+	}
+
 	static List<UsbDescDev> scan(Func<UsbDev, bool> want) {
 		var map = new Dictionary<string, UsbDev>(StringComparer.OrdinalIgnoreCase);
 		foreach (var dev in UsbList.Scan()) {

@@ -40,6 +40,41 @@ sealed class UsbCaptureService : IDisposable {
 	/// <summary>命令行自测入口，转给解析器。</summary>
 	public static int SelfTest(Action<string> log) => UsbPacketParser.SelfTest(log);
 
+	/// <summary>
+	/// 真抓一小段：按地址过滤跑几秒，看有没有读回调、包数和第一个包。
+	/// 需要管理员权限，用于排查「开始抓包后一包都没有」。
+	/// </summary>
+	public static int LiveTest(Action<string> log, int seconds, IReadOnlyCollection<int> addresses) {
+		var env = CheckEnvironment();
+		log("env: " + (env ?? "ok"));
+		var devs = ListDevices();
+		log($"root hubs: {devs.Count} -> " + string.Join(", ", devs.Select(d => d.Name)));
+		if (env != null || devs.Count == 0) return 1;
+		log("filter: " + (addresses == null || addresses.Count == 0 ? "全部" : string.Join(",", addresses)));
+
+		var flt = UsbPacketParser.AddressFilter(addresses);
+		log($"filterBytes: {flt.Length} [{string.Join(" ", flt.Select(b => b.ToString("X2")))}]");
+
+		var svc = new UsbCaptureService();
+		var callbacks = 0;
+		var bytes = 0;
+		svc.RawRead = (n, raw) => { Interlocked.Increment(ref callbacks); Interlocked.Add(ref bytes, n); };
+		svc.Start(devs, addresses);
+		log("status: " + svc.Status);
+		Thread.Sleep(Math.Max(1000, seconds * 1000));
+		log($"readCallbacks={callbacks} bytes={bytes} packets={svc.Count} devices={svc.DeviceCount}");
+		var snap = svc.Snapshot();
+		foreach (var r in snap.Take(5))
+			log($"  #{r.No} {r.ConnKey} {r.Protocol} {r.Flags} len={r.PayloadLength} {r.InfoText}");
+		svc.Stop();
+		log("after stop: " + svc.Status);
+		svc.Dispose();
+		return svc.Count > 0 ? 0 : 2;
+	}
+
+	/// <summary>每次底层读到字节就回调一次（字节数、原始内容），用于命令行走查。</summary>
+	public Action<int, byte[]> RawRead { get; set; }
+
 	/// <summary>缺驱动或未提权时返回提示，否则返回 null。</summary>
 	public static string CheckEnvironment() {
 		if (!SysDeviceAdmin.IsAdmin())
@@ -156,6 +191,7 @@ sealed class UsbCaptureService : IDisposable {
 				if (!GetOverlappedResult(h, ref ov, out var got, false)) break;
 				pend = false;
 				if (got == 0) continue;
+				try { RawRead?.Invoke((int)got, buf); } catch { }
 				carry.Write(buf, 0, (int)got);
 				drain(carry);
 			}
