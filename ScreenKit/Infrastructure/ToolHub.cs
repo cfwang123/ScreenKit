@@ -82,7 +82,6 @@ static class ToolHub {
 		new() { Id = "w-fileprobe", Cat = "files", Kind = "act", Open = "fileprobe", NameKey = "menu.fileprobe", TipKey = "menu.fileprobe.tip", Glyph = "\uE7C3" },
 		new() { Id = "w-codestat", Cat = "files", Kind = "act", Open = "codestat", NameKey = "menu.codestat", TipKey = "menu.codestat.tip", Glyph = "\uE943" },
 		new() { Id = "w-sendfile", Cat = "files", Kind = "tab", Open = "sendfile", NameKey = "tab.sendfile", TipKey = "tab.sendfile", Glyph = "\uE898" },
-		new() { Id = "w-ftpsrv", Cat = "files", Kind = "tab", Open = "ftpsrv", NameKey = "ftpsrv.tab", TipKey = "ftpsrv.tab", Glyph = "\uE774" },
 		new() { Id = "w-sys", Cat = "sys", Kind = "act", Open = "sys", NameKey = "menu.sysinfo", TipKey = "menu.sysinfo.tip", Glyph = "\uE770" },
 		new() { Id = "w-systool", Cat = "sys", Kind = "act", Open = "systool", NameKey = "menu.systool", TipKey = "menu.systool.tip", Glyph = "\uE90F" },
 		new() { Id = "w-perfmon", Cat = "sys", Kind = "act", Open = "perfmon", NameKey = "menu.perfmon", TipKey = "menu.perfmon.tip", Glyph = "\uE9D9" },
