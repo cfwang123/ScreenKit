@@ -43,6 +43,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Added
+
+- Tray Tools menu now also offers the TCP/UDP/serial debugger, network monitor, USB capture and FTP manager, matching the main window's Tools menu.
+
+### 中文
+
+#### 新增
+
+- 托盘的「工具」补上 TCP/UDP/串口调试、网络监控、USB 抓包和 FTP 文件管理，与主窗口工具菜单一致。
+
 ## v1.0.33 (2026-11-02 ~ 11-04)
 
 ### English

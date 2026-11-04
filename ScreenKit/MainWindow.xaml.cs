@@ -754,8 +754,12 @@ public partial class MainWindow : Window {
 			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon()));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg()));
 			tray.MqttRequested += () => Dispatcher.BeginInvoke(new Action(() => openmqtt()));
+			tray.UdpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openudpdbg()));
 			tray.SoapDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => opensoapdbg()));
+			tray.NetMonRequested += () => Dispatcher.BeginInvoke(new Action(() => opennetmon()));
+			tray.UsbCapRequested += () => Dispatcher.BeginInvoke(new Action(() => openusbcap()));
 			tray.TlsRequested += () => Dispatcher.BeginInvoke(new Action(() => opentls()));
+			tray.FtpRequested += () => Dispatcher.BeginInvoke(new Action(() => openftp()));
 			tray.SqlRequested += () => Dispatcher.BeginInvoke(new Action(() => opensql()));
 			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv()));
 			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin()));
