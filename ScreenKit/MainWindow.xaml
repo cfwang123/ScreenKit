@@ -2369,6 +2369,71 @@
 				         AutomationProperties.AutomationId="tab.dict">
 					<local:DictWindow x:Name="dicthost"/>
 				</TabItem>
+				<TabItem x:Name="tabtools" Header="工具"
+				         AutomationProperties.AutomationId="tab.tools">
+					<Grid Margin="8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="196"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+						<Border Grid.Column="0" Background="{StaticResource BgPanel}" CornerRadius="12"
+						        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="8" Margin="0,0,8,0">
+							<ListBox x:Name="ltoolcat" BorderThickness="0" Background="Transparent"
+							         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+							         AutomationProperties.AutomationId="tools.cats">
+								<ListBox.ItemContainerStyle>
+									<Style TargetType="ListBoxItem">
+										<Setter Property="Padding" Value="0"/>
+										<Setter Property="Margin" Value="0,1"/>
+										<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+										<Setter Property="Template">
+											<Setter.Value>
+												<ControlTemplate TargetType="ListBoxItem">
+													<Border x:Name="bd" Background="Transparent" CornerRadius="8" Padding="10,7">
+														<ContentPresenter/>
+													</Border>
+													<ControlTemplate.Triggers>
+														<Trigger Property="IsSelected" Value="True">
+															<Setter TargetName="bd" Property="Background" Value="#F97316"/>
+															<Setter Property="Foreground" Value="White"/>
+														</Trigger>
+														<MultiTrigger>
+															<MultiTrigger.Conditions>
+																<Condition Property="IsMouseOver" Value="True"/>
+																<Condition Property="IsSelected" Value="False"/>
+															</MultiTrigger.Conditions>
+															<Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+														</MultiTrigger>
+													</ControlTemplate.Triggers>
+												</ControlTemplate>
+											</Setter.Value>
+										</Setter>
+									</Style>
+								</ListBox.ItemContainerStyle>
+							</ListBox>
+						</Border>
+						<DockPanel Grid.Column="1" LastChildFill="True">
+							<Border DockPanel.Dock="Top" Background="{StaticResource BgPanel}" CornerRadius="12"
+							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="10" Margin="0,0,0,8">
+								<TextBox x:Name="etoolq" Height="32" Padding="8,4"
+								         BorderBrush="{StaticResource BorderSoft}"
+								         VerticalContentAlignment="Center"
+								         AutomationProperties.AutomationId="tools.search"/>
+							</Border>
+							<Border Background="{StaticResource BgPanel}" CornerRadius="12"
+							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
+								<ScrollViewer x:Name="ptoolscroll" VerticalScrollBarVisibility="Auto" Padding="12">
+									<StackPanel>
+										<WrapPanel x:Name="ptoolcards"/>
+										<TextBlock x:Name="lbtoolnone" Margin="6,12,0,0" FontSize="13"
+										           Foreground="{StaticResource TextMuted}" Visibility="Collapsed"
+										           TextWrapping="Wrap"/>
+									</StackPanel>
+								</ScrollViewer>
+							</Border>
+						</DockPanel>
+					</Grid>
+				</TabItem>
 		</TabControl>
 
 		<Border Grid.Row="2" Background="{StaticResource BgPanel}"

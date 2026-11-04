@@ -325,6 +325,10 @@ static class AppConfig {
 				o.TabDictVisible = parsebool(tdictv, true);
 			if (map.TryGetValue("tab_ftpsrv_visible", out var tfsv2))
 				o.TabFtpSrvVisible = parsebool(tfsv2, false);
+			if (map.TryGetValue("tab_tools_visible", out var ttoolv))
+				o.TabToolsVisible = parsebool(ttoolv, true);
+			if (map.TryGetValue("tool_fav", out var tfav))
+				o.ToolFav = (tfav ?? "").Trim().Trim('"');
 			if (map.TryGetValue("update_check_days", out var ucd) && int.TryParse(ucd, out var ucDays))
 				o.UpdateCheckDays = Compat.Clamp(ucDays, 0, 3650);
 			if (map.TryGetValue("update_url", out var uurl))
@@ -841,6 +845,9 @@ static class AppConfig {
 		sb.AppendLine($"tab_cast_visible = {(o.TabCastVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_dict_visible = {(o.TabDictVisible ? "true" : "false")}");
 		sb.AppendLine($"tab_ftpsrv_visible = {(o.TabFtpSrvVisible ? "true" : "false")}");
+		sb.AppendLine($"tab_tools_visible = {(o.TabToolsVisible ? "true" : "false")}");
+		sb.AppendLine($"# 工具页收藏的卡片 id，逗号分隔。没有这张卡片的 id 下次保存时丢掉");
+		sb.AppendLine($"tool_fav = \"{esc(o.ToolFav ?? "")}\"");
 		sb.AppendLine($"# 简易 FTP 服务端。默认关闭；根目录留空表示程序目录下的 ftproot\\；用户名留空表示允许匿名");
 		sb.AppendLine($"ftpsrv_enabled = {(o.FtpSrvEnabled ? "true" : "false")}");
 		sb.AppendLine($"ftpsrv_port = {Compat.Clamp(o.FtpSrvPort <= 0 ? 21 : o.FtpSrvPort, 1, 65535)}");

@@ -172,6 +172,9 @@ public partial class MainWindow : Window {
 		trysetwindowicon();
 		// 先读配置再装模型栏
 		AppConfig.LoadInto(opt);
+		// 收藏里没有这张卡片的 id 直接丢掉，不改写成别的卡片
+		var toolfav = ToolHub.KeepFav((opt.ToolFav ?? "").Split(','));
+		opt.ToolFav = string.Join(",", toolfav);
 		// 发布版只认合并后的 web/tools.js；开发目录用 config.toml 的 dev = true 保留各工具脚本
 		if (!opt.Dev) WebToolSources.Clean();
 		DictDb.HoldMinutes = () => opt.DictDbHoldMin;
@@ -324,6 +327,7 @@ public partial class MainWindow : Window {
 			(tabcast, opt.TabCastVisible),
 			(tabftpsrv, opt.TabFtpSrvVisible),
 			(tabdict, opt.TabDictVisible && opt.ModDict),
+			(tabtools, opt.TabToolsVisible),
 		};
 		TabItem keep = null;
 		if (maintabs.SelectedItem is TabItem selected) {
@@ -1853,6 +1857,7 @@ public partial class MainWindow : Window {
 			fillwebmenu();
 		};
 		fillwebmenu();
+		inittoolhub();
 		mnwebhome.Click += (_, _) => openhttptools();
 		mnwebfiles.Click += (_, _) => openhttpfiles(false);
 		mnwebdict.Click += (_, _) => openhttpdict(false);
@@ -2162,6 +2167,8 @@ public partial class MainWindow : Window {
 			try { applyllmloglang(); } catch { }
 			tabtr.Header = Loc.T("tab.translate");
 			tabdict.Header = Loc.T("tab.dict");
+			tabtools.Header = Loc.T("tab.tools");
+			try { applytoolhublang(); } catch { }
 			try { applyhttplang(); } catch { }
 			try { applysflang(); } catch { }
 			try { applycastlang(); } catch { }
@@ -5752,6 +5759,228 @@ public partial class MainWindow : Window {
 		var ext = System.IO.Path.GetExtension(path)?.ToLowerInvariant();
 		return ext == ".pdf";
 	}
+
+	// ==================== 工具页 ====================
+	#region
+	string toolcat = ToolHub.All;
+
+	void inittoolhub() {
+		ltoolcat.SelectionChanged += (_, _) => {
+			if (ltoolcat.SelectedItem is ListBoxItem item && item.Tag is string id)
+				toolcat = id;
+			filltoolcards();
+		};
+		etoolq.TextChanged += (_, _) => filltoolcards();
+		filltoolcats();
+		filltoolcards();
+	}
+
+	void applytoolhublang() {
+		etoolq.ToolTip = Loc.T("web.find");
+		lbtoolnone.Text = Loc.T("web.find.none");
+		filltoolcats();
+		filltoolcards();
+	}
+
+	void filltoolcats() {
+		var keep = toolcat;
+		ltoolcat.Items.Clear();
+		foreach (var cat in ToolHub.Cats) {
+			var row = new StackPanel { Orientation = Orientation.Horizontal };
+			row.Children.Add(new TextBlock {
+				Text = cat.Glyph,
+				FontFamily = ToolBtnUi.Mdl2,
+				FontSize = 15,
+				Width = 22,
+				VerticalAlignment = VerticalAlignment.Center,
+			});
+			row.Children.Add(new TextBlock {
+				Text = ToolHub.CatName(cat.Id),
+				VerticalAlignment = VerticalAlignment.Center,
+			});
+			ltoolcat.Items.Add(new ListBoxItem { Content = row, Tag = cat.Id });
+		}
+		foreach (ListBoxItem item in ltoolcat.Items) {
+			if (!Equals(item.Tag, keep)) continue;
+			ltoolcat.SelectedItem = item;
+			return;
+		}
+		if (ltoolcat.Items.Count > 1) ltoolcat.SelectedIndex = 1;
+	}
+
+	List<string> toolfavs() =>
+		ToolHub.KeepFav((opt.ToolFav ?? "").Split(','));
+
+	void filltoolcards() {
+		var q = (etoolq.Text ?? "").Trim();
+		var fav = toolfavs();
+		var favset = new HashSet<string>(fav);
+		ptoolcards.Children.Clear();
+		var shown = 0;
+		foreach (var card in ToolHub.Cards()) {
+			if (toolcat == ToolHub.Fav) {
+				if (!favset.Contains(card.Id)) continue;
+			}
+			else if (toolcat != ToolHub.All && card.Cat != toolcat) continue;
+			if (q.Length > 0 && !toolhit(card, q)) continue;
+			ptoolcards.Children.Add(toolcard(card, favset.Contains(card.Id)));
+			shown++;
+		}
+		var none = shown == 0;
+		lbtoolnone.Visibility = none ? Visibility.Visible : Visibility.Collapsed;
+		lbtoolnone.Text = toolcat == ToolHub.Fav && q.Length == 0
+			? Loc.T("web.fav.none") : Loc.T("web.find.none");
+	}
+
+	bool toolhit(ToolCard card, string q) {
+		if (ToolHub.NameOf(card).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if ((card.Search ?? "").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if (card.Id.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		return ToolHub.TipOf(card).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+	}
+
+	Border toolcard(ToolCard card, bool fav) {
+		var name = ToolHub.NameOf(card);
+		if (name.Length == 0) name = card.Search ?? card.Id;
+		if (card.Kind == "web") name += " (web)";
+		var tip = ToolHub.TipOf(card);
+		var row = new StackPanel { Orientation = Orientation.Horizontal };
+		row.Children.Add(new TextBlock {
+			Text = card.Glyph,
+			FontFamily = ToolBtnUi.Mdl2,
+			FontSize = 16,
+			Width = 24,
+			Foreground = new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44)),
+			VerticalAlignment = VerticalAlignment.Center,
+			Margin = new Thickness(0, 0, 8, 0),
+		});
+		row.Children.Add(new TextBlock {
+			Text = name,
+			FontSize = 14,
+			TextWrapping = TextWrapping.Wrap,
+			VerticalAlignment = VerticalAlignment.Center,
+			MaxWidth = 150,
+		});
+		var star = new TextBlock {
+			Text = "\uE734",
+			FontFamily = ToolBtnUi.Mdl2,
+			FontSize = 14,
+			Width = 28,
+			TextAlignment = TextAlignment.Center,
+			VerticalAlignment = VerticalAlignment.Center,
+			Foreground = new SolidColorBrush(fav
+				? Color.FromRgb(0xF9, 0x73, 0x16)
+				: Color.FromRgb(0xC4, 0xBE, 0xB6)),
+			Margin = new Thickness(6, 0, 0, 0),
+			Cursor = Cursors.Hand,
+			ToolTip = Loc.T(fav ? "web.fav.tip.off" : "web.fav.tip"),
+		};
+		var id = card.Id;
+		star.MouseLeftButtonDown += (_, e) => {
+			e.Handled = true;
+			toggletoolfav(id);
+		};
+		row.Children.Add(star);
+		var box = new Border {
+			Width = 220,
+			MinHeight = 40,
+			Margin = new Thickness(0, 0, 10, 10),
+			Padding = new Thickness(8, 5, 4, 5),
+			CornerRadius = new CornerRadius(8),
+			Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF1, 0xF4)),
+			Cursor = Cursors.Hand,
+			ToolTip = tip.Length > 0 ? tip : name,
+			Tag = card,
+			Child = row,
+		};
+		box.MouseEnter += (_, _) =>
+			box.Background = new SolidColorBrush(Color.FromRgb(0xE4, 0xE8, 0xED));
+		box.MouseLeave += (_, _) =>
+			box.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF1, 0xF4));
+		box.MouseLeftButtonDown += (_, e) => {
+			if (e.ClickCount < 2) return;
+			e.Handled = true;
+			opentoolcard(card);
+		};
+		return box;
+	}
+
+	void toggletoolfav(string id) {
+		var fav = toolfavs();
+		if (!fav.Remove(id)) fav.Add(id);
+		opt.ToolFav = string.Join(",", fav);
+		try { AppConfig.Save(opt); } catch { }
+		filltoolcards();
+	}
+
+	void opentoolcard(ToolCard card) {
+		if (card == null) return;
+		if (card.Kind == "web") {
+			openhttptools(tool: card.Open);
+			return;
+		}
+		if (card.Kind == "tab") {
+			opentooltab(card.Open);
+			return;
+		}
+		opentoolact(card.Open);
+	}
+
+	void opentooltab(string id) {
+		if (id == "dict") opendicttab();
+		else if (id == "cast") opencast();
+		else if (id == "sendfile") selectmaintab(tabsf);
+		else if (id == "ftpsrv") selectmaintab(tabftpsrv);
+	}
+
+	void opentoolact(string id) {
+		if (id == "trpopup") showtranslatepopup();
+		else if (id == "texttool") opentexttool();
+		else if (id == "mdread") openmdread();
+		else if (id == "doc2md") opendoc2md();
+		else if (id == "pwgen") openpwgen();
+		else if (id == "note") opennote();
+		else if (id == "zhconv") openzhconv();
+		else if (id == "pinyin") openpinyin();
+		else if (id == "jpyomi") openjpyomi();
+		else if (id == "hash") openhash();
+		else if (id == "scicalc") openscicalc();
+		else if (id == "voicerec") openvoicerec();
+		else if (id == "midi") openmidi();
+		else if (id == "wincal") openwincal();
+		else if (id == "pdf") openpdfworkbench();
+		else if (id == "imgconv") openimgconv();
+		else if (id == "charart") opencharart();
+		else if (id == "pixel") openpixel();
+		else if (id == "vidconv") openvidconv();
+		else if (id == "vidgif") openvidgif();
+		else if (id == "qrmake") openqrmake();
+		else if (id == "cam") opencam();
+		else if (id == "rtspsrv") openrtspsrv();
+		else if (id == "glyphmod") openglyphmod();
+		else if (id == "net") opennettool();
+		else if (id == "httpdbg") openhttpdbg();
+		else if (id == "mqtt") openmqtt();
+		else if (id == "udpdbg") openudpdbg();
+		else if (id == "soapdbg") opensoapdbg();
+		else if (id == "portuse") openportuse();
+		else if (id == "netmon") opennetmon();
+		else if (id == "usbcap") openusbcap();
+		else if (id == "tls") opentls();
+		else if (id == "ftp") openftp();
+		else if (id == "sql") opensql();
+		else if (id == "files") openhttpfiles(false);
+		else if (id == "rename") openrename();
+		else if (id == "fastcopy") openfastcopy();
+		else if (id == "fileprobe") openfileprobe();
+		else if (id == "codestat") opencodestat();
+		else if (id == "sys") opensys();
+		else if (id == "systool") opensystool();
+		else if (id == "perfmon") openperfmon();
+		else if (id == "wintop") openwintop();
+		else if (id == "autokey") openautokey();
+	}
+	#endregion
 
 	void applydefaultmodel() {
 		if (WinOcr.Is(opt)) return;

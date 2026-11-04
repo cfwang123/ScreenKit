@@ -381,6 +381,10 @@ public sealed class OcrOptions {
 	public bool TabDictVisible = true;
 	/// <summary>FTP 服务页是否显示。隐藏时同时停服务。</summary>
 	public bool TabFtpSrvVisible = false;
+	/// <summary>工具页是否显示。只隐藏页面，不影响菜单和托盘。</summary>
+	public bool TabToolsVisible = true;
+	/// <summary>工具页收藏的卡片 id，逗号分隔。没有这张卡片的 id 读入时丢掉。</summary>
+	public string ToolFav = "";
 
 	/// <summary>FTP 服务端。默认关闭，端口 21，根目录为程序目录下 ftproot\；用户名留空表示匿名。</summary>
 	public bool FtpSrvEnabled;
@@ -757,6 +761,8 @@ public sealed class OcrOptions {
 		TabCastVisible = TabCastVisible,
 		TabDictVisible = TabDictVisible,
 		TabFtpSrvVisible = TabFtpSrvVisible,
+		TabToolsVisible = TabToolsVisible,
+		ToolFav = ToolFav ?? "",
 		FtpSrvEnabled = FtpSrvEnabled,
 		FtpSrvPort = FtpSrvPort,
 		FtpSrvRoot = FtpSrvRoot ?? "",

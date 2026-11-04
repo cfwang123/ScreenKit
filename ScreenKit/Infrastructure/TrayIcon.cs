@@ -755,7 +755,7 @@ sealed class TrayIcon : IDisposable {
 		return null;
 	}
 
-	static string catalogjs() {
+	public static string CatalogJs() {
 		// 页面只加载合并后的 tools.js。旧版本留在 web/tools 里的各工具脚本可能已经过时，
 		// 菜单目录要以 tools.js 为准，否则会出现菜单和页面对不上。
 		if (SendFileWebPages.TryLoad("tools.js", out var bytes) && bytes != null && bytes.Length > 0)
@@ -779,7 +779,7 @@ sealed class TrayIcon : IDisposable {
 		var cats = new List<(string Id, string Title)>();
 		var tools = new List<(string Id, string Cat, string Name)>();
 		var list = new List<(string Id, string Title, List<(string Id, string Name)> Tools)>();
-		var js = catalogjs();
+		var js = CatalogJs();
 		if (js.Length == 0) return list;
 		foreach (Match m in Regex.Matches(js, "\"data-cat\":\"([^\"]+)\"\\s*,\\s*\"data-title\":\"([^\"]+)\"\\s*,\\s*\"data-kt\":\"([^\"]+)\"")) {
 			if (m.Groups[1].Value == "fav" || m.Groups[1].Value == "all") continue;

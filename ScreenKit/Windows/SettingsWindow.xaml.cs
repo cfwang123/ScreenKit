@@ -254,6 +254,7 @@ public partial class SettingsWindow : Window {
 			lbsettftpport.Text = Loc.T("ftpsrv.port");
 			lbsetftpanonhint.Text = Loc.T("ftpsrv.hint");
 			etabdictvisible.Content = Loc.T("tab.dict");
+			etabtoolsvisible.Content = Loc.T("tab.tools");
 			lbsetupdate.Text = Loc.T("set.update");
 			lbsetupdatedaysunit.Text = Loc.T("set.update.unit");
 			lbsetupdatehint.Text = Loc.T("set.update.hint");
@@ -669,6 +670,7 @@ public partial class SettingsWindow : Window {
 		etabsfvisible.IsChecked = o.TabSendFileVisible;
 		etabcastvisible.IsChecked = o.TabCastVisible;
 		etabftpsrvvisible.IsChecked = o.TabFtpSrvVisible;
+		etabtoolsvisible.IsChecked = o.TabToolsVisible;
 		esetftpdir.Text = o.FtpSrvRoot ?? "";
 		esetftpport.Text = (o.FtpSrvPort <= 0 ? 21 : o.FtpSrvPort).ToString();
 		esetftpuser.Text = o.FtpSrvUser ?? "";
@@ -976,6 +978,7 @@ public partial class SettingsWindow : Window {
 		Result.TftpPort = tftpPort;
 		Result.TftpEnabled = esettftpen.IsChecked == true;
 		Result.TabDictVisible = Result.ModDict = etabdictvisible.IsChecked == true;
+		Result.TabToolsVisible = etabtoolsvisible.IsChecked == true;
 		if (!tryint(eupdatedays, Loc.T("set.update"), 0, 3650, out var updDays, tabsetgen)) return false;
 		Result.UpdateCheckDays = updDays;
 		Result.HttpProxyMode = rsetproxyman.IsChecked == true ? "manual"
