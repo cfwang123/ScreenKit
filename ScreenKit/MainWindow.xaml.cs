@@ -5815,18 +5815,31 @@ public partial class MainWindow : Window {
 		var q = (etoolq.Text ?? "").Trim();
 		var fav = toolfavs();
 		var favset = new HashSet<string>(fav);
-		ptoolcards.Children.Clear();
-		var shown = 0;
+		var hits = new List<ToolCard>();
 		foreach (var card in ToolHub.Cards()) {
 			if (toolcat == ToolHub.Fav) {
 				if (!favset.Contains(card.Id)) continue;
 			}
 			else if (toolcat != ToolHub.All && card.Cat != toolcat) continue;
 			if (q.Length > 0 && !toolhit(card, q)) continue;
-			ptoolcards.Children.Add(toolcard(card, favset.Contains(card.Id)));
-			shown++;
+			hits.Add(card);
 		}
-		var none = shown == 0;
+		ptoolcards.Children.Clear();
+		if (toolcat == ToolHub.All) {
+			foreach (var cat in ToolHub.Cats) {
+				if (cat.Id == ToolHub.Fav || cat.Id == ToolHub.All) continue;
+				var rows = new List<ToolCard>();
+				foreach (var card in hits)
+					if (card.Cat == cat.Id) rows.Add(card);
+				if (rows.Count == 0) continue;
+				ptoolcards.Children.Add(toolhead(cat.Id, cat.Glyph));
+				ptoolcards.Children.Add(toolwrap(rows, favset));
+			}
+		}
+		else if (hits.Count > 0) {
+			ptoolcards.Children.Add(toolwrap(hits, favset));
+		}
+		var none = hits.Count == 0;
 		lbtoolnone.Visibility = none ? Visibility.Visible : Visibility.Collapsed;
 		lbtoolnone.Text = toolcat == ToolHub.Fav && q.Length == 0
 			? Loc.T("web.fav.none") : Loc.T("web.find.none");
@@ -5837,6 +5850,39 @@ public partial class MainWindow : Window {
 		if ((card.Search ?? "").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		if (card.Id.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		return ToolHub.TipOf(card).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+	}
+
+	// 「全部」里每个分类一行标题，图标加文字，下面再排卡片。
+	UIElement toolhead(string cat, string glyph) {
+		var row = new StackPanel { Orientation = Orientation.Horizontal };
+		row.Children.Add(new TextBlock {
+			Text = glyph,
+			FontFamily = ToolBtnUi.Mdl2,
+			FontSize = 15,
+			Width = 22,
+			Foreground = new SolidColorBrush(Color.FromRgb(0xF9, 0x73, 0x16)),
+			VerticalAlignment = VerticalAlignment.Center,
+		});
+		row.Children.Add(new TextBlock {
+			Text = ToolHub.CatName(cat),
+			FontSize = 16,
+			FontWeight = FontWeights.SemiBold,
+			VerticalAlignment = VerticalAlignment.Center,
+		});
+		return new Border {
+			Child = row,
+			BorderBrush = new SolidColorBrush(Color.FromRgb(0xE2, 0xE8, 0xF0)),
+			BorderThickness = new Thickness(0, 0, 0, 1),
+			Padding = new Thickness(0, 0, 0, 8),
+			Margin = new Thickness(0, 6, 0, 12),
+		};
+	}
+
+	WrapPanel toolwrap(List<ToolCard> cards, HashSet<string> favset) {
+		var wrap = new WrapPanel();
+		foreach (var card in cards)
+			wrap.Children.Add(toolcard(card, favset.Contains(card.Id)));
+		return wrap;
 	}
 
 	Border toolcard(ToolCard card, bool fav) {
@@ -5876,7 +5922,8 @@ public partial class MainWindow : Window {
 			ToolTip = Loc.T(fav ? "web.fav.tip.off" : "web.fav.tip"),
 		};
 		var id = card.Id;
-		star.MouseLeftButtonDown += (_, e) => {
+		star.MouseLeftButtonDown += (_, e) => e.Handled = true;
+		star.MouseLeftButtonUp += (_, e) => {
 			e.Handled = true;
 			toggletoolfav(id);
 		};
@@ -5897,8 +5944,7 @@ public partial class MainWindow : Window {
 			box.Background = new SolidColorBrush(Color.FromRgb(0xE4, 0xE8, 0xED));
 		box.MouseLeave += (_, _) =>
 			box.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF1, 0xF4));
-		box.MouseLeftButtonDown += (_, e) => {
-			if (e.ClickCount < 2) return;
+		box.MouseLeftButtonUp += (_, e) => {
 			e.Handled = true;
 			opentoolcard(card);
 		};

@@ -2424,7 +2424,7 @@
 							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">
 								<ScrollViewer x:Name="ptoolscroll" VerticalScrollBarVisibility="Auto" Padding="12">
 									<StackPanel>
-										<WrapPanel x:Name="ptoolcards"/>
+										<StackPanel x:Name="ptoolcards"/>
 										<TextBlock x:Name="lbtoolnone" Margin="6,12,0,0" FontSize="13"
 										           Foreground="{StaticResource TextMuted}" Visibility="Collapsed"
 										           TextWrapping="Wrap"/>

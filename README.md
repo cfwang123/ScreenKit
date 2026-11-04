@@ -74,7 +74,7 @@ This program receives while it is running, and that can be turned off in Setting
 
 ## Tools
 
-- **Tools page**: The main window's **Tools** tab lists the desktop windows and the web tools by category. The left side picks a category, including Favorites and All; the right side shows cards with an icon and a label, a search box, double-click to open, and a star to favorite a card.
+- **Tools page**: The main window's **Tools** tab lists the desktop windows and the web tools by category. The left side picks a category, including Favorites and All; the right side shows cards with an icon and a label, a search box, a click to open, and a star to favorite a card. All groups the cards under a heading for each category.
 
 - **Image convert**: Batch convert to JPG, PNG, palette PNG, or BMP, with a shorter-side cap, rotation, and mirror.
 - **Batch video convert**: Batch convert to MP4, MKV, or WebM, with a shorter-side cap and the audio kept.
