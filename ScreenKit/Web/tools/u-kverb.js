@@ -182,7 +182,8 @@
 	}
 
 	function open(t){
-		page = t;
+		if (t) page = t;
+		if (!page || !page.doms) return;
 		var hint = page.doms.kvHint;
 		if (hint) {
 			F.seta(hint, "data-k", "web.kverb.hint");
@@ -279,6 +280,7 @@
 
 	function go(){
 		timer = 0;
+		if (!page || !page.doms) return;
 		var n = ++gen;
 		var box = page.doms.kvIn;
 		var sel = page.doms.kvSel;

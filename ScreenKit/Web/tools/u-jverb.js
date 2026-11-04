@@ -174,7 +174,8 @@
 	}
 
 	function open(t){
-		page = t;
+		if (t) page = t;
+		if (!page || !page.doms) return;
 		var ens = langcode() !== "zh";
 		var go = SK.doms.boxGo;
 		if (go) {

@@ -515,7 +515,8 @@
 	}
 
 	function open(t){
-		page = t;
+		if (t) page = t;
+		if (!page || !page.doms) return;
 		var title = SK.doms.boxTitle;
 		if (title) title.textContent = tx("web.tool.everb", LAB.title[0]);
 		SK.combofill("ev-in", pickgroups());

@@ -272,12 +272,20 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	// 改写 label 元素的第一个文本节点，保留里面的 input/select。
+	// 换过一次语言后 markhtml 会把这段文本包成带 data-k 的 span，
+	// 所以有 span 就改 span 的文字，否则会多出一层重复的标签。
 	function setlab(id, key, fb){
 		var el = domof(id);
 		if (!el) return;
 		var text = tx(key, fb);
-		if (el.childNodes.length && el.childNodes[0].nodeType === 3) el.childNodes[0].nodeValue = text;
-		else el.insertBefore(document.createTextNode(text), el.firstChild);
+		var first = el.firstChild;
+		if (first && first.nodeType === 1 && first.hasAttribute("data-k")) {
+			F.seta(first, "data-k", key);
+			first.textContent = text;
+			return;
+		}
+		if (first && first.nodeType === 3) first.nodeValue = text;
+		else el.insertBefore(document.createTextNode(text), first);
 	}
 
 	// 给下拉里指定 value 的 option 换文案。
@@ -517,7 +525,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		for (i = 0; i < codes.length; i++) if (codes[i] === code) langAt = i;
 		applylang();
 		// 表格是渲染时查表翻的，换语言要重画一遍；只重画当前打开的工具。
-		if (util && SK.curtool === util && SK.utils[util] && SK.utils[util].relang) SK.utils[util].relang();
+		// relang 有些模块直接指向 open(t)，要把当前页传进去，否则它拿不到 doms。
+		if (util && SK.curtool === util && SK.utils[util] && SK.utils[util].relang) SK.utils[util].relang(SK.curpage);
 		// 重建 body 的工具会把标题写回 data 里的原文，这里按卡片再刷一次。
 		if (SK.curtool && SK.curtool !== "home")
 			marktool(SK.curtool, SK.curtool.indexOf("u-") === 0 ? "box" : SK.curtool);
