@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - USB capture: picking a device no longer fails to start with 'no capture address'; the address was looked up by the localized property name, so on non-English systems it never matched.
 - USB capture: selecting a device now filters by the device address the hub reports rather than the Windows 'device address' property, which on many machines is just the hub port number, so a selected device could capture nothing while All devices worked.
+- 8bit synth: the black keys were all stacked in the top-left corner instead of sitting between the white keys; the layout routine overwrote the root element's class name, so the black-key positioning looked up white keys with a selector that no longer matched.
 
 ### 中文
 
@@ -68,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - USB 抓包：选中设备后开始抓包不再报「没有可抓的地址」。此前按本地化后的属性名找地址，中文系统上永远匹配不到。
 - USB 抓包：选中设备后按集线器报的真实设备地址过滤。此前读的是系统的「设备地址」属性，不少机器上它其实是集线器端口号，导致选中具体设备时一包抓不到（选「全部」才正常）。
+- 8bit 合成器：黑键不再全挤在左上角，现在正常落在白键之间（排布时整组覆盖了根节点的类名，黑键定位用的选择器因此匹配不到白键）。
 
 ## v1.0.33 (2026-11-02 ~ 11-04)
 
