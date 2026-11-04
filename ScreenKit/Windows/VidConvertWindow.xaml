@@ -72,6 +72,10 @@
 				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 				         AutomationProperties.AutomationId="vidconv.shortpx"/>
 			</StackPanel>
+			<CheckBox x:Name="ehw" Content="硬件加速（NVENC / QSV，失败自动回退 CPU）"
+			          Margin="0,8,0,0"
+			          ToolTip="MP4 / MKV 用显卡编码，速度快、CPU 占用低；WebM 仍走 CPU。显卡不支持时自动改用 CPU。"
+			          AutomationProperties.AutomationId="vidconv.hw"/>
 			<CheckBox x:Name="eaudio" Content="保留声音" Margin="0,8,0,0" IsChecked="True"
 			          AutomationProperties.AutomationId="vidconv.audio"/>
 			<StackPanel x:Name="paudio" Orientation="Horizontal" Margin="22,8,0,0">
@@ -166,6 +170,9 @@
 			        AutomationProperties.AutomationId="vidconv.close"/>
 			<TextBlock x:Name="lbmsg" VerticalAlignment="Center" Margin="12,0,0,0"
 			           Foreground="{StaticResource TextMuted}" TextTrimming="CharacterEllipsis"/>
+			<TextBlock x:Name="lbstat" VerticalAlignment="Center" Margin="16,0,0,0"
+			           Foreground="{StaticResource TextMuted}"
+			           AutomationProperties.AutomationId="vidconv.stat"/>
 		</DockPanel>
 	</Grid>
 </Window>

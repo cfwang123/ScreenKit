@@ -48,6 +48,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Batch video convert adds a Hardware acceleration option (NVENC / QSV, falls back to the CPU), per-file percentage progress, and live CPU / GPU usage in the status bar.
+
 #### Changed
 
 - Copying a screenshot path always uses /
@@ -57,6 +61,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Batch video convert no longer fails with a raw 'Error splitting the argument list: Option not found': ffmpeg64 is checked for a working ffmpeg.exe and a clear reinstall hint is shown when the exe and its DLLs do not match.
 
 ### 中文
+
+#### 新增
+
+- 视频批量转换新增「硬件加速」选项（NVENC / QSV，失败自动回退 CPU）、每个文件的百分比进度，以及底部实时 CPU / GPU 占用。
 
 #### 变更
 

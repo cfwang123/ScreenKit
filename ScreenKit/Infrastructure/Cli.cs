@@ -3585,6 +3585,19 @@ static class Cli {
 				bad++;
 			}
 			else Out("x265 参数");
+			var hw264 = VidConvert.Args(src, dst, "mp4", "x264", 30, false, 480, true, 64, 22050, true, true, 320, 240, "nvenc");
+			if (!haspair(hw264, "-c:v", "h264_nvenc") || !haspair(hw264, "-cq", "30") || hw264.Contains("libx264")) {
+				Err("FAIL NVENC 参数 " + string.Join(" ", hw264));
+				bad++;
+			}
+			else Out("NVENC 参数");
+			var hw265 = VidConvert.Args(src, dst, "mkv", "x265", 28, false, 480, true, 64, 22050, true, true, 320, 240, "qsv", true);
+			if (!haspair(hw265, "-c:v", "hevc_qsv") || !haspair(hw265, "-global_quality", "28")
+				|| !hw265.Contains("-progress") || !hw265.Contains("-nostats")) {
+				Err("FAIL QSV/进度 参数 " + string.Join(" ", hw265));
+				bad++;
+			}
+			else Out("QSV/进度 参数");
 			var mute = VidConvert.Args(src, dst, "mp4", "x264", 23, false, 1080, false, 128, 44100, false, true, 320, 240);
 			if (!mute.Contains("-an") || mute.Contains("aac") || mute.Contains("-ar") || mute.Contains("-ac")) {
 				Err("FAIL 静音参数 " + string.Join(" ", mute));
@@ -3618,11 +3631,44 @@ static class Cli {
 							Err("FAIL 未写出 " + outp);
 							bad++;
 						}
-						else if (!VidConvert.Probe(exe, outp, out var pw, out var ph, out var pa) || pw != 106 || ph != 80) {
+						else if (!VidConvert.Probe(exe, outp, out var pw, out var ph, out var pa, out var pd) || pw != 106 || ph != 80) {
 							Err($"FAIL 输出尺寸 {pw}x{ph} audio={pa}");
 							bad++;
 						}
-						else Out($"编码 {pw}x{ph} audio={pa}");
+						else {
+							Out($"编码 {pw}x{ph} audio={pa}");
+							if (pd < 0.5 || pd > 3) {
+								Err($"FAIL 时长 {pd:0.00}s");
+								bad++;
+							}
+							else Out($"时长 {pd:0.00}s");
+						}
+						var outhw = Path.Combine(dir, "out_hw.mp4");
+						var pcts = new List<int>();
+						VidConvert.ConvertOne(raw, outhw, "mp4", "x264", 30, false, 480, true, 64, 22050, true,
+							VidConvert.OUTOTHER, CancellationToken.None, true, n => { lock (pcts) pcts.Add(n); });
+						if (!File.Exists(outhw)) {
+							Err("FAIL 硬件加速未写出 " + outhw);
+							bad++;
+						}
+						else Out($"硬件加速/回退 OK，进度回调 {pcts.Count} 次");
+
+						// CPU 与 GPU 占用读数（CPU 第一次只是基线）
+						SysLoad.ResetCpu();
+						SysLoad.Cpu();
+						Thread.Sleep(300);
+						var cpu = SysLoad.Cpu();
+						var gpu = SysLoad.Gpu();
+						if (cpu < 0 || cpu > 100) {
+							Err($"FAIL CPU 读数 {cpu:0.0}");
+							bad++;
+						}
+						else Out($"CPU {cpu:0}%");
+						if (gpu < 0 || gpu > 100) {
+							Err($"FAIL GPU 读数 {gpu:0.0}");
+							bad++;
+						}
+						else Out($"GPU {gpu:0}%");
 					}
 				}
 			}

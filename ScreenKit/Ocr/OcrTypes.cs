@@ -294,6 +294,8 @@ public sealed class OcrOptions {
 	public bool VidConvShortEnabled = true;
 	/// <summary>视频较短边上限（像素），默认 480。</summary>
 	public int VidConvShortPx = 480;
+	/// <summary>优先用硬件编码（NVENC / QSV），失败自动回退 CPU。</summary>
+	public bool VidConvHw = false;
 	/// <summary>转换时保留声音。</summary>
 	public bool VidConvAudio = true;
 	/// <summary>音频码率 kbps，8–512，默认 64。</summary>
@@ -702,6 +704,7 @@ public sealed class OcrOptions {
 		VidConvCrf = VidConvCrf,
 		VidConvShortEnabled = VidConvShortEnabled,
 		VidConvShortPx = VidConvShortPx,
+		VidConvHw = VidConvHw,
 		VidConvAudio = VidConvAudio,
 		VidConvAudioKbps = VidConvAudioKbps,
 		VidConvAudioHz = VidConvAudioHz,

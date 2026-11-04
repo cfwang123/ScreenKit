@@ -166,16 +166,18 @@ static class VidConvert {
 		return null;
 	}
 
+	/// <summary>hw 为 null 用 CPU；nvenc / qsv 用对应硬件编码器（只对 MP4 / MKV 的 H.264、H.265 生效）。</summary>
 	public static List<string> Args(string src, string dst, string fmt, string codec, int crf,
-		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, bool hasAudio, int w, int h) {
+		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, bool hasAudio, int w, int h,
+		string hw = null, bool progress = false) {
 		fmt = NormFmt(fmt);
 		codec = fmt == "webm" ? "vp9" : NormCodec(codec);
 		crf = NormCrf(fmt, crf);
 		var args = new List<string> {
 			"-y", "-hide_banner", "-loglevel", "error",
-			"-i", src,
-			"-map", "0:v:0",
 		};
+		if (progress) args.AddRange(new[] { "-progress", "pipe:1", "-nostats" });
+		args.AddRange(new[] { "-i", src, "-map", "0:v:0" });
 		var keepA = audio && hasAudio;
 		if (keepA) args.AddRange(new[] { "-map", "0:a:0?" });
 		if (shortEn && shortPx >= 16 && w >= 2 && h >= 2) {
@@ -196,18 +198,40 @@ static class VidConvert {
 			if (keepA) addaudio(args, "libopus", kbps, hz, mono);
 		}
 		else {
-			var venc = codec == "x264" ? "libx264" : "libx265";
-			args.AddRange(new[] {
-				"-c:v", venc, "-crf", crf.ToString(CultureInfo.InvariantCulture),
-				"-preset", "medium", "-pix_fmt", "yuv420p",
-			});
-			if (codec == "x265" && fmt == "mp4") args.AddRange(new[] { "-tag:v", "hvc1" });
+			var venc = pickenc(codec, hw);
+			var crfs = crf.ToString(CultureInfo.InvariantCulture);
+			if (venc.EndsWith("_nvenc", StringComparison.Ordinal)) {
+				args.AddRange(new[] {
+					"-c:v", venc, "-preset", "p5", "-rc", "vbr", "-cq", crfs, "-b:v", "0",
+					"-pix_fmt", "yuv420p",
+				});
+			}
+			else if (venc.EndsWith("_qsv", StringComparison.Ordinal)) {
+				args.AddRange(new[] {
+					"-c:v", venc, "-global_quality", crfs, "-look_ahead", "1", "-pix_fmt", "yuv420p",
+				});
+			}
+			else {
+				args.AddRange(new[] {
+					"-c:v", venc, "-crf", crfs, "-preset", "medium", "-pix_fmt", "yuv420p",
+				});
+			}
+			if ((codec == "x265" || venc.StartsWith("hevc", StringComparison.Ordinal)) && fmt == "mp4")
+				args.AddRange(new[] { "-tag:v", "hvc1" });
 			if (keepA) addaudio(args, "aac", kbps, hz, mono);
 			if (fmt == "mp4") args.AddRange(new[] { "-movflags", "+faststart" });
 		}
 		if (!keepA) args.Add("-an");
 		args.Add(dst);
 		return args;
+	}
+
+	/// <summary>编码器名：空 / 未知用 CPU。</summary>
+	static string pickenc(string codec, string hw) {
+		var x264 = codec == "x264";
+		if (hw == "nvenc") return x264 ? "h264_nvenc" : "hevc_nvenc";
+		if (hw == "qsv") return x264 ? "h264_qsv" : "hevc_qsv";
+		return x264 ? "libx264" : "libx265";
 	}
 
 	static void addaudio(List<string> args, string codec, int kbps, int hz, bool mono) {
@@ -221,14 +245,20 @@ static class VidConvert {
 		if (mono) args.AddRange(new[] { "-ac", "1" });
 	}
 
-	public static bool Probe(string exe, string path, out int w, out int h, out bool audio) {
+	public static bool Probe(string exe, string path, out int w, out int h, out bool audio, out double dur) {
 		w = 0;
 		h = 0;
 		audio = false;
+		dur = 0;
 		if (string.IsNullOrWhiteSpace(exe) || !File.Exists(path)) return false;
 		var err = "";
 		var code = run(exe, new List<string> { "-hide_banner", "-i", path }, CancellationToken.None, 20000, out err);
 		if (string.IsNullOrEmpty(err) && code == 0) return false;
+		var dm = Regex.Match(err ?? "", @"Duration:\s*(\d+):(\d\d):(\d\d(?:\.\d+)?)");
+		if (dm.Success)
+			dur = int.Parse(dm.Groups[1].Value, CultureInfo.InvariantCulture) * 3600
+				+ int.Parse(dm.Groups[2].Value, CultureInfo.InvariantCulture) * 60
+				+ double.Parse(dm.Groups[3].Value, CultureInfo.InvariantCulture);
 		var vm = Regex.Match(err ?? "", @"Video:\s.*?(\d{2,5})x(\d{2,5})");
 		if (!vm.Success) return false;
 		w = int.Parse(vm.Groups[1].Value, CultureInfo.InvariantCulture);
@@ -237,8 +267,12 @@ static class VidConvert {
 		return w >= 2 && h >= 2;
 	}
 
+	/// <summary>已失败的硬件编码器（nvenc / qsv），后续文件直接跳过，避免每个都先错一次。</summary>
+	static readonly HashSet<string> hwfailed = new();
+
 	public static void ConvertOne(string src, string dst, string fmt, string codec, int crf,
-		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, string mode, CancellationToken ct) {
+		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, string mode, CancellationToken ct,
+		bool hw = false, Action<int> onpct = null) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
 		ct.ThrowIfCancellationRequested();
@@ -250,20 +284,43 @@ static class VidConvert {
 		fmt = NormFmt(fmt);
 		crf = NormCrf(fmt, crf);
 		mode = NormOutMode(mode);
-		var probed = Probe(exe, src, out var w, out var h, out var hasAudio);
+		var probed = Probe(exe, src, out var w, out var h, out var hasAudio, out var dur);
 		if (!probed) {
 			w = 0;
 			h = 0;
 			hasAudio = audio;
+			dur = 0;
 		}
 		var dir = Path.GetDirectoryName(dst);
 		if (string.IsNullOrEmpty(dir))
 			dir = Path.GetDirectoryName(src);
 		Directory.CreateDirectory(dir);
 		var tmp = maketmp(dst);
-		var args = Args(src, tmp, fmt, codec, crf, shortEn, shortPx, audio, kbps, hz, mono, hasAudio, w, h);
-		var code = run(exe, args, ct, 0, out var err);
-		ct.ThrowIfCancellationRequested();
+		var cands = new List<string>();
+		if (hw && fmt != "webm") {
+			lock (hwfailed) {
+				if (!hwfailed.Contains("nvenc")) cands.Add("nvenc");
+				if (!hwfailed.Contains("qsv")) cands.Add("qsv");
+			}
+		}
+		cands.Add(null);
+		var err = "";
+		var code = -1;
+		var watch = onpct != null && dur > 0;
+		foreach (var hwenc in cands) {
+			ct.ThrowIfCancellationRequested();
+			onpct?.Invoke(0);
+			var args = Args(src, tmp, fmt, codec, crf, shortEn, shortPx, audio, kbps, hz, mono,
+				hasAudio, w, h, hwenc, watch);
+			code = run(exe, args, ct, 0, watch ? onpct : null, dur, out err);
+			ct.ThrowIfCancellationRequested();
+			if (code == 0 && File.Exists(tmp) && new FileInfo(tmp).Length > 0)
+				break;
+			try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
+			if (hwenc == null) continue;
+			// 硬件编码器初始化失败（没显卡 / 驱动太旧 / 分辨率不支持）：记下来，换下一个
+			lock (hwfailed) hwfailed.Add(hwenc);
+		}
 		if (code != 0 || !File.Exists(tmp) || new FileInfo(tmp).Length == 0) {
 			try { if (File.Exists(tmp)) File.Delete(tmp); } catch { }
 			var line = lastline(err);
@@ -345,7 +402,12 @@ static class VidConvert {
 		return "";
 	}
 
-	static int run(string exe, List<string> args, CancellationToken ct, int timeoutMs, out string err) {
+	static int run(string exe, List<string> args, CancellationToken ct, int timeoutMs, out string err) =>
+		run(exe, args, ct, timeoutMs, null, 0, out err);
+
+	/// <summary>onpct 非空时从 -progress pipe:1 的 out_time 算百分比；durSec 为源时长。</summary>
+	static int run(string exe, List<string> args, CancellationToken ct, int timeoutMs,
+		Action<int> onpct, double durSec, out string err) {
 		var psi = new ProcessStartInfo {
 			FileName = exe,
 			Arguments = join(args),
@@ -360,7 +422,23 @@ static class VidConvert {
 			return -1;
 		}
 		var errTask = p.StandardError.ReadToEndAsync();
-		var outTask = p.StandardOutput.ReadToEndAsync();
+		Task<string> outTask = null;
+		var watch = onpct != null && durSec > 0;
+		if (watch) {
+			p.OutputDataReceived += (_, e) => {
+				var line = e.Data;
+				if (line == null || !line.StartsWith("out_time=", StringComparison.Ordinal)) return;
+				if (!TimeSpan.TryParse(line.Substring(9), CultureInfo.InvariantCulture, out var t)) return;
+				var pct = (int)Math.Round(t.TotalSeconds * 100 / durSec);
+				if (pct < 0) pct = 0;
+				if (pct > 99) pct = 99;
+				try { onpct(pct); } catch { }
+			};
+			p.BeginOutputReadLine();
+		}
+		else {
+			outTask = p.StandardOutput.ReadToEndAsync();
+		}
 		var start = Environment.TickCount;
 		while (!p.WaitForExit(200)) {
 			if (ct.IsCancellationRequested) {
@@ -375,11 +453,13 @@ static class VidConvert {
 		try { p.WaitForExit(2000); } catch { }
 		err = "";
 		try { err = errTask.GetAwaiter().GetResult(); } catch { }
-		try {
-			var o = outTask.GetAwaiter().GetResult();
-			if (!string.IsNullOrWhiteSpace(o)) err = err + "\n" + o;
+		if (outTask != null) {
+			try {
+				var o = outTask.GetAwaiter().GetResult();
+				if (!string.IsNullOrWhiteSpace(o)) err = err + "\n" + o;
+			}
+			catch { }
 		}
-		catch { }
 		return p.HasExited ? p.ExitCode : -1;
 	}
 

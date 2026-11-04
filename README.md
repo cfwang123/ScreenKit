@@ -77,7 +77,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Tools page**: The main window's **Tools** tab lists the desktop windows and the web tools by category. The left side picks a category, including Favorites and All; the right side shows cards with an icon and a label, a search box, a click to open, and a star to favorite a card. All groups the cards under a heading for each category. The tray shows Favorites beside Tools and before it, only when something is favorited, in the same order.
 
 - **Image convert**: Batch convert to JPG, PNG, palette PNG, or BMP, with a shorter-side cap, rotation, and mirror.
-- **Batch video convert**: Batch convert to MP4, MKV, or WebM, with a shorter-side cap and the audio kept.
+- **Batch video convert**: Batch convert to MP4, MKV, or WebM, with a shorter-side cap and the audio kept. Optional hardware acceleration (NVENC / QSV) falls back to the CPU; the list shows each file's progress and the status bar shows CPU / GPU usage.
 - **Video to GIF**: Pick a start and an end and write a silent GIF, with a frame rate and a palette.
 - **Character art**: The **Mode** list picks Shades ASCII, Dot shading, or one of the line drawings; full-color character art is drawn in a console window.
 - **Pixel art**: Choose a width and a height, paint on large cells, and preview at real pixel size. Copy or save a PNG.

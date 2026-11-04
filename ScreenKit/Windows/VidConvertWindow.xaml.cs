@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Threading;
 
 namespace ScreenKit;
 
@@ -13,6 +14,7 @@ namespace ScreenKit;
 public partial class VidConvertWindow : Window {
 	readonly OcrOptions opt;
 	readonly ObservableCollection<VidConvRow> rows = new();
+	readonly DispatcherTimer statTimer = new() { Interval = TimeSpan.FromSeconds(1) };
 	bool busy;
 	bool ready;
 	CancellationTokenSource cts;
@@ -21,6 +23,7 @@ public partial class VidConvertWindow : Window {
 		opt = o ?? new OcrOptions();
 		InitializeComponent();
 		lv.ItemsSource = rows;
+		statTimer.Tick += (_, _) => updatestats();
 		fillhz();
 		applylang();
 		loadui();
@@ -61,6 +64,8 @@ public partial class VidConvertWindow : Window {
 		ecrf.ToolTip = Loc.T("vidconv.crf.tip");
 		eshorten.Content = Loc.T("vidconv.short");
 		lbshort.Text = Loc.T("vidconv.shortpx");
+		ehw.Content = Loc.T("vidconv.hw");
+		ehw.ToolTip = Loc.T("vidconv.hw.tip");
 		eaudio.Content = Loc.T("vidconv.audio");
 		lbarate.Text = Loc.T("vidconv.arate");
 		lbarateu.Text = Loc.T("vidconv.kbps");
@@ -104,6 +109,7 @@ public partial class VidConvertWindow : Window {
 		ecrf.Text = VidConvert.NormCrf(fmt, opt.VidConvCrf < 0 ? 40 : opt.VidConvCrf).ToString();
 		eshorten.IsChecked = opt.VidConvShortEnabled;
 		eshort.Text = (opt.VidConvShortPx < 16 ? 480 : opt.VidConvShortPx).ToString();
+		ehw.IsChecked = opt.VidConvHw;
 		eaudio.IsChecked = opt.VidConvAudio;
 		earate.Text = VidConvert.NormKbps(opt.VidConvAudioKbps).ToString();
 		var hz = VidConvert.NormHz(opt.VidConvAudioHz);
@@ -145,6 +151,7 @@ public partial class VidConvertWindow : Window {
 		opt.VidConvCrf = crf;
 		opt.VidConvShortEnabled = shortEn;
 		opt.VidConvShortPx = sp;
+		opt.VidConvHw = ehw.IsChecked == true;
 		var audioOn = eaudio.IsChecked == true;
 		var kbps = opt.VidConvAudioKbps <= 0 ? 64 : opt.VidConvAudioKbps;
 		var hzPick = opt.VidConvAudioHz;
@@ -290,6 +297,7 @@ public partial class VidConvertWindow : Window {
 		synccodec();
 		eshorten.IsEnabled = !on;
 		eshort.IsEnabled = !on;
+		ehw.IsEnabled = !on;
 		eaudio.IsEnabled = !on;
 		syncaudio();
 		routsrc.IsEnabled = !on;
@@ -298,6 +306,30 @@ public partial class VidConvertWindow : Window {
 		routrecycle.IsEnabled = !on;
 		bcancel.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
 		syncoutui();
+		if (on) {
+			SysLoad.ResetCpu();
+			updatestats();
+			statTimer.Start();
+		}
+		else {
+			statTimer.Stop();
+			lbstat.Text = "";
+		}
+	}
+
+	void updatestats() {
+		var cpu = SysLoad.Cpu();
+		var gpu = SysLoad.Gpu();
+		var s = "";
+		if (cpu >= 0) s += string.Format(Loc.T("vidconv.stat.cpu"), (int)Math.Round(cpu));
+		if (gpu >= 0) s += (s.Length > 0 ? " · " : "") + string.Format(Loc.T("vidconv.stat.gpu"), (int)Math.Round(gpu));
+		lbstat.Text = s;
+	}
+
+	void rowpct(VidConvRow row, int pct) {
+		Dispatcher.BeginInvoke(new Action(() => {
+			if (busy) row.Status = string.Format(Loc.T("vidconv.st.runpct"), pct);
+		}));
 	}
 
 	async Task go() {
@@ -329,6 +361,7 @@ public partial class VidConvertWindow : Window {
 		var crf = opt.VidConvCrf;
 		var shortEn = opt.VidConvShortEnabled;
 		var shortPx = opt.VidConvShortPx;
+		var hw = opt.VidConvHw;
 		var audio = opt.VidConvAudio;
 		var kbps = opt.VidConvAudioKbps;
 		var hz = opt.VidConvAudioHz;
@@ -352,8 +385,14 @@ public partial class VidConvertWindow : Window {
 					continue;
 				}
 				try {
+					var lastpct = -1;
+					Action<int> onpct = pct => {
+						if (pct == lastpct) return;
+						lastpct = pct;
+						rowpct(row, pct);
+					};
 					await Task.Run(() => VidConvert.ConvertOne(row.FilePath, dst, fmt, codec, crf,
-						shortEn, shortPx, audio, kbps, hz, mono, mode, token), token).ConfigureAwait(true);
+						shortEn, shortPx, audio, kbps, hz, mono, mode, token, hw, onpct), token).ConfigureAwait(true);
 					row.Status = Loc.T("vidconv.st.ok");
 					ok++;
 				}
