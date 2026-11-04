@@ -45,6 +45,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miGifRecord;
 	Forms.ToolStripMenuItem miGifRecordOpt;
 	Forms.ToolStripMenuItem miTools;
+	Forms.ToolStripMenuItem miFav;
 	Forms.ToolStripMenuItem miWebHome;
 	Forms.ToolStripMenuItem miWebFiles;
 	Forms.ToolStripMenuItem miWebDict;
@@ -149,6 +150,7 @@ sealed class TrayIcon : IDisposable {
 				miClipFile.Enabled = false;
 			}
 			try { applyhotkeys(); } catch { }
+			try { filltrayfav(); } catch { }
 			// 菜单关闭时常把主窗拉前台；调用方可在此记下「点菜单前」是否可见
 			try { MenuOpening?.Invoke(); } catch { }
 		};
@@ -269,7 +271,6 @@ sealed class TrayIcon : IDisposable {
 		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
 		miWebDict = item("web.dict", () => WebDictRequested?.Invoke());
 		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
-		miTools.DropDownItems.Add(new Forms.ToolStripMenuItem(Loc.T("web.cat.fav")) { Tag = "favhost" });
 		miTools.DropDownItems.Add(miWebHome);
 		miTools.DropDownItems.Add(miWebFiles);
 		miTools.DropDownItems.Add(miWebDict);
@@ -376,6 +377,8 @@ sealed class TrayIcon : IDisposable {
 		menu.Items.Add(miGifRecord);
 		menu.Items.Add(miGifRecordOpt);
 		menu.Items.Add(new Forms.ToolStripSeparator());
+		miFav = new Forms.ToolStripMenuItem(Loc.T("web.cat.fav")) { Tag = "favhost", Visible = false };
+		menu.Items.Add(miFav);
 		menu.Items.Add(miTools);
 		menu.Items.Add(miSettings);
 		menu.Items.Add(new Forms.ToolStripSeparator());
@@ -706,7 +709,6 @@ sealed class TrayIcon : IDisposable {
 	public Func<string> ToolFavProvider;
 
 	void fillwebtools() {
-		filltrayfav();
 		stripweb(miCatText);
 		stripweb(miCatCalc);
 		stripweb(miCatSpeech);
@@ -737,14 +739,9 @@ sealed class TrayIcon : IDisposable {
 		}
 	}
 
-	/// <summary>有收藏才在「工具」顶部放「收藏工具」，里面按收藏顺序排列。</summary>
+	/// <summary>有收藏才显示「收藏工具」，和「工具」并列、排在它前面。</summary>
 	void filltrayfav() {
-		Forms.ToolStripMenuItem host = null;
-		for (int i = miTools.DropDownItems.Count - 1; i >= 0; i--) {
-			if (!Equals(miTools.DropDownItems[i].Tag, "favhost")) continue;
-			host = (Forms.ToolStripMenuItem)miTools.DropDownItems[i];
-			break;
-		}
+		var host = miFav;
 		if (host == null) return;
 		host.DropDownItems.Clear();
 		var raw = "";
