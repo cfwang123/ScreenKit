@@ -79,6 +79,13 @@ static class DocViewSelfTest {
 		var partText = new System.Windows.Documents.TextRange(part.ContentStart, part.ContentEnd).Text ?? "";
 		if (partText.IndexOf("4.", StringComparison.Ordinal) < 0)
 			return bad(say, "窗口序号没接上: " + partText.Replace("\r", " "));
+		// 分段续排：一批批接到同一份文档后面，块数要和一次排完一致
+		var whole = MdFlowBuilder.Build(doc, 780, null, path, true);
+		var chunked = MdFlowBuilder.BuildRange(doc, 0, 2, 780, null, path, true);
+		for (var i = 2; i < doc.Blocks.Count; i += 2)
+			MdFlowBuilder.BuildRange(doc, i, Math.Min(doc.Blocks.Count, i + 2), 780, null, path, true, chunked);
+		if (chunked.Blocks.Count != whole.Blocks.Count)
+			return bad(say, $"分段续排块数 {chunked.Blocks.Count} != {whole.Blocks.Count}");
 		say($"md: {doc.Blocks.Count} 块，{fd.Blocks.Count} 段");
 		return true;
 	}

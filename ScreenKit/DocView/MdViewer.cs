@@ -12,6 +12,8 @@ namespace ScreenKit.DocView;
 
 /// <summary>
 /// Markdown 阅读器：解析成 MdDoc 后用 FlowDocument 排版。
+/// 先排开头一段让界面马上能看，其余的在后台空档一小段一小段接在后面，
+/// 滚到底就是文档结尾——不再只排视口附近那一窗（那样滚到头就只有几十块）。
 /// 不做编辑，工具栏只有缩放与查找；图片可点开大图（<see cref="ImageOverlay"/>）。
 /// </summary>
 sealed class MdViewer : IDocViewer {
@@ -19,6 +21,8 @@ sealed class MdViewer : IDocViewer {
 	const double BASE_FONT = 14;
 	const double PAD_X = 28;
 	const double PAD_Y = 20;
+	/// <summary>一批排进文档的块数；排完一批让出一次界面，接着排下一批。</summary>
+	const int CHUNK = 200;
 
 	readonly Border root;
 	readonly ScrollViewer scroller;
@@ -31,13 +35,15 @@ sealed class MdViewer : IDocViewer {
 	string findtext = "";
 	readonly List<int> findhits = new();
 	int findindex = -1;
-	/// <summary>块数超过这个值就只排视口附近，避免超大文件一次性排版卡死。</summary>
-	const int WINDOW_THRESHOLD = 300;
-	/// <summary>视口上下各预排的块数。</summary>
-	const int WINDOW_MARGIN = 40;
-	/// <summary>当前文档里已排的块区间 [winFrom, winTo)。</summary>
-	int winFrom;
-	int winTo;
+	/// <summary>已从 0 起连续排进文档的块数。</summary>
+	int rendered;
+	/// <summary>整体重排代数；早先排队的续排回调发现代数变了就作废，免得排重。</summary>
+	int gen;
+	/// <summary>窗口大小连着变时只重排一次。</summary>
+	bool relayoutqueued;
+	/// <summary>等待恢复的滚动位置（重载/跨窗搬标签后回到原处）。</summary>
+	double restorev;
+	double restoreh;
 
 	public MdViewer() {
 		lbempty = new TextBlock {
@@ -72,11 +78,7 @@ sealed class MdViewer : IDocViewer {
 			Child = grid,
 			Background = Brushes.White,
 		};
-		scroller.SizeChanged += (_, _) => relayout();
-		scroller.ScrollChanged += (_, e) => {
-			if (e.VerticalChange == 0) return;
-			ensurewindow();
-		};
+		scroller.SizeChanged += (_, _) => queuerelayout();
 		body.PreviewMouseWheel += (_, e) => {
 			if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
 			e.Handled = true;
@@ -115,6 +117,7 @@ sealed class MdViewer : IDocViewer {
 			text = "";
 		}
 		doc = MdParser.Parse(text);
+		rendered = 0;
 		relayout();
 		raisestatus();
 	}
@@ -144,7 +147,7 @@ sealed class MdViewer : IDocViewer {
 	public void RotateBy(int deltaQuarterTurns) { }
 	public void SetSidePanelVisible(bool show) { }
 
-	/// <summary>Markdown 正文不分页：命中按块下标记，窗口滑动后仍能定位。</summary>
+	/// <summary>Markdown 正文不分页：命中按块下标记，跳到哪块就把那段排出来再定位。</summary>
 	public FindResult Find(string query, bool forward, bool ignoreCase, bool restart = false, bool fromView = false) {
 		if (string.IsNullOrEmpty(query)) {
 			ClearFind();
@@ -180,20 +183,19 @@ sealed class MdViewer : IDocViewer {
 	/// <summary>滚到命中所在的块并选中第一次出现的文字。</summary>
 	void selecthit(int blockIndex) {
 		try {
-			showaround(blockIndex);
+			var blk = ensureto(blockIndex);
+			if (blk == null) return;
 			body.UpdateLayout();
-			foreach (var blk in body.Document.Blocks) {
-				if (!Equals(blk.Tag, blockIndex)) continue;
-				var range = new TextRange(blk.ContentStart, blk.ContentEnd);
-				var plain = range.Text ?? "";
-				var at = plain.IndexOf(findtext, StringComparison.OrdinalIgnoreCase);
-				var start = at < 0 ? blk.ContentStart
-					: blk.ContentStart.GetPositionAtOffset(at, LogicalDirection.Forward) ?? blk.ContentStart;
-				var end = start.GetPositionAtOffset(findtext.Length, LogicalDirection.Forward) ?? start;
-				body.Selection.Select(start, end);
-				blk.BringIntoView();
-				return;
-			}
+			var range = new TextRange(blk.ContentStart, blk.ContentEnd);
+			var plain = range.Text ?? "";
+			var len = string.IsNullOrEmpty(findtext) ? 0 : findtext.Length;
+			var at = len == 0 ? -1 : plain.IndexOf(findtext, StringComparison.OrdinalIgnoreCase);
+			var start = at < 0 ? blk.ContentStart
+				: blk.ContentStart.GetPositionAtOffset(at, LogicalDirection.Forward) ?? blk.ContentStart;
+			var end = len == 0 ? start
+				: start.GetPositionAtOffset(len, LogicalDirection.Forward) ?? start;
+			body.Selection.Select(start, end);
+			blk.BringIntoView();
 		}
 		catch { }
 	}
@@ -241,26 +243,88 @@ sealed class MdViewer : IDocViewer {
 
 	public void RestoreViewState(double h, double v, double z, int sheetOrPage) {
 		if (z > 0.29 && Math.Abs(z - zoom) > 0.001) SetZoom(z);
+		// 文档可能还没排完，先记下目标位置，等剩下的块排完再滚过去
+		restorev = v;
+		restoreh = h;
 		try {
-			scroller.Dispatcher.BeginInvoke(new Action(() => {
-				scroller.ScrollToHorizontalOffset(h);
-				scroller.ScrollToVerticalOffset(v);
-			}), DispatcherPriority.Background);
+			scroller.Dispatcher.BeginInvoke(new Action(applyrestore), DispatcherPriority.Background);
 		}
 		catch { }
+	}
+
+	/// <summary>滚到 RestoreViewState 记下的位置；内容还不够长时留着，等排完再说。</summary>
+	void applyrestore() {
+		if (restorev <= 0 && restoreh <= 0) return;
+		try {
+			scroller.ScrollToHorizontalOffset(restoreh);
+			scroller.ScrollToVerticalOffset(restorev);
+		}
+		catch { return; }
+		// 滚动位置已经到位或者文档排完了，就不再等
+		if (AllRendered || Math.Abs(scroller.VerticalOffset - restorev) < 1) {
+			restorev = 0;
+			restoreh = 0;
+		}
 	}
 
 	public void Dispose() {
 		if (disposed) return;
 		disposed = true;
+		gen++;
 		doc = null;
 		body.Document = new FlowDocument();
+	}
+
+	/// <summary>自测用：排了多少块 / 共多少块、文档里实际的块数。</summary>
+	internal string DebugState() {
+		var n = doc?.Blocks?.Count ?? 0;
+		return $"rendered={rendered}/{n} fdblocks={body.Document?.Blocks.Count ?? 0} zoom={zoom:0.##}";
+	}
+
+	/// <summary>是否已把全部块排进文档。</summary>
+	internal bool AllRendered => rendered >= (doc?.Blocks?.Count ?? 0);
+
+	/// <summary>自测用：滚到底，返回滚完的垂直位置。</summary>
+	internal double ScrollToEndForTest() {
+		try {
+			scroller.UpdateLayout();
+			scroller.ScrollToEnd();
+			scroller.UpdateLayout();
+			return scroller.VerticalOffset;
+		}
+		catch { return -1; }
+	}
+
+	/// <summary>自测用：滚到指定垂直位置。</summary>
+	internal void ScrollToForTest(double v) {
+		try {
+			scroller.UpdateLayout();
+			scroller.ScrollToVerticalOffset(v);
+			scroller.UpdateLayout();
+		}
+		catch { }
+	}
+
+	/// <summary>自测用：视口顶部那块的下标（量不出来为 -1）。</summary>
+	internal int TopBlockForTest() => viewportanchor().index;
+
+	/// <summary>窗口尺寸连变时合并成一次重排。</summary>
+	void queuerelayout() {
+		if (relayoutqueued || disposed) return;
+		relayoutqueued = true;
+		try {
+			body.Dispatcher.BeginInvoke(new Action(() => {
+				relayoutqueued = false;
+				relayout();
+			}), DispatcherPriority.Background);
+		}
+		catch { relayoutqueued = false; }
 	}
 
 	/// <summary>
 	/// 按当前可用宽度重排。FlowDocument 的排版宽度是页宽，缩放靠改字号实现，
 	/// 所以放大时要按比例收窄页宽，等价于把内容放大。
-	/// 块数多时只排开头一段，其余滚动到附近再补。
+	/// 先排前 CHUNK 块把第一屏显示出来，其余交给 pumpnext 接着排。
 	/// </summary>
 	void relayout() {
 		if (doc == null) {
@@ -268,82 +332,134 @@ sealed class MdViewer : IDocViewer {
 			lbempty.Visibility = Visibility.Visible;
 			return;
 		}
+		// 缩放/改窗口大小前记下视口顶部那块，重排后回到原处
+		var (index, offset) = viewportanchor();
+		gen++;
 		var n = doc.Blocks?.Count ?? 0;
-		var to = n > WINDOW_THRESHOLD ? Math.Min(n, WINDOW_MARGIN * 2) : n;
-		fillwindow(0, to);
+		var first = Math.Min(n, CHUNK);
+		rendered = 0;
+		body.Document = makefd(0, first, null, 0);
+		rendered = first;
 		body.Visibility = Visibility.Visible;
 		lbempty.Visibility = Visibility.Collapsed;
+		if (index > 0) restoreanchor(index, offset);
+		pumpnext();
 	}
 
-	/// <summary>滚动时视口靠近已排区间边缘，就以当前块为中心重排一窗。</summary>
-	void ensurewindow() {
-		var n = doc?.Blocks?.Count ?? 0;
-		if (n <= WINDOW_THRESHOLD || winTo >= n && winFrom <= 0) return;
-		var idx = blockatviewport();
-		if (idx < 0) return;
-		if (idx - winFrom > WINDOW_MARGIN / 2 && winTo - idx > WINDOW_MARGIN / 2) return;
-		showaround(idx);
-	}
-
-	/// <summary>以指定块为中心排一窗，并尽量保持这一块在视口中的相对位置。</summary>
-	void showaround(int blockIndex) {
-		var n = doc?.Blocks?.Count ?? 0;
-		if (n == 0) return;
-		if (blockIndex < 0) blockIndex = 0;
-		if (blockIndex >= n) blockIndex = n - 1;
-		var from = Math.Max(0, blockIndex - WINDOW_MARGIN);
-		var to = Math.Min(n, blockIndex + WINDOW_MARGIN);
-		double keep = double.NaN;
-		var anchor = blockof(blockIndex);
-		if (anchor != null) {
-			try { keep = anchor.ContentStart.GetCharacterRect(LogicalDirection.Forward).Top - scroller.VerticalOffset; }
-			catch { keep = double.NaN; }
+	/// <summary>剩下的块一批批接在后面，界面始终能滚能选。</summary>
+	void pumpnext() {
+		if (disposed || doc == null) return;
+		var n = doc.Blocks?.Count ?? 0;
+		if (rendered >= n) return;
+		var g = gen;
+		try {
+			body.Dispatcher.BeginInvoke(new Action(() => {
+				if (disposed || g != gen || doc == null || body.Document == null) return;
+				var total = doc.Blocks?.Count ?? 0;
+				if (rendered >= total) return;
+				appendto(Math.Min(total, rendered + CHUNK));
+				applyrestore();
+				pumpnext();
+			}), DispatcherPriority.Background);
 		}
-		fillwindow(from, to);
-		var again = blockof(blockIndex);
-		if (again == null || double.IsNaN(keep)) return;
-		body.UpdateLayout();
-		double now;
-		try { now = again.ContentStart.GetCharacterRect(LogicalDirection.Forward).Top; }
-		catch { return; }
-		scroller.ScrollToVerticalOffset(now - keep);
+		catch { }
 	}
 
-	/// <summary>排 [from, to) 这段块；每个块的 Tag 存它在全文里的下标，滚动和查找都靠它定位。</summary>
-	void fillwindow(int from, int to) {
+	/// <summary>把 [rendered, to) 这段接到文档末尾。</summary>
+	void appendto(int to) {
+		var skip = body.Document.Blocks.Count;
+		makefd(rendered, to, body.Document, skip);
+		rendered = to;
+	}
+
+	/// <summary>确保下标 idx 那块已经排进文档（查找跳转要用），返回那个块。</summary>
+	Block ensureto(int idx) {
+		var n = doc?.Blocks?.Count ?? 0;
+		if (n == 0 || body.Document == null) return null;
+		if (idx < 0) idx = 0;
+		if (idx >= n) idx = n - 1;
+		while (rendered <= idx && rendered < n) {
+			var to = Math.Min(n, Math.Max(rendered + CHUNK, idx + 1));
+			appendto(to);
+		}
+		return blockof(idx);
+	}
+
+	/// <summary>
+	/// 排 [from, to) 这段块：into 为空时新建 FlowDocument，否则续在它末尾。
+	/// skip 是续写前文档里已有的块数，只标新排进来的块。
+	/// </summary>
+	FlowDocument makefd(int from, int to, FlowDocument into, int skip) {
 		var viewW = scroller.ActualWidth - PAD_X * 2;
 		if (viewW < 120) viewW = 720;
 		var pageW = Math.Max(160, viewW / zoom);
-		var fd = MdFlowBuilder.BuildRange(doc, from, to, pageW, onlink, FilePath, true);
-		fd.FontSize = BASE_FONT * zoom;
-		fd.LineHeight = BASE_FONT * zoom * 1.55;
-		var i = from;
-		foreach (var blk in fd.Blocks)
-			blk.Tag = i++;
-		body.Document = fd;
-		body.Padding = new Thickness(PAD_X, PAD_Y, PAD_X, 40);
-		winFrom = from;
-		winTo = to;
+		var fd = MdFlowBuilder.BuildRange(doc, from, to, pageW, onlink, FilePath, true, into);
+		if (into == null) {
+			fd.FontSize = BASE_FONT * zoom;
+			fd.LineHeight = BASE_FONT * zoom * 1.55;
+		}
+		tagnew(from, to, fd, skip);
+		return fd;
 	}
 
-	/// <summary>视口顶部附近那一块在全文里的下标；还没排出来时返回 -1。</summary>
-	int blockatviewport() {
-		try {
-			var pt = body.TranslatePoint(new Point(8, 8), body);
-			var pos = body.GetPositionFromPoint(pt, true);
-			var blk = pos?.Paragraph ?? pos?.Parent as TextElement;
-			while (blk != null && !(blk is Block)) blk = (blk as TextElement)?.Parent as TextElement;
-			if (blk?.Tag is int idx) return idx;
+	/// <summary>
+	/// 给新排进来的块打上它在全文里的下标，定位都靠它。
+	/// 空行不生成块，所以按块类型逐个对，不能简单按顺序编号。
+	/// </summary>
+	void tagnew(int from, int to, FlowDocument fd, int skip) {
+		if (doc?.Blocks == null || fd?.Blocks == null) return;
+		var list = new List<Block>();
+		var seen = 0;
+		foreach (var b in fd.Blocks) {
+			if (seen++ >= skip) list.Add(b);
 		}
-		catch { }
-		return winFrom;
+		if (list.Count == 0) return;
+		var k = 0;
+		for (var i = from; i < to && k < list.Count; i++) {
+			if (doc.Blocks[i].Kind == MdBlockKind.Blank) continue;
+			list[k++].Tag = i;
+		}
+		// 对不上（理论上不会发生）就按顺序编号，至少还能粗定位
+		if (k != list.Count) {
+			for (var j = 0; j < list.Count; j++) list[j].Tag = from + j;
+		}
 	}
 
 	/// <summary>已排文档里下标为 idx 的块。</summary>
 	Block blockof(int idx) {
+		if (body.Document == null) return null;
 		foreach (var blk in body.Document.Blocks)
 			if (Equals(blk.Tag, idx)) return blk;
 		return null;
+	}
+
+	/// <summary>视口顶部那块在全文里的下标，和它顶端比视口高出的像素。量不出返 -1。</summary>
+	(int index, double offset) viewportanchor() {
+		if (body.Document == null || body.Document.Blocks.Count == 0) return (-1, 0);
+		try {
+			var pt = scroller.TranslatePoint(new Point(PAD_X + 4, 8), body);
+			var pos = body.GetPositionFromPoint(pt, true);
+			var el = pos?.Paragraph ?? pos?.Parent as TextElement;
+			while (el != null && el is not Block) el = el.Parent as TextElement;
+			if (el is Block blk && blk.Tag is int idx && idx > 0) {
+				var top = blk.ContentStart.GetCharacterRect(LogicalDirection.Forward).Top;
+				return (idx, top - scroller.VerticalOffset);
+			}
+		}
+		catch { }
+		return (-1, 0);
+	}
+
+	/// <summary>排到 anchor 那块，并把它挪回重排前相对视口的位置。</summary>
+	void restoreanchor(int index, double offset) {
+		var blk = ensureto(index);
+		if (blk == null) return;
+		try {
+			body.UpdateLayout();
+			var top = blk.ContentStart.GetCharacterRect(LogicalDirection.Forward).Top;
+			scroller.ScrollToVerticalOffset(top - offset);
+		}
+		catch { }
 	}
 
 	void onlink(string href) {

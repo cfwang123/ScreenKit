@@ -6759,21 +6759,65 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				bad++;
 				continue;
 			}
+			// Markdown 分段渲染：等全部块排完，确认没有只排开头就停
+			if (files[k].EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
+				var tick2 = Environment.TickCount;
+				while (Environment.TickCount - tick2 < 30000) {
+					pump();
+					if (win.CurrentAllRendered) break;
+				}
+				Out($"  mdrender: {win.CurrentDebug} ms={Environment.TickCount - tick2}");
+				if (!win.CurrentAllRendered) {
+					Err($"FAIL: 第 {k + 1} 个 Markdown 没排完：" + win.CurrentDebug);
+					bad++;
+				}
+			}
 			var shot = Path.Combine(shotdir, $"tab{k}.png");
 			if (!win.ShotTo(shot)) {
 				Err($"FAIL: 第 {k + 1} 个标签截图失败");
 				bad++;
 			}
 			else Out("  shot " + shot);
-			// 第一个标签是 Markdown 且带图时，顺带确认点击放大能开出弹层
-			if (k == 0 && files[0].EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
-				if (!win.TestImageOverlay()) {
-					Err("FAIL: Markdown 图片放大弹层没开");
+			// Markdown 再滚到底截一张：结尾得真的有内容，不能停在开头几块
+			if (files[k].EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
+				var endv = win.ScrollToEnd();
+				pump();
+				Out($"  scrollend v={endv:0.#}");
+				if (endv <= 0) {
+					Err($"FAIL: 第 {k + 1} 个 Markdown 滚不到底");
 					bad++;
 				}
-				else Out("  overlay ok");
-				DocView.ImageOverlay.CloseIfOpen();
+				var tail = Path.Combine(shotdir, $"tab{k}_end.png");
+				if (win.ShotTo(tail)) Out("  shot " + tail);
+				// 缩放后要停在原来那段：记下视口顶部块，放大再比对
+				win.ScrollTo(endv / 2);
 				pump();
+				var top0 = win.CurrentTopBlock;
+				win.ZoomBy(1.15);
+				pump();
+				var top1 = win.CurrentTopBlock;
+				Out($"  zoomanchor top0={top0} top1={top1}");
+				if (top0 < 0 || top1 < 0) Out("  zoomanchor skip: 量不到视口块");
+				else if (Math.Abs(top1 - top0) > 3) {
+					Err($"FAIL: 放大后视口跳到了别处 {top0} -> {top1}");
+					bad++;
+				}
+				win.ZoomBy(1 / 1.15);
+				win.ScrollTo(0);
+				pump();
+			}
+			// 第一个标签是 Markdown 且带图时，顺带确认点击放大能开出弹层
+			if (k == 0 && files[0].EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
+				if (!win.HasImage) Out("  overlay skip: 文档里没有图片");
+				else {
+					if (!win.TestImageOverlay()) {
+						Err("FAIL: Markdown 图片放大弹层没开");
+						bad++;
+					}
+					else Out("  overlay ok");
+					DocView.ImageOverlay.CloseIfOpen();
+					pump();
+				}
 			}
 		}
 		// —— 关标签之后标签栏要还在、还能再操作 ——

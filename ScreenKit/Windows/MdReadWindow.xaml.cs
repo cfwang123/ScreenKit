@@ -114,6 +114,27 @@ public partial class MdReadWindow : Window {
 	/// <summary>自测用：当前标签的阅读器状态文字。</summary>
 	internal string CurrentStatus => cur?.Viewer?.StatusText ?? cur?.Error ?? "";
 
+	/// <summary>自测用：Markdown 标签的排版进度（已排块数 / 总块数）。</summary>
+	internal string CurrentDebug => (cur?.Viewer as DocView.MdViewer)?.DebugState() ?? "";
+
+	/// <summary>自测用：当前 Markdown 标签是否已把全部块排进文档。</summary>
+	internal bool CurrentAllRendered => cur?.Viewer is DocView.MdViewer md && md.AllRendered;
+
+	/// <summary>自测用：滚到当前 Markdown 标签的末尾，返回滚动位置。</summary>
+	internal double ScrollToEnd() =>
+		cur?.Viewer is DocView.MdViewer md ? md.ScrollToEndForTest() : -1;
+
+	/// <summary>自测用：把当前 Markdown 标签滚到指定位置。</summary>
+	internal void ScrollTo(double v) {
+		if (cur?.Viewer is DocView.MdViewer md) md.ScrollToForTest(v);
+	}
+
+	/// <summary>自测用：视口顶部那块在全文里的下标。</summary>
+	internal int CurrentTopBlock => (cur?.Viewer as DocView.MdViewer)?.TopBlockForTest() ?? -1;
+
+	/// <summary>自测用：按倍率缩放当前标签。</summary>
+	internal void ZoomBy(double factor) => cur?.Viewer?.ZoomBy(factor);
+
 	/// <summary>自测用：已打开的标签数。</summary>
 	internal int TabCount => tabs.Count;
 
@@ -268,6 +289,9 @@ public partial class MdReadWindow : Window {
 		}
 		catch { return false; }
 	}
+
+	/// <summary>自测用：当前标签正文里有没有图片。</summary>
+	internal bool HasImage => cur?.Body != null && findimage(cur.Body) != null;
 
 	/// <summary>
 	/// 自测用：在当前 Markdown 标签里找第一个图片元素并触发它的双击放大，

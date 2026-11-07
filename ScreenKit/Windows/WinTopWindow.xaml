@@ -44,33 +44,38 @@
 		<!-- 顶栏 -->
 		<Border Grid.Row="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
 		        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
-			<DockPanel>
-				<TextBlock x:Name="lbstat" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,2,0"
+			<Grid>
+				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+					<RowDefinition Height="Auto"/>
+				</Grid.RowDefinitions>
+				<TextBlock Grid.Row="0" x:Name="lbhint" TextWrapping="Wrap" Margin="0,0,0,6"
 				           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-				<StackPanel>
-					<TextBlock x:Name="lbhint" TextWrapping="Wrap" Margin="0,0,0,6"
-					           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-					<WrapPanel VerticalAlignment="Center">
-						<Button x:Name="bpick" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
-						        AutomationProperties.AutomationId="wintop.pick"/>
-						<Button x:Name="brefresh" Style="{StaticResource ToolBtn}"
-						        AutomationProperties.AutomationId="wintop.refresh"/>
-						<CheckBox x:Name="chidden" VerticalAlignment="Center" Margin="0,0,12,0"
-						          AutomationProperties.AutomationId="wintop.hidden"/>
-						<TextBlock x:Name="lbfilter" VerticalAlignment="Center" Margin="0,0,6,0"
-						           Foreground="{StaticResource TextMuted}"/>
-						<TextBox x:Name="efilter" Width="200" Height="30" Padding="8,4" Margin="0,0,8,0"
-						         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
-						         AutomationProperties.AutomationId="wintop.filter"/>
-						<Button x:Name="bflash" Style="{StaticResource ToolBtn}"
-						        AutomationProperties.AutomationId="wintop.flash"/>
-						<Button x:Name="bcopyhwnd" Style="{StaticResource ToolBtn}"
-						        AutomationProperties.AutomationId="wintop.copyhwnd"/>
-						<Button x:Name="bcopyall" Style="{StaticResource ToolBtn}" Margin="0"
-						        AutomationProperties.AutomationId="wintop.copyprops"/>
-					</WrapPanel>
-				</StackPanel>
-			</DockPanel>
+				<WrapPanel Grid.Row="1" VerticalAlignment="Center">
+					<Button x:Name="bpick" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
+					        AutomationProperties.AutomationId="wintop.pick"/>
+					<Button x:Name="brefresh" Style="{StaticResource ToolBtn}"
+					        AutomationProperties.AutomationId="wintop.refresh"/>
+					<CheckBox x:Name="chidden" VerticalAlignment="Center" Margin="0,0,12,0"
+					          AutomationProperties.AutomationId="wintop.hidden"/>
+					<TextBlock x:Name="lbfilter" VerticalAlignment="Center" Margin="0,0,6,0"
+					           Foreground="{StaticResource TextMuted}"/>
+					<TextBox x:Name="efilter" Width="200" Height="30" Padding="8,4" Margin="0,0,8,0"
+					         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+					         AutomationProperties.AutomationId="wintop.filter"/>
+					<Button x:Name="bflash" Style="{StaticResource ToolBtn}"
+					        AutomationProperties.AutomationId="wintop.flash"/>
+					<Button x:Name="bcopyhwnd" Style="{StaticResource ToolBtn}"
+					        AutomationProperties.AutomationId="wintop.copyhwnd"/>
+					<Button x:Name="bcopyall" Style="{StaticResource ToolBtn}" Margin="0"
+					        AutomationProperties.AutomationId="wintop.copyprops"/>
+				</WrapPanel>
+				<TextBlock Grid.Row="2" x:Name="lbstat" VerticalAlignment="Center" Margin="0,6,0,0"
+				           TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+				           ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+				           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+			</Grid>
 		</Border>
 
 		<!-- 主体 -->

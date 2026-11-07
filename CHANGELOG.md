@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Batch video convert no longer fails with a raw 'Error splitting the argument list: Option not found': ffmpeg64 is checked for a working ffmpeg.exe and a clear reinstall hint is shown when the exe and its DLLs do not match.
+- Markdown reader now renders the whole file: the first chunk appears immediately and the rest is appended as the UI idles, so a large CHANGELOG.md scrolls all the way to its last line (previously only a few dozen blocks near the viewport were laid out and scrolling stopped at the table of contents).
 
 ### 中文
 
@@ -73,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 修复视频批量转换报「Error splitting the argument list: Option not found」：检查 ffmpeg64 里的 ffmpeg.exe 能否与同目录 DLL 配套运行，不匹配时给出重新安装提示，而不是直接显示 ffmpeg 原始错误。
+- 修复文档阅读器打开大 Markdown 只显示开头目录：现在先排开头一段显示首屏，其余块在后台空档一批批接到后面，滚到底就是文件结尾；缩放、改窗口大小后仍停在原来看的那一段。
 
 ## v1.0.34 (2026-11-04)
 

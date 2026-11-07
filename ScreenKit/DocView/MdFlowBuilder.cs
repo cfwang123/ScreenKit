@@ -58,13 +58,15 @@ static class MdFlowBuilder {
 
 	/// <summary>
 	/// 只排 [from, to) 这段块。有序列表序号和标题自动编号先按全文算好，
-	/// 窗口滑动时编号不会因为前面的块没排而重新从 1 开始。
+	/// 分段渲染时编号不会因为前面的块还没排而重新从 1 开始。
 	/// </summary>
+	/// <param name="into">非空时把这段块续到该文档末尾，不再新建（超大 Markdown 分段追加用）。</param>
 	public static FlowDocument BuildRange(MdDoc doc, int from, int to, double pageWidth = 720,
-		Action<string> onLink = null, string baseFilePath = null, bool embedImages = true) {
+		Action<string> onLink = null, string baseFilePath = null, bool embedImages = true,
+		FlowDocument into = null) {
 		var pageW = pageWidth > 100 ? pageWidth : 720;
 		// 字号/行高对齐 HTML；页边由宿主 RTB.Padding 承担（PagePadding 在 RTB 内几乎无效）
-		var fd = new FlowDocument {
+		var fd = into ?? new FlowDocument {
 			FontFamily = new FontFamily("Segoe UI, Segoe UI Emoji, 微软雅黑, Microsoft YaHei UI, sans-serif"),
 			FontSize = BASE_FS,
 			LineHeight = BASE_FS * 1.55,
@@ -79,9 +81,11 @@ static class MdFlowBuilder {
 		};
 		var imgMaxW = Math.Max(120, pageW);
 		if (doc == null || doc.Blocks == null || doc.Blocks.Count == 0) {
-			fd.Blocks.Add(new Paragraph(new Run("(空文档)")) {
-				Foreground = QuoteFg,
-			});
+			if (into == null) {
+				fd.Blocks.Add(new Paragraph(new Run("(空文档)")) {
+					Foreground = QuoteFg,
+				});
+			}
 			return fd;
 		}
 
