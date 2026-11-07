@@ -1565,22 +1565,93 @@ sealed class PdfViewer : IDocViewer {
 			if (panning) endpan();
 			selecting = false;
 		};
-		scroller.MouseDoubleClick += (_, e) => {
-			if (e.ChangedButton != MouseButton.Left || selecting || panning) return;
-			// 双击图片 → 全窗预览；否则 100% ⇄ 适宽
-			try {
-				var pt = e.GetPosition(selLayer);
-				var hit = hitimage(pt);
-				if (hit?.Bitmap != null) {
-					e.Handled = true;
-					ImageOverlay.Show(hit.Bitmap);
-					return;
-				}
-			} catch { /* ignore */ }
+		// 双击：图片 → 预览（和右键菜单「预览图片」同一份实现）；空白 → 100% ⇄ 适宽。
+		// 必须走 Preview：selLayer 的 MouseLeftButtonDown 每次都把 Handled 置真（选字/平移），
+		// Control.MouseDoubleClick 见到 Handled 就不再抛，挂 MouseDoubleClick 等于永远收不到。
+		scroller.PreviewMouseLeftButtonDown += (_, e) => {
+			if (e.ClickCount != 2) return;
+			if (editMode || annotMode) return;
+			if (isscrollbarsource(e.OriginalSource as DependencyObject)) return;
+			// 第一下可能已经起了平移/选字，双击时先收拾干净再动作
+			if (panning) endpan();
+			if (selecting) {
+				selecting = false;
+				try { selLayer.ReleaseMouseCapture(); } catch { /* ignore */ }
+			}
+			var cpt = e.GetPosition(selLayer);
+			if (trypreviewimage(cpt)) {
+				e.Handled = true;
+				return;
+			}
+			// 点在字上：这一下是选词（原来的实现也是让选词吃掉双击），别顺手切缩放
+			if (hitchar(cpt, out var textPage, out var textIndex, strict: true)) {
+				_ = textPage;
+				_ = textIndex;
+				return;
+			}
 			e.Handled = true;
 			if (Math.Abs(zoom - 1.0) < 0.05) ZoomFitWidth();
 			else setzoomcore(1.0, e.GetPosition(scroller));
 		};
+	}
+
+	/// <summary>自测用：第 page 页第一张图的中心在视图里的位置；没图返回 null。</summary>
+	internal WpfPoint? ImageCanvasPoint(int page) => imagecenterpt(page);
+
+	/// <summary>自测用：当前缩放倍数。</summary>
+	internal double ZoomForTest => zoom;
+
+	/// <summary>自测用：页左边那片灰底上的一个点（点这里必然不是图片，用来测空白双击）。</summary>
+	internal WpfPoint? BlankCanvasPoint(int page) {
+		if (page < 0 || page >= pageCount) return null;
+		var left = Math.Max(0, (contentW - pageW[page]) / 2);
+		var x = left - 120;
+		if (x < 20) x = Math.Max(20, left + pageW[page] + 120);
+		return new WpfPoint(x, pageTop[page] + pageH[page] * 0.5);
+	}
+
+	/// <summary>自测用：把视图内坐标换成屏幕像素（真鼠标点击用）。</summary>
+	internal WpfPoint? CanvasPointToScreen(WpfPoint pt) {
+		try {
+			// PointToScreen 本来就是设备像素，别再乘一次 DPI
+			return selLayer.PointToScreen(pt);
+		} catch { return null; }
+	}
+
+	/// <summary>自测用：把视图内某点滚到视口中央，让真鼠标点得到。</summary>
+	internal void ScrollToImagePoint(WpfPoint pt) {
+		try {
+			var vx = scroller.ViewportWidth;
+			var vy = scroller.ViewportHeight;
+			scroller.ScrollToVerticalOffset(Math.Max(0, pt.Y - vy * 0.5));
+			scroller.ScrollToHorizontalOffset(Math.Max(0, pt.X - vx * 0.5));
+			scroller.UpdateLayout();
+		} catch { /* ignore */ }
+	}
+
+	/// <summary>点在图片上就开预览，返回是否命中（双击与右键菜单共用）。</summary>
+	bool trypreviewimage(WpfPoint canvasPt) {
+		try {
+			var hit = hitimage(canvasPt);
+			if (hit?.Bitmap == null) return false;
+			showimagepreview(hit.Bitmap);
+			return true;
+		} catch (Exception ex) {
+			DocViewLog.Warn($"preview pdf image: {ex.Message}");
+			return false;
+		}
+	}
+
+	/// <summary>
+	/// 自测用：在第 page 页第一张图的中心走一遍双击的命中与预览，
+	/// 返回「命中/未命中 open=…」；这页没图返回空串。
+	/// </summary>
+	internal string DebugPreviewFirstImage(int page) {
+		var c = imagecenterpt(page);
+		if (c == null) return "";
+		var hit = trypreviewimage(c.Value);
+		var size = hit ? "命中" : "未命中";
+		return $"{size} open={ImageOverlay.IsOpen}";
 	}
 
 	void beginpan(WpfPoint scrollerPt, IInputElement capture) {
@@ -1672,7 +1743,7 @@ sealed class PdfViewer : IDocViewer {
 		mnCopyText.Click += (_, _) => copyselection();
 		mnViewImg = new MenuItem { Header = "预览图片" };
 		mnViewImg.Click += (_, _) => {
-			if (ctxImage?.Bitmap != null) ImageOverlay.Show(ctxImage.Bitmap);
+			if (ctxImage?.Bitmap != null) showimagepreview(ctxImage.Bitmap);
 		};
 		mnCopyImg = new MenuItem { Header = "复制图片" };
 		mnCopyImg.Click += (_, _) => copyctximage();
@@ -1713,6 +1784,48 @@ sealed class PdfViewer : IDocViewer {
 		} catch (Exception ex) {
 			DocViewLog.Warn($"ctx open: {ex.Message}");
 		}
+	}
+
+	/// <summary>
+	/// 自测用：走右键菜单那条路——按页内坐标找图填进 ctxImage，再点「预览图片」，
+	/// 返回 open=True/False；这页没图返回空串。
+	/// </summary>
+	internal string DebugPreviewViaMenuItem(int page) {
+		var pt = imagecenterpt(page);
+		if (pt == null) return "";
+		ctxImage = hitimage(pt.Value);
+		if (ctxImage?.Bitmap == null) return "未命中";
+		mnViewImg.IsEnabled = true;
+		mnViewImg.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+		return $"命中 open={ImageOverlay.IsOpen}";
+	}
+
+	/// <summary>第 page 页第一张图的中心点（canvas dip）；页内没图返回 null。</summary>
+	WpfPoint? imagecenterpt(int page) {
+		if (session == null || page < 0 || page >= pageCount) return null;
+		List<PdfImageInfo> imgs = null;
+		try {
+			PdfIo.WithLock(() => {
+				if (session == null) return;
+				imgs = session.ListImageBounds(page);
+			});
+		} catch (Exception ex) {
+			DocViewLog.Warn($"imagecenterpt: {ex.Message}");
+			return null;
+		}
+		if (imgs == null || imgs.Count == 0) return null;
+		var img = imgs[0];
+		if (pageRotate != 0) {
+			var ow = pageSizesPt[page].Width;
+			var oh = pageSizesPt[page].Height;
+			mapboxrotate(ref img.Left, ref img.Top, ref img.Right, ref img.Bottom, ow, oh, pageRotate);
+		}
+		viewpagesizept(page, out var vpw, out var vph);
+		// 页坐标 pt → canvas dip（hitimage 的逆运算）
+		var left = Math.Max(0, (contentW - pageW[page]) / 2);
+		return new WpfPoint(
+			left + (img.Left + img.Right) * 0.5 * pageW[page] / Math.Max(1, vpw),
+			pageTop[page] + (img.Top + img.Bottom) * 0.5 * pageH[page] / Math.Max(1, vph));
 	}
 
 	PdfImageInfo hitimage(WpfPoint canvasPt) {
@@ -1790,6 +1903,31 @@ sealed class PdfViewer : IDocViewer {
 			DocViewLog.Warn($"ExtractImageBitmap: {ex.Message}");
 			return null;
 		}
+	}
+
+	/// <summary>
+	/// 双击图片和右键菜单「预览图片」共用：把抽出来的位图交给 ImageOverlay 弹层。
+	/// 宿主锚点固定成这扇 PDF 视图，弹层才贴着阅读器开，而不是跑到主窗那边。
+	/// </summary>
+	void showimagepreview(BitmapSource bmp) {
+		if (bmp == null) return;
+		try {
+			// 锚在这扇 PDF 视图上：多标签时弹层才贴着当前这个，不会飘到别的 tab
+			ImageOverlay.HostAnchor = root;
+			ImageOverlay.ActiveHost = Window.GetWindow(root);
+		} catch { /* ignore */ }
+		ImageOverlay.Show(bmp, Title);
+	}
+
+	/// <summary>点在滚动条上时不算文档双击（否则拉滚动条会被当成放大）。</summary>
+	static bool isscrollbarsource(DependencyObject d) {
+		while (d != null) {
+			if (d is System.Windows.Controls.Primitives.ScrollBar) return true;
+			if (d is ScrollViewer) return false;
+			d = d is Visual || d is System.Windows.Media.Media3D.Visual3D
+				? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+		}
+		return false;
 	}
 
 	void copyctximage() {

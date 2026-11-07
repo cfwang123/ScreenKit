@@ -6806,6 +6806,54 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				win.ScrollTo(0);
 				pump();
 			}
+			// PDF：逐页找第一张图，走一遍双击预览与右键菜单预览
+			if (files[k].EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) {
+				string got = null;
+				for (var round = 0; round < 20 && got == null; round++) {
+					pump();
+					got = win.TestPdfImagePreview();
+				}
+				if (string.IsNullOrEmpty(got)) Out("  pdfimage skip: 文档里没找到图片");
+				else {
+					Out("  pdfimage: " + got);
+					if (got.IndexOf("open=True", StringComparison.Ordinal) < 0) {
+						Err("FAIL: PDF 双击图片没开出预览");
+						bad++;
+					}
+					// 留着弹层截一张，确认预览真的画出来了（不是空窗）
+					if (win.OpenPdfPreviewForShot()) {
+						pump();
+						var over = Path.Combine(shotdir, "pdf_overlay.png");
+						if (win.ShotOverlay(over)) Out("  shot " + over);
+						DocView.ImageOverlay.CloseIfOpen();
+						pump();
+					}
+					var got2 = win.TestPdfImageMenu();
+					Out("  pdfmenu: " + (string.IsNullOrEmpty(got2) ? "skip" : got2));
+					if (!string.IsNullOrEmpty(got2)
+						&& got2.IndexOf("open=True", StringComparison.Ordinal) < 0) {
+						Err("FAIL: PDF 右键「预览图片」没开出预览");
+						bad++;
+					}
+					// 真鼠标双击：前面的自测是直接调入口，这里走一遍输入栈
+					var real = win.TestPdfRealDoubleClick();
+					Out("  pdfdbl: " + (string.IsNullOrEmpty(real) ? "skip" : real));
+					if (!string.IsNullOrEmpty(real)
+						&& real.IndexOf("open=True", StringComparison.Ordinal) < 0) {
+						Err("FAIL: 真双击图片没开出预览：" + real);
+						bad++;
+					}
+					var blank = win.TestPdfBlankDoubleClick();
+					Out("  pdfblank: " + (string.IsNullOrEmpty(blank) ? "skip" : blank));
+					// 适宽恰好等于 100% 时本来就切不动缩放，这里只确认没误弹图片预览
+					if (!string.IsNullOrEmpty(blank)
+						&& blank.IndexOf("overlay=False", StringComparison.Ordinal) < 0) {
+						Err("FAIL: 双击空白误开了图片预览：" + blank);
+						bad++;
+					}
+				}
+				pump();
+			}
 			// 第一个标签是 Markdown 且带图时，顺带确认点击放大能开出弹层
 			if (k == 0 && files[0].EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
 				if (!win.HasImage) Out("  overlay skip: 文档里没有图片");

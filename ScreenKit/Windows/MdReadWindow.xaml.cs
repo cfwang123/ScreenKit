@@ -294,6 +294,150 @@ public partial class MdReadWindow : Window {
 	internal bool HasImage => cur?.Body != null && findimage(cur.Body) != null;
 
 	/// <summary>
+	/// 自测用：当前 PDF 标签里逐页找第一张图，走一遍双击命中 + 预览，返回结果说明。
+	/// 没找到图返回空串。
+	/// </summary>
+	internal string TestPdfImagePreview() {
+		if (cur?.Viewer is not DocView.PdfViewer pdf) return "";
+		var n = pdf.PageCount;
+		for (var p = 0; p < n; p++) {
+			var r = pdf.DebugPreviewFirstImage(p);
+			if (string.IsNullOrEmpty(r)) continue;
+			DocView.ImageOverlay.CloseIfOpen();
+			return $"双击 page{p} {r}";
+		}
+		return "";
+	}
+
+	/// <summary>自测用：把图片预览弹层自己截一张，确认真的画出来了。</summary>
+	internal bool ShotOverlay(string path) {
+		try {
+			foreach (Window w in Application.Current.Windows) {
+				if (ReferenceEquals(w, this)) continue;
+				if (w.GetType().Name != "OverlayWindow") continue;
+				w.UpdateLayout();
+				var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
+					Math.Max(8, (int)w.ActualWidth), Math.Max(8, (int)w.ActualHeight),
+					96, 96, PixelFormats.Pbgra32);
+				rtb.Render(w);
+				var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+				enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+				using var fs = System.IO.File.Create(path);
+				enc.Save(fs);
+				return true;
+			}
+		} catch { /* ignore */ }
+		return false;
+	}
+
+	/// <summary>自测用：打开当前 PDF 第一张图的预览并留着（不自动关），好截图。</summary>
+	internal bool OpenPdfPreviewForShot() {
+		if (cur?.Viewer is not DocView.PdfViewer pdf) return false;
+		for (var p = 0; p < pdf.PageCount; p++) {
+			if (string.IsNullOrEmpty(pdf.DebugPreviewFirstImage(p))) continue;
+			return DocView.ImageOverlay.IsOpen;
+		}
+		return false;
+	}
+
+	/// <summary>自测用：右键菜单「预览图片」那条路（与双击同一份 Show 实现）。</summary>
+	internal string TestPdfImageMenu() {
+		if (cur?.Viewer is not DocView.PdfViewer pdf) return "";
+		var n = pdf.PageCount;
+		for (var p = 0; p < n; p++) {
+			var r = pdf.DebugPreviewViaMenuItem(p);
+			if (string.IsNullOrEmpty(r)) continue;
+			DocView.ImageOverlay.CloseIfOpen();
+			return $"菜单 page{p} {r}";
+		}
+		return "";
+	}
+
+	/// <summary>
+	/// 自测用：真发两次鼠标左键（SendInput）到第一张图的中心，
+	/// 走完整的输入栈确认双击启用了预览。返回结果说明，没图返回空串。
+	/// </summary>
+	internal string TestPdfRealDoubleClick() {
+		if (cur?.Viewer is not DocView.PdfViewer pdf) return "";
+		for (var p = 0; p < pdf.PageCount; p++) {
+			if (pdf.ImageCanvasPoint(p) == null) continue;
+			// 先把可能还开着的弹层收掉、窗口抢到前台：否则鼠标点到别的窗上
+			DocView.ImageOverlay.CloseIfOpen();
+			pumpframes(4);
+			try {
+				Activate();
+				pumpframes(4);
+			} catch { /* ignore */ }
+			pdf.GoToPage(p + 1);
+			pumpframes(8);
+			var cv = pdf.ImageCanvasPoint(p);
+			if (cv == null) return "滚过去后找不到图";
+			// 保证落点在视口里，不然点到的位置没有图
+			pdf.ScrollToImagePoint(cv.Value);
+			pumpframes(8);
+			cv = pdf.ImageCanvasPoint(p);
+			var sp = cv == null ? null : pdf.CanvasPointToScreen(cv.Value);
+			if (sp == null) return "拿不到屏幕坐标";
+			var x = (int)Math.Round(sp.Value.X);
+			var y = (int)Math.Round(sp.Value.Y);
+			var z0 = pdf.ZoomForTest;
+			for (var attempt = 0; attempt < 2 && !DocView.ImageOverlay.IsOpen; attempt++) {
+				ScreenKit.WinTop.SendInputClick(x, y, "left", "click");
+				System.Threading.Thread.Sleep(60);
+				ScreenKit.WinTop.SendInputClick(x, y, "left", "click");
+				for (var i = 0; i < 40 && !DocView.ImageOverlay.IsOpen; i++) pumpframes(2);
+			}
+			var open = DocView.ImageOverlay.IsOpen;
+			var z1 = pdf.ZoomForTest;
+			DocView.ImageOverlay.CloseIfOpen();
+			pumpframes(2);
+			return $"page{p} at={x},{y} open={open} zoom {z0:F2}->{z1:F2}";
+		}
+		return "";
+	}
+
+	/// <summary>
+	/// 自测用：真双击页面旁边的灰底，确认「空白双击切换 100% ⇄ 适宽」没被图片预览抢掉。
+	/// 返回缩放前后说明，没页返回空串。
+	/// </summary>
+	internal string TestPdfBlankDoubleClick() {
+		if (cur?.Viewer is not DocView.PdfViewer pdf) return "";
+		if (pdf.PageCount <= 0) return "";
+		try {
+			Activate();
+			pumpframes(4);
+		} catch { /* ignore */ }
+		var cv = pdf.BlankCanvasPoint(0);
+		if (cv == null) return "";
+		pdf.ScrollToImagePoint(cv.Value);
+		pumpframes(8);
+		cv = pdf.BlankCanvasPoint(0);
+		var sp = cv == null ? null : pdf.CanvasPointToScreen(cv.Value);
+		if (sp == null) return "";
+		var before = pdf.ZoomForTest;
+		var x = (int)Math.Round(sp.Value.X);
+		var y = (int)Math.Round(sp.Value.Y);
+		ScreenKit.WinTop.SendInputClick(x, y, "left", "click");
+		System.Threading.Thread.Sleep(40);
+		ScreenKit.WinTop.SendInputClick(x, y, "left", "click");
+		for (var i = 0; i < 30; i++) pumpframes(2);
+		var after = pdf.ZoomForTest;
+		var changed = Math.Abs(after - before) > 0.05;
+		return $"blank at={x},{y} zoom {before:F2}->{after:F2} changed={changed} " +
+			$"overlay={DocView.ImageOverlay.IsOpen}";
+	}
+
+	/// <summary>跑几帧消息循环，让输入与布局跟上。</summary>
+	static void pumpframes(int n) {		for (var i = 0; i < n; i++) {
+			var frame = new System.Windows.Threading.DispatcherFrame();
+			System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+				System.Windows.Threading.DispatcherPriority.Background,
+				new Action(() => frame.Continue = false));
+			System.Windows.Threading.Dispatcher.PushFrame(frame);
+		}
+	}
+
+	/// <summary>
 	/// 自测用：在当前 Markdown 标签里找第一个图片元素并触发它的双击放大，
 	/// 确认 ImageOverlay 弹层真的开了。
 	/// </summary>
