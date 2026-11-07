@@ -39,7 +39,7 @@ sealed class JpConjLabels {
 	public string pol, polneg, polpast, polpastneg, ugoza;
 	public string nainodesu;
 	public string adv, naru, rentai, ume;
-	public string darou, deshou, tarou, dearu;
+	public string darou, karou, deshou, tarou, dearu;
 	public string nda, nanda, tte;
 	public string evid, tasouda, rashii, youda;
 	public string mitaida, kamoshirenai, hazuda;
@@ -500,6 +500,7 @@ static class JpConj {
 			L.sa = "さ";
 			L.rentai = "连体形";
 			L.darou = "だろう";
+			L.karou = "かろう";
 			L.deshou = "でしょう";
 			L.tarou = "たろう";
 			L.dearu = "である";
@@ -723,6 +724,7 @@ static class JpConj {
 		L.sa = "sa";
 		L.rentai = "attributive";
 		L.darou = "darou";
+		L.karou = "karou";
 		L.deshou = "deshou";
 		L.tarou = "tarou";
 		L.dearu = "dearu";
@@ -836,6 +838,7 @@ static class JpConj {
 			row(L.sugiru, s + "すぎる"),
 			row(L.sa, s + "さ"),
 			row(L.darou, word + "だろう、" + s + "くないだろう、" + s + "かっただろう、" + s + "くなかっただろう"),
+			row(L.karou, s + "かろう、" + s + "くなかろう、" + s + "くはなかろう"),
 			row(L.deshou, word + "でしょう、" + s + "くないでしょう、" + s + "かったでしょう、" + s + "くなかったでしょう"),
 			row(L.tarou, s + "かったろう、" + s + "くなかったろう"),
 			row(L.nda, word + "んだ、" + s + "くないんだ"),
@@ -908,6 +911,7 @@ static class JpConj {
 			row(L.sugiru, word + "すぎる"),
 			row(L.sa, word + "さ"),
 			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
+			row(L.karou, word + "ではなかろう、" + word + "じゃなかろう"),
 			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
 			row(L.tarou, word + "だったろう、" + word + "ではなかったろう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
@@ -947,6 +951,7 @@ static class JpConj {
 			row(L.tara, word + "だったら、" + word + "ではなかったら"),
 			row(L.dearu, word + "である、" + word + "ではない"),
 			row(L.darou, word + "だろう、" + word + "ではないだろう、" + word + "だっただろう、" + word + "ではなかっただろう"),
+			row(L.karou, word + "ではなかろう、" + word + "じゃなかろう"),
 			row(L.deshou, word + "でしょう、" + word + "ではないでしょう、" + word + "だったでしょう、" + word + "ではなかったでしょう"),
 			row(L.tarou, word + "だったろう、" + word + "ではなかったろう"),
 			row(L.nanda, word + "なんだ、" + word + "ではないんだ"),
