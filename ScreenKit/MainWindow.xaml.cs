@@ -5922,8 +5922,12 @@ public partial class MainWindow : Window {
 		if (name.Length == 0) name = card.Search ?? card.Id;
 		if (card.Kind == "web") name += " (web)";
 		var tip = ToolHub.TipOf(card);
-		var row = new StackPanel { Orientation = Orientation.Horizontal };
-		row.Children.Add(new TextBlock {
+		// 图标、名字、星标三列：名字占中间，星标永远贴到卡片最右边。
+		var row = new Grid();
+		row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+		row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+		var glyph = new TextBlock {
 			Text = card.Glyph,
 			FontFamily = ToolBtnUi.Mdl2,
 			FontSize = 16,
@@ -5931,14 +5935,18 @@ public partial class MainWindow : Window {
 			Foreground = new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44)),
 			VerticalAlignment = VerticalAlignment.Center,
 			Margin = new Thickness(0, 0, 8, 0),
-		});
-		row.Children.Add(new TextBlock {
+		};
+		Grid.SetColumn(glyph, 0);
+		row.Children.Add(glyph);
+		var label = new TextBlock {
 			Text = name,
 			FontSize = 14,
 			TextWrapping = TextWrapping.Wrap,
 			VerticalAlignment = VerticalAlignment.Center,
 			MaxWidth = 150,
-		});
+		};
+		Grid.SetColumn(label, 1);
+		row.Children.Add(label);
 		var star = new TextBlock {
 			Text = fav ? "\uE735" : "\uE734",
 			FontFamily = ToolBtnUi.Mdl2,
@@ -5950,6 +5958,7 @@ public partial class MainWindow : Window {
 				? Color.FromRgb(0xF9, 0x73, 0x16)
 				: Color.FromRgb(0xC4, 0xBE, 0xB6)),
 			Margin = new Thickness(6, 0, 0, 0),
+			HorizontalAlignment = HorizontalAlignment.Right,
 			Cursor = Cursors.Hand,
 			ToolTip = Loc.T(fav ? "web.fav.tip.off" : "web.fav.tip"),
 		};
@@ -5959,6 +5968,7 @@ public partial class MainWindow : Window {
 			e.Handled = true;
 			toggletoolfav(id);
 		};
+		Grid.SetColumn(star, 2);
 		row.Children.Add(star);
 		var box = new Border {
 			Width = 220,
