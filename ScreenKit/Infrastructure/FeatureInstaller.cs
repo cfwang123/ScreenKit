@@ -311,7 +311,7 @@ static class FeatureInstaller {
 			make(FeatureKind.FaceInsight, "face"),
 			make(FeatureKind.DictDb, "dict"),
 			make(FeatureKind.ImeDb, "ime"),
-			make(FeatureKind.EmojiFont, "emoji"),
+			make(FeatureKind.EmojiFont, "tools"),
 			make(FeatureKind.CudaGpu, "accel", true),
 			make(FeatureKind.DirectMl, "accel", true),
 			make(FeatureKind.MediaFoundation, "media"),

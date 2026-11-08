@@ -25,7 +25,7 @@
 					{ x: "select.u-font.ufont", name: "uFont", title: "字体" },
 					{ x: "span.u-msg.msg", name: "uMsg" }
 				] }),
-				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位、中英文名，以及 GBK 等编码。输入名称也能查，例如 arrow、箭头、黑桃。" }),
+				F.CreateDOM(t, { x: "p.hint", "data-k": "web.uni.hint", c: "点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位、中英文名，以及 GBK 等编码。输入名称也能查，例如 arrow、箭头、黑桃。" }),
 				F.CreateDOM(t, { x: "div.unitab", c: [
 					{ x: "div.ugroups.u-groups", name: "uGroups" },
 					{ x: "div.ugrid.u-grid", name: "uGrid" },
@@ -117,10 +117,10 @@
 		}
 		var hits = unifind2(q.split(/\s+/));
 		if (!hits.length) {
-			SK.msg("u-msg", "没有匹配的符号", true);
+			SK.msg("u-msg", ut("web.uni.none", "没有匹配的符号"), true);
 			return;
 		}
-		SK.msg("u-msg", "匹配 " + hits.length + " 个");
+		SK.msg("u-msg", ut("web.uni.hit", "匹配 {0} 个", hits.length));
 		unihits(hits);
 	}
 
@@ -208,6 +208,12 @@
 	function uniface(){
 		var face = SK.chartface ? SK.chartface() : "";
 		return face ? face + "," + UNIFACE : UNIFACE;
+	}
+
+	function ut(key, fb, n){
+		var s = SK.t ? SK.t(key) : "";
+		if (!s) s = fb || "";
+		return n == null ? s : s.replace("{0}", String(n));
 	}
 
 	function unishow(index, focus){
@@ -316,7 +322,9 @@
 			["URL", uniurl(cp)]
 		];
 		// 符号区才有名字数据，其它码位不加这两行。
-		if (sym) rows.splice(2, 0, ["中文名", sym[1], 1], ["英文名", sym[2], 1]);
+		if (sym) rows.splice(2, 0,
+			[ut("web.uni.name.zh", "中文名"), sym[1], 1],
+			[ut("web.uni.name.en", "英文名"), sym[2], 1]);
 		if (cp <= 0xFF) rows.splice(13, 0, ["Latin-1", unihex(cp).slice(2)]);
 		if (glyph.empty) {
 			if (unicn(cp))

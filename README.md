@@ -188,7 +188,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product
   - **Emoji lookup**: Emoji by Unicode category, searchable in Chinese and English by keyword or code point, click to copy
-  - **Unicode chart**: Unicode characters
+  - **Unicode chart**: Unicode characters; symbols such as arrows, math, shapes, hexagrams, mahjong and playing cards come with Chinese and English names in the details, and can be searched by name
   - **ASCII chart**: ASCII characters
   - **GBK chart**: GBK characters
   - **Morse code**: Morse code

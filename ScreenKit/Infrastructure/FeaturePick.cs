@@ -169,8 +169,6 @@ static class FeaturePick {
 			FeatureKind.Native7za, FeatureKind.DictDb), FeatureKind.DictDb),
 		withprimary(leaf("ime", "feat.pick.ime", "feat.pick.ime.detail",
 			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.ImeDb), FeatureKind.ImeDb),
-		withprimary(leaf("emoji", "feat.pick.emoji", "feat.pick.emoji.detail",
-			FeatureKind.Native7za, FeatureKind.EmojiFont), FeatureKind.EmojiFont),
 		withprimary(leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium, FeatureKind.PdfManaged),
 			FeatureKind.PdfManaged),
@@ -195,7 +193,10 @@ static class FeaturePick {
 			// 数据库驱动只有一行：勾上就把 SQLite / MySQL / Oracle 一起装（SQL Server 用系统自带，不用装）
 			wholedb(),
 			// FTP 工具：FluentFTP + SSH.NET，装到 exe 旁的 ftp\ 子目录
-			leaf("ftptools", "feat.pick.ftptools", "feat.FtpTools.detail", FeatureKind.FtpTools)),
+			leaf("ftptools", "feat.pick.ftptools", "feat.FtpTools.detail", FeatureKind.FtpTools),
+			// Emoji 字体：Emoji查询用的 Noto Color Emoji 子集，解到 web\
+			withprimary(leaf("emoji", "feat.pick.emoji", "feat.pick.emoji.detail",
+				FeatureKind.Native7za, FeatureKind.EmojiFont), FeatureKind.EmojiFont)),
 	];
 
 	public static IEnumerable<FeaturePickNode> Leaves(IEnumerable<FeaturePickNode> roots) {
