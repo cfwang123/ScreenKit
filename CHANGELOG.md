@@ -52,7 +52,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Batch video convert adds a Hardware acceleration option (NVENC / QSV, falls back to the CPU), per-file percentage progress, and live CPU / GPU usage in the status bar.
-- Japanese conjugation: after darou comes a karou row (takakarou, takunakarou; dewa nakarou / ja nakarou for na-adjectives and nouns), and the te-shimatta row gains the spoken chimatta / jimatta forms.
 - An Emoji lookup web tool: emoji listed by Unicode category and searchable in Chinese and English by keyword or code point, each cell showing its Chinese and English name and encodings, with the number of columns following the page width.
 - Unicode chart: symbols (arrows, math, shapes, hexagrams, mahjong, cards, chess) now show Chinese and English names in the detail panel and can be searched by name.
 - Document reader: the menu gains Show in Explorer, which selects the current file in File Explorer; if the file was moved it opens its old folder instead.
@@ -74,7 +73,6 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 视频批量转换新增「硬件加速」选项（NVENC / QSV，失败自动回退 CPU）、每个文件的百分比进度，以及底部实时 CPU / GPU 占用。
-- 日语词形变化：「だろう」后新增「かろう」一行，列出 高かろう／高くなかろう／高くはなかろう，な形容词和名词列出 ではなかろう／じゃなかろう；「てしまった」一行补上 ちまった／じまった 口语形。
 - 新增 web 工具「Emoji查询」：按 Unicode 分类列出 emoji，支持中英文关键词和码位搜索，每格显示中英文名和编码，列数随页宽自动增减。
 - Unicode码表：箭头、数学、几何、卦象、麻将、扑克、象棋等符号在详情栏显示中英文名，并支持按名称搜索。
 - 文档阅读器：菜单新增「在 Explorer 中显示」，在资源管理器里选中当前文件；文件已被移走时改为打开它原来所在的文件夹。
