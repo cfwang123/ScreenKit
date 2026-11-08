@@ -15,15 +15,19 @@
 		            AutomationProperties.AutomationId="codestat.tabs">
 			<TabItem x:Name="tabpick" Header="选择" AutomationProperties.AutomationId="codestat.tab.pick">
 				<DockPanel Margin="0,8,0,0">
-					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" LastChildFill="False">
-						<Button x:Name="badd" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
-						        AutomationProperties.AutomationId="codestat.add"/>
-						<Button x:Name="bdel" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
-						        AutomationProperties.AutomationId="codestat.del"/>
-						<Button x:Name="bclear" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
-						        AutomationProperties.AutomationId="codestat.clear"/>
-						<CheckBox x:Name="cgit" Content="启用 .gitignore" VerticalAlignment="Center" Margin="12,0,0,0"
-						          IsChecked="True" AutomationProperties.AutomationId="codestat.git"/>
+					<DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+						<Button x:Name="bgo" Style="{StaticResource ToolBtn}" DockPanel.Dock="Right" Margin="0"
+						        AutomationProperties.AutomationId="codestat.go"/>
+						<DockPanel LastChildFill="False">
+							<Button x:Name="badd" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
+							        AutomationProperties.AutomationId="codestat.add"/>
+							<Button x:Name="bdel" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
+							        AutomationProperties.AutomationId="codestat.del"/>
+							<Button x:Name="bclear" Style="{StaticResource ToolBtn}" DockPanel.Dock="Left"
+							        AutomationProperties.AutomationId="codestat.clear"/>
+							<CheckBox x:Name="cgit" Content="启用 .gitignore" VerticalAlignment="Center" Margin="12,0,0,0"
+							          IsChecked="True" AutomationProperties.AutomationId="codestat.git"/>
+						</DockPanel>
 					</DockPanel>
 					<TextBox x:Name="eignore" DockPanel.Dock="Bottom" Height="72" Margin="0,8,0,0"
 					         AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
@@ -77,7 +81,5 @@
 				</DockPanel>
 			</TabItem>
 		</TabControl>
-		<Button x:Name="bgo" Style="{StaticResource ToolBtn}" HorizontalAlignment="Right" VerticalAlignment="Top"
-		        Margin="0,4,4,0" Panel.ZIndex="2" AutomationProperties.AutomationId="codestat.go"/>
 	</Grid>
 </Window>
