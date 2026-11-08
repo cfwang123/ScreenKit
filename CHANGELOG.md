@@ -51,20 +51,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Batch video convert adds a Hardware acceleration option (NVENC / QSV, falls back to the CPU), per-file percentage progress, and live CPU / GPU usage in the status bar.
-- Japanese conjugation: new karou row after darou (takakarou, takunakarou; dewa nakarou for na-adjectives and nouns)
-- Added an Emoji lookup web tool: emoji grouped by Unicode category, searchable in Chinese and English by keyword or code point, with names and encodings shown
-- Unicode chart: symbols (arrows, math, shapes, hexagrams, mahjong, cards, chess) now show Chinese and English names in the detail panel, and can be searched by name
+- Japanese conjugation: after darou comes a karou row (takakarou, takunakarou; dewa nakarou / ja nakarou for na-adjectives and nouns), and the te-shimatta row gains the spoken chimatta / jimatta forms.
+- An Emoji lookup web tool: emoji listed by Unicode category and searchable in Chinese and English by keyword or code point, each cell showing its Chinese and English name and encodings, with the number of columns following the page width.
+- Unicode chart: symbols (arrows, math, shapes, hexagrams, mahjong, cards, chess) now show Chinese and English names in the detail panel and can be searched by name.
 - Document reader: the menu gains Show in Explorer, which selects the current file in File Explorer; if the file was moved it opens its old folder instead.
 
 #### Changed
 
 - Copying a screenshot path always uses /
-- Emoji lookup lists the Chinese and English names right in each cell, with the number of columns following the page width; category and subcategory names are no longer matched by text search
-- Emoji lookup now renders with its own bundled Noto Color Emoji subset, so joined sequences and newer emoji show as one glyph instead of splitting into two on older Windows 10 fonts
-- The emoji font is no longer bundled: Help - Install features now has an Emoji font item that downloads and unpacks web/emoji.woff2, and the Emoji lookup page shows a hint when the font is missing
+- Emoji lookup renders with its own Noto Color Emoji subset, so joined sequences and newer emoji show as one glyph instead of splitting into two on older Windows 10 fonts; the font is not shipped in the installer but downloaded by the Emoji font item under Help, Install features into web/emoji.woff2, and the page shows a hint while it is missing.
 
 #### Fixed
 
+- Japanese conjugation: causative forms that take the te series no longer leave a stray させる on the first of several written forms, so 信ぜさせる、信じさせる join on correctly.
 - Batch video convert no longer fails with a raw 'Error splitting the argument list: Option not found': ffmpeg64 is checked for a working ffmpeg.exe and a clear reinstall hint is shown when the exe and its DLLs do not match.
 - Markdown reader now renders the whole file: the first chunk appears immediately and the rest is appended as the UI idles, so a large CHANGELOG.md scrolls all the way to its last line (previously only a few dozen blocks near the viewport were laid out and scrolling stopped at the table of contents).
 - PDF preview: double-clicking an image now uses the same preview path as the context-menu Preview Image item
@@ -74,20 +73,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 视频批量转换新增「硬件加速」选项（NVENC / QSV，失败自动回退 CPU）、每个文件的百分比进度，以及底部实时 CPU / GPU 占用。
-- 日语词形变化：「だろう」后新增「かろう」一行，列出 高かろう／高くなかろう／高くはなかろう，な形容词和名词列出 ではなかろう／じゃなかろう
-- 新增 web 工具「Emoji查询」：按 Unicode 分类列出 emoji，支持中英文关键词和码位搜索，显示中英文名和编码
-- Unicode码表：箭头、数学、几何、卦象、麻将、扑克、象棋等符号在详情栏显示中英文名，并支持按名称搜索
+- 日语词形变化：「だろう」后新增「かろう」一行，列出 高かろう／高くなかろう／高くはなかろう，な形容词和名词列出 ではなかろう／じゃなかろう；「てしまった」一行补上 ちまった／じまった 口语形。
+- 新增 web 工具「Emoji查询」：按 Unicode 分类列出 emoji，支持中英文关键词和码位搜索，每格显示中英文名和编码，列数随页宽自动增减。
+- Unicode码表：箭头、数学、几何、卦象、麻将、扑克、象棋等符号在详情栏显示中英文名，并支持按名称搜索。
 - 文档阅读器：菜单新增「在 Explorer 中显示」，在资源管理器里选中当前文件；文件已被移走时改为打开它原来所在的文件夹。
 
 #### 变更
 
 - 复制截图路径固定用 /，并去掉对应参数开关
-- 「Emoji查询」列表每格直接显示中英文名，列数随页宽自动增减；分类、子分类名不再参与文本搜索
-- 「Emoji查询」改用自带的 Noto Color Emoji 子集渲染：旧版 Win10 字体里会被拆成两个的组合序列和新 emoji 现在都显示成一个字形
-- Emoji 字体不再随包发布：改到「帮助 → 安装功能」里的「Emoji 字体」按需下载并解出 web/emoji.woff2，Emoji查询页在未安装时会提示
+- 「Emoji查询」改用自带的 Noto Color Emoji 子集渲染：旧版 Win10 字体里会被拆成两个的组合序列和新 emoji 都显示成一个字形。字体不随安装包发布，改由「帮助 → 安装功能」里的「Emoji 字体」按需下载到 web/emoji.woff2，未安装时页面会提示。
 
 #### 修复
 
+- 日语词形变化：使役形接「て」系列时，ずる动词的多种写法不再只有最后一段去掉「る」，信ぜさせる、信じさせる 各自正确接成 信ぜさせて、信じさせて。
 - 修复视频批量转换报「Error splitting the argument list: Option not found」：检查 ffmpeg64 里的 ffmpeg.exe 能否与同目录 DLL 配套运行，不匹配时给出重新安装提示，而不是直接显示 ffmpeg 原始错误。
 - 修复文档阅读器打开大 Markdown 只显示开头目录：现在先排开头一段显示首屏，其余块在后台空档一批批接到后面，滚到底就是文件结尾；缩放、改窗口大小后仍停在原来看的那一段。
 - PDF 预览：双击图片放大改用与右键菜单「预览图片」相同的预览入口，双击不再失灵
