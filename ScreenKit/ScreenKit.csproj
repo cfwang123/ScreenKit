@@ -60,7 +60,9 @@
     <None Include="Web\viewer.min.css" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.css" />
     <None Include="Web\viewer.min.js" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.js" />
     <None Include="Web\fa-solid-900.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\fa-solid-900.woff2" />
-    <None Include="Web\emoji.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\emoji.woff2" />
+    <!-- emoji 字体不进包：帮助 → 安装功能 里按需下载。开发机上放 web/ 供直接调试。 -->
+    <None Include="Web\emoji.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\emoji.woff2" Condition="Exists('Web\emoji.woff2')" />
+    <None Include="Web\emoji-OFL.txt" CopyToOutputDirectory="PreserveNewest" Link="web\emoji-OFL.txt" Condition="Exists('Web\emoji-OFL.txt')" />
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />
     <None Include="Web\dict.js" CopyToOutputDirectory="PreserveNewest" Link="web\dict.js" />
@@ -81,7 +83,6 @@
     <EmbeddedResource Include="Web\viewer.min.css" LogicalName="web.viewer.min.css" />
     <EmbeddedResource Include="Web\viewer.min.js" LogicalName="web.viewer.min.js" />
     <EmbeddedResource Include="Web\fa-solid-900.woff2" LogicalName="web.fa-solid-900.woff2" />
-    <EmbeddedResource Include="Web\emoji.woff2" LogicalName="web.emoji.woff2" />
     <EmbeddedResource Include="Web\dict.html" LogicalName="web.dict.html" />
     <EmbeddedResource Include="Web\dict.css" LogicalName="web.dict.css" />
     <EmbeddedResource Include="Web\dict.js" LogicalName="web.dict.js" />
@@ -338,6 +339,9 @@
       <_SlimWeb Remove="$(OutputPath)web\jname-g.txt" />
       <!-- 界面语言脚本启动时按 lang/*.toml 重新合成，不进精简包 -->
       <_SlimWeb Remove="$(OutputPath)web\L.js" />
+      <!-- emoji 字体不进精简包：帮助 → 安装功能 里按需下载；开发机上仍有 web/ 副本 -->
+      <_SlimWeb Remove="$(OutputPath)web\emoji.woff2" />
+      <_SlimWeb Remove="$(OutputPath)web\emoji-OFL.txt" />
       <_SlimLang Include="$(OutputPath)lang\*.toml" Condition="Exists('$(OutputPath)lang')" />
       <!-- USB AOA 驱动与 SOAP 调试示例 WSDL：随包发布（net48 输出已有） -->
       <_SlimInf Include="$(OutputPath)winusb-aoa.inf" Condition="Exists('$(OutputPath)winusb-aoa.inf')" />
@@ -400,6 +404,7 @@
       <_SlimJunk Include="$(_SlimOut)\WpfOCR.exe;$(_SlimOut)\WpfOCR.exe.config" />
       <_SlimJunk Include="$(_SlimOut)\web\jname-s.txt;$(_SlimOut)\web\jname-g.txt" />
       <_SlimJunk Include="$(_SlimOut)\web\L.js" />
+      <_SlimJunk Include="$(_SlimOut)\web\emoji.woff2;$(_SlimOut)\web\emoji-OFL.txt" />
     </ItemGroup>
     <Delete Files="@(_SlimJunk)" TreatErrorsAsWarnings="true" Condition="'@(_SlimJunk)' != ''" />
     <Delete Files="$(OutputPath)WpfOCR.exe;$(OutputPath)WpfOCR.exe.config" TreatErrorsAsWarnings="true" />

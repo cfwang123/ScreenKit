@@ -76,6 +76,8 @@ public enum FeatureKind {
 	DocOfficeLegacy,
 	/// <summary>FTP/FTPS/SFTP 文件管理：FluentFTP + SSH.NET + BouncyCastle（约 5.7MB）。</summary>
 	FtpTools,
+	/// <summary>Emoji 字体 emoji.woff2。从固定 Release dict-db 的 emoji.7z 解到 web，不进安装包。</summary>
+	EmojiFont,
 }
 
 /// <summary>安装探测结果。</summary>
@@ -157,6 +159,9 @@ static class FeatureInstaller {
 	/// <summary>WeText C++ ITN（processor_pipe.exe + 中文 FST），自打包，随 dict-db 标签发布。</summary>
 	const string WETEXT7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/wetext.7z";
 	const long WETEXT7Z_BYTES = 338408L;
+	/// <summary>Emoji 字体包（Noto Color Emoji 子集 + OFL），解到 web 目录。</summary>
+	const string EMOJI7Z_URL = "https://github.com/cfwang123/ScreenKit/releases/download/dict-db/emoji.7z";
+	const long EMOJI7Z_BYTES = 1830284L;
 	/// <summary>解压后占用的磁盘空间（exe + FST）。</summary>
 	const long WETEXT_DISK_BYTES = 3447224L;
 	static readonly string[] FaceBuffaloLFiles = [
@@ -306,6 +311,7 @@ static class FeatureInstaller {
 			make(FeatureKind.FaceInsight, "face"),
 			make(FeatureKind.DictDb, "dict"),
 			make(FeatureKind.ImeDb, "ime"),
+			make(FeatureKind.EmojiFont, "emoji"),
 			make(FeatureKind.CudaGpu, "accel", true),
 			make(FeatureKind.DirectMl, "accel", true),
 			make(FeatureKind.MediaFoundation, "media"),
@@ -385,6 +391,7 @@ static class FeatureInstaller {
 		FeatureKind.FaceInsight => 326L * 1024 * 1024,
 		FeatureKind.DictDb => DICT7Z_BYTES,
 		FeatureKind.ImeDb => IME7Z_BYTES,
+		FeatureKind.EmojiFont => EMOJI7Z_BYTES,
 		FeatureKind.TranslateOnnx => TRANSLATE7Z_BYTES,
 		_ => 0,
 	};
@@ -486,6 +493,7 @@ static class FeatureInstaller {
 			case FeatureKind.FaceInsight: return dirsize(FaceModelsDir);
 			case FeatureKind.DictDb: return filesize(Path.Combine(BaseDir, "dict3.bin"));
 			case FeatureKind.ImeDb: return filesize(Path.Combine(BaseDir, "ime.db"));
+			case FeatureKind.EmojiFont: return filesize(EmojiFontPath);
 			case FeatureKind.TranslateOnnx:
 				return dirsize(Path.Combine(TranslateModelsDir, "opus-mt-zh-en-onnx"))
 					+ dirsize(Path.Combine(TranslateModelsDir, "opus-mt-en-zh-onnx"));
@@ -635,6 +643,8 @@ static class FeatureInstaller {
 			return probedict();
 		case FeatureKind.ImeDb:
 			return probeime();
+		case FeatureKind.EmojiFont:
+			return probefont();
 		case FeatureKind.TranslateOnnx:
 			return probetranslate();
 		default:
@@ -864,6 +874,9 @@ static class FeatureInstaller {
 		case FeatureKind.ImeDb:
 			await installime(log, progress, ct).ConfigureAwait(false);
 			break;
+		case FeatureKind.EmojiFont:
+			await installfont(log, progress, ct).ConfigureAwait(false);
+			break;
 		case FeatureKind.TranslateOnnx:
 			await installtranslate(log, progress, ct).ConfigureAwait(false);
 			break;
@@ -978,6 +991,9 @@ static class FeatureInstaller {
 			break;
 		case FeatureKind.ImeDb:
 			uninstallime(log);
+			break;
+		case FeatureKind.EmojiFont:
+			uninstallfont(log);
 			break;
 		case FeatureKind.TranslateOnnx:
 			uninstalltranslate(log);
@@ -1646,6 +1662,68 @@ arabic_dict.txt
 		deletefile(dest + "-wal", log);
 		deletefile(dest + "-shm", log);
 		removelegacydicts(log);
+	}
+
+	// ───────── emoji 字体 emoji.7z ─────────
+
+	static string EmojiFontDir => Path.Combine(BaseDir, "web");
+
+	static string EmojiFontPath => Path.Combine(EmojiFontDir, "emoji.woff2");
+
+	static FeatureInstallState probefont() {
+		try {
+			if (!File.Exists(EmojiFontPath)) return FeatureInstallState.Missing;
+			// 字体是固定的 1.7 MB 左右，明显偏小就是没下完整
+			return filesize(EmojiFontPath) > 1024 * 1024
+				? FeatureInstallState.Installed : FeatureInstallState.Partial;
+		}
+		catch { return FeatureInstallState.Missing; }
+	}
+
+	static async Task installfont(
+		IProgress<string> log, IProgress<InstallProgress> progress, CancellationToken ct) {
+		if (probefont() == FeatureInstallState.Installed) {
+			log?.Report("emoji.woff2 已存在，跳过");
+			reportprog(progress, 1, note: "已存在");
+			return;
+		}
+		Directory.CreateDirectory(CacheDir);
+		var arc = Path.Combine(CacheDir, "emoji.7z");
+		if (File.Exists(arc)) {
+			long have = 0;
+			try { have = new FileInfo(arc).Length; } catch { }
+			if (have != EMOJI7Z_BYTES) {
+				try { File.Delete(arc); } catch { }
+			}
+		}
+		await downloadfirst(ExpandUrls(EMOJI7Z_URL), arc, log, progress, ct,
+			expectedTotal: EMOJI7Z_BYTES, overallWeight: 0.9).ConfigureAwait(false);
+		var zlen = File.Exists(arc) ? new FileInfo(arc).Length : EMOJI7Z_BYTES;
+		var unpack = Path.Combine(CacheDir, "emoji-unpack");
+		if (Directory.Exists(unpack)) {
+			try { Directory.Delete(unpack, true); } catch { }
+		}
+		Directory.CreateDirectory(unpack);
+		log?.Report("解压 emoji.7z …");
+		reportprog(progress, 0.92, zlen, zlen, "emoji.7z", "解压中…");
+		await EnsureExtractAsync(arc, log, progress, ct).ConfigureAwait(false);
+		extract7z(arc, unpack, log);
+		Directory.CreateDirectory(EmojiFontDir);
+		foreach (var f in Directory.GetFiles(unpack, "*", SearchOption.AllDirectories)) {
+			var name = Path.GetFileName(f);
+			File.Copy(f, Path.Combine(EmojiFontDir, name), true);
+			log?.Report("emoji " + name + " (" + FormatBytes(new FileInfo(f).Length) + ")");
+		}
+		try { Directory.Delete(unpack, true); } catch { }
+		if (probefont() != FeatureInstallState.Installed)
+			throw new InvalidOperationException("解压后缺少 web/emoji.woff2");
+		reportprog(progress, 1, zlen, zlen, "emoji.woff2", "完成");
+		log?.Report("Emoji 字体完成 (" + FormatBytes(filesize(EmojiFontPath)) + ")");
+	}
+
+	static void uninstallfont(IProgress<string> log) {
+		deletefile(EmojiFontPath, log);
+		deletefile(Path.Combine(EmojiFontDir, "emoji-OFL.txt"), log);
 	}
 
 	// ───────── WeText ITN（语音文本归一化） ─────────

@@ -1008,6 +1008,7 @@ sealed partial class HttpOcrServer : IDisposable {
 			mime = "font/woff2";
 		}
 		else if (path == "/sk/emoji.woff2") {
+			// 字体不进安装包，由「帮助 → 安装功能」下载到 web/；没有就 404，页面自动退回系统字体。
 			name = "emoji.woff2";
 			mime = "font/woff2";
 		}

@@ -14,6 +14,7 @@
 					{ x: "span.u-msg.msg", name: "emjMsg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", "data-k": "web.emj.hint", c: "点一下选中并复制。左边按分类分组，中间按子分类铺开，右边是大字、中英文名和编码。" }),
+				F.CreateDOM(t, { x: "p.hint.emjnofont", name: "emjNoFont", hidden: true }),
 				F.CreateDOM(t, { x: "div.unitab", c: [
 					{ x: "div.ugroups.u-groups", name: "emjGroups" },
 					{ x: "div.ugrid.emjgrid", name: "emjGrid" },
@@ -41,17 +42,35 @@
 			page.doms.emjCh.onclick = pickcopy;
 			reset();
 			paint();
+			fontcheck();
+			if (document.fonts && document.fonts.addEventListener)
+				document.fonts.addEventListener("loadingdone", fontcheck);
 		},
 		hideGo: true,
 		live: false,
 		hideOut: true,
 		relang: function(){
 			paint();
+			fontcheck();
 		}
 	});
 
 	function data(){
 		return SK.emojidata || { g: [], s: [], r: [] };
+	}
+
+	// 字体没装（安装包里不带 emoji.woff2）时提示去「安装功能」下载。
+	function fontcheck(){
+		var el = page && page.doms ? page.doms.emjNoFont : null;
+		if (!el) return;
+		var ok = false;
+		if (document.fonts && document.fonts.forEach) {
+			document.fonts.forEach(function(f){
+				if (f.family && f.family.indexOf("SK Emoji") >= 0 && f.status === "loaded") ok = true;
+			});
+		}
+		el.hidden = ok;
+		if (!ok) el.textContent = tx("web.emj.nofont", "未安装 Emoji 字体，部分组合和新 emoji 会显示成两段或方框。请在「帮助 → 安装功能」里安装「Emoji 字体」。");
 	}
 
 	function mk(tag, cls, text){

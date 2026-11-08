@@ -75,6 +75,7 @@ static class Cli {
 				or "--test-ort-lazy"
 				or "--test-ort-release"
 				or "--test-dict-search" or "--test-dict-bench" or "--test-dict-count" or "--test-dict-conj" or "--test-dict-install" or "--test-dict-sel" or "--test-dict-word" or "--test-dict-tts"
+				or "--test-emoji-font"
 				or "--conj-json"
 				or "--test-dict-host" or "--test-dict-tr" or "--test-dict-web" or "--test-selbar"
 				or "--test-dict-scroll" or "--test-dict-select"
@@ -505,6 +506,8 @@ static class Cli {
 				}
 				case "--test-dict-install":
 					return testdictinstall();
+				case "--test-emoji-font":
+					return testemojifont();
 				case "--test-dict-sel":
 					return testselcopy();				case "--test-dict-word":
 					return testdictword();
@@ -7803,6 +7806,42 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return Task.Run(testdictinstallwork).GetAwaiter().GetResult();
 	}
 
+	/// <summary>按「安装功能」装 emoji 字体，确认落盘到 web/emoji.woff2。</summary>
+	static int testemojifont() => Task.Run(() => {
+		Out("=== Emoji 字体安装 --test-emoji-font ===");
+		var log = new Progress<string>(s => Out(s));
+		var lastPct = -1;
+		var prog = new Progress<InstallProgress>(p => {
+			if (p == null) return;
+			var pct = (int)(p.Overall * 100);
+			if (pct == lastPct) return;
+			lastPct = pct;
+			Out("progress " + pct + "% " + (p.Note ?? "") + " " + (p.FileName ?? ""));
+		});
+		try {
+			FeatureInstaller.InstallAsync(FeatureKind.EmojiFont, log, prog, CancellationToken.None)
+				.GetAwaiter().GetResult();
+		}
+		catch (Exception ex) {
+			Out("install fail: " + ex.Message);
+			return 1;
+		}
+		var path = Path.Combine(FeatureInstaller.BaseDir, "web", "emoji.woff2");
+		if (!File.Exists(path)) {
+			Out("missing web/emoji.woff2");
+			return 1;
+		}
+		var n = new FileInfo(path).Length;
+		Out("emoji.woff2 " + n);
+		if (n < 1024 * 1024) {
+			Out("emoji.woff2 too small");
+			return 1;
+		}
+		Out("probe=" + FeatureInstaller.Probe(FeatureKind.EmojiFont));
+		Out("install ok");
+		return 0;
+	}).GetAwaiter().GetResult();
+
 	static int testdictinstallwork() {
 		Out("=== 词典安装 --test-dict-install ===");
 		var log = new Progress<string>(s => Out(s));
@@ -9177,6 +9216,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-dict-bench  只读查询并计时：--test-dict-bench <词> [条数] [语言]，默认 1000 条、全部语言
       --test-dict-count <甲.bin> <乙.bin> [词...]  比较两个词库的全部命中数（不受 4000 条限制）。不给词时用 ing、tion 等命中很多的片段
       --test-dict-install  按安装功能下载 dict3.7z，解压出 exe 旁的 dict3.bin，再查 hello
+      --test-emoji-font  按安装功能下载 emoji.7z，解出 web/emoji.woff2
       --test-dict-conj [词] [词性]  打印变形表全部分组与结果，词性 1/2/3/ai/an/n 可指定
       --conj-json [ja|ko|en] [out.json] [kind:词 ...]  导出变形表 JSON；不给词时每个类型取几个代表词
       --test-dict-sel  前台文本框选中 hello，Ctrl+C 读回

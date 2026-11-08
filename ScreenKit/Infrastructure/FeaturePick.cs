@@ -169,6 +169,8 @@ static class FeaturePick {
 			FeatureKind.Native7za, FeatureKind.DictDb), FeatureKind.DictDb),
 		withprimary(leaf("ime", "feat.pick.ime", "feat.pick.ime.detail",
 			FeatureKind.NativeSqlite, FeatureKind.Native7za, FeatureKind.ImeDb), FeatureKind.ImeDb),
+		withprimary(leaf("emoji", "feat.pick.emoji", "feat.pick.emoji.detail",
+			FeatureKind.Native7za, FeatureKind.EmojiFont), FeatureKind.EmojiFont),
 		withprimary(leaf("pdf", "feat.pick.pdf", "feat.pick.pdf.detail",
 			FeatureKind.NativeSkia, FeatureKind.NativePdfium, FeatureKind.PdfManaged),
 			FeatureKind.PdfManaged),

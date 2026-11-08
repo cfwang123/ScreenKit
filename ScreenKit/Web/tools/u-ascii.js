@@ -9,7 +9,10 @@
 	var uniInk = {};
 	var uniSeen = {};
 	var uniAt = 0;
+	var uniGroup = 0;
 	var uniCp = -1;
+	var uniHit = null;
+	var uniSym = null;
 	var UNIFACE = "\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Microsoft YaHei\",\"Meiryo\",\"Yu Gothic\",\"Microsoft JhengHei\",\"MingLiU\",\"Noto Sans SC\",\"Noto Sans JP\",\"Noto Sans KR\",sans-serif";
 	SK.regutil("u-ascii", {
 		title: "Unicode码表",
@@ -18,11 +21,11 @@
 			page = t;
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
-					{ x: "input.u-q", name: "uQ", type: "text", "data-kph": "web.uni.ph", placeholder: SK.t("web.uni.ph") || "字、U+4E00 或十进制" },
+					{ x: "input.u-q", name: "uQ", type: "text", "data-kph": "web.uni.ph", placeholder: SK.t("web.uni.ph") || "字、U+4E00、十进制或名称" },
 					{ x: "select.u-font.ufont", name: "uFont", title: "字体" },
 					{ x: "span.u-msg.msg", name: "uMsg" }
 				] }),
-				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位，以及 GBK 等编码。" }),
+				F.CreateDOM(t, { x: "p.hint", c: "点一下选中并复制。左边每个分组写出字数和起止码。最右边是大字、码位、中英文名，以及 GBK 等编码。输入名称也能查，例如 arrow、箭头、黑桃。" }),
 				F.CreateDOM(t, { x: "div.unitab", c: [
 					{ x: "div.ugroups.u-groups", name: "uGroups" },
 					{ x: "div.ugrid.u-grid", name: "uGrid" },
@@ -85,9 +88,10 @@
 	}
 
 	function uniquery(){
-		var cp = uniparse(page.doms.uQ.value);
+		var raw = page.doms.uQ.value;
+		var cp = uniparse(raw);
 		if (cp === -1) {
-			SK.msg("u-msg", "");
+			unisearch(raw);
 			return;
 		}
 		if (cp < 0) {
@@ -103,10 +107,101 @@
 		unishow(i, cp);
 	}
 
+	// 码位以外的输入按名字查：中文名整串包含，英文名逐词前缀，都分大小写。
+	function unisearch(raw){
+		var q = String(raw).replace(/^\s+|\s+$/g, "").toLowerCase();
+		if (!q) {
+			SK.msg("u-msg", "");
+			unishow(uniAt < 0 ? uniGroup : uniAt, uniCp);
+			return;
+		}
+		var hits = unifind2(q.split(/\s+/));
+		if (!hits.length) {
+			SK.msg("u-msg", "没有匹配的符号", true);
+			return;
+		}
+		SK.msg("u-msg", "匹配 " + hits.length + " 个");
+		unihits(hits);
+	}
+
+	function unifind2(terms){
+		var idx = uniindex();
+		var out = [];
+		var i, j;
+		for (i = 0; i < idx.r.length; i++) {
+			var worst = 9;
+			for (j = 0; j < terms.length; j++) {
+				var sc = uniscore(i, terms[j]);
+				if (!sc) { worst = 0; break; }
+				if (sc < worst) worst = sc;
+			}
+			if (worst) out.push({ i: i, s: worst });
+		}
+		out.sort(function(a, b){
+			if (b.s !== a.s) return b.s - a.s;
+			var la = uniindex().meta[a.i].zh.length;
+			var lb = uniindex().meta[b.i].zh.length;
+			if (la !== lb) return la - lb;
+			return a.i - b.i;
+		});
+		var cps = [];
+		for (i = 0; i < out.length; i++) cps.push(idx.r[out[i].i][0]);
+		return cps;
+	}
+
+	// 4 名字完全相同，3 整词/开头/结尾，2 中间包含，1 英文词中段。
+	// 同分时名字短的在前，所以搜「箭头」先出「向左箭头」而不是一长串修饰语。
+	function uniscore(i, t){
+		var m = uniindex().meta[i];
+		var n = m.zh.length;
+		if (m.zh === t) return 4;
+		if (m.zh.indexOf(t) === 0) return 3;
+		if (t.length <= n && m.zh.indexOf(t) === n - t.length) return 3;
+		if (m.zh.indexOf(t) > 0) return 2;
+		if (m.en.indexOf(t) === 0) return 3;
+		if (m.en.indexOf(" " + t) >= 0) return 3;
+		if (m.en.indexOf(t) > 0) return 1;
+		return 0;
+	}
+
+	function uniindex(){
+		if (uniSym) return uniSym;
+		var d = SK.symname;
+		uniSym = { r: [], meta: [] };
+		if (!d || !d.r) return uniSym;
+		var i;
+		for (i = 0; i < d.r.length; i++) {
+			uniSym.r.push(d.r[i]);
+			uniSym.meta.push({
+				zh: String(d.r[i][1]).toLowerCase(),
+				en: String(d.r[i][2]).toLowerCase()
+			});
+		}
+		return uniSym;
+	}
+
+	function unisym(cp){
+		var d = SK.symname;
+		if (!d || !d.r) return null;
+		var a = 0;
+		var b = d.r.length - 1;
+		while (a <= b) {
+			var m = (a + b) >> 1;
+			if (d.r[m][0] === cp) return d.r[m];
+			if (d.r[m][0] < cp) a = m + 1;
+			else b = m - 1;
+		}
+		return null;
+	}
+
 	function unirefont(){
 		uniInk = {};
 		uniSeen = {};
 		if (!page.doms.uGrid) return;
+		if (uniAt < 0) {
+			if (uniHit) unihits(uniHit);
+			return;
+		}
 		unishow(uniAt, uniCp);
 	}
 
@@ -117,6 +212,8 @@
 
 	function unishow(index, focus){
 		uniAt = index;
+		uniGroup = index;
+		uniHit = null;
 		var slices = unislices();
 		var g = slices[index];
 		var groups = F.qa(".u-groups button");
@@ -142,6 +239,31 @@
 			if (focus >= g[1] && focus <= g[2]) F.into(on, { block: "center" });
 		}
 		unipreview(pick);
+	}
+
+	// 搜索结果显示在原来的网格位置；左边分组高亮到第一个结果所在的分组。
+	function unihits(hits){
+		uniAt = -1;
+		uniHit = hits;
+		uniGroup = unifind(hits[0]);
+		var groups = F.qa(".u-groups button");
+		var html = [];
+		var i, cp, glyph, cls;
+		for (i = 0; i < groups.length; i++) groups[i].className = i === uniGroup ? "on" : "";
+		if (groups[uniGroup]) F.into(groups[uniGroup], { block: "nearest" });
+		for (i = 0; i < hits.length; i++) {
+			cp = hits[i];
+			glyph = uniglyph(cp);
+			cls = glyph.ctrl ? "ctrl" : (glyph.empty ? "gap" : (glyph.alt ? "alt" : ""));
+			if (i === 0) cls = cls ? cls + " on" : "on";
+			html.push('<button type="button" data-cp="' + cp + '" title="U+' + unihex(cp) + '"'
+				+ (cls ? ' class="' + cls + '"' : '') + '>'
+				+ glyph.t + '</button>');
+		}
+		page.doms.uGrid.innerHTML = html.join("");
+		page.doms.uGrid.scrollTop = 0;
+		uniCp = hits[0];
+		unipreview(hits[0]);
 	}
 
 	function unimark(cp){
@@ -174,6 +296,7 @@
 			box.className = "uprev-ch";
 		}
 		var enc = uniPage[cp];
+		var sym = unisym(cp);
 		var rows = [
 			["码位", "U+" + unihex(cp)],
 			["十进制", String(cp)],
@@ -192,6 +315,8 @@
 			["JavaScript", unijs(cp)],
 			["URL", uniurl(cp)]
 		];
+		// 符号区才有名字数据，其它码位不加这两行。
+		if (sym) rows.splice(2, 0, ["中文名", sym[1], 1], ["英文名", sym[2], 1]);
 		if (cp <= 0xFF) rows.splice(13, 0, ["Latin-1", unihex(cp).slice(2)]);
 		if (glyph.empty) {
 			if (unicn(cp))
@@ -210,7 +335,7 @@
 			if (rows[i][0] === "分组")
 				html.push("<dt>" + rows[i][0] + "</dt><dd" + unitag(uniblock(cp)) + ">" + unihtml(rows[i][1]) + "</dd>");
 			else
-				html.push("<dt>" + rows[i][0] + "</dt><dd>" + unihtml(rows[i][1]) + "</dd>");
+				html.push("<dt>" + rows[i][0] + "</dt><dd" + (rows[i][2] ? ' class="uniplain"' : "") + ">" + unihtml(rows[i][1]) + "</dd>");
 		}
 		page.doms.uMeta.innerHTML = html.join("");
 		uniask(cp);

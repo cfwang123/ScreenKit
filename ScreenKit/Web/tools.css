@@ -667,8 +667,14 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .emjgrid .emjcell .emjn b { font-weight: 600; }
 .emjgrid .emjcell .emjn small { color: var(--muted); font-size: 11px; }
 .emjnone { padding: 24px 8px; color: var(--muted); font-size: 13px; }
+.emjnofont {
+	margin: 0 0 8px; padding: 6px 10px;
+	border: 1px solid #f3d3bd; border-radius: 6px; background: #fdf3ec;
+	color: #8a4a24; font-size: 12px;
+}
+.emjnofont[hidden] { display: none !important; }
 .uprev-ch.emjch { cursor: pointer; }
-.uprev-meta dd.emjplain {
+.uprev-meta dd.emjplain, .uprev-meta dd.uniplain {
 	font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
 	word-break: break-word;
 }

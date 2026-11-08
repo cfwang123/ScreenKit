@@ -20,7 +20,7 @@ This file summarizes **third-party components** that may be used at build time o
 | [FFmpeg.AutoGen](https://github.com/Ruslan-B/FFmpeg.AutoGen) | FFmpeg P/Invoke | LGPL-3.0-or-later (bindings) |
 | [Vortice.DXGI / Direct3D11](https://github.com/amerkoleci/Vortice.Windows) | DXGI capture | MIT |
 | [Viewer.js](https://github.com/fengyuanchen/viewerjs) 1.11.7 | Chat image zoom (`web/viewer.min.js`, `web/viewer.min.css`) | MIT |
-| [Noto Color Emoji](https://github.com/google/fonts/tree/main/ofl/notocoloremoji) subset | Emoji lookup glyphs (`web/emoji.woff2`, about 1.8 MB, trimmed to the emoji the tool lists) | SIL OFL 1.1; see `web/emoji-OFL.txt` |
+| [Noto Color Emoji](https://github.com/google/fonts/tree/main/ofl/notocoloremoji) subset | Emoji lookup glyphs. **Not shipped in the installer**: Help → Install features downloads `emoji.7z` from the `dict-db` release and unpacks `web/emoji.woff2` (about 1.8 MB, trimmed to the emoji the tool lists) | SIL OFL 1.1; `web/emoji-OFL.txt` is unpacked next to it and the text is in this repository |
 
 Always verify the license of the **exact package version** you ship.
 
