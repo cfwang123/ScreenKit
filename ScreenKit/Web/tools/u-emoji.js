@@ -2,7 +2,7 @@
 	var page = null;
 	var cur = "all";
 	var picked = "";
-	var blob = null;
+	var meta = null; // 每行的小写搜索文本：名字、关键词分词、码位
 
 	SK.regutil("u-emoji", {
 		title: "Emoji查询",
@@ -32,7 +32,10 @@
 			cur = "all";
 			picked = "";
 			page.doms.emjQ.value = "";
-			page.doms.emjQ.oninput = paint;
+			page.doms.emjQ.oninput = function(){
+				picked = "";
+				paint();
+			};
 			page.doms.emjGroups.onclick = ongroup;
 			page.doms.emjGrid.onclick = oncell;
 			page.doms.emjCh.onclick = pickcopy;
@@ -47,7 +50,7 @@
 		}
 	});
 
-	function d(){
+	function data(){
 		return SK.emojidata || { g: [], s: [], r: [] };
 	}
 
@@ -70,23 +73,23 @@
 	}
 
 	function gname(i){
-		var g = d().g[i] || ["", ""];
+		var g = data().g[i] || ["", ""];
 		return iszh() ? g[1] || g[0] : g[0] || g[1];
 	}
 
 	function sname(i){
-		var s = d().s[i] || ["", ""];
+		var s = data().s[i] || ["", ""];
 		return iszh() ? s[1] || s[0] : s[0] || s[1];
 	}
 
 	function gfull(i){
-		var g = d().g[i] || ["", ""];
+		var g = data().g[i] || ["", ""];
 		if (!g[0] || !g[1] || g[0] === g[1]) return gname(i);
 		return iszh() ? g[1] + " · " + g[0] : g[0] + " · " + g[1];
 	}
 
 	function sfull(i){
-		var s = d().s[i] || ["", ""];
+		var s = data().s[i] || ["", ""];
 		if (!s[0] || !s[1] || s[0] === s[1]) return sname(i);
 		return iszh() ? s[1] + " · " + s[0] : s[0] + " · " + s[1];
 	}
@@ -147,9 +150,7 @@
 			}
 			i++;
 			var u = cp - 0x10000;
-			var hi = (0xD800 + (u >> 10)).toString(16).toUpperCase();
-			var lo = (0xDC00 + (u & 0x3FF)).toString(16).toUpperCase();
-			out.push(hi, lo);
+			out.push((0xD800 + (u >> 10)).toString(16).toUpperCase(), (0xDC00 + (u & 0x3FF)).toString(16).toUpperCase());
 		}
 		return out.join(" ");
 	}
@@ -188,18 +189,46 @@
 		return "%" + utf8(em).split(" ").join("%");
 	}
 
-	// 搜索统一走一份小写文本：emoji、中英文名、中英文关键词、分类名和码位。
+	// 每行预先拆好：名字（中英）、关键词按 | 拆成词、分类名、码位。
 	function reset(){
-		blob = [];
-		var data = d();
-		var i;
-		for (i = 0; i < data.r.length; i++){
-			var r = data.r[i];
-			var g = data.g[r[5]] || ["", ""];
-			var s = data.s[r[6]] || ["", ""];
-			blob.push((r[0] + " " + r[1] + " " + r[2] + " " + r[3] + " " + r[4] + " "
-				+ cptext(r[0]) + " " + g[0] + " " + g[1] + " " + s[0] + " " + s[1]).toLowerCase());
+		var d = data();
+		meta = [];
+		var i, j, k;
+		for (i = 0; i < d.r.length; i++){
+			var r = d.r[i];
+			var g = d.g[r[5]] || ["", ""];
+			var s = d.s[r[6]] || ["", ""];
+			var parts = (r[3] + "|" + r[4]).split("|");
+			var tok = [];
+			for (j = 0; j < parts.length; j++){
+				k = parts[j].replace(/^\s+|\s+$/g, "").toLowerCase();
+				if (k) tok.push(k);
+			}
+			k = (g[0] + "|" + g[1] + "|" + s[0] + "|" + s[1]).split("|");
+			for (j = 0; j < k.length; j++){
+				var one = k[j].replace(/^\s+|\s+$/g, "").toLowerCase();
+				if (one) tok.push(one);
+			}
+			meta.push({
+				n: (r[1] + " " + r[2]).toLowerCase(),
+				t: tok,
+				c: cptext(r[0]).toLowerCase()
+			});
 		}
+	}
+
+	// 分数：3 名字或码位命中，2 关键词整词命中（中文按包含），1 英文词首包含，0 不命中。
+	function score(i, t){
+		var m = meta[i];
+		if (m.n.indexOf(t) >= 0 || m.c.indexOf(t) >= 0) return 3;
+		var j;
+		for (j = 0; j < m.t.length; j++){
+			var w = m.t[j];
+			if (w === t) return 2;
+			if (w.indexOf(t) === 0 && /^[\x00-\x7f]+$/.test(t)) return 2;
+			if (/[^\x00-\x7f]/.test(t) && w.indexOf(t) >= 0) return 2;
+		}
+		return 0;
 	}
 
 	function terms(){
@@ -207,46 +236,53 @@
 		return raw ? raw.split(/\s+/) : [];
 	}
 
-	function hit(i, q){
-		var j;
-		for (j = 0; j < q.length; j++) if (blob[i].indexOf(q[j]) < 0) return false;
-		return true;
+	// 返回 {i: 行号, s: 分数}，按分数和原来的顺序排。
+	function search(q){
+		var out = [];
+		var i;
+		for (i = 0; i < data().r.length; i++){
+			var worst = 9;
+			var j;
+			for (j = 0; j < q.length; j++){
+				var sc = score(i, q[j]);
+				if (!sc) { worst = 0; break; }
+				if (sc < worst) worst = sc;
+			}
+			if (worst) out.push({ i: i, s: worst });
+		}
+		out.sort(function(a, b){ return b.s - a.s || a.i - b.i; });
+		return out;
 	}
 
 	function counts(){
 		var n = [];
-		var data = d();
+		var d = data();
 		var i;
-		for (i = 0; i < data.g.length; i++) n.push(0);
-		for (i = 0; i < data.r.length; i++) n[data.r[i][5]]++;
+		for (i = 0; i < d.g.length; i++) n.push(0);
+		for (i = 0; i < d.r.length; i++) n[d.r[i][5]]++;
 		return n;
 	}
 
 	function rowby(em){
-		var data = d();
+		var d = data();
 		var i;
 		if (!em) return null;
-		for (i = 0; i < data.r.length; i++) if (data.r[i][0] === em) return data.r[i];
+		for (i = 0; i < d.r.length; i++) if (d.r[i][0] === em) return d.r[i];
 		return null;
 	}
 
 	function paint(){
 		if (!page) return;
-		paintgroups();
 		var q = terms();
-		var shown = paintgrid(q);
-		var sum = page.doms.emjGroups.firstChild;
-		if (sum) sum.textContent = q.length ? tx("web.emj.hit", "匹配 {0} 个", shown) : tx("web.emj.total", "共 {0} 个", d().r.length);
-		var r = rowby(picked);
-		var keep = false;
-		var data = d();
+		var rows = search(q);
+		var shown = 0;
 		var i;
-		for (i = 0; r && i < data.r.length; i++){
-			if (data.r[i] !== r) continue;
-			keep = (!q.length || hit(i, q)) && (cur === "all" || String(r[5]) === cur);
-			break;
-		}
-		if (!keep) r = first(q);
+		for (i = 0; i < rows.length; i++) if (cur === "all" || String(data().r[rows[i].i][5]) === cur) shown++;
+		paintgroups(shown, q.length > 0);
+		paintgrid(rows, q.length > 0);
+		var r = rowby(picked);
+		if (r && !inrows(r, rows)) r = null;
+		if (!r) r = rows.length ? firstof(rows) : null;
 		if (r){
 			picked = r[0];
 			mark();
@@ -258,15 +294,35 @@
 		}
 	}
 
-	function paintgroups(){
+	function inrows(r, rows){
+		var i;
+		for (i = 0; i < rows.length; i++){
+			if (data().r[rows[i].i] === r) return cur === "all" || String(r[5]) === cur;
+		}
+		return false;
+	}
+
+	function firstof(rows){
+		var i;
+		for (i = 0; i < rows.length; i++){
+			var r = data().r[rows[i].i];
+			if (cur === "all" || String(r[5]) === cur) return r;
+		}
+		return null;
+	}
+
+	function paintgroups(shown, searching){
 		var host = page.doms.emjGroups;
-		var data = d();
+		var d = data();
 		var countsn = counts();
 		while (host.firstChild) host.removeChild(host.firstChild);
-		host.appendChild(mk("div", "usum"));
-		host.appendChild(gbutton(-1, data.r.length));
+		var sum = mk("div", "usum", searching
+			? tx("web.emj.hit", "匹配 {0} 个", shown)
+			: tx("web.emj.total", "共 {0} 个", d.r.length));
+		host.appendChild(sum);
+		host.appendChild(gbutton(-1, d.r.length));
 		var i;
-		for (i = 0; i < data.g.length; i++) host.appendChild(gbutton(i, countsn[i]));
+		for (i = 0; i < d.g.length; i++) host.appendChild(gbutton(i, countsn[i]));
 	}
 
 	function gbutton(i, n){
@@ -274,45 +330,51 @@
 		btn.setAttribute("type", "button");
 		btn.setAttribute("data-g", String(i));
 		btn.title = i < 0 ? tx("web.emj.all", "全部") : gfull(i);
-		btn.className = String(i) === cur ? "on" : "";
+		btn.className = (i < 0 ? "all" : String(i)) === cur ? "on" : "";
 		btn.appendChild(mk("b", null, i < 0 ? tx("web.emj.all", "全部") : gname(i)));
 		btn.appendChild(mk("small", null, String(n)));
 		return btn;
 	}
 
-	function paintgrid(q){
+	function paintgrid(rows, searching){
 		var host = page.doms.emjGrid;
-		var data = d();
-		var byg = {};
-		var shown = 0;
+		var d = data();
+		var list = [];
 		var i;
-		while (host.firstChild) host.removeChild(host.firstChild);
-		for (i = 0; i < data.r.length; i++){
-			var r = data.r[i];
+		for (i = 0; i < rows.length; i++){
+			var r = d.r[rows[i].i];
 			if (cur !== "all" && String(r[5]) !== cur) continue;
-			if (q.length && !hit(i, q)) continue;
-			(byg[r[5]] = byg[r[5]] || []).push(r);
-			shown++;
+			list.push(r);
 		}
-		var gi;
-		for (gi = 0; gi < data.g.length; gi++){
-			if (!byg[gi]) continue;
-			if (cur === "all") host.appendChild(subtitle("emjgrp", gname(gi), byg[gi].length));
-			var bys = {};
-			var k;
-			for (k = 0; k < byg[gi].length; k++){
-				var si = byg[gi][k][6];
-				(bys[si] = bys[si] || []).push(byg[gi][k]);
-			}
-			for (k = 0; k < data.s.length; k++){
-				if (!bys[k]) continue;
-				host.appendChild(subtitle("emjsub", sname(k), bys[k].length));
-				host.appendChild(cells(bys[k]));
-			}
+		while (host.firstChild) host.removeChild(host.firstChild);
+		if (searching){
+			if (!list.length) host.appendChild(mk("div", "emjnone", tx("web.emj.none", "没有匹配的 emoji")));
+			else host.appendChild(cells(list));
 		}
-		if (!shown) host.appendChild(mk("div", "emjnone", tx("web.emj.none", "没有匹配的 emoji")));
+		else {
+			var byg = {};
+			var gi;
+			for (gi = 0; gi < d.g.length; gi++){
+				var bys = {};
+				for (i = 0; i < list.length; i++){
+					if (list[i][5] !== gi) continue;
+					var si = list[i][6];
+					(bys[si] = bys[si] || []).push(list[i]);
+				}
+				var k;
+				var n = 0;
+				for (k in bys) if (Object.prototype.hasOwnProperty.call(bys, k)) n += bys[k].length;
+				if (!n) continue;
+				if (cur === "all") host.appendChild(subtitle("emjgrp", gname(gi), n));
+				for (k = 0; k < d.s.length; k++){
+					if (!bys[k]) continue;
+					host.appendChild(subtitle("emjsub", sname(k), bys[k].length));
+					host.appendChild(cells(bys[k]));
+				}
+			}
+			if (!list.length) host.appendChild(mk("div", "emjnone", tx("web.emj.none", "没有匹配的 emoji")));
+		}
 		host.scrollTop = 0;
-		return shown;
 	}
 
 	function subtitle(cls, name, n){
@@ -341,23 +403,12 @@
 			cells[i].className = F.attr(cells[i], "data-em") === picked ? "emjcell on" : "emjcell";
 	}
 
-	function first(q){
-		var data = d();
-		var i;
-		for (i = 0; i < data.r.length; i++){
-			if (cur !== "all" && String(data.r[i][5]) !== cur) continue;
-			if (q.length && !hit(i, q)) continue;
-			return data.r[i];
-		}
-		return null;
-	}
-
 	function ongroup(ev){
 		var el = ev.target;
 		while (el && el !== this){
 			var g = el.getAttribute && F.attr(el, "data-g");
 			if (g != null){
-				cur = g;
+				cur = g === "-1" ? "all" : g;
 				picked = "";
 				paint();
 				return;
@@ -387,13 +438,13 @@
 		if (picked) SK.copytext(picked, "emj-msg");
 	}
 
-	function meta(dl, key, fb, val, mono){
+	function metarow(dl, key, fb, val, plain){
 		if (!val) return;
 		var dt = mk("dt");
 		dt.setAttribute("data-k", key);
 		dt.textContent = tx(key, fb);
 		dl.appendChild(dt);
-		dl.appendChild(mk("dd", mono === false ? "emjplain" : null, val));
+		dl.appendChild(mk("dd", plain ? "emjplain" : null, val));
 	}
 
 	function detail(r){
@@ -411,17 +462,17 @@
 		ch.title = tx("web.emj.copy", "点击复制") + " " + r[0];
 		var cp = cps(r[0]).length;
 		ch.style.fontSize = cp <= 2 ? "80px" : (cp <= 4 ? "56px" : (cp <= 8 ? "40px" : "28px"));
-		meta(dl, "web.emj.name.zh", "中文名", r[2], false);
-		meta(dl, "web.emj.name.en", "英文名", r[1], false);
-		meta(dl, "web.emj.group", "分类", gfull(r[5]), false);
-		meta(dl, "web.emj.sub", "子分类", sfull(r[6]), false);
-		meta(dl, "web.emj.cp", "码位", cptext(r[0]));
-		meta(dl, "web.emj.utf8", "UTF-8", utf8(r[0]));
-		meta(dl, "web.emj.utf16", "UTF-16", utf16(r[0]));
-		meta(dl, "web.emj.html", "HTML", entity(r[0]));
-		meta(dl, "web.emj.js", "JavaScript", jsesc(r[0]));
-		meta(dl, "web.emj.url", "URL", urlesc(r[0]));
-		meta(dl, "web.emj.kw.zh", "中文关键词", r[4], false);
-		meta(dl, "web.emj.kw.en", "英文关键词", r[3], false);
+		metarow(dl, "web.emj.name.zh", "中文名", r[2], true);
+		metarow(dl, "web.emj.name.en", "英文名", r[1], true);
+		metarow(dl, "web.emj.group", "分类", gfull(r[5]), true);
+		metarow(dl, "web.emj.sub", "子分类", sfull(r[6]), true);
+		metarow(dl, "web.emj.cp", "码位", cptext(r[0]));
+		metarow(dl, "web.emj.utf8", "UTF-8", utf8(r[0]));
+		metarow(dl, "web.emj.utf16", "UTF-16", utf16(r[0]));
+		metarow(dl, "web.emj.html", "HTML", entity(r[0]));
+		metarow(dl, "web.emj.js", "JavaScript", jsesc(r[0]));
+		metarow(dl, "web.emj.url", "URL", urlesc(r[0]));
+		metarow(dl, "web.emj.kw.zh", "中文关键词", r[4], true);
+		metarow(dl, "web.emj.kw.en", "英文关键词", r[3], true);
 	}
 })();

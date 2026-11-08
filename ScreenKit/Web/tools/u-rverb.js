@@ -1913,7 +1913,8 @@
 	}
 
 	function open(t){
-		page = t;
+		if (t) page = t;
+		if (!page || !page.doms) return;
 		var lang = langcode();
 		var hint = page.doms.rvHint;
 		if (hint) {

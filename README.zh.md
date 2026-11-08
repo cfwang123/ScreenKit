@@ -187,6 +187,7 @@ Windows 桌面工具（`ScreenKit.exe`，界面标题「屏幕截图工具」）
   - **Linux 常用软件**：查 Linux 常用开源软件的包名和安装命令
   - **本机信息**：查看浏览器能读到的本机信息
   - **常见 USB ID**：查 USB 厂家和产品
+  - **Emoji查询**：按 Unicode 分类列出 emoji，支持中英文关键词和码位搜索，点一下复制
   - **Unicode码表**：查 Unicode 字符
   - **ASCII码表**：查 ASCII 字符
   - **GBK码表**：查 GBK 字符

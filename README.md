@@ -187,6 +187,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Linux software**: Open-source Linux packages and install commands for common apps
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product
+  - **Emoji lookup**: Emoji by Unicode category, searchable in Chinese and English by keyword or code point, click to copy
   - **Unicode chart**: Unicode characters
   - **ASCII chart**: ASCII characters
   - **GBK chart**: GBK characters

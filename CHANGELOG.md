@@ -52,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Batch video convert adds a Hardware acceleration option (NVENC / QSV, falls back to the CPU), per-file percentage progress, and live CPU / GPU usage in the status bar.
 - Japanese conjugation: new karou row after darou (takakarou, takunakarou; dewa nakarou for na-adjectives and nouns)
+- Added an Emoji lookup web tool: emoji grouped by Unicode category, searchable in Chinese and English by keyword or code point, with names and encodings shown
 
 #### Changed
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 视频批量转换新增「硬件加速」选项（NVENC / QSV，失败自动回退 CPU）、每个文件的百分比进度，以及底部实时 CPU / GPU 占用。
 - 日语词形变化：「だろう」后新增「かろう」一行，列出 高かろう／高くなかろう／高くはなかろう，な形容词和名词列出 ではなかろう／じゃなかろう
+- 新增 web 工具「Emoji查询」：按 Unicode 分类列出 emoji，支持中英文关键词和码位搜索，显示中英文名和编码
 
 #### 变更
 
