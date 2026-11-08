@@ -45,6 +45,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Fixed
+
+- Two crashes caused by USB cast scanning: the scan disposed its semaphore and event while probe threads were still running, so a late `Release()` threw `ObjectDisposedException` on a thread-pool thread and terminated the process. Scanning no longer runs on every start either: Wi-Fi Direct / ICS adapters (192.168.137.x) are no longer mistaken for a phone's USB NIC and local addresses are skipped. Unhandled exceptions are now written to `log/crash.txt`.
+
+### 中文
+
+#### 修复
+
+- 修复 USB 投屏扫描导致的两次崩溃：扫描在探测线程还没结束时就把信号量和事件释放掉，迟到的 `Release()` 在线程池线程上抛 `ObjectDisposedException`，直接终止进程。扫描也不再每次启动就空跑：Wi‑Fi Direct / ICS 网卡（192.168.137.x）不再被当成手机 USB 网卡，本机地址跳过。未处理异常现在会写进 `log/crash.txt`。
+
 ## v1.0.35 (2026-11-05 ~ 11-08)
 
 ### English

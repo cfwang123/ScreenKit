@@ -12,7 +12,7 @@ sealed class CastUsbScan {
 	volatile bool scanning;
 
 	public void Tick() {
-		if (Recv == null || Recv.Busy || scanning) return;
+		if (Recv == null || !Recv.Running || Recv.Busy || scanning) return;
 		var now = Environment.TickCount;
 		if (lasttry != 0 && now - lasttry < 1500) return;
 		lasttry = now;
@@ -26,47 +26,58 @@ sealed class CastUsbScan {
 		}
 		if (ips.Count == 0) return;
 		addknown(ips);
+		// 本机地址不扫：Wi‑Fi Direct/ICS 段上就是自己，连上会把接收端顶掉
+		var mine = CastNetUtil.V4Addrs();
+		ips.RemoveAll(x => {
+			if (!IPAddress.TryParse(x, out var a)) return true;
+			return mine.Exists(m => m.Equals(a));
+		});
+		if (ips.Count == 0) return;
 		scanning = true;
 		ThreadPool.QueueUserWorkItem(_ => {
 			try { scan(ips); }
+			catch (Exception ex) { Log?.Invoke($"USB 扫描: {ex.Message}"); }
 			finally { scanning = false; }
 		});
 	}
 
 	void scan(List<string> ips) {
 		var found = new TcpClient[1];
-		var n = Math.Min(32, Math.Max(4, ips.Count));
-		using var gate = new Semaphore(n, n);
-		using var done = new ManualResetEvent(false);
+		var giveup = new bool[1];
 		var left = ips.Count;
-		foreach (var ip in ips) {
-			gate.WaitOne();
-			if (found[0] != null || Recv == null || Recv.Busy) {
-				Interlocked.Decrement(ref left);
-				gate.Release();
-				if (left <= 0) done.Set();
-				continue;
-			}
+		foreach (var ip in ips)
 			ThreadPool.QueueUserWorkItem(_ => {
 				TcpClient cli = null;
 				try {
-					if (found[0] != null || Recv.Busy) return;
+					if (Volatile.Read(ref found[0]) != null || Recv == null || Recv.Busy) return;
 					cli = trycli(ip);
 					if (cli == null) return;
 					if (Interlocked.CompareExchange(ref found[0], cli, null) == null) {
+						// 超时放弃后连上的，谁拿回来谁负责关，不留给下次
+						if (Volatile.Read(ref giveup[0]) &&
+							Interlocked.CompareExchange(ref found[0], null, cli) == cli) return;
 						cli = null;
-						done.Set();
 					}
 				}
+				catch { }
 				finally {
 					try { cli?.Close(); } catch { }
-					gate.Release();
-					if (Interlocked.Decrement(ref left) <= 0) done.Set();
+					Interlocked.Decrement(ref left);
 				}
 			});
+		var start = Environment.TickCount;
+		while (Volatile.Read(ref left) > 0 && unchecked(Environment.TickCount - start) < 2500) {
+			if (Volatile.Read(ref found[0]) != null) break;
+			Thread.Sleep(20);
 		}
-		done.WaitOne(2500);
-		var c = found[0];
+		var c = Interlocked.Exchange(ref found[0], null);
+		if (c == null) {
+			// 置位后连上的工作项自己关；这里再取一次，补上置位与取出之间的竞态
+			giveup[0] = true;
+			Thread.Sleep(30);
+			c = Interlocked.Exchange(ref found[0], null);
+		}
+		giveup[0] = true;
 		if (c == null) return;
 		try {
 			var ep = c.Client?.RemoteEndPoint;
@@ -143,10 +154,14 @@ sealed class CastUsbScan {
 		if (s.Contains("vmware") || s.Contains("virtualbox") || s.Contains("hyper-v") ||
 			s.Contains("vethernet") || s.Contains("tap-windows") || s.Contains("vpn"))
 			return false;
+		// Windows ICS / Wi‑Fi Direct 默认就是 192.168.137.x，不是手机；按 IP 认网卡会让空扫一直跑
+		if (s.Contains("wi-fi direct") || s.Contains("wifi direct") || s.Contains("wfd") ||
+			s.Contains("hotspot") || s.Contains("热点") || s.Contains("虚拟"))
+			return false;
 		foreach (var ua in ni.GetIPProperties().UnicastAddresses) {
 			if (ua.Address.AddressFamily != AddressFamily.InterNetwork) continue;
 			var ip = ua.Address.ToString();
-			if (ip.StartsWith("192.168.42.") || ip.StartsWith("192.168.137.")) return true;
+			if (ip.StartsWith("192.168.42.")) return true;
 		}
 		if (s.Contains("rndis") || s.Contains("remote ndis") || (s.Contains("远程") && s.Contains("ndis")) ||
 			s.Contains("android") || s.Contains("gadget") || s.Contains("网络共享") ||

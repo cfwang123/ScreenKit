@@ -211,6 +211,7 @@ public partial class App : System.Windows.Application {
 
 		ChatRoom.PurgeUploads();
 		initcuda();
+		installcrashtrap();
 
 		base.OnStartup(e);
 		var win = new MainWindow();
@@ -251,6 +252,43 @@ public partial class App : System.Windows.Application {
 		catch { }
 		singleMutex = null;
 		base.OnExit(e);
+	}
+
+	// 兜底：任何线程的未处理异常都留一份堆栈，别让用户只看到闪退
+	void installcrashtrap() {
+		AppDomain.CurrentDomain.UnhandledException += (_, e) => crashlog(e.ExceptionObject as Exception, "AppDomain");
+		System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, e) => {
+			crashlog(e.Exception, "Task");
+			try { e.SetObserved(); } catch { }
+		};
+		DispatcherUnhandledException += (_, e) => {
+			crashlog(e.Exception, "Dispatcher");
+			e.Handled = true;
+		};
+	}
+
+	static int crashat;
+	static int crashcnt;
+
+	static void crashlog(Exception ex, string src) {
+		if (ex == null) return;
+		try {
+			var dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+			Directory.CreateDirectory(dir);
+			var path = Path.Combine(dir, "crash.txt");
+			// 同一波异常会连发，10 秒内最多记 3 条
+			var now = Environment.TickCount;
+			if (crashat != 0 && unchecked(now - crashat) < 10000) {
+				if (++crashcnt > 3) return;
+			}
+			else {
+				crashat = now;
+				crashcnt = 0;
+			}
+			var head = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{src}] v{typeof(App).Assembly.GetName().Version}";
+			File.AppendAllText(path, $"{head}\n{ex}\n\n", new UTF8Encoding(false));
+		}
+		catch { }
 	}
 
 	static void initcuda() {
