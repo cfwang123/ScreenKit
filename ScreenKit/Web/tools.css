@@ -1,3 +1,10 @@
+/* Noto Color Emoji 子集，版权 Google，SIL OFL 1.1（https://github.com/google/fonts/blob/main/ofl/notocoloremoji/OFL.txt）。
+   只含 emoji 查询用到的序列，本地提供是为了 ZWJ 组合和新 emoji 不依赖系统字体版本。 */
+@font-face {
+	font-family: "SK Emoji";
+	src: url("/sk/emoji.woff2") format("woff2");
+	font-display: swap;
+}
 :root {
 	--ink: #1c1915;
 	--muted: #6b645c;
@@ -615,6 +622,11 @@ html[data-ufont] .ugrid button:not(.ctrl) { font-family: var(--ufont), sans-seri
 	font: 80px/1 "Segoe UI Emoji", "Segoe UI Symbol", "Microsoft YaHei", "Meiryo", "Yu Gothic", "Microsoft JhengHei", "MingLiU", "Noto Sans SC", "Noto Sans JP", "Noto Sans KR", sans-serif;
 }
 html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
+/* emoji 预览固定用自带字体：自选字体和旧系统字体会把 ZWJ 序列拆开显示。
+   html[...] 那条特异性更高，这里跟着带上才压得住。 */
+.uprev-ch.emjch, html[data-ufont] .uprev-ch.emjch {
+	font-family: "SK Emoji", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+}
 .uprev-ch.gap { background: #f3f1ec; }
 .uprev-ch.ctrl { font: 28px/1.2 "Segoe UI", "Microsoft YaHei UI", sans-serif; }
 .emjgrid { display: flex; flex-direction: column; gap: 2px; padding: 2px; }
@@ -644,7 +656,7 @@ html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .emjgrid .emjcell.on { border-color: var(--accent); background: #fff1e8; }
 .emjgrid .emjcell .emjg {
 	flex: none; width: 30px;
-	font: 22px/42px "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
+	font: 22px/42px "SK Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
 	text-align: center;
 }
 .emjgrid .emjcell .emjn { display: flex; flex-direction: column; min-width: 0; gap: 1px; }

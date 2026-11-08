@@ -60,6 +60,7 @@
     <None Include="Web\viewer.min.css" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.css" />
     <None Include="Web\viewer.min.js" CopyToOutputDirectory="PreserveNewest" Link="web\viewer.min.js" />
     <None Include="Web\fa-solid-900.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\fa-solid-900.woff2" />
+    <None Include="Web\emoji.woff2" CopyToOutputDirectory="PreserveNewest" Link="web\emoji.woff2" />
     <None Include="Web\dict.html" CopyToOutputDirectory="PreserveNewest" Link="web\dict.html" />
     <None Include="Web\dict.css" CopyToOutputDirectory="PreserveNewest" Link="web\dict.css" />
     <None Include="Web\dict.js" CopyToOutputDirectory="PreserveNewest" Link="web\dict.js" />
@@ -80,6 +81,7 @@
     <EmbeddedResource Include="Web\viewer.min.css" LogicalName="web.viewer.min.css" />
     <EmbeddedResource Include="Web\viewer.min.js" LogicalName="web.viewer.min.js" />
     <EmbeddedResource Include="Web\fa-solid-900.woff2" LogicalName="web.fa-solid-900.woff2" />
+    <EmbeddedResource Include="Web\emoji.woff2" LogicalName="web.emoji.woff2" />
     <EmbeddedResource Include="Web\dict.html" LogicalName="web.dict.html" />
     <EmbeddedResource Include="Web\dict.css" LogicalName="web.dict.css" />
     <EmbeddedResource Include="Web\dict.js" LogicalName="web.dict.js" />

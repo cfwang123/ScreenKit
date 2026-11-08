@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Copying a screenshot path always uses /
 - Emoji lookup lists the Chinese and English names right in each cell, with the number of columns following the page width; category and subcategory names are no longer matched by text search
+- Emoji lookup now renders with its own bundled Noto Color Emoji subset, so joined sequences and newer emoji show as one glyph instead of splitting into two on older Windows 10 fonts
 
 #### Fixed
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 复制截图路径固定用 /，并去掉对应参数开关
 - 「Emoji查询」列表每格直接显示中英文名，列数随页宽自动增减；分类、子分类名不再参与文本搜索
+- 「Emoji查询」改用自带的 Noto Color Emoji 子集渲染：旧版 Win10 字体里会被拆成两个的组合序列和新 emoji 现在都显示成一个字形
 
 #### 修复
 
