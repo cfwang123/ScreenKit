@@ -1306,7 +1306,7 @@ static class JpConj {
 			row(L.teimasu, te + "います、" + te + "ます"),
 			row(L.teoku, te + "おく、" + toku),
 			row(L.teshimau, te + "しまう、" + stem + cha + "う、" + stem + (te.EndsWith("で") ? "じまう" : "ちまう")),
-			row(L.teshimatta, te + "しまった、" + stem + cha + "った"),
+			row(L.teshimatta, te + "しまった、" + stem + cha + "った、" + stem + (te.EndsWith("で") ? "じまった" : "ちまった")),
 			row(L.tewa, te + "は、" + stem + cha),
 			row(L.temiru, te + "みる"),
 			row(L.tearu, te + "ある"),
