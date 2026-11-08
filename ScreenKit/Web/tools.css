@@ -617,6 +617,32 @@ html[data-ufont] .ugrid button:not(.ctrl) { font-family: var(--ufont), sans-seri
 html[data-ufont] .uprev-ch:not(.ctrl) { font-family: var(--ufont), sans-serif; }
 .uprev-ch.gap { background: #f3f1ec; }
 .uprev-ch.ctrl { font: 28px/1.2 "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+.emjgrid { display: flex; flex-direction: column; gap: 2px; padding: 2px; }
+.emjgrp {
+	margin: 8px 0 2px; padding: 3px 4px;
+	border-left: 3px solid #f97316;
+	color: var(--ink); font: 600 13px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.emjsub {
+	margin: 4px 0 1px; padding: 0 4px;
+	color: var(--muted); font: 12px/1.4 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.emjgrp .n, .emjsub .n { margin-left: 6px; font-weight: 400; font-size: 11px; opacity: 0.7; }
+.emjrow { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 2px; }
+.emjcell {
+	height: 36px; padding: 0; cursor: pointer; overflow: hidden;
+	border: 1px solid var(--line); border-radius: 4px; background: #fff; color: var(--ink);
+	font: 20px/36px "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
+	text-align: center;
+}
+.emjcell:hover { border-color: var(--accent); }
+.emjcell.on { border-color: var(--accent); background: #fff1e8; }
+.emjnone { padding: 24px 8px; color: var(--muted); font-size: 13px; }
+.uprev-ch.emjch { cursor: pointer; }
+.uprev-meta dd.emjplain {
+	font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+	word-break: break-word;
+}
 .uprev-meta { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 6px 8px; margin: 0; }
 .uprev-meta dt { margin: 0; color: var(--muted); font-size: 12px; }
 .uprev-meta dd {

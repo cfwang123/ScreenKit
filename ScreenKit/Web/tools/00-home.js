@@ -856,6 +856,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-emoji",
+						"data-cat":"info",
+						"data-name":"emoji 表情 表情符号 笑脸 符号 smile 笑 开心 emoji查询 码表",
+						"title":"按分类列出 emoji，支持中英文搜索，点一下复制",
+						c:[
+						{x:"i.fa-solid.fa-icons"},
+						{x:"span","data-k":"web.tool.emoji",c:"Emoji查询"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-emoji","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-asc",
 						"data-cat":"info",
 						"data-name":"ascii 码表 字符 控制字符 转义 0x41",
