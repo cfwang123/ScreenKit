@@ -12,7 +12,7 @@
 	var uniGroup = 0;
 	var uniCp = -1;
 	var uniHit = null;
-	var uniSym = null;
+	var uniIdx = null;
 	var UNIFACE = "\"Segoe UI Emoji\",\"Segoe UI Symbol\",\"Microsoft YaHei\",\"Meiryo\",\"Yu Gothic\",\"Microsoft JhengHei\",\"MingLiU\",\"Noto Sans SC\",\"Noto Sans JP\",\"Noto Sans KR\",sans-serif";
 	SK.regutil("u-ascii", {
 		title: "Unicode码表",
@@ -165,19 +165,18 @@
 	}
 
 	function uniindex(){
-		if (uniSym) return uniSym;
+		if (uniIdx) return uniIdx;
 		var d = SK.symname;
-		uniSym = { r: [], meta: [] };
-		if (!d || !d.r) return uniSym;
+		uniIdx = { r: (d && d.r) || [], meta: [] };
 		var i;
-		for (i = 0; i < d.r.length; i++) {
-			uniSym.r.push(d.r[i]);
-			uniSym.meta.push({
-				zh: String(d.r[i][1]).toLowerCase(),
-				en: String(d.r[i][2]).toLowerCase()
+		for (i = 0; i < uniIdx.r.length; i++) {
+			var row = uniIdx.r[i];
+			uniIdx.meta.push({
+				zh: String(row[1]).toLowerCase(),
+				en: String(row[2]).toLowerCase()
 			});
 		}
-		return uniSym;
+		return uniIdx;
 	}
 
 	function unisym(cp){
