@@ -70,14 +70,9 @@ sealed class CastUsbScan {
 			if (Volatile.Read(ref found[0]) != null) break;
 			Thread.Sleep(20);
 		}
-		var c = Interlocked.Exchange(ref found[0], null);
-		if (c == null) {
-			// 置位后连上的工作项自己关；这里再取一次，补上置位与取出之间的竞态
-			giveup[0] = true;
-			Thread.Sleep(30);
-			c = Interlocked.Exchange(ref found[0], null);
-		}
+		// 先置放弃标志再取结果：之后连上的由工作项自己关，避免连上的套接字没人关
 		giveup[0] = true;
+		var c = Interlocked.Exchange(ref found[0], null);
 		if (c == null) return;
 		try {
 			var ep = c.Client?.RemoteEndPoint;
