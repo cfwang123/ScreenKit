@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese conjugation: new karou row after darou (takakarou, takunakarou; dewa nakarou for na-adjectives and nouns)
 - Added an Emoji lookup web tool: emoji grouped by Unicode category, searchable in Chinese and English by keyword or code point, with names and encodings shown
 - Unicode chart: symbols (arrows, math, shapes, hexagrams, mahjong, cards, chess) now show Chinese and English names in the detail panel, and can be searched by name
+- Document reader: the menu gains Show in Explorer, which selects the current file in File Explorer; if the file was moved it opens its old folder instead.
 
 #### Changed
 
@@ -76,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语词形变化：「だろう」后新增「かろう」一行，列出 高かろう／高くなかろう／高くはなかろう，な形容词和名词列出 ではなかろう／じゃなかろう
 - 新增 web 工具「Emoji查询」：按 Unicode 分类列出 emoji，支持中英文关键词和码位搜索，显示中英文名和编码
 - Unicode码表：箭头、数学、几何、卦象、麻将、扑克、象棋等符号在详情栏显示中英文名，并支持按名称搜索
+- 文档阅读器：菜单新增「在 Explorer 中显示」，在资源管理器里选中当前文件；文件已被移走时改为打开它原来所在的文件夹。
 
 #### 变更
 

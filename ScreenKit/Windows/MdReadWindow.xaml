@@ -224,6 +224,7 @@
 							<Separator/>
 							<MenuItem x:Name="mnpath" Header="复制文件路径"/>
 							<MenuItem x:Name="mnsysopen" Header="用系统应用打开"/>
+							<MenuItem x:Name="mnexplorer" Header="在 Explorer 中显示"/>
 						</MenuItem>
 					</Menu>
 

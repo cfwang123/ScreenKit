@@ -512,6 +512,7 @@ public partial class MdReadWindow : Window {
 		mnreload.Click += (_, _) => reload();
 		mnpath.Click += (_, _) => copytext(cur?.Path);
 		mnsysopen.Click += (_, _) => sysopen(cur?.Path);
+		mnexplorer.Click += (_, _) => showinexplorer(cur?.Path);
 		mnword.Click += (_, _) => export(true);
 		mnpdf.Click += (_, _) => export(false);
 		PreviewDragOver += (_, e) => {
@@ -596,6 +597,7 @@ public partial class MdReadWindow : Window {
 		mnreload.Header = Loc.T("mdread.reload");
 		mnpath.Header = Loc.T("mdread.copypath");
 		mnsysopen.Header = Loc.T("mdread.sysopen");
+		mnexplorer.Header = Loc.T("mdread.explorer.menu");
 		mnword.Header = Loc.T("mdread.word");
 		mnpdf.Header = Loc.T("mdread.pdf");
 		// 工具栏按钮都是图标，文字只放在提示和自动化名里；这里不要再给 bopen 设 Content，
@@ -1521,6 +1523,31 @@ public partial class MdReadWindow : Window {
 		catch { }
 	}
 
+	/// <summary>在资源管理器中选中当前文件。文件被移走时退回打开它原来所在的目录。</summary>
+	void showinexplorer(string path) {
+		if (string.IsNullOrEmpty(path)) return;
+		try {
+			string args;
+			if (File.Exists(path)) {
+				args = "/select,\"" + path + "\"";
+				lbstat.Text = Loc.T("mdread.explorer");
+			}
+			else {
+				var dir = System.IO.Path.GetDirectoryName(path);
+				if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) {
+					lbstat.Text = Loc.T("mdread.explorer.fail", path);
+					return;
+				}
+				args = "\"" + dir + "\"";
+				lbstat.Text = Loc.T("mdread.explorer.fail", System.IO.Path.GetFileName(path));
+			}
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", args) {
+				UseShellExecute = true,
+			});
+		}
+		catch { }
+	}
+
 	/// <summary>把当前 Markdown 导出成 Word / PDF：复用 MdHtml 的排版，不依赖阅读器界面。</summary>
 	void export(bool word) {
 		if (cur == null || cur.Kind != DocView.DocKind.Md) return;
@@ -1570,6 +1597,7 @@ public partial class MdReadWindow : Window {
 		mnreload.IsEnabled = cur != null;
 		mnpath.IsEnabled = cur != null;
 		mnsysopen.IsEnabled = cur != null;
+		mnexplorer.IsEnabled = cur != null;
 		var v = cur?.Viewer;
 		bzoomout.IsEnabled = v != null;
 		bzoomin.IsEnabled = v != null;
