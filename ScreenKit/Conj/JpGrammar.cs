@@ -210,18 +210,31 @@ static class JpGrammar {
 		"ba" => f.Ba,
 		"cau" => f.Cau,
 		// 使役形的词干：書かせる→書かせ，接 て 系列（書かせてください）。
-		"caute" => f.Cau.EndsWith("る") ? f.Cau.Substring(0, f.Cau.Length - 1) : f.Cau,
+		// ずる动词的使役形是 信ぜさせる、信じさせる 两个写法，要把每一个的 る 都去掉。
+		"caute" => cautestem(f.Cau),
 		"vol" => f.Vol,
 		"teiru" => f.Te + "いる",
 		_ => f.Plain,
 	};
 
-	/// <summary>目录条目里的多个写法用「、」分隔，每一段都要接上同一个接续形。</summary>
+	/// <summary>使役形接 て 系列时用：把一段或多段写法（「、」分隔）各自的 る 去掉。</summary>
+	static string cautestem(string cau) {
+		if (string.IsNullOrEmpty(cau)) return "";
+		var parts = cau.Split('、');
+		for (var i = 0; i < parts.Length; i++)
+			parts[i] = parts[i].EndsWith("る") ? parts[i].Substring(0, parts[i].Length - 1) : parts[i];
+		return string.Join("、", parts);
+	}
+
+	/// <summary>目录条目里的多个写法用「、」分隔，每一段都要接上同一个接续形。
+	/// 词干本身也可能有多个写法（ずる动词的使役形 信ぜさせる、信じさせる），两边都要拆开。</summary>
 	static string catvals(string stemtext, string suffix) {
+		var stems = stemtext.Split('、');
 		var parts = suffix.Split('、');
-		if (parts.Length == 1) return stemtext + suffix;
-		var all = new string[parts.Length];
-		for (var i = 0; i < parts.Length; i++) all[i] = stemtext + parts[i];
+		if (stems.Length == 1 && parts.Length == 1) return stemtext + suffix;
+		var all = new List<string>(stems.Length * parts.Length);
+		foreach (var s in stems)
+			foreach (var p in parts) all.Add(s + p);
 		return string.Join("、", all);
 	}
 
@@ -245,8 +258,8 @@ static class JpGrammar {
 				cur = p.Grp;
 			}
 			var g = grpname(p.Grp, zh);
-			var pos = stem(f, p.Conn) + p.Pos;
-			var neg = p.NegConn.Length == 0 ? "" : stem(f, p.NegConn) + p.Neg;
+			var pos = catvals(stem(f, p.Conn), p.Pos);
+			var neg = p.NegConn.Length == 0 ? "" : catvals(stem(f, p.NegConn), p.Neg);
 			rows.Add(new ConjRow(zh ? p.Zh : p.En, neg.Length > 0 ? pos + "、" + neg : pos, g));
 		}
 		flush();
