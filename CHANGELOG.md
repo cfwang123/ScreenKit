@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Copying a screenshot path always uses /
+- Emoji lookup lists the Chinese and English names right in each cell, with the number of columns following the page width; category and subcategory names are no longer matched by text search
 
 #### Fixed
 
@@ -75,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 复制截图路径固定用 /，并去掉对应参数开关
+- 「Emoji查询」列表每格直接显示中英文名，列数随页宽自动增减；分类、子分类名不再参与文本搜索
 
 #### 修复
 

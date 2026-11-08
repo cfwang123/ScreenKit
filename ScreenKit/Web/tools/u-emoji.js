@@ -189,25 +189,18 @@
 		return "%" + utf8(em).split(" ").join("%");
 	}
 
-	// 每行预先拆好：名字（中英）、关键词按 | 拆成词、分类名、码位。
+	// 每行预先拆好：名字（中英）、关键词按 | 拆成词、码位。分类和子分类名不进索引，免得搜「笑脸和情感」把整类都搜出来。
 	function reset(){
 		var d = data();
 		meta = [];
 		var i, j, k;
 		for (i = 0; i < d.r.length; i++){
 			var r = d.r[i];
-			var g = d.g[r[5]] || ["", ""];
-			var s = d.s[r[6]] || ["", ""];
 			var parts = (r[3] + "|" + r[4]).split("|");
 			var tok = [];
 			for (j = 0; j < parts.length; j++){
 				k = parts[j].replace(/^\s+|\s+$/g, "").toLowerCase();
 				if (k) tok.push(k);
-			}
-			k = (g[0] + "|" + g[1] + "|" + s[0] + "|" + s[1]).split("|");
-			for (j = 0; j < k.length; j++){
-				var one = k[j].replace(/^\s+|\s+$/g, "").toLowerCase();
-				if (one) tok.push(one);
 			}
 			meta.push({
 				n: (r[1] + " " + r[2]).toLowerCase(),
@@ -383,14 +376,21 @@
 		return h;
 	}
 
+	// 每格是「emoji + 中文名 + 英文名」三列，列数按可用宽度自动增减。
 	function cells(rows){
 		var box = mk("div", "emjrow");
 		var i;
 		for (i = 0; i < rows.length; i++){
-			var b = mk("button", rows[i][0] === picked ? "emjcell on" : "emjcell", rows[i][0]);
+			var r = rows[i];
+			var b = mk("button", r[0] === picked ? "emjcell on" : "emjcell");
 			b.setAttribute("type", "button");
-			b.setAttribute("data-em", rows[i][0]);
-			b.title = names(rows[i]);
+			b.setAttribute("data-em", r[0]);
+			b.title = names(r);
+			b.appendChild(mk("span", "emjg", r[0]));
+			var txt = mk("span", "emjn");
+			txt.appendChild(mk("b", null, iszh() ? r[2] : r[1]));
+			txt.appendChild(mk("small", null, iszh() ? r[1] : r[2]));
+			b.appendChild(txt);
 			box.appendChild(b);
 		}
 		return box;
