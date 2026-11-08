@@ -164,19 +164,22 @@
 		return 0;
 	}
 
+	// 名字数据由 u-symdata.js 提供，还没加载时先给空表、不缓存，加载后再建索引。
 	function uniindex(){
 		if (uniIdx) return uniIdx;
 		var d = SK.symname;
-		uniIdx = { r: (d && d.r) || [], meta: [] };
+		var rows = (d && d.r) || [];
+		if (!rows.length) return { r: [], meta: [] };
+		var idx = { r: rows, meta: [] };
 		var i;
-		for (i = 0; i < uniIdx.r.length; i++) {
-			var row = uniIdx.r[i];
-			uniIdx.meta.push({
-				zh: String(row[1]).toLowerCase(),
-				en: String(row[2]).toLowerCase()
+		for (i = 0; i < rows.length; i++) {
+			idx.meta.push({
+				zh: String(rows[i][1]).toLowerCase(),
+				en: String(rows[i][2]).toLowerCase()
 			});
 		}
-		return uniIdx;
+		uniIdx = idx;
+		return idx;
 	}
 
 	function unisym(cp){
