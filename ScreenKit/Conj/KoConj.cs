@@ -261,14 +261,6 @@ static class KoConj {
 		["jimah"] = new[] { "敬语禁止", "높임 금지", "formal don't" },
 		["bsida"] = new[] { "敬语", "높임", "formal" },
 		["ja"] = new[] { "非敬语", "반말", "casual" },
-		["any"] = new[] { "半敬语否定", "해요 부정", "polite negative" },
-		["anp"] = new[] { "半敬语否定过去", "해요 부정 과거", "polite negative past" },
-		["anhy"] = new[] { "半敬语长否定", "해요 긴 부정", "polite long negative" },
-		["anhh"] = new[] { "敬语长否定", "높임 긴 부정", "formal long negative" },
-		["anhpy"] = new[] { "半敬语长否过去", "해요 긴 부정 과거", "polite long negative past" },
-		["anhpp"] = new[] { "书面长否定", "해라 긴 부정", "plain long negative" },
-		["moty"] = new[] { "半敬语不能", "해요 못", "polite can't" },
-		["jimot"] = new[] { "半敬语长不能", "해요 긴 못", "polite long can't" },
 		["honh"] = new[] { "敬语", "높임", "formal" },
 		["hony"] = new[] { "半敬语", "해요체", "polite" },
 		["honpy"] = new[] { "半敬语过去", "해요 과거", "polite past" },
@@ -1034,6 +1026,15 @@ static class KoConj {
 		return stem.Substring(0, stem.Length - 1);
 	}
 
+	/// <summary>已经是否定形的行不再叠否定，如 「지 마세요」「못 해요」「-지 않다」。</summary>
+	private static bool isnegform(string s) {
+		if (string.IsNullOrEmpty(s)) return false;
+		if (s.StartsWith("안 ", StringComparison.Ordinal) || s.StartsWith("못 ", StringComparison.Ordinal)) return true;
+		return s.IndexOf("지 않", StringComparison.Ordinal) >= 0
+			|| s.IndexOf("지 못", StringComparison.Ordinal) >= 0
+			|| s.IndexOf("지 마", StringComparison.Ordinal) >= 0;
+	}
+
 	private static string wrapneg(string stem, string irr, string full, string mark) {
 		var head = splitha(stem, irr);
 		if (head.Length == 0 || !full.StartsWith(head, StringComparison.Ordinal)) return mark + " " + full;
@@ -1111,53 +1112,74 @@ static class KoConj {
 		var eobs = endseobs(syls);
 		var hs = irr == "si" ? null : hon(syls, irr);
 		string g(string key) => lp(li, GRP[key]);
-		void add(string id, string name, string text) {
+		// 长否定一律是「词干 + 지 않 + 词尾」，所以这里只给词尾
+		string ln(string tail) => jn(syls) + "지 않" + tail;
+		// 있다 的短否定是换词 없다（있습니다 -> 없습니다、멋있어요 -> 멋없어요），不是加 안
+		var itda = kind == "itda";
+		// 못 只接动词，且 모르다 没有能力否定
+		var canmot = verb && word != "모르다";
+		void add(string id, string name, string text, string longn = null, bool mot = false) {
 			if (string.IsNullOrEmpty(text)) return;
-			rows.Add(new ConjRow(rowname(id, name, li), text, cur));
+			rows.Add(new ConjRow(rowname(id, name, li), compose(text, longn, mot), cur));
 		}
-		string quad(string a, string n, string pa, string pn) => $"{a} / {n} / {pa} / {pn}";
-		string pairneg(string a, string n) => $"{a} / {n}";
+		// 肯定 / 短否定 / 지 않다 长否定 / 못 能力否定。longn 传 null 的行不叠（文言、方言等没有否定的说法）。
+		// 已并列多形或本身是否定的行原样保留。
+		string compose(string aff, string longn, bool mot) {
+			if (longn == null) return aff;
+			if (aff.IndexOf(" / ", StringComparison.Ordinal) >= 0 || isnegform(aff)) return aff;
+			string shortn;
+			if (itda) {
+				// 있습니다 -> 없습니다；계시다 这类换词尊敬形找不到 있，仍按 안 规则
+				var at = aff.IndexOf("있", StringComparison.Ordinal);
+				shortn = at < 0 ? wrapneg(stem, irr, aff, "안") : aff.Substring(0, at) + "없" + aff.Substring(at + 1);
+			}
+			else shortn = wrapneg(stem, irr, aff, "안");
+			var parts = new List<string>(4) { aff, shortn };
+			if (longn.Length > 0) parts.Add(longn);
+			if (mot && canmot) parts.Add(wrapneg(stem, irr, aff, "못"));
+			return string.Join(" / ", parts);
+		}
 		cur = g("base");
 		add("dict", lp(li, NOTE["dict"]), word);
 		cur = g("now");
-		add("hap", "합니다", hapsho(syls));
-		add("hey", "해요", hey);
-		add("ban", "해", ba);
-		add("plain", plainDa ? "다" : "는다", plainnow);
-		add("qhap", "합니까", repend(hapsho(syls), "니다", "니까"));
-		add("qplain", adj && !eobs ? "냐" : "느냐", qplain(syls, irr, kind));
-		add("nayo", "나요", (adj && !eobs ? nieunword(syls, irr) + "가요" : dropr(syls, "나요")) + "?");
+		add("hap", "합니다", hapsho(syls), ln("습니다"));
+		add("hey", "해요", hey, ln("아요"), true);
+		add("ban", "해", ba, ln("아"), true);
+		add("plain", plainDa ? "다" : "는다", plainnow, ln(verb ? "는다" : "다"), true);
+		add("qhap", "합니까", repend(hapsho(syls), "니다", "니까"), ln("습니까"));
+		add("qplain", adj && !eobs ? "냐" : "느냐", qplain(syls, irr, kind), ln("느냐"));
+		add("nayo", "나요", (adj && !eobs ? nieunword(syls, irr) + "가요" : dropr(syls, "나요")) + "?", ln("나요"));
 		cur = g("past");
-		add("phap", "했습니다", past + "습니다");
-		add("phey", "했어요", past + "어요");
-		add("pban", "했어", past + "어");
-		add("pplain", "했다", past + "다");
-		add("pqhap", "했습니까", past + "습니까");
-		add("pqplain", "했느냐", past + "느냐");
-		add("plup", "했었어요", past + "었어요");
-		add("wasgo", "ㄹ 거였어요", rl + " 거였어요");
-		add("pguess", "았겠어요", past + "겠어요");
-		add("ifpast", "았더라면", past + "더라면");
+		add("phap", "했습니다", past + "습니다", ln("았습니다"), true);
+		add("phey", "했어요", past + "어요", ln("았어요"), true);
+		add("pban", "했어", past + "어", ln("았어"), true);
+		add("pplain", "했다", past + "다", ln("았다"), true);
+		add("pqhap", "했습니까", past + "습니까", ln("았습니까"));
+		add("pqplain", "했느냐", past + "느냐", ln("았느냐"));
+		add("plup", "했었어요", past + "었어요", ln("았었어요"));
+		add("wasgo", "ㄹ 거였어요", rl + " 거였어요", ln("을 거였어요"));
+		add("pguess", "았겠어요", past + "겠어요", ln("았겠어요"));
+		add("ifpast", "았더라면", past + "더라면", ln("았더라면"));
 		cur = g("fut");
-		add("fhap", "ㄹ 겁니다", rl + " 겁니다");
-		add("fhey", "ㄹ 거예요", rl + " 거예요");
-		add("fban", "ㄹ 거야", rl + " 거야");
-		add("fplain", "ㄹ 것이다", rl + " 것이다");
-		add("ghap", "겠습니다", jn(syls) + "겠습니다");
-		add("ghey", "겠어요", jn(syls) + "겠어요");
-		add("gban", "겠어", jn(syls) + "겠어");
-		add("gplain", "겠다", jn(syls) + "겠다");
-		if (verb) add("lge", "ㄹ게요", rl + "게요");
-		add("lkk", "ㄹ까요", rl + "까요");
+		add("fhap", "ㄹ 겁니다", rl + " 겁니다", ln("을 겁니다"));
+		add("fhey", "ㄹ 거예요", rl + " 거예요", ln("을 거예요"));
+		add("fban", "ㄹ 거야", rl + " 거야", ln("을 거야"));
+		add("fplain", "ㄹ 것이다", rl + " 것이다", ln("을 것이다"));
+		add("ghap", "겠습니다", jn(syls) + "겠습니다", ln("겠습니다"));
+		add("ghey", "겠어요", jn(syls) + "겠어요", ln("겠어요"));
+		add("gban", "겠어", jn(syls) + "겠어", ln("겠어"));
+		add("gplain", "겠다", jn(syls) + "겠다", ln("겠다"));
+		if (verb) add("lge", "ㄹ게요", rl + "게요", ln("을게요"));
+		add("lkk", "ㄹ까요", rl + "까요", ln("을까요"));
 		if (verb) {
 			cur = g("prog");
-			add("prh", "고 있습니다", jn(syls) + "고 있습니다");
-			add("pry", "고 있어요", jn(syls) + "고 있어요");
-			add("prb", "고 있어", jn(syls) + "고 있어");
-			add("prp", "고 있다", jn(syls) + "고 있다");
-			add("prpy", "고 있었어요", jn(syls) + "고 있었어요");
-			add("prph", "고 있었습니다", jn(syls) + "고 있었습니다");
-			add("prpp", "고 있었다", jn(syls) + "고 있었다");
+			add("prh", "고 있습니다", jn(syls) + "고 있습니다", ln("고 있습니다"));
+			add("pry", "고 있어요", jn(syls) + "고 있어요", ln("고 있어요"), true);
+			add("prb", "고 있어", jn(syls) + "고 있어", ln("고 있어"), true);
+			add("prp", "고 있다", jn(syls) + "고 있다", ln("고 있다"));
+			add("prpy", "고 있었어요", jn(syls) + "고 있었어요", ln("고 있었어요"));
+			add("prph", "고 있었습니다", jn(syls) + "고 있었습니다", ln("고 있었습니다"));
+			add("prpp", "고 있었다", jn(syls) + "고 있었다", ln("고 있었다"));
 			cur = g("cmd");
 			add("sip", "십시오", sipnio(syls, irr));
 			add("seyo", "세요", seyoform(syls, irr));
@@ -1169,40 +1191,31 @@ static class KoConj {
 			add("bsida", "ㅂ시다", bsida(syls, irr));
 			add("ja", "자", jn(syls) + "자");
 		}
-		cur = g("neg");
-		add("any", "안 해요", wrapneg(stem, irr, hey, "안"));
-		add("anp", "안 했어요", wrapneg(stem, irr, past + "어요", "안"));
-		add("anhy", "지 않아요", jn(syls) + "지 않아요");
-		add("anhh", "지 않습니다", jn(syls) + "지 않습니다");
-		add("anhpy", "지 않았어요", jn(syls) + "지 않았어요");
-		add("anhpp", "지 않았다", jn(syls) + "지 않았다");
-		if (verb) {
-			add("moty", "못 해요", wrapneg(stem, irr, hey, "못"));
-			add("jimot", "지 못해요", jn(syls) + "지 못해요");
-		}
 		if (hs != null) {
 			var hat = honat(hs);
+			// 尊敬形的长否定接在 시 后面：먹으시지 않습니다
+			string hn(string tail) => jn(hs) + "지 않" + tail;
 			cur = g("hon");
 			if (HONSUP.TryGetValue(word, out var sup)) add("sup", "替换尊敬", sup);
-			add("honh", "십니다", honhap(hs));
-			add("hony", "세요", honhey(hs));
-			add("honpy", "셨어요", hat + "어요");
-			add("honph", "셨습니다", hat + "습니다");
-			add("honpp", "셨다", hat + "다");
-			add("honpl", "신다", honplain(hs));
-			add("honf", "실 거예요", honfut(hs) + " 거예요");
+			add("honh", "십니다", honhap(hs), hn("습니다"));
+			add("hony", "세요", honhey(hs), hn("아요"), true);
+			add("honpy", "셨어요", hat + "어요", hn("았어요"));
+			add("honph", "셨습니다", hat + "습니다", hn("았습니다"));
+			add("honpp", "셨다", hat + "다", hn("았다"));
+			add("honpl", "신다", honplain(hs), hn("는다"));
+			add("honf", "실 거예요", honfut(hs) + " 거예요", hn("을 거예요"));
 		}
 		cur = g("con");
-		add("go", "고", jn(syls) + "고");
-		add("ase", "아서", ba + "서");
-		add("myeon", "면", pluseu(st, "면", false));
-		add("jiman", "지만", jn(syls) + "지만");
-		add("nikka", "니까", pluseu(st, "니까", true));
+		add("go", "고", jn(syls) + "고", ln("고"));
+		add("ase", "아서", ba + "서", ln("아서"));
+		add("myeon", "면", pluseu(st, "면", false), ln("으면"));
+		add("jiman", "지만", jn(syls) + "지만", ln("지만"));
+		add("nikka", "니까", pluseu(st, "니까", true), ln("으니까"));
 		if (verb) {
-			add("ryeo", "려고", pluseu(st, "려고", false));
-			add("wanty", "고 싶어요", jn(syls) + "고 싶어요");
-			add("wanth", "고 싶습니다", jn(syls) + "고 싶습니다");
-			add("wantb", "고 싶어", jn(syls) + "고 싶어");
+			add("ryeo", "려고", pluseu(st, "려고", false), ln("으려고"));
+			add("wanty", "고 싶어요", jn(syls) + "고 싶어요", ln("고 싶어요"), true);
+			add("wanth", "고 싶습니다", jn(syls) + "고 싶습니다", ln("고 싶습니다"));
+			add("wantb", "고 싶어", jn(syls) + "고 싶어", ln("고 싶어"));
 		}
 		add("ayay", "아야 해요", ba + "야 해요");
 		add("aya", "아야 하다", ba + "야 하다");
@@ -1249,25 +1262,25 @@ static class KoConj {
 			add("honsideol", "시더", jn(hs) + "더라");
 		}
 		cur = g("mod");
-		if (adj && !eobs) add("modn", "ㄴ", nieunword(syls, irr));
-		else add("modn", "는", neun(syls));
-		if (verb) add("modp", "ㄴ", nieunword(syls, irr));
-		add("modf", "ㄹ", rl);
-		add("deon", "던", jn(syls) + "던");
-		add("atd", "았던", past + "던");
+		if (adj && !eobs) add("modn", "ㄴ", nieunword(syls, irr), ln(adj ? "은" : "는"));
+		else add("modn", "는", neun(syls), ln("는"));
+		if (verb) add("modp", "ㄴ", nieunword(syls, irr), ln("은"));
+		add("modf", "ㄹ", rl, ln("을"));
+		add("deon", "던", jn(syls) + "던", ln("던"));
+		add("atd", "았던", past + "던", ln("았던"));
 		cur = g("ext");
-		add("neyo", "네요", dropr(syls, "네요"));
-		add("atne", "았네요", past + "네요");
+		add("neyo", "네요", dropr(syls, "네요"), ln("네요"));
+		add("atne", "았네요", past + "네요", ln("았네요"));
 		add("jan", "잖아요", dropr(syls, "잖아요"));
-		add("jyo", "죠", jn(syls) + "죠");
-		add("jiyo", "지요", jn(syls) + "지요");
-		add("deon", "았더라고요", past + "더라고요");
-		add("atda", "았더라", past + "더라");
+		add("jyo", "죠", jn(syls) + "죠", ln("죠"));
+		add("jiyo", "지요", jn(syls) + "지요", ln("지요"));
+		add("deon", "았더라고요", past + "더라고요", ln("았더라고요"));
+		add("atda", "았더라", past + "더라", ln("았더라"));
 		add("jana", "잖아", jn(syls) + "잖아");
-		add("geodeun", "거든", jn(syls) + "거든");
-		add("geojyo", "는 거죠", nowmod + " 거죠");
-		add("geonde", "는 건데요", nowmod + " 건데요");
-		if (verb) add("lgeban", "ㄹ게", rl + "게");
+		add("geodeun", "거든", jn(syls) + "거든", ln("거든"));
+		add("geojyo", "는 거죠", nowmod + " 거죠", ln("는 거죠"));
+		add("geonde", "는 건데요", nowmod + " 건데요", ln("는 건데요"));
+		if (verb) add("lgeban", "ㄹ게", rl + "게", ln("을게"));
 		if (irr == "hada") {
 			var hy = stem.Substring(0, stem.Length - 1) + "하여";
 			cur = g("wrt");
@@ -1327,30 +1340,31 @@ static class KoConj {
 		// 补助动词：试、做完、放着、预先、为别人、最终，以及结果、渐变、缩略
 		cur = g("aux");
 		if (verb) {
-			add("try", "보다", ba + " 봤어요");
-			add("done", "버리다", ba + " 버렸어요");
-			add("leave", "놓다", ba + " 놨어요");
-			add("prep", "두다", ba + " 뒀어요");
-			add("benef", "주다", ba + " 줬어요");
-			add("hbenef", "드리다", ba + " 드렸어요");
-			add("endup", "고 말다", jn(syls) + "고 말았어요");
-			add("result", "아 있다", ba + " 있어요");
-			add("naeda", "아 내다", ba + " 냈어요");
-			add("gonada", "고 나다", jn(syls) + "고 났어요");
-			add("want3", "고 싶어하다", jn(syls) + "고 싶어해요");
+			// 补助动词的长否定落在补助动词身上：먹어 보지 않았어요、먹어 버리지 않았어요
+			add("try", "보다", ba + " 봤어요", ba + " 보지 않았어요", true);
+			add("done", "버리다", ba + " 버렸어요", ba + " 버리지 않았어요");
+			add("leave", "놓다", ba + " 놨어요", ba + " 놓지 않았어요");
+			add("prep", "두다", ba + " 뒀어요", ba + " 두지 않았어요");
+			add("benef", "주다", ba + " 줬어요", ba + " 주지 않았어요");
+			add("hbenef", "드리다", ba + " 드렸어요", ba + " 드리지 않았어요");
+			add("endup", "고 말다", jn(syls) + "고 말았어요", jn(syls) + "고 말지 않았어요");
+			add("result", "아 있다", ba + " 있어요", ba + " 있지 않아요");
+			add("naeda", "아 내다", ba + " 냈어요", ba + " 내지 않았어요");
+			add("gonada", "고 나다", jn(syls) + "고 났어요", jn(syls) + "고 나지 않았어요");
+			add("want3", "고 싶어하다", jn(syls) + "고 싶어해요", jn(syls) + "고 싶어하지 않아요");
 		}
 		if (verb || adj) {
-			add("goon", "아 가다", ba + " 가요");
-			add("comeon", "아 오다", ba + " 와요");
-			add("gajigo", "아 가지고", ba + " 가지고");
-			add("gatgo", "아 갖고", ba + " 갖고");
+			add("goon", "아 가다", ba + " 가요", ba + " 가지 않아요");
+			add("comeon", "아 오다", ba + " 와요", ba + " 오지 않아요");
+			add("gajigo", "아 가지고", ba + " 가지고", ba + " 가지지 않고");
+			add("gatgo", "아 갖고", ba + " 갖고", ba + " 갖지 않고");
 		}
 		// 态：使动、变成、形容词的「变得」、显得、心理形容词的 어하다、固定说法的被动和使动
 		cur = g("voice");
-		add("caus", "게 하다", jn(syls) + "게 했어요");
-		add("turn", "게 되다", jn(syls) + "게 되었어요");
-		if (adj) add("becom", "아/어지다", ba + "졌어요");
-		if (adj) add("look", "아 보이다", ba + " 보여요");
+		add("caus", "게 하다", jn(syls) + "게 했어요", ln("게 했어요"));
+		add("turn", "게 되다", jn(syls) + "게 되었어요", ln("게 되었어요"));
+		if (adj) add("becom", "아/어지다", ba + "졌어요", ln("아졌어요"));
+		if (adj) add("look", "아 보이다", ba + " 보여요", ln("아 보여요"));
 		if (adj && EMOTION.Contains(word)) add("emot", "아하다", $"{ba}하다 · {ba}해요");
 		add("pass", "被动", passivetext(word));
 		add("causlex", "使动", causetext(word));
@@ -1364,54 +1378,47 @@ static class KoConj {
 			add("hagesug", "하게체 청유", jn(syls) + "세");
 		}
 		// 语气：传闻、推量、判断、义务、许可、请求、意愿、感叹；肯定与否定同格并列
-		var itda = kind == "itda";
-		var negnow = itda ? "없다" : jn(syls) + (verb ? "지 않는다" : "지 않다");
-		var negpast = itda ? "없었" : jn(syls) + "지 않았";
-		var negfut = itda ? "없을" : jn(syls) + "지 않을";
-		var negguess = itda ? "없나 봐요" : jn(syls) + (adj ? "지 않은가 봐요" : "지 않나 봐요");
-		var negguessp = itda ? "없는 것 같아요" : jn(syls) + (adj ? "지 않은 것 같아요" : "지 않는 것 같아요");
-		var negexcl = itda ? "없군요" : jn(syls) + (adj ? "지 않은군요" : "지 않는군요");
 		cur = g("mood");
-		add("hearsay", "다고 해요", quad(plainnow + "고 해요", negnow + "고 해요", past + "다고 해요", negpast + "다고 해요"));
-		add("hearsays", "대요", quad(repend(plainnow, "다", "대요"), repend(negnow, "다", "대요"), past + "대요", negpast + "대요"));
-		add("conj", "나 봐요", quad(adj && !eobs ? nieunword(syls, irr) + "가 봐요" : dropr(syls, "나 봐요"), negguess, past + "나 봐요", negpast + "나 봐요"));
-		add("guess", "는 것 같아요", quad((adj && !eobs ? nieunword(syls, irr) : neun(syls)) + " 것 같아요", negguessp, past + "던 것 같아요", negpast + "던 것 같아요"));
-		add("guessf", "ㄹ 것 같아요", pairneg(rl + " 것 같아요", negfut + " 것 같아요"));
-		add("maybe", "ㄹ지도 몰라요", quad(rl + "지도 몰라요", negfut + "지도 몰라요", past + "을지도 몰라요", negpast + "을지도 몰라요"));
-		add("oblig", "아야 돼요", pairneg(ba + "야 돼요", itda ? "없어야 돼요" : jn(syls) + "지 않아야 돼요"));
-		add("perm", "아도 돼요", quad(ba + "도 돼요", itda ? "없어도 돼요" : jn(syls) + "지 않아도 돼요", ba + "도 됐어요", itda ? "없어도 됐어요" : jn(syls) + "지 않아도 됐어요"));
+		add("hearsay", "다고 해요", plainnow + "고 해요", jn(syls) + (verb ? "지 않는다고 해요" : "지 않다고 해요"), true);
+		add("hearsays", "대요", repend(plainnow, "다", "대요"), jn(syls) + (verb ? "지 않는대요" : "지 않은대요"));
+		add("conj", "나 봐요", adj && !eobs ? nieunword(syls, irr) + "가 봐요" : dropr(syls, "나 봐요"), ln(adj ? "은가 봐요" : "나 봐요"), true);
+		add("guess", "는 것 같아요", (adj && !eobs ? nieunword(syls, irr) : neun(syls)) + " 것 같아요", ln(adj ? "은 것 같아요" : "는 것 같아요"), true);
+		add("guessf", "ㄹ 것 같아요", rl + " 것 같아요", ln("을 것 같아요"), true);
+		add("maybe", "ㄹ지도 몰라요", rl + "지도 몰라요", ln("을지도 몰라요"));
+		add("oblig", "아야 돼요", ba + "야 돼요", ln("아야 돼요"));
+		add("perm", "아도 돼요", ba + "도 돼요", ln("아도 돼요"));
 		add("prohibit", "으면 안 돼요", pluseu(st, "면 안 돼요", false));
-		add("excl", "는군요", quad((adj || itda ? jn(syls) : neun(syls)) + "군요", negexcl, past + "군요", negpast + "군요"));
-		add("confirm", "다면서요?", quad(plainnow + "면서요?", negnow + "면서요?", past + "다면서요?", negpast + "다면서요?"));
+		add("excl", "는군요", (adj || itda ? jn(syls) : neun(syls)) + "군요", ln(adj ? "은군요" : "는군요"));
+		add("confirm", "다면서요?", plainnow + "면서요?", ln("다면서요?"), true);
 		if (verb) {
-			add("req", "아 주세요", pairneg(ba + " 주세요", jn(syls) + "지 말아 주세요"));
-			add("reqp", "아 주시겠어요?", pairneg(ba + " 주시겠어요?", jn(syls) + "지 말아 주시겠어요?"));
-			add("intent", "ㄹ래요", pairneg(rl + "래요", jn(syls) + "지 않을래요"));
-			add("plan", "려고 해요", quad(pluseu(st, "려고 해요", false), jn(syls) + "지 않으려고 해요", pluseu(st, "려고 했어요", false), jn(syls) + "지 않으려고 했어요"));
-			add("decide", "아야겠어요", pairneg(ba + "야겠어요", jn(syls) + "지 않아야겠어요"));
-			add("promise", "기로 해요", quad(jn(syls) + "기로 해요", jn(syls) + "지 않기로 해요", jn(syls) + "기로 했어요", jn(syls) + "지 않기로 했어요"));
-			add("cquote", "라고", pluseu(st, "라고", false) + " / " + jn(syls) + "지 말라고");
-			add("squote", "자고", jn(syls) + "자고 / " + jn(syls) + "지 말자고");
+			add("req", "아 주세요", ba + " 주세요", jn(syls) + "지 말아 주세요");
+			add("reqp", "아 주시겠어요?", ba + " 주시겠어요?", jn(syls) + "지 말아 주시겠어요?");
+			add("intent", "ㄹ래요", rl + "래요", ln("을래요"));
+			add("plan", "려고 해요", pluseu(st, "려고 해요", false), ln("으려고 해요"));
+			add("decide", "아야겠어요", ba + "야겠어요", ln("아야겠어요"));
+			add("promise", "기로 해요", jn(syls) + "기로 해요", ln("기로 해요"));
+			add("cquote", "라고", pluseu(st, "라고", false), jn(syls) + "지 말라고");
+			add("squote", "자고", jn(syls) + "자고", jn(syls) + "지 말자고");
 		}
-		add("geolkkeol", "ㄹ걸요", rl + "걸요");
-		add("tende", "ㄹ 텐데", rl + " 텐데요");
+		add("geolkkeol", "ㄹ걸요", rl + "걸요", ln("을걸요"));
+		add("tende", "ㄹ 텐데", rl + " 텐데요", ln("을 텐데요"));
 		add("riga", "ㄹ 리가 없다", rl + " 리가 없어요");
-		add("teullim", "는 게 틀림없다", nowmod + " 게 틀림없어요");
-		add("moyang", "는 모양이다", nowmod + " 모양이에요");
-		add("deut", "는 듯하다", nowmod + " 듯해요");
+		add("teullim", "는 게 틀림없다", nowmod + " 게 틀림없어요", ln("는 게 틀림없어요"));
+		add("moyang", "는 모양이다", nowmod + " 모양이에요", ln("는 모양이에요"));
+		add("deut", "는 듯하다", nowmod + " 듯해요", ln("는 듯해요"));
 		add("suhae", "ㄹ 수밖에 없다", rl + " 수밖에 없어요");
-		add("man", "ㄹ 만하다", rl + " 만해요");
-		add("pyeon", "는 편이다", nowmod + " 편이에요");
-		add("swip", "기 쉽다", jn(syls) + "기 쉬워요");
-		add("eoryeop", "기 어렵다", jn(syls) + "기 어려워요");
-		add("gon", "곤 하다", jn(syls) + "곤 해요");
-		add("beop", "는 법이다", nowmod + " 법이에요");
-		add("maryeon", "기 마련이다", jn(syls) + "기 마련이에요");
-		add("cheok", "는 척하다", nowmod + " 척해요");
-		add("qquote", "냐고", quotenya(syls, irr, kind) + " / " + past + "느냐고");
-		add("dquote", "다는", repend(plainnow, "다", "다는") + " / " + past + "다는");
-		add("deora", "더라", jn(syls) + "더라");
-		add("deorago", "더라고요", jn(syls) + "더라고요");
+		add("man", "ㄹ 만하다", rl + " 만해요", ln("을 만해요"));
+		add("pyeon", "는 편이다", nowmod + " 편이에요", ln("는 편이에요"));
+		add("swip", "기 쉽다", jn(syls) + "기 쉬워요", ln("기 쉬워요"));
+		add("eoryeop", "기 어렵다", jn(syls) + "기 어려워요", ln("기 어려워요"));
+		add("gon", "곤 하다", jn(syls) + "곤 해요", ln("곤 해요"));
+		add("beop", "는 법이다", nowmod + " 법이에요", ln("는 법이에요"));
+		add("maryeon", "기 마련이다", jn(syls) + "기 마련이에요", ln("기 마련이에요"));
+		add("cheok", "는 척하다", nowmod + " 척해요", ln("는 척해요"));
+		add("qquote", "냐고", quotenya(syls, irr, kind), ln("느냐고"), true);
+		add("dquote", "다는", repend(plainnow, "다", "다는"), ln("다는"));
+		add("deora", "더라", jn(syls) + "더라", ln("더라"), true);
+		add("deorago", "더라고요", jn(syls) + "더라고요", ln("더라고요"), true);
 		add("deondeyo", "던데요", jn(syls) + "던데요");
 		add("deoni", "더니", jn(syls) + "더니");
 		add("getdeora", "겠더라", jn(syls) + "겠더라");
@@ -1473,18 +1480,18 @@ static class KoConj {
 		// 口语。发觉：动词用 는구나，形容词和 있다 用 구나
 		var gutail = verb ? neun(syls) : jn(syls);
 		cur = g("talk");
-		add("qni", "니", dropr(syls, "니?"));
-		add("qnip", "었니", past + "니?");
+		add("qni", "니", dropr(syls, "니?"), ln("니"), true);
+		add("qnip", "었니", past + "니?", ln("았니"));
 		add("jiq", "지", jn(syls) + "지?");
 		if (verb || adj || itda) add("jima2", "지 마", jn(syls) + "지 마");
-		add("lrae", "ㄹ래", rl + "래");
-		add("lgeol", "ㄹ걸", rl + "걸");
-		add("geodeunyo", "거든요", jn(syls) + "거든요");
-		add("ndeyo", "는데요", neundeform(syls, irr, kind, "요"));
-		add("guna", "구나", gutail + "구나");
-		add("gun", "군", gutail + "군");
-		add("geol", "걸", nowmod + "걸");
-		add("danikka", "다니까", repend(plainnow, "다", "다니까"));
+		add("lrae", "ㄹ래", rl + "래", ln("을래"));
+		add("lgeol", "ㄹ걸", rl + "걸", ln("을걸"));
+		add("geodeunyo", "거든요", jn(syls) + "거든요", ln("거든요"));
+		add("ndeyo", "는데요", neundeform(syls, irr, kind, "요"), ln(adj && !eobs ? "은데요" : "는데요"));
+		add("guna", "구나", gutail + "구나", ln(adj ? "은구나" : "는구나"));
+		add("gun", "군", gutail + "군", ln(adj ? "은군" : "는군"));
+		add("geol", "걸", nowmod + "걸", ln(adj ? "은 걸" : "는 걸"));
+		add("danikka", "다니까", repend(plainnow, "다", "다니까"), ln("다니까"), true);
 		if (verb || adj || itda) add("tryban", "봐", ba + " 봐");
 		add("gu", "구", jn(syls) + "구");
 		add("guyo", "구요", jn(syls) + "구요");
@@ -1861,30 +1868,36 @@ static class KoConj {
 		var rows = new List<ConjRow>();
 		var cur = "";
 		string g(string key) => lp(li, GRP[key]);
-		void add(string id, string name, string text) {
-			rows.Add(new ConjRow(rowname(id, name, li), text, cur));
+		// 名词的否定是「名词 + 이/가 아니다」，아니다 自己按形容词变化，所以逐条给现成的否定形
+		var cp0 = bat ? "이" : "가";
+		var np = noun + cp0 + " ";
+		// 아니다 的活用：아니 + 예요 / 야 / 다 / 었… / ㄹ…
+		string no(string tail) => np + "아니" + tail;
+		void add(string id, string name, string text, string neg = null) {
+			if (string.IsNullOrEmpty(text)) return;
+			rows.Add(new ConjRow(rowname(id, name, li), string.IsNullOrEmpty(neg) ? text : text + " / " + neg, cur));
 		}
 		string quad(string a, string n, string pa, string pn) => $"{a} / {n} / {pa} / {pn}";
 		cur = g("base");
 		add("dict", lp(li, NOTE["dict"]), word);
 		cur = g("now");
-		add("hap", "입니다", noun + "입니다");
-		add("hey", "예요", copart(noun, bat, "에요", "예요"));
-		add("ban", "야", copart(noun, bat, "야", "야"));
-		add("plain", "이다", noun.Length > 0 ? noun + "이다" : "이다");
+		add("hap", "입니다", noun + "입니다", np + "아닙니다");
+		add("hey", "예요", copart(noun, bat, "에요", "예요"), no("에요"));
+		add("ban", "야", copart(noun, bat, "야", "야"), no("야"));
+		add("plain", "이다", noun.Length > 0 ? noun + "이다" : "이다", no("다"));
 		cur = g("past");
-		add("phap", "었습니다", copart(noun, bat, "었습니다", "였습니다"));
-		add("phey", "었어요", copart(noun, bat, "었어요", "였어요"));
-		add("pban", "었어", copart(noun, bat, "었어", "였어"));
-		add("pplain", "었다", copart(noun, bat, "었다", "였다"));
-		add("plup", "었었어요", copart(noun, bat, "었었어요", "였었어요"));
-		add("wasgo", "일 거였어요", noun + "일 거였어요");
-		add("pguess", "었겠어요", copart(noun, bat, "었겠어요", "였겠어요"));
-		add("ifpast", "었더라면", copart(noun, bat, "었더라면", "였더라면"));
+		add("phap", "었습니다", copart(noun, bat, "었습니다", "였습니다"), no("었습니다"));
+		add("phey", "었어요", copart(noun, bat, "었어요", "였어요"), no("었어요"));
+		add("pban", "었어", copart(noun, bat, "었어", "였어"), no("었어"));
+		add("pplain", "었다", copart(noun, bat, "었다", "였다"), no("었다"));
+		add("plup", "었었어요", copart(noun, bat, "었었어요", "였었어요"), no("었었어요"));
+		add("wasgo", "일 거였어요", noun + "일 거였어요", no("었을 거였어요"));
+		add("pguess", "었겠어요", copart(noun, bat, "었겠어요", "였겠어요"), no("었겠어요"));
+		add("ifpast", "었더라면", copart(noun, bat, "었더라면", "였더라면"), no("었더라면"));
 		cur = g("fut");
-		add("fhey", "ㄹ 거예요", noun + "일 거예요");
-		add("fhap", "ㄹ 겁니다", noun + "일 겁니다");
-		add("fplain", "ㄹ 것이다", noun + "일 것이다");
+		add("fhey", "ㄹ 거예요", noun + "일 거예요", no("ㄹ 거예요"));
+		add("fhap", "ㄹ 겁니다", noun + "일 겁니다", no("ㄹ 겁니다"));
+		add("fplain", "ㄹ 것이다", noun + "일 것이다", no("ㄹ 것이다"));
 		cur = g("con");
 		add("myeon", "면", copart(noun, bat, "면", "면"));
 		add("go", "고", copart(noun, bat, "고", "고"));
@@ -1917,8 +1930,6 @@ static class KoConj {
 		add("seyo", "세요", copart(noun, bat, "세요", "세요"));
 		add("honh", "십니다", noun + "이십니다");
 		add("honpy", "셨어요", copart(noun, bat, "셨어요", "셨어요"));
-		cur = g("neg");
-		add("any", "아니에요", noun.Length > 0 ? noun + (bat ? "이" : "가") + " 아니에요" : "아니에요");
 		cur = g("mood");
 		var p = bat ? "이" : "가";
 		var nop = noun + p + " 아니";

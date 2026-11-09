@@ -49,6 +49,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- Korean conjugation now lists the short negative (안) and the long negative (-지 않다) under each form instead of in a separate Negative section, for the tenses, aspects, honorifics, connectives, auxiliary verbs, mood and colloquial forms; the ability negative (못) joins the same row for verbs. Nouns use their own negative pattern (이/가 아니다).
+
 #### Fixed
 
 - Two crashes caused by USB cast scanning: the scan disposed its semaphore and event while probe threads were still running, so a late `Release()` threw `ObjectDisposedException` on a thread-pool thread and terminated the process. Scanning no longer runs on every start either: Wi-Fi Direct / ICS adapters (192.168.137.x) are no longer mistaken for a phone's USB NIC and local addresses are skipped. Unhandled exceptions are now written to `log/crash.txt`.
@@ -56,6 +60,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation model install could fail with Unable to create translator for the given source and target language when an empty model folder was left registered as installed: the install path now unregisters such stale entries before downloading, and no-progress detection no longer aborts downloads on Chrome builds that emit no downloadprogress events.
 
 ### 中文
+
+#### 变更
+
+- 韩语词形变化改为在每个变化下并列否定（안）和长否定（-지 않다），不再单列「否定」一节，覆盖时态、体、尊敬、连接、补助动词、语气和口语；动词的能力否定（못）也并入同一行。名词改用自身的否定说法（이/가 아니다）。
 
 #### 修复
 
