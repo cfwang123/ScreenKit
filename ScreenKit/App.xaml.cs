@@ -216,11 +216,22 @@ public partial class App : System.Windows.Application {
 		base.OnStartup(e);
 		var win = new MainWindow();
 		MainWindow = win;
+		// 自动开发/脚本调用：不弹窗，直接收进托盘，别打断用户当前操作。
+		// 仍要 Show 一次才会建 hwnd（热键、Loaded 里的初始化都靠它），所以先设成全透明且不抢焦点，
+		// 等窗口建好立刻隐藏，再恢复透明度和激活属性，用户看不到任何闪动。
+		var starttray = args.Any(a => a == "--tray");
+		if (starttray) {
+			win.Opacity = 0;
+			win.ShowActivated = false;
+			win.ShowInTaskbar = false;
+		}
 		win.Show();
-		// 自动开发/脚本调用：不弹窗，直接收进托盘，别打断用户当前操作
-		if (args.Any(a => a == "--tray")) win.Dispatcher.BeginInvoke(new Action(() => {
+		if (starttray) win.Dispatcher.BeginInvoke(new Action(() => {
 			try { win.Hide(); } catch { }
-		}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+			try { win.Opacity = 1; } catch { }
+			try { win.ShowActivated = true; } catch { }
+			try { win.ShowInTaskbar = true; } catch { }
+		}), System.Windows.Threading.DispatcherPriority.Loaded);
 		if (args.Any(a => a == "--test-ui-toast")) {
 			win.Dispatcher.BeginInvoke(new Action(() => {
 				UiToast.Show(win, Loc.T("sf.recv.clip", "toast-test.bin"));

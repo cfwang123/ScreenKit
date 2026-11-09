@@ -58,6 +58,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean conjugation now lists the short negative (안) and the long negative (-지 않다) under each form instead of in a separate Negative section, for the tenses, aspects, honorifics, connectives, auxiliary verbs, mood and colloquial forms; the ability negative (못) joins the same row for verbs. Nouns use their own negative pattern (이/가 아니다).
 - Ability negation (못) now sits in its own Ability section for Korean verbs, instead of being merged into each tense row.
 - Korean conjugation adds negative and long-negative forms to the remaining categories: commands, suggestions, written and classical endings, style levels, contractions, colloquial forms, character and slang variants, dialects, North Korean and Yanbian forms, and the graded grammar list.
+- Korean noun connectives (면 / 고 / 지만 / 지 / 인데 / 기 전에 / 일 때 / 인 동안 / 일수록 / 기 때문에 and similar) now show the negative form alongside, e.g. 학교면 / 학교가 아니면.
+- --tray now suppresses the brief flash of the main window at startup instead of hiding it after it appears.
 
 #### Fixed
 
@@ -76,6 +78,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词形变化改为在每个变化下并列否定（안）和长否定（-지 않다），不再单列「否定」一节，覆盖时态、体、尊敬、连接、补助动词、语气和口语；动词的能力否定（못）也并入同一行。名词改用自身的否定说法（이/가 아니다）。
 - 韩语的能力否定（못）从各时态行里拆出，单独成「能力」一类。
 - 韩语词形变化的其余类别也补上否定与长否定：命令、提议、书面与古代语尾、文体、缩略、口语、角色语与俚俗、各地方言、朝鲜文化语与延边语，以及分级语法表。
+- 韩语名词的连接形（면 / 고 / 지만 / 지 / 인데 / 기 전에 / 일 때 / 인 동안 / 일수록 / 기 때문에 等 19 条）也并列否定，如 학교면 / 학교가 아니면。
+- --tray 启动时改为全程不显示主窗口，不再先闪现再隐藏。
 
 #### 修复
 
