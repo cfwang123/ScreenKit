@@ -54,6 +54,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - ScreenKit can now start hidden in the tray with --tray, so automated runs do not pop a window.
 - Russian word forms: every participle now expands into a full declension table (six cases by four genders/numbers, animate and inanimate accusative, archaic feminine instrumental); short passive forms and the rare past gerund are listed too.
 - Korean word forms: fourteen more common endings are listed, including -(으)려면, -아/어야만, -든가, -는 길에, -고야, -(으)ㄹ 수가 있다, -지 그래요?, -(으)면서도, -(으)려는 참이다, -(으)ㄴ 지 얼마 안 되다, -다가 보면 and -지 않을 수 없다.
+- Russian word forms: a dedicated negation group now lists не with every tense and person, negative pronouns (ничего, никогда, нигде), чуть не / едва не, не…, а…, and не надо / не нужно; adjectives get не + long and short forms with совсем не / не очень, and nouns get нет / не было / не будет + genitive plus это не + nominative.
 
 #### Changed
 
@@ -80,6 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增 --tray 启动参数：程序启动后不显示主窗口，直接收进托盘，便于自动化时不影响他人操作。
 - 俄语词形变化：每个分词都展开成完整的六格变格表（六格 × 阳/中/阴/复，宾格分有生与无生，阴性工具格带旧变体），被动分词短尾和少用的过去时副动词也一并列出。
 - 韩语词形变化：补上 14 条常用语法，含-(으)려면、-아/어야만、-든가、-는 길에、-고야、-(으)ㄹ 수가 있다、-지 그래요?、-(으)면서도、-(으)려는 참이다、-(으)ㄴ 지 얼마 안 되다、-다가 보면、-지 않을 수 없다等。
+- 俄语词形变化：新增否定组，列出 не 加各时态各人称、否定代词（ничего / никогда / нигде）、чуть не / едва не、не…, а… 和 не надо / не нужно；形容词给出 не + 长尾与短尾、совсем не / не очень，名词给出 нет / не было / не будет + 第二格和 это не + 第一格。
 
 #### 变更
 

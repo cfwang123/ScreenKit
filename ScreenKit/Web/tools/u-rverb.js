@@ -529,8 +529,8 @@
 	];
 	var LAB = {
 		title: ["俄语词形变化", "Russian word forms"],
-		hint: ["先选类型（自动/动词/形容词/名词），再输入原形，所有变化一次列出。动词按自动判断的体列出现在时或将来时、过去时、命令式、假定式、语气、分词、副动词，以及口语和方言形式；形容词列出长尾变格、短尾、比较级、最高级和语体/方言形式；名词列出单复数六格、动物性、特殊形式和方言说明。选了名词后可以手选性、变格和动物性，不选就按词尾判断。方言组之前是 1–6 级语法和其它不常用语法，前置词按格接在名词上。完成体没有现在时。重音不标，方言形式仅供参考。",
-			"Pick a type (auto, verb, adjective or noun), then enter the base form. Every available form is listed at once: verbs show present or future, past, imperative, subjunctive, mood, participles, gerunds, plus colloquial and dialect forms; adjectives show long declension, short forms, comparative, superlative and register/dialect forms; nouns show all six cases in both numbers, animacy, special forms and dialect notes. After choosing a noun, gender, declension and animacy can be set by hand; otherwise they follow the ending. Before the dialect group are levels 1–6 and other less common patterns; prepositions attach to the matching noun case. Perfective verbs have no present. Stress is not marked; dialect forms are illustrative."],
+		hint: ["先选类型（自动/动词/形容词/名词），再输入原形，所有变化一次列出。动词按自动判断的体列出现在时或将来时、过去时、命令式、假定式、语气、否定、分词、副动词，以及口语和方言形式；分词每个都展开成完整的六格变格表（阳性、中性、阴性、复数，宾格分有生无生），被动分词的短尾单列。否定组给出 не 加各时态人称、ничего / никогда / нигде 等否定代词、чуть не、не…, а… 等说法。形容词列出长尾变格、短尾、比较级、最高级、否定和语体/方言形式；名词列出单复数六格、动物性、否定（нет + 第二格）和特殊形式。完成体没有现在时和现在时被动分词。重音不标，方言形式仅供参考。",
+			"Pick a type (auto, verb, adjective or noun), then enter the base form. Every available form is listed at once: verbs show present or future, past, imperative, subjunctive, mood, negation, participles and gerunds, plus colloquial and dialect forms; every participle is expanded into a full declension table (masculine, neuter, feminine, plural; the accusative gives animate and inanimate), and short passive forms are listed separately. The negation group gives не with each tense and person, negative pronouns such as ничего, никогда and нигде, and patterns like чуть не and не…, а…. Adjectives show long declension, short forms, comparative, superlative, negation and register/dialect forms; nouns show all six cases in both numbers, animacy, negation (нет + genitive) and special forms. Perfective verbs have no present and no present passive participle. Stress is not marked; dialect forms are illustrative."],
 		word: ["原形", "Word"],
 		aspect: ["体", "Aspect"],
 		ph: ["动词不定式、形容词阳性单数或名词，如 читать、красивый、книга", "Infinitive, masculine adjective, or noun, e.g. читать, красивый, книга"],
@@ -621,6 +621,7 @@
 		g_noun_pl: ["复数变格", "Plural"],
 		g_noun_special: ["特殊形式", "Special forms"],
 		g_mood: ["语气", "Mood"],
+		g_neg: ["否定", "Negation"],
 		g_var: ["语体 / 方言", "Register / dialect"],
 		n_m: ["阳性名词", "Masculine noun"],
 		n_f: ["阴性名词", "Feminine noun"],
@@ -635,6 +636,26 @@
 		m_proh: ["禁止式（не + 命令式）", "Prohibitive (не + imperative)"],
 		m_cond: ["条件式（если бы）", "Conditional (если бы)"],
 		m_pot: ["可能式（мог бы）", "Potential (мог бы)"],
+		g_neg_now: ["否定 · 现在时", "Negation · present"],
+		g_neg_past: ["否定 · 过去时", "Negation · past"],
+		g_neg_fut: ["否定 · 将来时", "Negation · future"],
+		g_neg_more: ["否定 · 其他说法", "Negation · other patterns"],
+		neg_inf: ["не + 不定式", "не + infinitive"],
+		neg_words: ["ничего / никого 等 + не", "ничего / никого + не"],
+		neg_never: ["никогда не", "никогда не"],
+		neg_where: ["нигде / никуда не", "нигде / никуда не"],
+		neg_modal: ["не надо / не нужно", "не надо / не нужно"],
+		neg_almost: ["чуть не / едва не", "чуть не / едва не"],
+		neg_contrast: ["не…, а…", "не…, а…"],
+		neg_question: ["разве не / неужели не", "разве не / неужели не"],
+		neg_noun: ["нет + 第二格", "нет + genitive"],
+		neg_noun_past: ["не было + 第二格", "не было + genitive"],
+		neg_noun_fut: ["не будет + 第二格", "не будет + genitive"],
+		neg_noun_this: ["это не + 第一格", "это не + nominative"],
+		neg_adj_long: ["не + 长尾", "не + long form"],
+		neg_adj_short: ["не + 短尾", "не + short form"],
+		neg_adj_soft: ["совсем не / вовсе не", "совсем не / вовсе не"],
+		neg_adj_notvery: ["не очень + 长尾", "не очень + long form"],
 		voc: ["口语呼格", "Colloquial vocative"],
 		loc2: ["第二前置格", "Second locative"],
 		part: ["第二属格（部分格）", "Partitive genitive"],
@@ -871,6 +892,38 @@
 		else R(g, L(lang, LAB.m_proh), "не " + full);
 		R(g, L(lang, LAB.m_cond), "если бы " + info.past[0] + " / если бы " + info.past[3]);
 		R(g, L(lang, LAB.m_pot), (info.a === "pf" ? "смог бы " : "мог бы ") + full + " / " + (info.a === "pf" ? "смогла бы " : "могла бы ") + full);
+		// 否定：не 放在动词前，词形不变。完成体没有现在时，否定落在将来时那组；
+		// быть 的现在时本来就缺，否定只给过去和将来。
+		var n1, npast = [];
+		for (n1 = 0; n1 < 4; n1++) npast.push("не " + info.past[n1]);
+		if (!isBe && info.a !== "pf") {
+			g = L(lang, LAB.g_neg_now);
+			for (n1 = 0; n1 < 6; n1++) R(g, PERSON[lang === "zh" ? 0 : 1][n1], "не " + info.pres[n1]);
+			g = L(lang, LAB.g_neg_fut);
+			for (n1 = 0; n1 < 6; n1++) R(g, PERSON[lang === "zh" ? 0 : 1][n1], "не " + info.comp[n1]);
+		}
+		else if (!isBe) {
+			g = L(lang, LAB.g_neg_fut);
+			for (n1 = 0; n1 < 6; n1++) R(g, PERSON[lang === "zh" ? 0 : 1][n1], "не " + info.pres[n1]);
+		}
+		else {
+			g = L(lang, LAB.g_neg_fut);
+			for (n1 = 0; n1 < 6; n1++) R(g, PERSON[lang === "zh" ? 0 : 1][n1], "не " + info.fut[n1]);
+		}
+		g = L(lang, LAB.g_neg_past);
+		for (n1 = 0; n1 < 4; n1++) R(g, PAST[lang === "zh" ? 0 : 1][n1], npast[n1]);
+		g = L(lang, LAB.g_neg_more);
+		// быть 现在时没有词形，ни- 类说法拿单数第一人称会拼出「не —」，改用过去时。
+		// 不能、不值得、没地方可这类在 1–6 级语法里已有专条，这里不再重复。
+		var nfin = isBe ? info.past[0] : info.pres[0];
+		R(g, L(lang, LAB.neg_inf), "не " + full);
+		R(g, L(lang, LAB.neg_modal), "не надо " + full + " / не нужно " + full);
+		R(g, L(lang, LAB.neg_words), "ничего не " + nfin + " / никого не " + nfin);
+		R(g, L(lang, LAB.neg_never), "никогда не " + nfin);
+		R(g, L(lang, LAB.neg_where), "нигде не " + nfin + " / никуда не " + nfin);
+		R(g, L(lang, LAB.neg_almost), "чуть не " + info.past[0] + " / едва не " + info.past[0]);
+		R(g, L(lang, LAB.neg_contrast), "не " + full + ", а…");
+		R(g, L(lang, LAB.neg_question), "разве не " + nfin + "? / неужели не " + nfin + "?");
 		if (info.a !== "pf" && info.ppa) adddecl(rows, L(lang, LAB.g_ppa), info.ppa[0], lang);
 		if (info.pap) adddecl(rows, L(lang, LAB.g_pap), info.pap[0], lang);
 		if (info.a !== "pf" && info.ppn) adddecl(rows, L(lang, LAB.g_ppn), info.ppn[0], lang);
@@ -967,6 +1020,11 @@
 			R(g, L(lang, LAB.g_n), sh[2]);
 			R(g, L(lang, LAB.g_pl), sh[3]);
 		}
+		g = L(lang, LAB.g_neg);
+		R(g, L(lang, LAB.neg_adj_long), "не " + forms[0][0] + " / не " + forms[1][0] + " / не " + forms[2][0] + " / не " + forms[3][0]);
+		if (sh) R(g, L(lang, LAB.neg_adj_short), "не " + sh[0] + " / не " + sh[1] + " / не " + sh[2] + " / не " + sh[3]);
+		R(g, L(lang, LAB.neg_adj_soft), "совсем не " + forms[0][0] + " / вовсе не " + forms[0][0] + " / отнюдь не " + forms[0][0]);
+		R(g, L(lang, LAB.neg_adj_notvery), "не очень " + forms[0][0]);
 		addpat(rows, lang, "a", {
 			adj: w,
 			short: sh ? sh[0] : "",
@@ -1029,6 +1087,11 @@
 			if (part) R(g, L(lang, LAB.part), part);
 			if (archpl) R(g, L(lang, LAB.arch_pl), archpl);
 		}
+		g = L(lang, LAB.g_neg);
+		R(g, L(lang, LAB.neg_noun), "нет " + forms[1]);
+		R(g, L(lang, LAB.neg_noun_past), "не было " + forms[1]);
+		R(g, L(lang, LAB.neg_noun_fut), "не будет " + forms[1]);
+		R(g, L(lang, LAB.neg_noun_this), "это не " + forms[0]);
 		addpat(rows, lang, "n", {
 			noun: w,
 			gen: forms[1],
