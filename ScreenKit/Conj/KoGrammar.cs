@@ -104,9 +104,21 @@ static class KoGrammar {
 		foreach (var c in KoGrammarCatalog.Noun) {
 			var text = applynoun(noun, bat, c[1], c[2]);
 			if (text.Length == 0) continue;
-			rows.Add(new ConjRow(label(c, li), text, grp(c[0], li)));
+			rows.Add(new ConjRow(label(c, li), withnegNoun(noun, bat, c[1], text), grp(c[0], li)));
 		}
 		return rows;
+	}
+
+	// 名词里只有判断句式（예요 / 입니다 / 입니까）能换成否定，助词本身没有否定说法
+	static string withnegNoun(string noun, bool bat, string pos, string text) {
+		if (text.IndexOf("아니", System.StringComparison.Ordinal) >= 0) return text;
+		var p = noun + (bat ? "이" : "가") + " 아니";
+		switch (pos) {
+			case "ieyo": return text + " / " + p + "에요";
+			case "noun+입니다": return text + " / " + p + "입니다";
+			case "noun+입니까": return text + " / " + p + "입니까";
+			default: return text;
+		}
 	}
 
 	static bool fits(string[] c, bool verb, bool adj) {
