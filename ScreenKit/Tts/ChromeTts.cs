@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -310,15 +310,24 @@ static class ChromeTts {
 		return profile;
 	}
 
+	/// <summary>命令行里带这段的 chrome.exe 是本程序的主配置。ChromeHost 靠它认自己的进程。</summary>
+	public const string HOST_KEY = @"ScreenKit\chrome\profile";
+
+	/// <summary>模型页那个 Chrome 的配置标记。</summary>
+	public const string PAGE_KEY = @"ScreenKit\chrome-page";
+
 	/// <summary>模型页那个 Chrome 自己的配置。和装模型的配置分开，装包时只重启后台 Chrome，模型页窗口不动。</summary>
 	public static string PageProfileDir() {
-		var profile = Path.Combine(Path.GetTempPath(), "sk-chrome-page", "profile");
+		var profile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScreenKit", "chrome-page", "profile");
 		Directory.CreateDirectory(profile);
 		return profile;
 	}
 
 	/// <summary>关掉模型页那个 Chrome。它不在装模型的配置目录里，普通清理不会碰它。</summary>
-	public static void StopPage() => killprofile("sk-chrome-page");
+	public static void StopPage() {
+		killprofile(PAGE_KEY);
+		killprofile("sk-chrome-page");
+	}
 
 	/// <summary>结束命令行里带着某个配置目录的 chrome.exe。子进程的命令行也带着这个目录。</summary>
 	static void killprofile(string key) {
@@ -339,9 +348,29 @@ static class ChromeTts {
 	}
 
 	static string workdir() {
-		var dir = Path.Combine(Path.GetTempPath(), "sk-chrome-tts");
+		var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ScreenKit", "chrome");
 		Directory.CreateDirectory(dir);
+		migrate(Path.Combine(Path.GetTempPath(), "sk-chrome-tts"), dir);
 		return dir;
+	}
+
+	/// <summary>老版本把配置放在 %TEMP%，会被磁盘清理按体积删掉，只剩模型壳子。搬到 LocalAppData，顺手把还能用的配置挪过来。</summary>
+	static void migrate(string from, string to) {
+		try {
+			if (!Directory.Exists(from)) return;
+			//目标已有配置就不动，免得把新下的模型盖掉
+			if (File.Exists(Path.Combine(to, "profile", "Local State"))) return;
+			foreach (var entry in Directory.EnumerateFileSystemEntries(from)) {
+				var dest = Path.Combine(to, Path.GetFileName(entry));
+				if (File.Exists(dest) || Directory.Exists(dest)) continue;
+				try {
+					if (Directory.Exists(entry)) Directory.Move(entry, dest);
+					else File.Move(entry, dest);
+				}
+				catch { }
+			}
+		}
+		catch { }
 	}
 
 	static List<SapiVoiceItem> buildvoices() {

@@ -62,16 +62,32 @@ static class ChromeHost {
 		}
 		var jo = JSONF.newObject(("op", "tr"), ("id", id), ("src", src ?? ""), ("dst", dst ?? ""), ("items", items));
 		var json = jo.ToJSONString(-1).Replace("<", "\\u003c");
-		try {
-			return translateonce(id, json, exe, idleSec, ct);
-		}
-		catch (InvalidOperationException ex) when (needpack(ex)) {
-			ChromePack.EnsurePair(src, dst, exe, ct, progress);
+		var repaired = false;
+		var ensured = false;
+		while (true) {
+			try {
+				return translateonce(id, json, exe, idleSec, ct);
+			}
+			catch (InvalidOperationException ex) when (!ensured && needpack(ex)) {
+				ensured = true;
+				ChromePack.EnsurePair(src, dst, exe, ct, progress);
+			}
+			catch (InvalidOperationException ex) when (!repaired && needrepair(ex)) {
+				//模型目录被清理后 Chrome 仍报 available，create 才失败，修一次再试
+				repaired = true;
+				Stop();
+				if (!ChromePack.Repair(src, dst, exe, msg => CaptureLog.Ex("chrome-repair", new InvalidOperationException(msg))))
+					throw;
+			}
 			id = Interlocked.Increment(ref seq);
 			jo["id"] = id;
 			json = jo.ToJSONString(-1).Replace("<", "\\u003c");
-			return translateonce(id, json, exe, idleSec, ct);
 		}
+	}
+
+	static bool needrepair(Exception ex) {
+		var msg = ex?.Message ?? "";
+		return msg.IndexOf("Unable to create translator", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
 	static List<string> translateonce(int id, string json, string exe, int idleSec, CancellationToken ct) {
@@ -596,7 +612,7 @@ static class ChromeHost {
 			foreach (System.Management.ManagementObject mo in search.Get()) {
 				try {
 					var cmd = mo["CommandLine"] as string ?? "";
-					if (cmd.IndexOf("sk-chrome-tts", StringComparison.OrdinalIgnoreCase) < 0) continue;
+					if (!owned(cmd)) continue;
 					var pid = Convert.ToInt32(mo["ProcessId"]);
 					ChromeTts.KillPid(pid);
 				}
@@ -604,6 +620,13 @@ static class ChromeHost {
 			}
 		}
 		catch { }
+	}
+
+	/// <summary>命令行是不是本程序起的 Chrome。老版本配置放在 %TEMP%\sk-chrome-tts，也要认出来好清理。</summary>
+	static bool owned(string cmd) {
+		if (string.IsNullOrEmpty(cmd)) return false;
+		if (cmd.IndexOf(ChromeTts.HOST_KEY, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		return cmd.IndexOf("sk-chrome-tts", StringComparison.OrdinalIgnoreCase) >= 0;
 	}
 
 	static void killtree(Process p) {
@@ -1075,7 +1098,7 @@ static class ChromeHost {
 				"SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name='chrome.exe'");
 			foreach (System.Management.ManagementObject mo in search.Get()) {
 				var cmd = mo["CommandLine"] as string ?? "";
-				if (cmd.IndexOf("sk-chrome-tts", StringComparison.OrdinalIgnoreCase) < 0) continue;
+				if (!owned(cmd)) continue;
 				set.Add(Convert.ToInt32(mo["ProcessId"]));
 			}
 		}
@@ -1118,7 +1141,7 @@ static class ChromeHost {
 		+ "window.__skfail=function(id){var q=window.__skq||[],i;for(i=0;i<q.length;i++)if(q[i]&&q[i].id===id){var job=q[i];q.splice(i,1);post(job,false,'Chrome 没有发出声音',[]);return 'fail';}return 'idle';};\n"
 		+ "function ctor(){if(typeof Translator==='function')return Translator;if(self.ai&&typeof self.ai.translator==='function')return self.ai.translator;return null;}\n"
 		+ "function googup(){var c=new AbortController();var t=setTimeout(function(){try{c.abort();}catch(e){}},8000);return fetch('https://www.google.com/generate_204',{mode:'no-cors',cache:'no-store',signal:c.signal}).then(function(){clearTimeout(t);return true;},function(){clearTimeout(t);return false;});}\n"
-		+ "async function runtr(job){var C=ctor();if(!C){post(job,false,'这个 Chrome 没有翻译接口',[]);return;}try{var opt={sourceLanguage:job.src,targetLanguage:job.dst};var avail='available';if(typeof C.availability==='function'){var av=C.availability(opt);avail=await Promise.race([av,new Promise(function(_,rej){setTimeout(function(){rej(new Error('chrome-google'));},8000);})]);}if(avail==='unavailable'||avail==='no'){post(job,false,'Chrome 不能翻译这对语言',[]);return;}var need=avail==='downloadable'||avail==='downloading';var seen=false;if(need){if(!await googup()){post(job,false,'chrome-google',[]);return;}opt.monitor=function(m){if(m&&m.addEventListener)m.addEventListener('downloadprogress',function(){seen=true;});};}var creating=C.create(opt);var t,settled=null;creating.then(function(x){settled={ok:x};},function(e){settled={err:e};});if(need){var t0=Date.now();while(!settled){await new Promise(function(r){setTimeout(r,400);});if(!seen&&Date.now()-t0>20000){post(job,false,'chrome-google',[]);return;}}if(settled.err)throw settled.err;t=settled.ok;}else{t=await creating;}var outs=[],i,s;for(i=0;i<job.items.length;i++){s=job.items[i]||'';outs.push(s.trim()?await t.translate(s):'');}post(job,true,'',outs);}catch(e){var m=e&&e.message?e.message:'Chrome 翻译失败';if(m==='chrome-google'){post(job,false,m,[]);return;}post(job,false,m,[]);}}\n"
+		+ "async function runtr(job){var C=ctor();if(!C){post(job,false,'这个 Chrome 没有翻译接口',[]);return;}try{var opt={sourceLanguage:job.src,targetLanguage:job.dst};var avail='available';if(typeof C.availability==='function'){var av=C.availability(opt);avail=await Promise.race([av,new Promise(function(_,rej){setTimeout(function(){rej(new Error('chrome-google'));},8000);})]);}if(avail==='unavailable'||avail==='no'){post(job,false,'Chrome 不能翻译这对语言',[]);return;}var need=avail==='downloadable'||avail==='downloading';var seen=false;if(need){if(!await googup()){post(job,false,'chrome-google',[]);return;}opt.monitor=function(m){if(m&&m.addEventListener)m.addEventListener('downloadprogress',function(){seen=true;});};}var creating=C.create(opt);var t,settled=null;creating.then(function(x){settled={ok:x};},function(e){settled={err:e};});if(need){var t0=Date.now();while(!settled){await new Promise(function(r){setTimeout(r,400);});if(!seen&&Date.now()-t0>200000){post(job,false,'chrome-google',[]);return;}}if(settled.err)throw settled.err;t=settled.ok;}else{t=await creating;}var outs=[],i,s;for(i=0;i<job.items.length;i++){s=job.items[i]||'';outs.push(s.trim()?await t.translate(s):'');}post(job,true,'',outs);}catch(e){var m=e&&e.message?e.message:'Chrome 翻译失败';if(m==='chrome-google'){post(job,false,m,[]);return;}post(job,false,m,[]);}}\n"
 		+ "try{if(window.speechSynthesis)speechSynthesis.getVoices();}catch(e){}\n"
 		+ "poll();\n"
 		+ "</script>";

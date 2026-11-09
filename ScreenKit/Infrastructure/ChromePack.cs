@@ -463,7 +463,7 @@ static class ChromePack {
 			var folder = TrFolder(pair);
 			known.Add(folder);
 			var dir = Path.Combine(root, folder);
-			var on = Directory.Exists(dir);
+			var on = packok(dir);
 			list.Add(new ChromePackItem {
 				Id = "tr:" + pair,
 				Kind = "tr",
@@ -479,6 +479,7 @@ static class ChromePack {
 		foreach (var dir in Directory.GetDirectories(root)) {
 			var name = Path.GetFileName(dir);
 			if (known.Contains(name)) continue;
+			var on = packok(dir);
 			list.Add(new ChromePackItem {
 				Id = "tr:" + name,
 				Kind = "tr",
@@ -486,11 +487,62 @@ static class ChromePack {
 				Title = pairlabel(name.Replace("_", " - ")),
 				Langs = splitcodes(FilterCode(name.Replace("_", " - "))),
 				Detail = name,
-				Size = dirsize(dir),
-				State = FeatureInstallState.Installed,
+				Size = on ? dirsize(dir) : 0,
+				State = on ? FeatureInstallState.Installed : FeatureInstallState.Missing,
 			});
 		}
 		return list;
+	}
+
+	/// <summary>模型目录里真有模型文件才算装上。临时目录被清理后只剩 manifest 空壳，不能算已装。</summary>
+	public static bool packok(string dir) {
+		if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return false;
+		try {
+			foreach (var f in Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)) {
+				if (new FileInfo(f).Length >= 1024 * 1024) return true;
+			}
+		}
+		catch { }
+		return false;
+	}
+
+	/// <summary>Chrome 的翻译引擎库。注册记录还在但文件被清掉时，create 会报 NotSupportedError。</summary>
+	public static string enginefile() {
+		var roots = new[] {
+			Path.Combine(ChromeTr.ProfileDir(), "TranslateKit", "lib"),
+			Path.Combine(ChromeTr.ProfileDir(), "TranslateKitFiles"),
+		};
+		foreach (var root in roots) {
+			try {
+				if (!Directory.Exists(root)) continue;
+				foreach (var f in Directory.EnumerateFiles(root, "libtranslatekit.dll", SearchOption.AllDirectories)) {
+					if (new FileInfo(f).Length > 1024 * 1024) return f;
+				}
+			}
+			catch { }
+		}
+		return null;
+	}
+
+	/// <summary>用户自己那份 Chrome 里装好的引擎库，缺了就借用一下。找不到返回 null。</summary>
+	static string usercopiedengine() {
+		var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+		var root = Path.Combine(local, "Google", "Chrome", "User Data", "TranslateKit", "lib");
+		try {
+			if (!Directory.Exists(root)) return null;
+			string best = null;
+			DateTime newest = DateTime.MinValue;
+			foreach (var f in Directory.EnumerateFiles(root, "libtranslatekit.dll", SearchOption.AllDirectories)) {
+				if (new FileInfo(f).Length <= 1024 * 1024) continue;
+				var when = File.GetLastWriteTimeUtc(f);
+				if (best == null || when > newest) {
+					best = f;
+					newest = when;
+				}
+			}
+			return best;
+		}
+		catch { return null; }
 	}
 
 	static string pairlabel(string pair) {
@@ -937,6 +989,90 @@ static class ChromePack {
 			throw new InvalidOperationException("Chrome 不能下载这对语言的翻译模型");
 	}
 
+	/// <summary>create 报 NotSupportedError 时清掉坏状态：引擎库缺失就借用用户那份 Chrome 的，模型空壳则注销让 Chrome 重下。返回是否真的动过，动过就该重试一次。</summary>
+	public static bool Repair(string src, string dst, string exe, Action<string> log = null) {
+		var fixedAny = false;
+		try {
+			if (enginefile() == null) {
+				var from = usercopiedengine();
+				if (from != null) {
+					var dir = Path.Combine(ChromeTr.ProfileDir(), "TranslateKitFiles");
+					Directory.CreateDirectory(dir);
+					var to = Path.Combine(dir, "libtranslatekit.dll");
+					File.Copy(from, to, true);
+					log?.Invoke($"Chrome 翻译引擎库缺失，已从本机 Chrome 复制: {from}");
+					setenginepath(to);
+					fixedAny = true;
+				}
+				else log?.Invoke("Chrome 翻译引擎库缺失，本机 Chrome 里也没有，请先在普通 Chrome 里用一次网页翻译");
+			}
+			var pair = pairfolder(src, dst);
+			if (pair != null) {
+				var dir = Path.Combine(ChromeTr.ProfileDir(), "TranslateKit", "models", pair);
+				if (Directory.Exists(dir) && !packok(dir)) {
+					//只剩空壳：删掉目录并注销，让 Chrome 当作没装过重新下
+					try { Directory.Delete(dir, true); } catch { }
+					unregister(pair);
+					log?.Invoke($"Chrome 翻译模型 {pair} 只剩空壳，已注销，下次翻译会重新下载");
+					fixedAny = true;
+				}
+			}
+		}
+		catch { }
+		return fixedAny;
+	}
+
+	/// <summary>语言对对应的模型目录名。Chrome 一律以英文一侧命名，如 zh/en -> en_zh。</summary>
+	static string pairfolder(string a, string b) {
+		var x = trcode(a);
+		var y = trcode(b);
+		if (x.Length == 0 || y.Length == 0 || x == y) return null;
+		if (x == "en") return $"en_{y}";
+		if (y == "en") return $"en_{x}";
+		return null;
+	}
+
+	static string trcode(string code) {
+		var s = (code ?? "").Trim();
+		if (s.Length == 0) return "";
+		if (s.StartsWith("zh-Hant", StringComparison.OrdinalIgnoreCase)) return "zh-Hant";
+		if (s.StartsWith("zh", StringComparison.OrdinalIgnoreCase)) return "zh";
+		var dash = s.IndexOf('-');
+		return dash > 0 ? s[..dash].ToLowerInvariant() : s.ToLowerInvariant();
+	}
+
+	/// <summary>改 Local State 里的引擎库路径，Chrome 下次启动才认。旧版记的是相对路径，文件没了就永远找不到。</summary>
+	static void setenginepath(string dll) {
+		try {
+			var path = Path.Combine(ChromeTr.ProfileDir(), "Local State");
+			if (!File.Exists(path)) return;
+			var root = JSONF.Parse(File.ReadAllText(path));
+			if (!root.IsObject) return;
+			var node = child(root, "on_device_translation");
+			node["translate_kit_binary_path"] = dll;
+			File.WriteAllText(path, root.ToJSONString(-1), new UTF8Encoding(false));
+		}
+		catch { }
+	}
+
+	/// <summary>把某个语言包从 Chrome 的注册表里去掉，Chrome 便会当作未安装重新下载。</summary>
+	static void unregister(string folder) {
+		try {
+			var path = Path.Combine(ChromeTr.ProfileDir(), "Local State");
+			if (!File.Exists(path)) return;
+			var root = JSONF.Parse(File.ReadAllText(path));
+			if (!root.IsObject) return;
+			var node = root.get("on_device_translation");
+			if (!node.IsObject) return;
+			var packs = node.get("translate_kit_packages");
+			if (!packs.IsObject) return;
+			packs.Remove(folder + "_registered");
+			packs.Remove(folder + "_path");
+			File.WriteAllText(path, root.ToJSONString(-1), new UTF8Encoding(false));
+		}
+		catch { }
+	}
+
 	/// <summary>和网页「浏览器小模型」一样，用 Translator.create 的 downloadprogress。</summary>
 	static bool webpair(Sess sess, string pair, string title, Action<double, string, string> report, Action<string> log, CancellationToken ct) {
 		var bits = (pair ?? "").Split(new[] { " - " }, StringSplitOptions.None);
@@ -1316,6 +1452,9 @@ static class ChromePack {
 
 	const int DLSTALL = 20000;
 
+	/// <summary>这个版本的 Chrome 下载时不一定发 downloadprogress，没收到进度事件就按更长的总时长等。</summary>
+	const int DLWAIT = 240000;
+
 	/// <summary>有新的下载字节才算往前走。一直是 0 不算。</summary>
 	static void bumpdl(bool seen, double loaded, ref double last, ref int tick) {
 		if (!seen || loaded <= 0) return;
@@ -1570,16 +1709,18 @@ return 'started';
 			var start = Environment.TickCount;
 			var moved = start;
 			var lastBytes = -1.0;
-			while (unchecked(Environment.TickCount - start) < 180000) {
+			var anySeen = false;
+			while (unchecked(Environment.TickCount - start) < DLWAIT) {
 				ct.ThrowIfCancellationRequested();
 				PumpAll(300, ct);
 				if (!readtr(EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out var loaded, out _)) {
-					stallor(moved);
+					if (anySeen) stallor(moved);
 					continue;
 				}
+				if (seen) anySeen = true;
 				if (!done) {
 					bumpdl(seen, loaded, ref lastBytes, ref moved);
-					stallor(moved);
+					if (anySeen) stallor(moved);
 					progress?.Invoke(seen ? p : -1);
 					continue;
 				}
