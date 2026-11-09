@@ -64,6 +64,9 @@ public partial class VidConvertWindow : Window {
 		ecrf.ToolTip = Loc.T("vidconv.crf.tip");
 		eshorten.Content = Loc.T("vidconv.short");
 		lbshort.Text = Loc.T("vidconv.shortpx");
+		lbfps.Text = Loc.T("vidconv.fps");
+		lbfpsu.Text = Loc.T("vidconv.fpsu");
+		efps.ToolTip = Loc.T("vidconv.fps.tip");
 		ehw.Content = Loc.T("vidconv.hw");
 		ehw.ToolTip = Loc.T("vidconv.hw.tip");
 		eaudio.Content = Loc.T("vidconv.audio");
@@ -109,6 +112,7 @@ public partial class VidConvertWindow : Window {
 		ecrf.Text = VidConvert.NormCrf(fmt, opt.VidConvCrf < 0 ? 40 : opt.VidConvCrf).ToString();
 		eshorten.IsChecked = opt.VidConvShortEnabled;
 		eshort.Text = (opt.VidConvShortPx < 16 ? 480 : opt.VidConvShortPx).ToString();
+		efps.Text = VidConvert.NormFps(opt.VidConvFps).ToString();
 		ehw.IsChecked = opt.VidConvHw;
 		eaudio.IsChecked = opt.VidConvAudio;
 		earate.Text = VidConvert.NormKbps(opt.VidConvAudioKbps).ToString();
@@ -151,6 +155,11 @@ public partial class VidConvertWindow : Window {
 		opt.VidConvCrf = crf;
 		opt.VidConvShortEnabled = shortEn;
 		opt.VidConvShortPx = sp;
+		if (!int.TryParse((efps.Text ?? "").Trim(), out var fps) || fps < 0 || fps > 240) {
+			MessageBox.Show(this, Loc.T("vidconv.fps.bad"), Title, MessageBoxButton.OK, MessageBoxImage.Information);
+			return false;
+		}
+		opt.VidConvFps = VidConvert.NormFps(fps);
 		opt.VidConvHw = ehw.IsChecked == true;
 		var audioOn = eaudio.IsChecked == true;
 		var kbps = opt.VidConvAudioKbps <= 0 ? 64 : opt.VidConvAudioKbps;
@@ -361,6 +370,7 @@ public partial class VidConvertWindow : Window {
 		var crf = opt.VidConvCrf;
 		var shortEn = opt.VidConvShortEnabled;
 		var shortPx = opt.VidConvShortPx;
+		var fps = opt.VidConvFps;
 		var hw = opt.VidConvHw;
 		var audio = opt.VidConvAudio;
 		var kbps = opt.VidConvAudioKbps;
@@ -392,7 +402,7 @@ public partial class VidConvertWindow : Window {
 						rowpct(row, pct);
 					};
 					await Task.Run(() => VidConvert.ConvertOne(row.FilePath, dst, fmt, codec, crf,
-						shortEn, shortPx, audio, kbps, hz, mono, mode, token, hw, onpct), token).ConfigureAwait(true);
+						shortEn, shortPx, audio, kbps, hz, mono, mode, token, hw, onpct, fps), token).ConfigureAwait(true);
 					row.Status = Loc.T("vidconv.st.ok");
 					ok++;
 				}

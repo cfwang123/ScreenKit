@@ -3609,6 +3609,31 @@ static class Cli {
 				bad++;
 			}
 			else Out("静音参数");
+			// 帧率上限：源更快时抽帧，源更慢时不动
+			var fpsDrop = VidConvert.Args(src, dst, "mp4", "x264", 30, true, 80, false, 64, 22050, true, true, 320, 240, null, false, 20, 30);
+			if (!haspair(fpsDrop, "-vf", "scale=106:80,fps=20")) {
+				Err("FAIL 降帧参数 " + string.Join(" ", fpsDrop));
+				bad++;
+			}
+			else Out("降帧参数 scale=106:80,fps=20");
+			var fpsOnly = VidConvert.Args(src, dst, "mp4", "x264", 30, false, 480, false, 64, 22050, true, true, 320, 240, null, false, 20, 0);
+			if (!haspair(fpsOnly, "-vf", "fps=20")) {
+				Err("FAIL 只降帧参数 " + string.Join(" ", fpsOnly));
+				bad++;
+			}
+			else Out("只降帧参数 fps=20");
+			var fpsKeep = VidConvert.Args(src, dst, "mp4", "x264", 30, true, 480, false, 64, 22050, true, true, 320, 240, null, false, 20, 15);
+			if (fpsKeep.Contains("fps=")) {
+				Err("FAIL 低帧率源不应提帧 " + string.Join(" ", fpsKeep));
+				bad++;
+			}
+			else Out("低帧率源保持原样");
+			var fpsOff = VidConvert.Args(src, dst, "mp4", "x264", 30, true, 480, false, 64, 22050, true, true, 320, 240, null, false, 0, 30);
+			if (fpsOff.Contains("fps=")) {
+				Err("FAIL 关闭帧率上限仍有 fps " + string.Join(" ", fpsOff));
+				bad++;
+			}
+			else Out("帧率上限 0 = 不限制");
 			var exe = VidConvert.FindExe();
 			if (string.IsNullOrEmpty(exe))
 				Out("SKIP 编码：没有 ffmpeg64");
@@ -3657,6 +3682,39 @@ static class Cli {
 							bad++;
 						}
 						else Out($"硬件加速/回退 OK，进度回调 {pcts.Count} 次");
+
+						// 30fps 源降到 20fps：输出帧率应接近 20
+						var raw30 = Path.Combine(dir, "src30.mp4");
+						var psi30 = new System.Diagnostics.ProcessStartInfo {
+							FileName = exe,
+							Arguments = "-y -hide_banner -loglevel error -f lavfi -i testsrc=size=160x120:rate=30:duration=2 -c:v libx264 -pix_fmt yuv420p \"" + raw30 + "\"",
+							UseShellExecute = false,
+							CreateNoWindow = true,
+							RedirectStandardError = true,
+							RedirectStandardOutput = true,
+						};
+						using (var p30 = System.Diagnostics.Process.Start(psi30)) {
+							p30.StandardError.ReadToEnd();
+							p30.WaitForExit(20000);
+						}
+						var outfps = Path.Combine(dir, "out_fps.mp4");
+						if (!File.Exists(raw30)) {
+							Err("FAIL 生成 30fps 测试视频");
+							bad++;
+						}
+						else {
+							VidConvert.ConvertOne(raw30, outfps, "mp4", "x264", 30, false, 480, false, 64, 22050,
+								true, VidConvert.OUTOTHER, CancellationToken.None, false, null, 20);
+							if (!VidConvert.Probe(exe, outfps, out _, out _, out _, out _, out var ofps)) {
+								Err("FAIL 降帧输出无法探测");
+								bad++;
+							}
+							else if (ofps < 18 || ofps > 21) {
+								Err($"FAIL 降帧后帧率 {ofps:0.0} 期望约 20");
+								bad++;
+							}
+							else Out($"降帧 30 -> {ofps:0.0} fps");
+						}
 
 						// CPU 与 GPU 占用读数（CPU 第一次只是基线）
 						SysLoad.ResetCpu();

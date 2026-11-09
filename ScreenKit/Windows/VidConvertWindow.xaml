@@ -72,6 +72,18 @@
 				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 				         AutomationProperties.AutomationId="vidconv.shortpx"/>
 			</StackPanel>
+			<StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+				<TextBlock x:Name="lbfps" Text="帧率上限" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="0,0,8,0"/>
+				<TextBox x:Name="efps" Width="72" Height="30" Padding="6,4" Text="20"
+				         BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
+				         ToolTip="源帧率高于此值时降帧；低于则保持原样。0 表示不限制"
+				         AutomationProperties.AutomationId="vidconv.fps"/>
+				<TextBlock x:Name="lbfpsu" Text="fps" FontSize="12"
+				           Foreground="{StaticResource TextMuted}"
+				           VerticalAlignment="Center" Margin="6,0,16,0"/>
+			</StackPanel>
 			<CheckBox x:Name="ehw" Content="硬件加速（NVENC / QSV，失败自动回退 CPU）"
 			          Margin="0,8,0,0"
 			          ToolTip="MP4 / MKV 用显卡编码，速度快、CPU 占用低；WebM 仍走 CPU。显卡不支持时自动改用 CPU。"

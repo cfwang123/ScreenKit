@@ -231,6 +231,8 @@ static class AppConfig {
 				o.VidConvShortEnabled = parsebool(vcss, true);
 			if (map.TryGetValue("vidconv_short_px", out var vcsp) && int.TryParse(vcsp, out var vcShort))
 				o.VidConvShortPx = Compat.Clamp(vcShort, 16, 7680);
+			if (map.TryGetValue("vidconv_fps", out var vcfps) && int.TryParse(vcfps, out var vcFps))
+				o.VidConvFps = VidConvert.NormFps(vcFps);
 			if (map.TryGetValue("vidconv_hw", out var vchw))
 				o.VidConvHw = parsebool(vchw, false);
 			if (map.TryGetValue("vidconv_audio", out var vca))
@@ -788,6 +790,7 @@ static class AppConfig {
 		sb.AppendLine($"vidconv_crf = {VidConvert.NormCrf(vcFmt, o.VidConvCrf < 0 ? 40 : o.VidConvCrf)}");
 		sb.AppendLine($"vidconv_short = {(o.VidConvShortEnabled ? "true" : "false")}");
 		sb.AppendLine($"vidconv_short_px = {Compat.Clamp(o.VidConvShortPx < 16 ? 480 : o.VidConvShortPx, 16, 7680)}");
+		sb.AppendLine($"vidconv_fps = {VidConvert.NormFps(o.VidConvFps)}");
 		sb.AppendLine($"vidconv_hw = {(o.VidConvHw ? "true" : "false")}");
 		sb.AppendLine($"vidconv_audio = {(o.VidConvAudio ? "true" : "false")}");
 		sb.AppendLine($"vidconv_audio_kbps = {VidConvert.NormKbps(o.VidConvAudioKbps)}");

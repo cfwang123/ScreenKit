@@ -5276,3 +5276,7 @@ web.uni.hint = "Cliquez pour sélectionner et copier. À gauche le nombre et la 
 mdread.explorer.menu = "Afficher dans l'Explorateur"
 mdread.explorer = "Affiché dans l'Explorateur"
 mdread.explorer.fail = "Impossible d'ouvrir l'Explorateur : {0}"
+vidconv.fps = "Fréquence max."
+vidconv.fpsu = "fps"
+vidconv.fps.tip = "Réduire si la source est plus rapide ; sinon inchangé. 0 = sans limite"
+vidconv.fps.bad = "La fréquence doit être un entier de 0 à 240"

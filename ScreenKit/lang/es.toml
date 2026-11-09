@@ -5276,3 +5276,7 @@ web.uni.hint = "Haga clic para seleccionar y copiar. A la izquierda el número y
 mdread.explorer.menu = "Mostrar en el Explorador"
 mdread.explorer = "Mostrado en el Explorador"
 mdread.explorer.fail = "No se pudo abrir el Explorador: {0}"
+vidconv.fps = "Fotogramas máx."
+vidconv.fpsu = "fps"
+vidconv.fps.tip = "Reduce si el origen va más rápido; si va más lento, se deja igual. 0 = sin límite"
+vidconv.fps.bad = "Los fotogramas deben ser un entero de 0 a 240"

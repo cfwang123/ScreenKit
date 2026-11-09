@@ -5276,3 +5276,7 @@ web.uni.hint = "Clique para selecionar e copiar. À esquerda a contagem e o inte
 mdread.explorer.menu = "Mostrar no Explorador"
 mdread.explorer = "Mostrado no Explorador"
 mdread.explorer.fail = "Falha ao abrir o Explorador: {0}"
+vidconv.fps = "Taxa de quadros máx."
+vidconv.fpsu = "fps"
+vidconv.fps.tip = "Reduz se a origem for mais rápida; se for mais lenta, mantém. 0 = sem limite"
+vidconv.fps.bad = "A taxa de quadros deve ser um inteiro de 0 a 240"

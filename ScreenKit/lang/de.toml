@@ -5276,3 +5276,7 @@ web.uni.hint = "Klicken zum Auswählen und Kopieren. Links stehen Anzahl und Ber
 mdread.explorer.menu = "Im Explorer anzeigen"
 mdread.explorer = "Im Explorer angezeigt"
 mdread.explorer.fail = "Explorer konnte nicht geöffnet werden: {0}"
+vidconv.fps = "Max. Bildrate"
+vidconv.fpsu = "fps"
+vidconv.fps.tip = "Bildrate senken, wenn die Quelle schneller ist; sonst unverändert. 0 = unbegrenzt"
+vidconv.fps.bad = "Die Bildrate muss eine ganze Zahl von 0 bis 240 sein"

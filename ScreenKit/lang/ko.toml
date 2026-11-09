@@ -5276,3 +5276,7 @@ web.uni.hint = "클릭하면 선택되어 복사됩니다. 왼쪽은 묶음별 �
 mdread.explorer.menu = "탐색기에서 표시"
 mdread.explorer = "탐색기에서 표시했습니다"
 mdread.explorer.fail = "탐색기를 열지 못했습니다: {0}"
+vidconv.fps = "프레임률 상한"
+vidconv.fpsu = "fps"
+vidconv.fps.tip = "원본 프레임률이 더 높으면 줄입니다. 더 낮으면 그대로 둡니다. 0은 제한 없음"
+vidconv.fps.bad = "프레임률은 0–240 사이의 정수여야 합니다"

@@ -52,6 +52,12 @@ static class VidConvert {
 		return Compat.Clamp(kbps, 8, 512);
 	}
 
+	/// <summary>帧率上限；0 表示不限制。</summary>
+	public static int NormFps(int fps) {
+		if (fps <= 0) return 0;
+		return Compat.Clamp(fps, 1, 240);
+	}
+
 	public static int NormHz(int hz) {
 		foreach (var n in RecordOptions.AudioHzChoices)
 			if (n == hz) return n;
@@ -166,13 +172,15 @@ static class VidConvert {
 		return null;
 	}
 
-	/// <summary>hw 为 null 用 CPU；nvenc / qsv 用对应硬件编码器（只对 MP4 / MKV 的 H.264、H.265 生效）。</summary>
+	/// <summary>hw 为 null 用 CPU；nvenc / qsv 用对应硬件编码器（只对 MP4 / MKV 的 H.264、H.265 生效）。
+	/// maxFps 大于 0 且源帧率更高时按 maxFps 抽帧，绝不提帧。</summary>
 	public static List<string> Args(string src, string dst, string fmt, string codec, int crf,
 		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, bool hasAudio, int w, int h,
-		string hw = null, bool progress = false) {
+		string hw = null, bool progress = false, int maxFps = 0, double srcFps = 0) {
 		fmt = NormFmt(fmt);
 		codec = fmt == "webm" ? "vp9" : NormCodec(codec);
 		crf = NormCrf(fmt, crf);
+		maxFps = NormFps(maxFps);
 		var args = new List<string> {
 			"-y", "-hide_banner", "-loglevel", "error",
 		};
@@ -180,16 +188,20 @@ static class VidConvert {
 		args.AddRange(new[] { "-i", src, "-map", "0:v:0" });
 		var keepA = audio && hasAudio;
 		if (keepA) args.AddRange(new[] { "-map", "0:a:0?" });
+		var vf = new List<string>();
 		if (shortEn && shortPx >= 16 && w >= 2 && h >= 2) {
 			Fit(w, h, shortPx, out var ow, out var oh);
 			if (ow != w || oh != h)
-				args.AddRange(new[] { "-vf", "scale=" + ow + ":" + oh });
+				vf.Add("scale=" + ow + ":" + oh);
 		}
 		else if (shortEn && shortPx >= 16 && (w < 2 || h < 2)) {
 			var n = shortPx.ToString(CultureInfo.InvariantCulture);
-			var vf = "scale=w='trunc(iw*min(1\\," + n + "/min(iw\\,ih))/2)*2':h='trunc(ih*min(1\\," + n + "/min(iw\\,ih))/2)*2'";
-			args.AddRange(new[] { "-vf", vf });
+			vf.Add("scale=w='trunc(iw*min(1\\," + n + "/min(iw\\,ih))/2)*2':h='trunc(ih*min(1\\," + n + "/min(iw\\,ih))/2)*2'");
 		}
+		// 只在源帧率确实更高时抽帧，避免给低帧率源补帧
+		if (maxFps > 0 && (srcFps <= 0 || srcFps > maxFps + 0.01))
+			vf.Add("fps=" + maxFps.ToString(CultureInfo.InvariantCulture));
+		if (vf.Count > 0) args.AddRange(new[] { "-vf", string.Join(",", vf) });
 		if (codec == "vp9") {
 			args.AddRange(new[] {
 				"-c:v", "libvpx-vp9", "-crf", crf.ToString(CultureInfo.InvariantCulture), "-b:v", "0",
@@ -245,11 +257,15 @@ static class VidConvert {
 		if (mono) args.AddRange(new[] { "-ac", "1" });
 	}
 
-	public static bool Probe(string exe, string path, out int w, out int h, out bool audio, out double dur) {
+	public static bool Probe(string exe, string path, out int w, out int h, out bool audio, out double dur) =>
+		Probe(exe, path, out w, out h, out audio, out dur, out _);
+
+	public static bool Probe(string exe, string path, out int w, out int h, out bool audio, out double dur, out double fps) {
 		w = 0;
 		h = 0;
 		audio = false;
 		dur = 0;
+		fps = 0;
 		if (string.IsNullOrWhiteSpace(exe) || !File.Exists(path)) return false;
 		var err = "";
 		var code = run(exe, new List<string> { "-hide_banner", "-i", path }, CancellationToken.None, 20000, out err);
@@ -264,7 +280,19 @@ static class VidConvert {
 		w = int.Parse(vm.Groups[1].Value, CultureInfo.InvariantCulture);
 		h = int.Parse(vm.Groups[2].Value, CultureInfo.InvariantCulture);
 		audio = Regex.IsMatch(err, @"Audio:");
+		fps = probefps(err ?? "");
 		return w >= 2 && h >= 2;
+	}
+
+	/// <summary>取 "23.98 fps" / "25 tbr" 这类帧率；取不到返回 0。</summary>
+	static double probefps(string err) {
+		var m = Regex.Match(err, @"(\d+(?:\.\d+)?)\s*fps");
+		if (m.Success && double.TryParse(m.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var f) && f > 0)
+			return f;
+		m = Regex.Match(err, @"(\d+(?:\.\d+)?)\s*tbr");
+		if (m.Success && double.TryParse(m.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out f) && f > 0)
+			return f;
+		return 0;
 	}
 
 	/// <summary>已失败的硬件编码器（nvenc / qsv），后续文件直接跳过，避免每个都先错一次。</summary>
@@ -272,7 +300,7 @@ static class VidConvert {
 
 	public static void ConvertOne(string src, string dst, string fmt, string codec, int crf,
 		bool shortEn, int shortPx, bool audio, int kbps, int hz, bool mono, string mode, CancellationToken ct,
-		bool hw = false, Action<int> onpct = null) {
+		bool hw = false, Action<int> onpct = null, int maxFps = 0) {
 		if (string.IsNullOrWhiteSpace(src) || !File.Exists(src))
 			throw new FileNotFoundException(src);
 		ct.ThrowIfCancellationRequested();
@@ -284,7 +312,8 @@ static class VidConvert {
 		fmt = NormFmt(fmt);
 		crf = NormCrf(fmt, crf);
 		mode = NormOutMode(mode);
-		var probed = Probe(exe, src, out var w, out var h, out var hasAudio, out var dur);
+		maxFps = NormFps(maxFps);
+		var probed = Probe(exe, src, out var w, out var h, out var hasAudio, out var dur, out var srcFps);
 		if (!probed) {
 			w = 0;
 			h = 0;
@@ -311,7 +340,7 @@ static class VidConvert {
 			ct.ThrowIfCancellationRequested();
 			onpct?.Invoke(0);
 			var args = Args(src, tmp, fmt, codec, crf, shortEn, shortPx, audio, kbps, hz, mono,
-				hasAudio, w, h, hwenc, watch);
+				hasAudio, w, h, hwenc, watch, maxFps, srcFps);
 			code = run(exe, args, ct, 0, watch ? onpct : null, dur, out err);
 			ct.ThrowIfCancellationRequested();
 			if (code == 0 && File.Exists(tmp) && new FileInfo(tmp).Length > 0)
