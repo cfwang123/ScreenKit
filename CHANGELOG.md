@@ -53,6 +53,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - ScreenKit can now start hidden in the tray with --tray, so automated runs do not pop a window.
 - Russian word forms: every participle now expands into a full declension table (six cases by four genders/numbers, animate and inanimate accusative, archaic feminine instrumental); short passive forms and the rare past gerund are listed too.
+- Korean word forms: fourteen more common endings are listed, including -(으)려면, -아/어야만, -든가, -는 길에, -고야, -(으)ㄹ 수가 있다, -지 그래요?, -(으)면서도, -(으)려는 참이다, -(으)ㄴ 지 얼마 안 되다, -다가 보면 and -지 않을 수 없다.
 
 #### Changed
 
@@ -69,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome translation could fail with the error Unable to create translator for the given source and target language when the model folder was left behind empty by disk cleanup: Chrome's translate engine DLL and model files lived under the temp folder and were deleted while their registration records remained, so availability reported available but create always failed. Chrome's profile now lives under LocalAppData (existing data is moved over); the engine DLL is copied from your own Chrome when missing, empty model shells are unregistered so Chrome downloads them again, and the installed state checks for real model files instead of just the folder.
 - Chrome translation model install could fail with Unable to create translator for the given source and target language when an empty model folder was left registered as installed: the install path now unregisters such stale entries before downloading, and no-progress detection no longer aborts downloads on Chrome builds that emit no downloadprogress events.
 - Screen recording keeps audio when the default playback device changes: Bluetooth headset connect/disconnect or plugging in headphones no longer leaves the rest of the video silent
+- Korean word forms: noun negatives in the future tense were built with a bare jamo (학생이 아니ㄹ 거예요); they now read 학생이 아닐 거예요. Parallel endings like -ㄹ 수 있다/없다, -(으)ㄴ 적이 있다/없다, -(으)ㄹ 줄 알다/모르다 and -기 쉽다/어렵다 no longer lose their stem on the second half (먹을없다 → 먹을 수 없다), and three label pairs that shared a name are now distinct.
 
 ### 中文
 
@@ -76,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 新增 --tray 启动参数：程序启动后不显示主窗口，直接收进托盘，便于自动化时不影响他人操作。
 - 俄语词形变化：每个分词都展开成完整的六格变格表（六格 × 阳/中/阴/复，宾格分有生与无生，阴性工具格带旧变体），被动分词短尾和少用的过去时副动词也一并列出。
+- 韩语词形变化：补上 14 条常用语法，含-(으)려면、-아/어야만、-든가、-는 길에、-고야、-(으)ㄹ 수가 있다、-지 그래요?、-(으)면서도、-(으)려는 참이다、-(으)ㄴ 지 얼마 안 되다、-다가 보면、-지 않을 수 없다等。
 
 #### 变更
 
@@ -92,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Chrome 翻译可能报「Unable to create translator for the given source and target language」：Chrome 的翻译引擎库和模型文件原先放在临时目录，被磁盘清理删掉后注册记录还在，availability 说可用而 create 必然失败。Chrome 配置目录改到 LocalAppData（已有数据会迁移过去）；引擎库缺失时从本机 Chrome 复制，只剩空壳的模型会注销让 Chrome 重新下载；已装状态改为检查真实模型文件，不再只看目录是否存在。
 - 安装 Chrome 翻译模型时若残留空壳目录仍挂着已装，会报 Unable to create translator for the given source and target language：现在安装前先注销这类残留注册再下载，不会发 downloadprogress 事件的 Chrome 版本也不会被误判为下载停滞而中断。
 - 录屏中默认播放设备变化（蓝牙耳机连上/断开、插拔耳机）后不再后半段无声：检测到设备变更或采集被停就重开环回，系统 H.264 按墙钟补静音后接着写同一 AAC 音轨，其它后端分段录制再拼接
+- 韩语词形变化：名词将来时的否定形把字母直接拼进音节（학생이 아니ㄹ 거예요），改成학생이 아닐 거예요；-ㄹ 수 있다/없다、-(으)ㄴ 적이 있다/없다、-(으)ㄹ 줄 알다/모르다、-기 쉽다/어렵다 这类并列词尾的后半不再漏词干（먹을없다 → 먹을 수 없다）；三组同名的标签分开命名。
 
 ## v1.0.35 (2026-11-05 ~ 11-08)
 

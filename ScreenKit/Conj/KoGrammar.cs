@@ -92,7 +92,7 @@ static class KoGrammar {
 	static bool haspred(string pos) {
 		string[] fixedpred = { "싶다", "싶어 하다", "있다", "없다", "하다", "되다", "보다", "주다",
 			"모르다", "알다", "말다", "드리다", "버리다", "놓다", "두다", "내다", "나다", "대다",
-			"만들다", "보이다", "지다", "쉽다", "어렵다", "마련이다", "틀림없다", "법하다" };
+			"만들다", "보이다", "지다", "쉽다", "어렵다", "마련이다", "틀림없다", "법하다", "그래요" };
 		foreach (var w in fixedpred) {
 			if (pos.IndexOf(w, System.StringComparison.Ordinal) >= 0) return true;
 		}
@@ -173,6 +173,7 @@ static class KoGrammar {
 		return join(head, tail);
 	}
 
+	// 尾巴带「 / 」时每一段都要各自接上词头，所以并行形式在目录里要写全（적이 있다 / 적이 없다）
 	static string join(string head, string tail) {
 		if (tail.Length == 0) return head;
 		if (tail.IndexOf(" / ") >= 0) {
@@ -189,6 +190,14 @@ static class KoGrammar {
 			case "mot": return f.Verb ? "못 " + f.Ae + "요" : "";
 			case "guna": return f.Verb ? f.Neun + "구나" : f.Stem + "구나";
 			case "gunyo": return f.Verb ? f.Neun + "군요" : f.Stem + "군요";
+			case "suitda": return f.Rl + " 수 있다 / " + f.Rl + " 수 없다";
+			case "jeokitda": return f.Nn + " 적이 있다 / " + f.Nn + " 적이 없다";
+			case "julmorda": return f.Rl + " 줄 알다 / " + f.Rl + " 줄 모르다";
+			case "giswipda": return f.Gi + " 쉽다 / " + f.Gi + " 어렵다";
+			case "ryeoneuncham": return f.Eu + "려는 참이다";
+			case "njiEolma": return f.Nn + " 지 얼마 안 되다";
+			case "dagabomyeon": return f.Drop + "다가 보면";
+			case "jianeursueopda": return f.Stem + "지 않을 수 없다";
 			case "mod3": return f.Nn + " / " + f.Mod + " / " + f.Rl;
 			case "si": return f.Eud + "시다";
 			case "qplain": return f.Adj ? f.Eud + "냐" : f.Drop + "느냐";

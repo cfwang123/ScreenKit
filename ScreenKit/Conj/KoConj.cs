@@ -283,9 +283,11 @@ static class KoConj {
 		["honf"] = new[] { "半敬语将来", "해요 미래", "polite future" },
 		["go"] = new[] { "并列", "나열", "and" },
 		["ase"] = new[] { "然后", "순서", "and then" },
+		["ase2"] = new[] { "接着做", "이어서", "do then" },
 		["myeon"] = new[] { "条件", "조건", "if" },
 		["jiman"] = new[] { "转折", "대조", "but" },
 		["nikka"] = new[] { "原因", "이유", "because" },
+		["nikka2"] = new[] { "因为忙着", "느라고", "because busy" },
 		["ryeo"] = new[] { "打算", "의도", "intend" },
 		["wanty"] = new[] { "半敬语想", "해요 싶다", "polite want" },
 		["wanth"] = new[] { "敬语想", "높임 싶다", "formal want" },
@@ -300,6 +302,7 @@ static class KoConj {
 		["modp"] = new[] { "过去", "과거", "past" },
 		["modf"] = new[] { "将来", "미래", "future" },
 		["deon"] = new[] { "回想", "회상", "retrospective" },
+		["deon2"] = new[] { "过去回想·敬", "회상 존대", "retrospective polite" },
 		["atd"] = new[] { "经历", "경험", "experienced" },
 		["neyo"] = new[] { "半敬语感叹", "해요 감탄", "polite reaction" },
 		["atne"] = new[] { "过去感叹", "과거 감탄", "past reaction" },
@@ -1241,9 +1244,9 @@ static class KoConj {
 		add("cond", "거든", jn(syls) + "거든");
 		if (verb) {
 			add("assoon", "자마자", jn(syls) + "자마자");
-			add("nikka", "느라고", dropr(syls, "느라고"));
+			add("nikka2", "느라고", dropr(syls, "느라고"));
 			add("midway", "다가", jn(syls) + "다가");
-			add("ase", "고서", jn(syls) + "고서");
+			add("ase2", "고서", jn(syls) + "고서");
 			add("after", "고 나서", jn(syls) + "고 나서");
 			add("after2", "ㄴ 후에", nieunword(syls, irr) + " 후에");
 			add("stateas", "ㄴ 채로", nieunword(syls, irr) + " 채로");
@@ -1284,7 +1287,7 @@ static class KoConj {
 		add("jan", "잖아요", dropr(syls, "잖아요"));
 		add("jyo", "죠", jn(syls) + "죠", ln("죠"));
 		add("jiyo", "지요", jn(syls) + "지요", ln("지요"));
-		add("deon", "았더라고요", past + "더라고요", ln("았더라고요"));
+		add("deon2", "았더라고요", past + "더라고요", ln("았더라고요"));
 		add("atda", "았더라", past + "더라", ln("았더라"));
 		add("jana", "잖아", jn(syls) + "잖아");
 		add("geodeun", "거든", jn(syls) + "거든", ln("거든"));
@@ -1934,9 +1937,9 @@ static class KoConj {
 		add("pguess", "었겠어요", copart(noun, bat, "었겠어요", "였겠어요"), no("었겠어요"));
 		add("ifpast", "었더라면", copart(noun, bat, "었더라면", "였더라면"), no("었더라면"));
 		cur = g("fut");
-		add("fhey", "ㄹ 거예요", noun + "일 거예요", no("ㄹ 거예요"));
-		add("fhap", "ㄹ 겁니다", noun + "일 겁니다", no("ㄹ 겁니다"));
-		add("fplain", "ㄹ 것이다", noun + "일 것이다", no("ㄹ 것이다"));
+		add("fhey", "ㄹ 거예요", noun + "일 거예요", nal + " 거예요");
+		add("fhap", "ㄹ 겁니다", noun + "일 겁니다", nal + " 겁니다");
+		add("fplain", "ㄹ 것이다", noun + "일 것이다", nal + " 것이다");
 		cur = g("con");
 		add("myeon", "면", copart(noun, bat, "면", "면"), no("면"));
 		add("go", "고", copart(noun, bat, "고", "고"), no("고"));
