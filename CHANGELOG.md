@@ -63,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean noun connectives (면 / 고 / 지만 / 지 / 인데 / 기 전에 / 일 때 / 인 동안 / 일수록 / 기 때문에 and similar) now show the negative form alongside, e.g. 학교면 / 학교가 아니면.
 - --tray now suppresses the brief flash of the main window at startup instead of hiding it after it appears.
 - Korean noun forms now carry the negative alongside in the remaining categories too: modifiers, honorifics, mood, written and classical endings, contractions, colloquial and slang variants, dialects, North Korean and Yanbian forms, and the judgement patterns (예요 / 입니다 / 입니까). Grammatical particles such as 가/는/를/에 have no positive-negative pair, so they are left as is.
+- Startup: new --hidden switch starts straight to the tray; minimizing always hides to the tray, so the old tray checkbox is gone
 
 #### Fixed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语名词的连接形（면 / 고 / 지만 / 지 / 인데 / 기 전에 / 일 때 / 인 동안 / 일수록 / 기 때문에 等 19 条）也并列否定，如 학교면 / 학교가 아니면。
 - --tray 启动时改为全程不显示主窗口，不再先闪现再隐藏。
 - 韩语名词的其余类别也并列否定：定语、尊敬、语气、书面与古代语尾、缩略、口语与俚俗、各地方言、朝鲜文化语与延边语，以及判断句式（예요 / 입니다 / 입니까）。가/는/를/에 这类格助词没有肯定否定之分，保持原样。
+- 启动：新增 --hidden 参数，启动后直接留在托盘；最小化一律隐藏到托盘，原来的托盘开关已去掉
 
 #### 修复
 

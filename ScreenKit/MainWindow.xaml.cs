@@ -1276,11 +1276,26 @@ public partial class MainWindow : Window {
 	}
 
 	void onstatechanged(object sender, EventArgs e) {
-		// 仅最小化 → 隐藏到托盘（关闭按钮走确认退出）
-		if (!opt.MinimizeToTray) return;
+		// 最小化一律收进托盘；关闭按钮走确认退出
 		if (WindowState == WindowState.Minimized) {
 			try { Hide(); } catch { }
 		}
+	}
+
+	/// <summary>
+	/// 启动即隐藏：只建出 hwnd，不显示窗口。热键、前台跟踪、托盘都依赖句柄，不能完全不建。
+	/// 未 Show 时 Loaded 不会触发，这里手动补一次，让热键重试、快速复制菜单等照常初始化。
+	/// </summary>
+	public void starthidden() {
+		ShowActivated = false;
+		try {
+			new System.Windows.Interop.WindowInteropHelper(this).EnsureHandle();
+		}
+		catch (Exception ex) { CaptureLog.Ex("starthidden", ex); }
+		Dispatcher.BeginInvoke(new Action(() => {
+			try { RaiseEvent(new RoutedEventArgs(LoadedEvent, this)); }
+			catch (Exception ex) { CaptureLog.Ex("starthidden Loaded", ex); }
+		}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 	}
 
 	public void RequestExit() {

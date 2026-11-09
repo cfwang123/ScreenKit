@@ -228,7 +228,6 @@ public partial class SettingsWindow : Window {
 			lbsetchromeidle.Text = Loc.T("tts.chrome.idle");
 			esetchromeidle.ToolTip = Loc.T("tts.chrome.idle.tip");
 			lbsetchromehint.Text = Loc.T("set.chrome.hint");
-			emintray.Content = Loc.T("set.tray");
 			lbsettabsvisible.Text = Loc.T("set.tabs.visible");
 			lbsettabsvisiblehint.Text = Loc.T("set.tabs.visible.hint");
 			etabocrvisible.Content = Loc.T("tab.ocr");
@@ -655,7 +654,6 @@ public partial class SettingsWindow : Window {
 		filltrlangboxes(o);
 		echatllmprompt.Text = string.IsNullOrWhiteSpace(o.ChatLlmPrompt)
 			? OcrOptions.DefaultChatLlmPrompt() : o.ChatLlmPrompt;
-		emintray.IsChecked = o.MinimizeToTray;
 		etabocrvisible.IsChecked = o.TabOcrVisible && o.ModOcr;
 		etabttsvisible.IsChecked = o.TabTtsVisible && o.ModTts;
 		etabasrvisible.IsChecked = o.TabAsrVisible && o.ModAsr;
@@ -952,7 +950,6 @@ public partial class SettingsWindow : Window {
 			(esettrlearn.SelectedItem as ComboBoxItem)?.Tag as string, out var trAutoNative, out var trAutoLearn);
 		Result.TranslateAutoNative = trAutoNative;
 		Result.TranslateAutoLearn = trAutoLearn;
-		Result.MinimizeToTray = emintray.IsChecked == true;
 		Result.TabOcrVisible = Result.ModOcr = etabocrvisible.IsChecked == true;
 		Result.TabTtsVisible = Result.ModTts = etabttsvisible.IsChecked == true;
 		Result.TabAsrVisible = Result.ModAsr = etabasrvisible.IsChecked == true;

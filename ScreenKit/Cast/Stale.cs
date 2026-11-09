@@ -21,7 +21,8 @@ static class CastStale {
 			catch { path = ""; }
 			var same = path.Length > 0 &&
 				string.Equals(path, selfPath, StringComparison.OrdinalIgnoreCase);
-			if (same && p.MainWindowHandle != IntPtr.Zero) continue;
+			// 同目录的主程序留着：它可能正收在托盘里（--hidden 启动时没有主窗口），不能当成残留杀掉
+			if (same && !isaoahelper(p.Id)) continue;
 			var why = same ? "AOA 助手" : (path.Length > 0 ? path : "未知路径");
 			try {
 				log?.Invoke($"结束残留 ScreenKit pid={p.Id} {why}");
@@ -121,13 +122,30 @@ static class CastStale {
 		var selfPath = norm(self);
 		foreach (var p in Process.GetProcessesByName("ScreenKit")) {
 			if (p.Id == self.Id) continue;
-			if (p.MainWindowHandle == IntPtr.Zero) continue;
+			if (isaoahelper(p.Id)) continue;
 			try {
 				if (string.Equals(norm(p), selfPath, StringComparison.OrdinalIgnoreCase))
 					return true;
 			}
 			catch { }
 		}
+		return false;
+	}
+
+	/// <summary>命令行带 --cast-aoa 的是投屏临时助手，不是主程序；隐藏启动的主程序没有主窗口，只能靠命令行区分。</summary>
+	static bool isaoahelper(int pid) {
+		try {
+			using var search = new System.Management.ManagementObjectSearcher(
+				$"SELECT CommandLine FROM Win32_Process WHERE ProcessId={pid}");
+			foreach (System.Management.ManagementObject mo in search.Get()) {
+				try {
+					var cmd = mo["CommandLine"] as string ?? "";
+					return cmd.IndexOf("--cast-aoa", StringComparison.OrdinalIgnoreCase) >= 0;
+				}
+				finally { try { mo.Dispose(); } catch { } }
+			}
+		}
+		catch { }
 		return false;
 	}
 

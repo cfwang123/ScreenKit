@@ -9140,7 +9140,8 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
   -v, --variant   语言/变体标题（configs.txt 中的名称）
   -m, --models    直接指定模型目录（覆盖 --pack）
       --no-cls    跳过方向分类
-      --tray      启动后不显示主窗口，直接收进托盘
+      --tray      启动后不显示主窗口，直接收进托盘（同 --hidden）
+      --hidden    启动后隐藏主窗口，只在托盘运行，热键照常可用
       --det-limit  检测边长上限（默认 1024）
       --det-pad    检测前 padding（默认 50）
       --det-thresh 二值化阈值（默认 0.3）

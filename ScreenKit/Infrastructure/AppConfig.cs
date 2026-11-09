@@ -140,8 +140,6 @@ static class AppConfig {
 			if (map.TryGetValue("selbar_h", out var sbh) && int.TryParse(sbh, out var sbhN))
 				o.SelBarH = sbhN >= 168 && sbhN <= 1800 ? sbhN : 0;
 			readdictttsmap(map, o);
-			if (map.TryGetValue("minimize_to_tray", out var mtt))
-				o.MinimizeToTray = parsebool(mtt, true);
 			if (map.TryGetValue("capture_log", out var cl))
 				o.CaptureLog = parsebool(cl, false);
 			if (map.TryGetValue("llm_log", out var ll))
@@ -733,7 +731,6 @@ static class AppConfig {
 		sb.AppendLine("# 词典发音（与语音合成页无关）。引擎 auto|onnx|sapi|winrt|edge|chrome；语速 0.5～2；发音人留空=自动");
 		sb.AppendLine("# 中日韩英始终写出。其它语言有 dict_tts_<语言>_engine 才保留");
 		writedictttsmap(sb, o);
-		sb.AppendLine($"minimize_to_tray = {(o.MinimizeToTray ? "true" : "false")}");
 		sb.AppendLine($"# 系统诊断日志（默认 false）：log/capture.log + 录屏 log/record_*.log");
 		sb.AppendLine($"capture_log = {(o.CaptureLog ? "true" : "false")}");
 		sb.AppendLine($"# LLM 请求日志（默认 false）：log/llm.log，勿提交含隐私的日志");

@@ -168,8 +168,6 @@ public sealed class OcrOptions {
 	public int DictDbHoldMin = 1;
 	/// <summary>词典发音，按语言。中日韩英始终在表里。与语音合成页无关。</summary>
 	public Dictionary<string, DictTtsLang> DictTtsMap = DictTts.NewMap();
-	/// <summary>最小化时隐藏到通知栏。</summary>
-	public bool MinimizeToTray = true;
 	/// <summary>是否启用 HTTP 识图 API（Umi 风格）。</summary>
 	public bool HttpEnabled = true;
 	/// <summary>允许局域网访问。关闭时 HTTP 只听 127.0.0.1。</summary>
@@ -648,7 +646,6 @@ public sealed class OcrOptions {
 		DictLimit = DictLimit,
 		DictDbHoldMin = DictDbHoldMin,
 		DictTtsMap = DictTts.CopyMap(DictTtsMap),
-		MinimizeToTray = MinimizeToTray,
 		HttpEnabled = HttpEnabled,
 		HttpLan = HttpLan,
 		HttpPort = HttpPort,

@@ -61,9 +61,6 @@
 						           TextWrapping="Wrap" Margin="0,0,0,16"
 						           Text="朗读和翻译用的本机 Chrome。留空则自动查找。空闲秒为 0 时不自动关闭。"/>
 
-						<CheckBox x:Name="emintray" Content="最小化时隐藏到通知栏（关闭需确认退出）"
-						          Margin="0,0,0,16" IsChecked="True"/>
-
 						<TextBlock x:Name="lbsettabsvisible" Text="功能开关" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<TextBlock x:Name="lbsettabsvisiblehint" FontSize="11" Foreground="{StaticResource TextMuted}"
 						           TextWrapping="Wrap" Margin="0,0,0,8"
