@@ -413,6 +413,23 @@ static class ChromePack {
 		}
 		if (tr.Count > 0) {
 			ChromeTr.Stop();
+			//空壳却还挂着已装，Chrome 会直接报 Unable to create translator；启动前先注销，让它当没装过重下
+			if (install) {
+				foreach (var it in tr) {
+					var bits = (it.Pair ?? "").Split(new[] { " - " }, StringSplitOptions.None);
+					if (bits.Length != 2) continue;
+					var folder = pairfolder(bits[0], bits[1]);
+					if (folder == null) continue;
+					var dir = Path.Combine(ChromeTr.ProfileDir(), "TranslateKit", "models", folder);
+					//目录没了或只剩空壳，都得把注册也清掉，否则 Chrome 仍当已装
+					if (packok(dir)) continue;
+					if (Directory.Exists(dir)) {
+						try { Directory.Delete(dir, true); } catch { }
+					}
+					unregister(folder);
+					log?.Invoke($"清理空壳 {folder}，重新下载");
+				}
+			}
 			using var sess = Sess.Open(ChromeTr.ProfileDir(), proxyMode, proxyAddr, log, ct);
 			var web = false;
 			if (install) {
@@ -1087,14 +1104,16 @@ static class ChromePack {
 		var start = Environment.TickCount;
 		var moved = start;
 		var lastBytes = -1.0;
-		while (unchecked(Environment.TickCount - start) < 180000) {
+		var anySeen = false;
+		while (unchecked(Environment.TickCount - start) < DLWAIT) {
 			ct.ThrowIfCancellationRequested();
 			sess.PumpAll(300, ct);
 			if (!readtr(sess.EvalWeb(TRPOLL, false, 8000, ct), out var p, out var seen, out var done, out var err, out var loaded, out var total)) {
-				stallor(moved);
+				if (anySeen) stallor(moved);
 				continue;
 			}
 			if (err == "noapi") return false;
+			if (seen) anySeen = true;
 			var line = bytelinetext(loaded, total);
 			if (done) {
 				if (!string.IsNullOrWhiteSpace(err)) {
@@ -1105,7 +1124,7 @@ static class ChromePack {
 				return true;
 			}
 			bumpdl(seen, loaded, ref lastBytes, ref moved);
-			stallor(moved);
+			if (anySeen) stallor(moved);
 			var part = seen ? p : -1.0;
 			if (part < 0) liveline(sess, 0, 0, -1, out part, out net);
 			if (line.Length == 0) line = net ?? "";
