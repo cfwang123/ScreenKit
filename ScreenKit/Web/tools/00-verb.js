@@ -10,6 +10,7 @@
 		var nospeak = spec.nospeak || ["web.verb.nospeak", "无法发音"];
 		var groupof = spec.groupof;
 		var cell = spec.cell;
+		var block = spec.block;
 		var CELLW = spec.cellw || 200;
 
 		// 栏宽固定，窗口多宽就排几栏；只有 1、2 栏时整行均分。
@@ -115,17 +116,35 @@
 			return html + flushrows(buf, tip) + "</table>";
 		}
 
+		// 分词变格表这类整块内容单独占满一行，不参与分栏。
 		function flushrows(buf, tip){
 			var html = "";
-			var j, k;
-			for (j = 0; j < buf.length; j += perline) {
-				html += "<tr>";
-				for (k = 0; k < perline; k++) {
-					html += j + k < buf.length ? cell(buf[j + k], tip) : '<td class="c-k"></td>';
+			var line = [];
+			var j, k, b;
+			for (j = 0; j < buf.length; j++) {
+				b = block ? block(buf[j]) : "";
+				if (b) {
+					html += flushline(line, tip);
+					line = [];
+					html += '<tr><td class="kv-blk" colspan="' + perline + '">' + b + "</td></tr>";
+					continue;
 				}
-				html += "</tr>";
+				line.push(buf[j]);
+				if (line.length >= perline) {
+					html += flushline(line, tip);
+					line = [];
+				}
 			}
-			return html;
+			return html + flushline(line, tip);
+		}
+
+		function flushline(line, tip){
+			if (!line || !line.length) return "";
+			var html = "<tr>";
+			for (var k = 0; k < perline; k++) {
+				html += k < line.length ? cell(line[k], tip) : '<td class="c-k"></td>';
+			}
+			return html + "</tr>";
 		}
 
 		// 结果表里的喇叭按钮：取 data-v 的文本交给发音接口。

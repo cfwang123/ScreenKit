@@ -28,6 +28,8 @@ sealed class MfH264Writer : IRecordVideoSink {
 	public int AudioChannels { get; private set; }
 	public bool HasAudioStream => astream >= 0;
 	public bool WroteAudio { get; private set; }
+	/// <summary>已写进音轨的时长（毫秒），用于重建采集后补静音对齐墙钟。</summary>
+	public long AudioMs => AudioRate > 0 ? aframes * 1000L / AudioRate : 0;
 
 	/// <summary>系统 AAC 只接受 44100 与 48000。不低于 46000 用 48000，其余用 44100。</summary>
 	public static int AacHz(int hz) => hz >= 46000 ? 48000 : 44100;

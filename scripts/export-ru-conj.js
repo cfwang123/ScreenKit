@@ -46,7 +46,7 @@
 			ok: !!r.ok,
 			err: r.ok ? "" : (r.err || ""),
 			note: r.note || "",
-			forms: (r.rows || []).map(function(row){
+			forms: (r.rows || []).filter(function(row){ return !row.blk; }).map(function(row){
 				return {
 					group: row.g || "基础",
 					label: row.name || "",

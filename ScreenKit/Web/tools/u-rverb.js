@@ -552,6 +552,10 @@
 		g_ppn: ["被动分词 · 现在时", "Passive participle · present"],
 		g_ppp: ["被动分词 · 过去时", "Passive participle · past"],
 		g_spp: ["被动分词 · 短尾", "Short passive participle"],
+		dc_m: ["阳性", "Masc."],
+		dc_n: ["中性", "Neut."],
+		dc_f: ["阴性", "Fem."],
+		dc_pl: ["复数", "Plural"],
 		g_ger: ["副动词", "Gerund"],
 		f_inf: ["不定式", "Infinitive"],
 		f_aspect: ["体", "Aspect"],
@@ -568,6 +572,7 @@
 		noimp: ["没有命令式", "No imperative"],
 		gr_pres: ["现在时", "Present"],
 		gr_past: ["过去时", "Past"],
+		gr_past_rare: ["过去时（少用）", "Past (rare)"],
 		from: ["由 %s 加前缀", "from %s + prefix"],
 		refl: ["带 -ся", "Reflexive -ся"],
 		be_pres: ["есть（3-е л. ед. ч.）", "есть (3rd person singular)"],
@@ -866,33 +871,25 @@
 		else R(g, L(lang, LAB.m_proh), "не " + full);
 		R(g, L(lang, LAB.m_cond), "если бы " + info.past[0] + " / если бы " + info.past[3]);
 		R(g, L(lang, LAB.m_pot), (info.a === "pf" ? "смог бы " : "мог бы ") + full + " / " + (info.a === "pf" ? "смогла бы " : "могла бы ") + full);
-		if (info.a !== "pf" && info.ppa) {
-			g = L(lang, LAB.g_ppa);
-			for (var j6 = 0; j6 < 4; j6++) R(g, PAST[lang === "zh" ? 0 : 1][j6], info.ppa[j6]);
-		}
-		if (info.pap) {
-			g = L(lang, LAB.g_pap);
-			for (var j7 = 0; j7 < 4; j7++) R(g, PAST[lang === "zh" ? 0 : 1][j7], info.pap[j7]);
-		}
-		if (info.a !== "pf" && info.ppn) {
-			g = L(lang, LAB.g_ppn);
-			for (var j8 = 0; j8 < 4; j8++) R(g, PAST[lang === "zh" ? 0 : 1][j8], info.ppn[j8]);
-		}
-		if (info.ppp) {
-			g = L(lang, LAB.g_ppp);
-			for (var j9 = 0; j9 < 4; j9++) R(g, PAST[lang === "zh" ? 0 : 1][j9], info.ppp[j9]);
-		}
+		if (info.a !== "pf" && info.ppa) adddecl(rows, L(lang, LAB.g_ppa), info.ppa[0], lang);
+		if (info.pap) adddecl(rows, L(lang, LAB.g_pap), info.pap[0], lang);
+		if (info.a !== "pf" && info.ppn) adddecl(rows, L(lang, LAB.g_ppn), info.ppn[0], lang);
+		if (info.ppp) adddecl(rows, L(lang, LAB.g_ppp), info.ppp[0], lang);
 		if (info.spp) {
 			g = L(lang, LAB.g_spp);
 			for (var j10 = 0; j10 < 4; j10++) R(g, PAST[lang === "zh" ? 0 : 1][j10], info.spp[j10]);
 		}
-		if (info.a !== "pf" && info.gr) {
-			g = L(lang, LAB.g_ger);
-			R(g, L(lang, LAB.gr_pres), info.gr);
+		if (info.a !== "pf") {
+			var gp = info.pg || gerPast(info.gst || info.past[0].replace(/л$/, ""), refl);
+			if (info.gr || gp) {
+				g = L(lang, LAB.g_ger);
+				if (info.gr) R(g, L(lang, LAB.gr_pres), info.gr);
+				if (gp) R(g, L(lang, LAB.gr_past_rare), gp + (refl || /ши$/.test(gp) ? "" : " / " + gp + "ши"));
+			}
 		}
 		if (info.a === "pf" && info.pg) {
 			g = L(lang, LAB.g_ger);
-			R(g, L(lang, LAB.gr_past), info.pg);
+			R(g, L(lang, LAB.gr_past), info.pg + (/в$/.test(info.pg) ? " / " + info.pg + "ши" : ""));
 		}
 		addpat(rows, lang, "v", {
 			inf: full,
@@ -1469,12 +1466,13 @@
 		if (!ppa && ppa !== "" && a !== "pf") ppa = presAct(ps, t, refl, ju);
 		if (!pap && pap !== "" ) pap = pastAct(pst, t, refl);
 		if (ppn === null && a !== "pf" && tr && !refl) ppn = presPass(ps, t, base);
-		if (ppp === null && tr && !refl) ppp = pastPass(base, t);
+		if (ppp === null && tr && !refl) ppp = pastPass(base, t, a);
 		if (!gr && gr !== "" && a !== "pf") {
 			if (/авать$/.test(base)) gr = base.slice(0, -2) + "я";
 			else gr = gerPres(ps, t);
 		}
 		if (!pg && pg !== "" && a === "pf") pg = gerPast(gst);
+		if (a !== "pf" && !pg && pg !== "" && gst) pg = gerPast(gst);
 		if (d && d.note) { /* 预留 */ }
 		var pfx = done ? "" : pref;
 		var finPres = [];
@@ -1487,6 +1485,7 @@
 		if (imp) finImp = [fixRefl(prefForm(imp[0], pfx, base), refl), fixRefl(prefForm(imp[1], pfx, base), refl)];
 		var out = {
 			a: a, t: t, tr: knownTr ? tr : 0, refl: refl, pref: pref, base: base,
+			gst: gst,
 			pres: finPres, comp: comp, past: finPast, imp: finImp, fut: fut,
 			ppa: partOut(ppa, pfx, base, refl, false),
 			pap: partOut(pap, pfx, base, refl, false),
@@ -1617,20 +1616,87 @@
 		return adjI(s, refl);
 	}
 
-	function pastPass(base, t){
+	function pastPass(base, t, a){
 		var s;
 		if (/ать$|-ять$/.test(base)) s = base.slice(0, -2) + "нный";
-		else if (/еть$/.test(base)) s = base.slice(0, -3) + "енный";
 		else if (/ить$/.test(base)) {
 			var st = base.slice(0, -3);
-			var st2 = mutIt(st);
-			s = st2 + "енный";
+			s = mutIt(st) + "енный";
 		}
-		else if (/нуть$/.test(base)) s = base.slice(0, -2) + "тый";
+		else if (/еть$/.test(base)) s = base.slice(0, -3) + "енный";
+		else if (/нуть$/.test(base)) s = a === "pf" ? base.slice(0, -2) + "тый" : null;
 		else if (/оть$|-ыть$|-уть$/.test(base)) s = base.slice(0, -2) + "тый";
 		else if (/овать$|-евать$/.test(base)) s = base.slice(0, -2) + "нный";
-		else s = base.slice(0, -2) + "нный";
-		return adjY(s, false);
+		else if (a === "pf") s = base.slice(0, -2) + "нный";
+		else s = null;
+		return s ? adjY(s, false) : null;
+	}
+
+	// 分词像形容词一样变格：主动分词走 -ий 一路，被动分词走硬变化。
+	var DECL_END = {
+		act: {
+			m: ["ий", "его", "ему", "ий", "им", "ем"],
+			n: ["ее", "его", "ему", "ее", "им", "ем"],
+			f: ["ая", "ей", "ей", "ую", "ей", "ей"],
+			pl: ["ие", "их", "им", "ие", "ими", "их"],
+			fins: ["ей", "ею"]
+		},
+		hard: {
+			m: ["ый", "ого", "ому", "ый", "ым", "ом"],
+			n: ["ое", "ого", "ому", "ое", "ым", "ом"],
+			f: ["ая", "ой", "ой", "ую", "ой", "ой"],
+			pl: ["ые", "ых", "ым", "ые", "ыми", "ых"],
+			fins: ["ой", "ою"]
+		}
+	};
+
+	function declAct(m){
+		return /(щий|ший)$/.test(m);
+	}
+
+	// 单个分词展开成六格：宾格分有生/无生，阴性工具格带旧变体，-ся 贴在每个词形后面。
+	function declHtml(m, lang){
+		var refl = /ся$/.test(m) ? "ся" : "";
+		var w = refl ? m.slice(0, -2) : m;
+		var act = declAct(w);
+		var e = DECL_END[act ? "act" : "hard"];
+		var st = w.slice(0, -2);
+		var anim = L(lang, ["有生", "anim."]);
+		var inan = L(lang, ["无生", "inan."]);
+		var cols = [LAB.dc_m, LAB.dc_n, LAB.dc_f, LAB.dc_pl];
+		var html = '<div class="rv-scroll"><table class="rv-decl"><tr><th></th>';
+		var i;
+		for (i = 0; i < 4; i++) html += "<th>" + esch(L(lang, cols[i])) + "</th>";
+		html += "</tr>";
+		for (var c = 0; c < 6; c++) {
+			var cells = [[st + e.m[c]], [st + e.n[c]], [st + e.f[c]], [st + e.pl[c]]];
+			if (c === 3) {
+				cells[0] = [st + e.m[1], st + e.m[0]];
+				cells[3] = [st + e.pl[1], st + e.pl[0]];
+			}
+			if (c === 4) cells[2] = [st + e.f[c], st + (act ? "ею" : "ою")];
+			html += '<tr><td class="rc">' + esch(L(lang, CASE[c])) + "</td>";
+			for (i = 0; i < 4; i++) {
+				var txt = cells[i].map(function(f){ return f + refl; }).join(" / ");
+				if (c === 3 && (i === 0 || i === 3)) {
+					txt = cells[i][0] + refl + "（" + anim + "）<br>" + cells[i][1] + refl + "（" + inan + "）";
+					html += '<td class="c-anim">' + txt + "</td>";
+					continue;
+				}
+				html += '<td><span class="df">' + esch(txt) + "</span></td>";
+			}
+			html += "</tr>";
+		}
+		return html + "</table></div>";
+	}
+
+	function esch(s){
+		return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+	}
+
+	function adddecl(rows, g, m, lang){
+		if (!m) return;
+		rows.push({ g: g, name: "", text: "", blk: '<div class="rv-part">' + esch(m) + "</div>" + declHtml(m, lang) });
 	}
 
 	function gerPres(stem, t, refl){
@@ -1863,7 +1929,8 @@
 		tabcls: "jv-tab rv-tab",
 		nospeak: ["web.rverb.nospeak", "无法发音"],
 		groupof: function(row){ return row.g || ""; },
-		cell: cellhtml
+		cell: cellhtml,
+		block: function(row){ return row.blk || ""; }
 	});
 
 	SK.regutil("u-rverb", {

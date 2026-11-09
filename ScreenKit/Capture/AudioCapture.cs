@@ -33,6 +33,23 @@ sealed class AudioCapture : IDisposable {
 	WasapiCapture mic;
 	MMDeviceEnumerator micEn;
 	MMDevice micDev;
+	/// <summary>打开环回时的默认播放设备 id。蓝牙耳机连上/断开、插拔耳机都会换默认设备。</summary>
+	string loopDevId;
+	/// <summary>打开麦克风时用的设备 id，以及是否用「本程序默认麦克风」（换默认麦要跟过去）。</summary>
+	string micDevId;
+	bool micFollowDefault;
+	/// <summary>采集被驱动/设备变动停掉（不是我们自己停的）。</summary>
+	volatile bool loopClosed;
+	volatile bool micClosed;
+	/// <summary>要上层整段重建采集（换设备后再用新格式重开）。</summary>
+	volatile bool wantRestart;
+	bool closingLoop;
+	bool closingMic;
+	Thread watchThread;
+	/// <summary>设备自检周期：查默认设备并看重开。</summary>
+	const int WatchIntervalMs = 400;
+	/// <summary>默认设备查询间隔（每次枚举 COM 有点开销）。</summary>
+	const int WatchProbeMs = 1000;
 	WavPlace writerLoop;
 	WavPlace writerMic;
 	WaveFormat fmtLoop;
@@ -77,6 +94,15 @@ sealed class AudioCapture : IDisposable {
 	public bool QueuePcm { get; set; }
 	public WaveFormat LoopFormat => fmtLoop;
 	public WaveFormat MicFormat => fmtMic;
+	/// <summary>
+	/// 为 true 时采集已被设备变动打乱（默认播放设备换了、耳机被拔、驱动把采集停了），
+	/// 调用方应停掉这一路、重建 <see cref="AudioCapture"/> 继续录，否则新格式的采样会按旧格式写坏。
+	/// </summary>
+	public bool WantRestart {
+		get { return wantRestart; }
+	}
+	/// <summary>采集被外部停掉的次数（驱动/设备变动），写入日志便于对照。</summary>
+	public int ClosedEvents { get; private set; }
 
 	/// <summary>取出一路排队的设备字节。0 为扬声器环回，1 为麦克风。</summary>
 	public bool TryTake(int source, out byte[] data) {
@@ -137,12 +163,15 @@ sealed class AudioCapture : IDisposable {
 				if (e.Exception != null) {
 					CaptureLog.Ex("Loopback", e.Exception);
 					RecordLog.Ex("Loopback.Stopped", e.Exception);
+					// 设备失效（蓝牙耳机断开、播放设备切换）时环回会直接停，必须让上层重开
+					if (!closingLoop) loopClosed = true;
 				}
 				else
 					RecordLog.Step("loopback_stopped", "ok");
 			};
 			loop.StartRecording();
-			RecordLog.Step("loopback_started", "WasapiLoopbackCapture");
+			loopDevId = renderdefault();
+			RecordLog.Step("loopback_started", "WasapiLoopbackCapture dev=" + (loopDevId.Length > 0 ? loopDevId : "-"));
 		}
 
 		if (mode is RecordAudioMode.Mic or RecordAudioMode.MicAndSpeakers) {
@@ -159,9 +188,11 @@ sealed class AudioCapture : IDisposable {
 				micDev = micEn.GetDevice(dev);
 				mic = new WasapiCapture(micDev);
 				fmtMic = mic.WaveFormat;
+				micDevId = dev;
+				micFollowDefault = micId.Length == 0;
 				RecordLog.Step("mic_open",
 					$"fmt={fmtMic} rate={fmtMic.SampleRate} ch={fmtMic.Channels} queue={QueuePcm} " +
-					$"dev={dev} path={pathMic}");
+					$"dev={dev} followDefault={micFollowDefault} path={pathMic}");
 				if (!QueuePcm)
 					writerMic = WavPlace.Create(pathMic, fmtMic);
 				mic.DataAvailable += (_, e) => ondata(1, ref bytesMic, writerMic, fmtMic, e, "mic");
@@ -169,6 +200,7 @@ sealed class AudioCapture : IDisposable {
 					if (e.Exception != null) {
 						CaptureLog.Ex("Mic", e.Exception);
 						RecordLog.Ex("Mic.Stopped", e.Exception);
+						if (!closingMic) micClosed = true;
 					}
 					else
 						RecordLog.Step("mic_stopped", "ok");
@@ -194,6 +226,10 @@ sealed class AudioCapture : IDisposable {
 		lastBeatTick = startTick;
 		padThread = new Thread(padloop) { IsBackground = true, Name = "AudioCapture.Pad" };
 		padThread.Start();
+		if (fmtLoop != null || fmtMic != null) {
+			watchThread = new Thread(watchloop) { IsBackground = true, Name = "AudioCapture.Watch" };
+			watchThread.Start();
+		}
 		RecordLog.Step("AudioCapture.started", $"tick={startTick}");
 	}
 
@@ -232,6 +268,65 @@ sealed class AudioCapture : IDisposable {
 				catch (Exception ex) { RecordLog.Ex("audio.padloop", ex); }
 			}
 		}
+	}
+
+	/// <summary>
+	/// 看设备还在不在。蓝牙耳机连上/断开时 Windows 会换默认播放设备，
+	/// 环回仍绑在旧设备上：旧设备没有声音可录，后面整段都成了补进去的静音。
+	/// 驱动停止采集（设备失效）时也一样，这里只置标志，由录制线程整段重建。
+	/// </summary>
+	void watchloop() {
+		var last = Compat.TickCount64;
+		while (!stop) {
+			try { Thread.Sleep(WatchIntervalMs); }
+			catch { break; }
+			if (stop || wantRestart) continue;
+			var now = Compat.TickCount64;
+			if (now - last < WatchProbeMs) continue;
+			last = now;
+			string why = null;
+			try {
+				if (fmtLoop != null && !closingLoop) {
+					if (loopClosed)
+						why = "loopback_stopped";
+					else {
+						var id = renderdefault();
+						if (id.Length > 0 && loopDevId.Length > 0
+							&& !string.Equals(id, loopDevId, StringComparison.OrdinalIgnoreCase))
+							why = "render_changed";
+					}
+				}
+				if (why == null && fmtMic != null && !closingMic) {
+					if (micClosed)
+						why = "mic_stopped";
+					else if (micFollowDefault) {
+						var id = VoiceRec.DefaultMicDeviceId();
+						if (id.Length > 0 && micDevId.Length > 0
+							&& !string.Equals(id, micDevId, StringComparison.OrdinalIgnoreCase))
+							why = "mic_changed";
+					}
+				}
+			}
+			catch (Exception ex) { RecordLog.Ex("audio.watch", ex); }
+			if (why == null) continue;
+			ClosedEvents++;
+			wantRestart = true;
+			var cur = renderdefault();
+			var note = why + " loop=" + (loopDevId.Length > 0 ? loopDevId : "-")
+				+ " -> " + (cur.Length > 0 ? cur : "-");
+			RecordLog.Step("audio_device_change", note);
+			CaptureLog.Info("Audio device change: " + note);
+		}
+	}
+
+	/// <summary>当前默认播放设备 id。取不到返回空串（此时不判断换设备）。</summary>
+	static string renderdefault() {
+		try {
+			using var en = new MMDeviceEnumerator();
+			using var d = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+			return d.ID ?? "";
+		}
+		catch { return ""; }
 	}
 
 	/// <summary>若已写时长落后墙钟，补静音到 wall-slack（不缩短已写内容）。</summary>
@@ -461,6 +556,10 @@ sealed class AudioCapture : IDisposable {
 		stop = true;
 		try { padThread?.Join(500); } catch { }
 		padThread = null;
+		try { watchThread?.Join(600); } catch { }
+		watchThread = null;
+		closingLoop = true;
+		closingMic = true;
 		try { loop?.StopRecording(); } catch (Exception ex) { RecordLog.Ex("loop.StopRecording", ex); }
 		try { mic?.StopRecording(); } catch (Exception ex) { RecordLog.Ex("mic.StopRecording", ex); }
 		try { Thread.Sleep(120); } catch { }

@@ -30,10 +30,13 @@ sealed class MfLivePcm {
 		if (micFmt != null) mic.bind(micFmt, outRate, outCh);
 	}
 
+	/// <summary>采集为空（换设备重建中）时仍继续排空并补静音，音轨不能停。</summary>
 	public void Drain(AudioCapture cap, MfH264Writer writer, bool flush) {
-		if (cap == null || writer == null) return;
-		while (cap.TryTake(0, out var a)) loop.add(a);
-		while (cap.TryTake(1, out var b)) mic.add(b);
+		if (writer == null) return;
+		if (cap != null) {
+			while (cap.TryTake(0, out var a)) loop.add(a);
+			while (cap.TryTake(1, out var b)) mic.add(b);
+		}
 		if (flush) {
 			loop.Flushing = true;
 			mic.Flushing = true;
@@ -54,10 +57,23 @@ sealed class MfLivePcm {
 		}
 	}
 
+	/// <summary>收尾：停止补静音，AAC 音轨马上要结束。</summary>
+	public void Unbind() {
+		loop.clear();
+		mic.clear();
+	}
+
+	/// <summary>一路数据都没绑定时不再等两边对齐，直接按已转换的帧写；都空就补静音。</summary>
 	int pull(byte[] dst) {
 		var fb = outCh * 2;
 		var cap = dst.Length / fb;
 		if (cap <= 0) return 0;
+		if (!loop.On && !mic.On) {
+			// 换设备重建的空档：写入静音保持音轨时长，别让后面整段音频提前
+			var m = Math.Min(cap, outRate / 50);
+			Array.Clear(dst, 0, m * fb);
+			return m * fb;
+		}
 		var na = loop.On ? loop.OutFrames : 0;
 		var nb = mic.On ? mic.OutFrames : 0;
 		int n;

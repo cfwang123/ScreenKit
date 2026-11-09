@@ -24,6 +24,8 @@ sealed class ScreenRecorder : IDisposable {
 	RecordAudioMode audioWant;
 	int audioReq;
 	int audioSeen;
+	/// <summary>设备重建失败后的下次重试时刻。</summary>
+	long audioRetryTick;
 	int audseq;
 	readonly string videoTmp;
 	readonly string wavTmp;
@@ -547,6 +549,23 @@ sealed class ScreenRecorder : IDisposable {
 
 	void pollaudio() {
 		if (stopped) return;
+		// 设备变了（蓝牙耳机连上/断开、插拔耳机）或驱动把采集停了：整段重建，别让后面一直补静音
+		var cur = audio;
+		if (cur != null && cur.WantRestart) {
+			RecordLog.Step("audio_device_restart",
+				$"mode={audioMode} closed={cur.ClosedEvents} loopBytes={cur.BytesLoop} micBytes={cur.BytesMic}");
+			applyaudio(audioMode, true);
+			return;
+		}
+		// 重建失败（设备正在切换）等一会儿再试，期间音轨补静音
+		if (cur == null && audioMode != RecordAudioMode.Off && audioRetryTick > 0) {
+			if (Compat.TickCount64 >= audioRetryTick) {
+				audioRetryTick = 0;
+				RecordLog.Step("audio_device_retry", audioMode.ToString());
+				applyaudio(audioMode, true);
+			}
+			return;
+		}
 		RecordAudioMode want;
 		int req;
 		lock (audiolk) {
@@ -555,23 +574,36 @@ sealed class ScreenRecorder : IDisposable {
 		}
 		if (req == audioSeen) return;
 		audioSeen = req;
-		applyaudio(want);
+		applyaudio(want, false);
 	}
 
-	void applyaudio(RecordAudioMode mode) {
+	/// <summary>
+	/// 换音源。force=true 表示同一音源重建（采集设备被换掉/驱动停了），
+	/// 系统 H.264 要接着往原 AAC 音轨写，其余后端收一段、再起一段，最后按墙钟拼接。
+	/// </summary>
+	void applyaudio(RecordAudioMode mode, bool force) {
 		if (stopped) return;
 		lock (audiolk) {
-			if (stopped || mode == audioMode) return;
+			if (stopped || (mode == audioMode && !force)) return;
 			if (recOpt.IsMf && mode != RecordAudioMode.Off && (mfSink == null || !mfSink.HasAudioStream)) {
 				RecordLog.Step("audio_switch", "mf no stream");
 				return;
 			}
 			var old = audio;
+			if (old != null && recOpt.IsMf && force) {
+				// 先把队列里旧格式的字节按旧格式写完，再换新格式，避免误读成噪声
+				try { old.Stop(); }
+				catch (Exception ex) { RecordLog.Ex("audio.restart.stop", ex); }
+				try { drainmf(true); }
+				catch (Exception ex) { RecordLog.Ex("audio.restart.drain", ex); }
+			}
 			audio = null;
 			if (old != null) {
 				try {
-					if (!recOpt.IsMf) old.SkipNormalize = false;
-					old.Stop();
+					if (!recOpt.IsMf) {
+						old.SkipNormalize = false;
+						old.Stop();
+					}
 				}
 				catch (Exception ex) { RecordLog.Ex("audio.switch.stop", ex); }
 				try { old.Dispose(); } catch { }
@@ -585,6 +617,8 @@ sealed class ScreenRecorder : IDisposable {
 				RecordLog.Step("audio_switch", "off");
 				return;
 			}
+			// 重建之间空出来的时间补静音，否则整段音轨比视频短
+			if (recOpt.IsMf && force) padmfgap();
 			if (!recOpt.IsMf) fillgap();
 			if (audparts.Count > 0) audiopath = nextaudpath();
 			try {
@@ -597,15 +631,35 @@ sealed class ScreenRecorder : IDisposable {
 				audio.Start();
 				if (paused) audio.Pause();
 				if (live != null) live.Use(audio.LoopFormat, audio.MicFormat);
-				RecordLog.Step("audio_switch", mode.ToString());
+				RecordLog.Step(force ? "audio_device_restart_ok" : "audio_switch",
+					mode + " loop=" + audio.LoopFormat + " mic=" + (audio.MicFormat?.ToString() ?? "-"));
 			}
 			catch (Exception ex) {
 				RecordLog.Ex("audio.switch.start", ex);
 				try { audio?.Dispose(); } catch { }
 				audio = null;
 				audioMode = RecordAudioMode.Off;
+				if (force) {
+					// 设备还没就绪：保留音源等下一次重试，不要直接关掉音轨
+					audioMode = mode;
+					audioRetryTick = Compat.TickCount64 + 1500;
+				}
 			}
 		}
+	}
+
+	/// <summary>系统 H.264 重建采集前，把重建耗掉的时间补成静音，音轨长度继续跟墙钟。</summary>
+	void padmfgap() {
+		if (mfSink == null || !mfSink.HasAudioStream) return;
+		var ms = (long)Elapsed.TotalMilliseconds - mfSink.AudioMs;
+		if (ms < 40) return;
+		if (ms > 3000) ms = 3000;
+		var block = Math.Max(1, mfSink.AudioChannels) * 2;
+		var frames = (int)(mfSink.AudioRate * ms / 1000);
+		var bytes = frames * block;
+		if (bytes <= 0) return;
+		mfSink.WritePcm(new byte[bytes], bytes);
+		RecordLog.Step("audio_gap_pad", $"ms={ms} bytes={bytes}");
 	}
 
 	void fillgap() {
@@ -708,8 +762,10 @@ sealed class ScreenRecorder : IDisposable {
 	}
 
 	void drainmf(bool flush) {
-		if (live == null || mfSink == null || audio == null) return;
-		try { live.Drain(audio, mfSink, flush); }
+		if (live == null || mfSink == null) return;
+		// 采集暂时为空（换设备重建中）也要排空队列，否则漏出来的字节会错位
+		var cap = audio;
+		try { live.Drain(cap, mfSink, flush); }
 		catch (Exception ex) {
 			RecordLog.Ex("mf.audio", ex);
 			if (string.IsNullOrEmpty(audioError)) audioError = ex.Message;
@@ -719,6 +775,8 @@ sealed class ScreenRecorder : IDisposable {
 
 	// Media Foundation 的 SinkWriter 不能跨线程调用，收尾必须留在录制线程。
 	void closesink() {
+		// 采集已经停了：别让 MfLivePcm 继续往音轨里补静音，否则音轨比视频长
+		try { live?.Unbind(); } catch { }
 		drainmf(true);
 		IRecordVideoSink s;
 		lock (gate) {

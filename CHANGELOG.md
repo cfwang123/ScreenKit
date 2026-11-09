@@ -52,6 +52,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - ScreenKit can now start hidden in the tray with --tray, so automated runs do not pop a window.
+- Russian word forms: every participle now expands into a full declension table (six cases by four genders/numbers, animate and inanimate accusative, archaic feminine instrumental); short passive forms and the rare past gerund are listed too.
 
 #### Changed
 
@@ -73,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 新增 --tray 启动参数：程序启动后不显示主窗口，直接收进托盘，便于自动化时不影响他人操作。
+- 俄语词形变化：每个分词都展开成完整的六格变格表（六格 × 阳/中/阴/复，宾格分有生与无生，阴性工具格带旧变体），被动分词短尾和少用的过去时副动词也一并列出。
 
 #### 变更
 
