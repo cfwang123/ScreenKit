@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Two crashes caused by USB cast scanning: the scan disposed its semaphore and event while probe threads were still running, so a late `Release()` threw `ObjectDisposedException` on a thread-pool thread and terminated the process. Scanning no longer runs on every start either: Wi-Fi Direct / ICS adapters (192.168.137.x) are no longer mistaken for a phone's USB NIC and local addresses are skipped. Unhandled exceptions are now written to `log/crash.txt`.
 - Chrome translation could fail with the error Unable to create translator for the given source and target language when the model folder was left behind empty by disk cleanup: Chrome's translate engine DLL and model files lived under the temp folder and were deleted while their registration records remained, so availability reported available but create always failed. Chrome's profile now lives under LocalAppData (existing data is moved over); the engine DLL is copied from your own Chrome when missing, empty model shells are unregistered so Chrome downloads them again, and the installed state checks for real model files instead of just the folder.
 - Chrome translation model install could fail with Unable to create translator for the given source and target language when an empty model folder was left registered as installed: the install path now unregisters such stale entries before downloading, and no-progress detection no longer aborts downloads on Chrome builds that emit no downloadprogress events.
+- Screen recording keeps audio when the default playback device changes: Bluetooth headset connect/disconnect or plugging in headphones no longer leaves the rest of the video silent
 
 ### 中文
 
@@ -90,6 +91,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复 USB 投屏扫描导致的两次崩溃：扫描在探测线程还没结束时就把信号量和事件释放掉，迟到的 `Release()` 在线程池线程上抛 `ObjectDisposedException`，直接终止进程。扫描也不再每次启动就空跑：Wi‑Fi Direct / ICS 网卡（192.168.137.x）不再被当成手机 USB 网卡，本机地址跳过。未处理异常现在会写进 `log/crash.txt`。
 - Chrome 翻译可能报「Unable to create translator for the given source and target language」：Chrome 的翻译引擎库和模型文件原先放在临时目录，被磁盘清理删掉后注册记录还在，availability 说可用而 create 必然失败。Chrome 配置目录改到 LocalAppData（已有数据会迁移过去）；引擎库缺失时从本机 Chrome 复制，只剩空壳的模型会注销让 Chrome 重新下载；已装状态改为检查真实模型文件，不再只看目录是否存在。
 - 安装 Chrome 翻译模型时若残留空壳目录仍挂着已装，会报 Unable to create translator for the given source and target language：现在安装前先注销这类残留注册再下载，不会发 downloadprogress 事件的 Chrome 版本也不会被误判为下载停滞而中断。
+- 录屏中默认播放设备变化（蓝牙耳机连上/断开、插拔耳机）后不再后半段无声：检测到设备变更或采集被停就重开环回，系统 H.264 按墙钟补静音后接着写同一 AAC 音轨，其它后端分段录制再拼接
 
 ## v1.0.35 (2026-11-05 ~ 11-08)
 

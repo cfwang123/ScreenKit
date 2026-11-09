@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using FFmpeg.AutoGen;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -25,7 +26,7 @@ static unsafe class RecordAvSyncTest {
 	/// <summary>分析窗 10ms。</summary>
 	const double WinSec = 0.01;
 
-	public static int Run(string outDir, string regionArg, int seconds, Action<string> log) {
+	public static int Run(string outDir, string regionArg, int seconds, Action<string> log, string codec = null) {
 		if (log == null) log = _ => { };
 		void L(string s) {
 			try { log(s); } catch { }
@@ -75,7 +76,7 @@ static unsafe class RecordAvSyncTest {
 			var opt = new RecordOptions {
 				Fps = 24,
 				Crf = 32,
-				Codec = "x264",
+				Codec = string.IsNullOrWhiteSpace(codec) ? "x264" : codec,
 				AudioEnabled = true,
 				AudioSource = "Speakers",
 				AudioHz = 22050,
@@ -304,13 +305,17 @@ static unsafe class RecordAvSyncTest {
 		return reg;
 	}
 
-	/// <summary>0.1s 正弦 + 0.1s 静音循环播放到默认输出（供环回采集）。</summary>
+	/// <summary>0.1s 正弦 + 0.1s 静音循环播放到默认输出（供环回采集）。默认设备换了要跟过去，否则新设备上没声音可录。</summary>
 	sealed class ToneBeepPlayer : IDisposable {
 		readonly double freq;
 		readonly double onSec;
 		readonly double offSec;
-		WaveOutEvent wo;
+		readonly object gate = new();
+		WasapiOut wo;
+		MMDevice dev;
 		ISampleProvider src;
+		Thread follow;
+		volatile bool stop;
 		bool disposed;
 
 		public ToneBeepPlayer(double freqHz, double on, double off) {
@@ -328,17 +333,56 @@ static unsafe class RecordAvSyncTest {
 				Type = SignalGeneratorType.Sin,
 			};
 			src = new BeepLoopSampleProvider(tone, rate, onSec, offSec);
-			wo = new WaveOutEvent { DesiredLatency = 50 };
-			wo.Init(src.ToWaveProvider16());
-			wo.Play();
+			reopen();
+			follow = new Thread(watch) { IsBackground = true, Name = "ToneBeep.Follow" };
+			follow.Start();
+		}
+
+		void watch() {
+			var name = VoiceRec.DefaultRenderName();
+			while (!stop) {
+				Thread.Sleep(400);
+				if (stop) break;
+				var cur = VoiceRec.DefaultRenderName();
+				if (cur.Length == 0 || cur == name) continue;
+				lock (gate) {
+					if (stop) break;
+					reopen();
+					name = cur;
+				}
+			}
+		}
+
+		void reopen() {
+			try { wo?.Stop(); } catch { }
+			try { wo?.Dispose(); } catch { }
+			try { dev?.Dispose(); } catch { }
+			dev = null;
+			wo = null;
+			try {
+				using var en = new MMDeviceEnumerator();
+				dev = en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+				wo = new WasapiOut(dev, AudioClientShareMode.Shared, true, 50);
+				wo.Init(src.ToWaveProvider16());
+				wo.Play();
+			}
+			catch {
+				try { wo?.Dispose(); } catch { }
+				wo = null;
+			}
 		}
 
 		public void Dispose() {
 			if (disposed) return;
 			disposed = true;
-			try { wo?.Stop(); } catch { }
-			try { wo?.Dispose(); } catch { }
-			wo = null;
+			stop = true;
+			try { follow?.Join(600); } catch { }
+			follow = null;
+			lock (gate) {
+				try { wo?.Stop(); } catch { }
+				try { wo?.Dispose(); } catch { }
+				wo = null;
+			}
 		}
 	}
 

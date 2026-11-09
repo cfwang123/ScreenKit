@@ -69,7 +69,11 @@ sealed class AudioCapture : IDisposable {
 	volatile bool paused;
 	bool disposed;
 	bool stopped;
-	long firstDataTick; // 0=尚未收到
+		long firstDataTick; // 0=尚未收到
+	/// <summary>麦克风最后一次收到数据的时刻（判断采集是不是真的停了）。</summary>
+	long lastMicData;
+	/// <summary>环回最后一次收到数据的时刻。</summary>
+	long lastLoopData;
 	int dataCallbacks;
 	long lastBeatTick;
 	long padBytesTotal;
@@ -139,6 +143,8 @@ sealed class AudioCapture : IDisposable {
 		overwriteCount = 0;
 		overwriteBytes = 0;
 		firstDataTick = 0;
+		lastLoopData = 0;
+		lastMicData = 0;
 		dataCallbacks = 0;
 		padBytesTotal = 0;
 		var dir = Path.GetDirectoryName(wavPath);
@@ -277,6 +283,7 @@ sealed class AudioCapture : IDisposable {
 	/// </summary>
 	void watchloop() {
 		var last = Compat.TickCount64;
+		var empty = 0;
 		while (!stop) {
 			try { Thread.Sleep(WatchIntervalMs); }
 			catch { break; }
@@ -291,14 +298,31 @@ sealed class AudioCapture : IDisposable {
 						why = "loopback_stopped";
 					else {
 						var id = renderdefault();
-						if (id.Length > 0 && loopDevId.Length > 0
-							&& !string.Equals(id, loopDevId, StringComparison.OrdinalIgnoreCase))
-							why = "render_changed";
+						if (id.Length == 0) {
+							// 设备正在切换时可能短暂取不到默认设备，连续几次取不到才算设备没了
+							if (loopDevId.Length > 0 && ++empty >= 3) why = "render_gone";
+						}
+						else {
+							empty = 0;
+							if (loopDevId.Length > 0
+								&& !string.Equals(id, loopDevId, StringComparison.OrdinalIgnoreCase))
+								why = "render_changed";
+						}
+						// 设备没变、也没报停止，但系统明明在出声、环回却一直不给数据，
+						// 就是采集哑了（蓝牙耳机重连、驱动重启常见）。刚开录且系统安静时不算。
+						if (why == null && !paused && loopDevId.Length > 0
+							&& now - lastLoopData >= 2500 && effectivems() > 3000
+							&& renderspeaking(loopDevId))
+							why = "loopback_silent";
 					}
 				}
 				if (why == null && fmtMic != null && !closingMic) {
-					if (micClosed)
-						why = "mic_stopped";
+					// 麦克风被停掉时数据本来就没有；正在收数据的说明只是标记，/ 或另有采集在跑，不重建
+					if (micClosed) {
+						var silent = Compat.TickCount64 - lastMicData >= 2000;
+						if (silent) why = "mic_stopped";
+						else micClosed = false;
+					}
 					else if (micFollowDefault) {
 						var id = VoiceRec.DefaultMicDeviceId();
 						if (id.Length > 0 && micDevId.Length > 0
@@ -329,6 +353,18 @@ sealed class AudioCapture : IDisposable {
 		catch { return ""; }
 	}
 
+	/// <summary>该设备此刻是否确实在出声（峰值音量），用来区分「没声音可录」和「采集哑了」。</summary>
+	static bool renderspeaking(string id) {
+		if (id.Length == 0) return false;
+		try {
+			using var en = new MMDeviceEnumerator();
+			using var d = en.GetDevice(id);
+			var meter = d.AudioMeterInformation;
+			return meter != null && meter.MasterPeakValue > 0.002f;
+		}
+		catch { return false; }
+	}
+
 	/// <summary>若已写时长落后墙钟，补静音到 wall-slack（不缩短已写内容）。</summary>
 	void padtowardwall(int slackMs) {
 		var ms = Math.Max(0, effectivems() - Math.Max(0, slackMs));
@@ -341,6 +377,8 @@ sealed class AudioCapture : IDisposable {
 	void ondata(int src, ref long written, WavPlace w, WaveFormat fmt, WaveInEventArgs e, string tag) {
 		if (stop || paused || e.BytesRecorded <= 0) return;
 		if (!QueuePcm && w == null) return;
+		if (src == 1) lastMicData = Compat.TickCount64;
+		else lastLoopData = Compat.TickCount64;
 		lock (gate) {
 			try {
 				if (firstDataTick == 0) {

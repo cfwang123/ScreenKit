@@ -243,6 +243,8 @@ static class Cli {
 						return testocroverlayfit();
 					case "--test-record-avsync":
 						doTestRecordAvsync = true;
+						if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
+							testRecordCodec = Next();
 						break;
 					case "--test-gif-record":
 						doTestGifRecord = true;
@@ -695,7 +697,7 @@ static class Cli {
 
 		if (doTestRecordAvsync) {
 			try {
-				return runtestrecordavsync(snapOut, recordRegion, recordAvsyncSec);
+				return runtestrecordavsync(snapOut, recordRegion, recordAvsyncSec, testRecordCodec);
 			}
 			catch (Exception ex) {
 				Err($"录屏音画同步测试失败: {ex.Message}");
@@ -1557,12 +1559,12 @@ static class Cli {
 	/// <summary>
 	/// 有声 0.1s / 静音 0.1s 循环播放 → 录屏 N 秒 → 分析音画时长与脉冲周期是否漂移。
 	/// </summary>
-	static int runtestrecordavsync(string outDir, string regionArg, int seconds) {
+	static int runtestrecordavsync(string outDir, string regionArg, int seconds, string codec) {
 		int code = 1;
 		Exception threadEx = null;
 		var t = new Thread(() => {
 			try {
-				code = RecordAvSyncTest.Run(outDir, regionArg, seconds, Out);
+				code = RecordAvSyncTest.Run(outDir, regionArg, seconds, Out, codec);
 			}
 			catch (Exception ex) {
 				threadEx = ex;

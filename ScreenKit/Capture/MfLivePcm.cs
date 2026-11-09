@@ -63,17 +63,10 @@ sealed class MfLivePcm {
 		mic.clear();
 	}
 
-	/// <summary>一路数据都没绑定时不再等两边对齐，直接按已转换的帧写；都空就补静音。</summary>
 	int pull(byte[] dst) {
 		var fb = outCh * 2;
 		var cap = dst.Length / fb;
 		if (cap <= 0) return 0;
-		if (!loop.On && !mic.On) {
-			// 换设备重建的空档：写入静音保持音轨时长，别让后面整段音频提前
-			var m = Math.Min(cap, outRate / 50);
-			Array.Clear(dst, 0, m * fb);
-			return m * fb;
-		}
 		var na = loop.On ? loop.OutFrames : 0;
 		var nb = mic.On ? mic.OutFrames : 0;
 		int n;
