@@ -49,9 +49,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- ScreenKit can now start hidden in the tray with --tray, so automated runs do not pop a window.
+
 #### Changed
 
 - Korean conjugation now lists the short negative (안) and the long negative (-지 않다) under each form instead of in a separate Negative section, for the tenses, aspects, honorifics, connectives, auxiliary verbs, mood and colloquial forms; the ability negative (못) joins the same row for verbs. Nouns use their own negative pattern (이/가 아니다).
+- Ability negation (못) now sits in its own Ability section for Korean verbs, instead of being merged into each tense row.
+- Korean conjugation adds negative and long-negative forms to the remaining categories: commands, suggestions, written and classical endings, style levels, contractions, colloquial forms, character and slang variants, dialects, North Korean and Yanbian forms, and the graded grammar list.
 
 #### Fixed
 
@@ -61,9 +67,15 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### 中文
 
+#### 新增
+
+- 新增 --tray 启动参数：程序启动后不显示主窗口，直接收进托盘，便于自动化时不影响他人操作。
+
 #### 变更
 
 - 韩语词形变化改为在每个变化下并列否定（안）和长否定（-지 않다），不再单列「否定」一节，覆盖时态、体、尊敬、连接、补助动词、语气和口语；动词的能力否定（못）也并入同一行。名词改用自身的否定说法（이/가 아니다）。
+- 韩语的能力否定（못）从各时态行里拆出，单独成「能力」一类。
+- 韩语词形变化的其余类别也补上否定与长否定：命令、提议、书面与古代语尾、文体、缩略、口语、角色语与俚俗、各地方言、朝鲜文化语与延边语，以及分级语法表。
 
 #### 修复
 

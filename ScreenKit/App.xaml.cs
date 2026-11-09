@@ -217,6 +217,10 @@ public partial class App : System.Windows.Application {
 		var win = new MainWindow();
 		MainWindow = win;
 		win.Show();
+		// 自动开发/脚本调用：不弹窗，直接收进托盘，别打断用户当前操作
+		if (args.Any(a => a == "--tray")) win.Dispatcher.BeginInvoke(new Action(() => {
+			try { win.Hide(); } catch { }
+		}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 		if (args.Any(a => a == "--test-ui-toast")) {
 			win.Dispatcher.BeginInvoke(new Action(() => {
 				UiToast.Show(win, Loc.T("sf.recv.clip", "toast-test.bin"));

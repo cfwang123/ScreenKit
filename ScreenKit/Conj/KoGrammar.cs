@@ -37,9 +37,66 @@ static class KoGrammar {
 			if (!fits(c, f.Verb, f.Adj)) continue;
 			var text = apply(f, c[1]);
 			if (text.Length == 0) continue;
-			rows.Add(new ConjRow(label(c, li), text, grp(c[0], li)));
+			rows.Add(new ConjRow(label(c, li), withneg(f, c[1], text), grp(c[0], li)));
 		}
 		return rows;
+	}
+
+	// 语法条目本身已是完整说法，只给能安全推导的接续加长否定。
+	// 안 不能套在复合结构前面（안 -고 싶다 不成立），所以只加「-지 않-」。
+	static string withneg(KoPatForms f, string pos, string text) {
+		if (text.IndexOf(" / ", System.StringComparison.Ordinal) >= 0) return text;
+		if (text.IndexOf("않", System.StringComparison.Ordinal) >= 0) return text;
+		if (text.IndexOf("못", System.StringComparison.Ordinal) >= 0) return text;
+		var tail = negtail(pos);
+		if (tail == null) return text;
+		return text + " / " + f.Stem + "지 않" + tail;
+	}
+
+	// 把接续换成「-지 않-」后接同样的尾巴。含固定谓词的复合语法（싶다 / 있다 / 하다 等）
+	// 否定要改的是后面那个谓词，套不上这条规则，返回 null 保持原样。
+	static string negtail(string pos) {
+		var plus = pos.IndexOf('+');
+		var key = plus < 0 ? pos : pos.Substring(0, plus);
+		var tail = plus < 0 ? "" : pos.Substring(plus + 1);
+		if (haspred(pos)) return null;
+		switch (key) {
+			case "stem": return tail;
+			case "ae": return "아" + tail;
+			// 「-았/었-」本身只是词尾片段，接成 먹지 않았 会断在半截，保持原样
+			case "past": return null;
+			case "eu": return "으" + tail;
+			case "eud": return "으" + tail;
+			case "rl": return "을" + tail;
+			case "nn": return "은" + tail;
+			case "neun": return "는" + tail;
+			case "gi": return "기" + tail;
+			case "mieum": return "음" + tail;
+			case "mod": return "는" + tail;
+			case "drop": return tail;
+			case "plain": return tail;
+			case "hap": return "습니다";
+			// 这几条词尾本身就是完整的否定形，不能再叠一层「지 않」
+			case "sip": return null;
+			case "seyo": return null;
+			case "bsida": return null;
+			case "an": return null;
+			case "mot": return null;
+			case "hao": return "소";
+			case "nde": return "는데" + tail;
+			default: return null;
+		}
+	}
+
+	// 尾部谓词固定写死的语法，否定落点不在主动词上，不套用通用规则
+	static bool haspred(string pos) {
+		string[] fixedpred = { "싶다", "싶어 하다", "있다", "없다", "하다", "되다", "보다", "주다",
+			"모르다", "알다", "말다", "드리다", "버리다", "놓다", "두다", "내다", "나다", "대다",
+			"만들다", "보이다", "지다", "쉽다", "어렵다", "마련이다", "틀림없다", "법하다" };
+		foreach (var w in fixedpred) {
+			if (pos.IndexOf(w, System.StringComparison.Ordinal) >= 0) return true;
+		}
+		return false;
 	}
 
 	public static List<ConjRow> NounRows(int li, string noun, bool bat) {
