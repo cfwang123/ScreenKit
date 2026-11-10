@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean word forms: fourteen more common endings are listed, including -(으)려면, -아/어야만, -든가, -는 길에, -고야, -(으)ㄹ 수가 있다, -지 그래요?, -(으)면서도, -(으)려는 참이다, -(으)ㄴ 지 얼마 안 되다, -다가 보면 and -지 않을 수 없다.
 - Russian word forms: a dedicated negation group now lists не with every tense and person, negative pronouns (ничего, никогда, нигде), чуть не / едва не, не…, а…, and не надо / не нужно; adjectives get не + long and short forms with совсем не / не очень, and nouns get нет / не было / не будет + genitive plus это не + nominative.
 - Video batch convert: added a max frame rate option (default 20); sources above it are re-timed down, slower ones stay untouched
+- Settings > General adds a 'Hide to tray after startup' option: when on, the main window is never shown or flashed at launch, and the app stays in the tray with hotkeys, tray menu and HTTP working as usual.
 
 #### Changed
 
@@ -84,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词形变化：补上 14 条常用语法，含-(으)려면、-아/어야만、-든가、-는 길에、-고야、-(으)ㄹ 수가 있다、-지 그래요?、-(으)면서도、-(으)려는 참이다、-(으)ㄴ 지 얼마 안 되다、-다가 보면、-지 않을 수 없다等。
 - 俄语词形变化：新增否定组，列出 не 加各时态各人称、否定代词（ничего / никогда / нигде）、чуть не / едва не、не…, а… 和 не надо / не нужно；形容词给出 не + 长尾与短尾、совсем не / не очень，名词给出 нет / не было / не будет + 第二格和 это не + 第一格。
 - 视频批量转换：新增「帧率上限」参数，默认 20；高于该值的视频降帧，低于的保持原样
+- 参数设置 → 常规新增「启动后隐藏到托盘」：勾选后启动时不显示主窗口也不闪一下，直接留在托盘，热键、托盘菜单和 HTTP 照常可用。
 
 #### 变更
 

@@ -36,6 +36,14 @@
 						           TextWrapping="Wrap" Margin="0,0,0,16"
 						           Text="切换后立即生效，并写入 config.toml"/>
 
+						<TextBlock x:Name="lbsetstartup" Text="启动" FontWeight="SemiBold" Margin="0,0,0,6"/>
+						<CheckBox x:Name="estarthidden" Content="启动后隐藏到托盘"
+						          Margin="0,0,0,4"
+						          AutomationProperties.AutomationId="set.start.hidden"/>
+						<TextBlock x:Name="lbsetstarthiddenhint" FontSize="11" Foreground="{StaticResource TextMuted}"
+						           TextWrapping="Wrap" Margin="0,0,0,16"
+						           Text="启用后启动时不显示主窗口，也不闪一下，直接留在托盘；热键、托盘菜单和 HTTP 照常可用。下次启动生效。"/>
+
 						<TextBlock x:Name="lbsetchrome" Text="chrome.exe" FontWeight="SemiBold" Margin="0,0,0,6"/>
 						<DockPanel Margin="0,0,0,4" LastChildFill="True">
 							<Button x:Name="bsetchromebrowse" Content="浏览…" DockPanel.Dock="Right"

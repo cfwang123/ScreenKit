@@ -218,7 +218,8 @@ public partial class App : System.Windows.Application {
 		MainWindow = win;
 		// --hidden / --tray：启动后不显示主窗口，直接留在托盘。
 		// 不调用 Show，只用 EnsureHandle 建出句柄（热键、前台跟踪、托盘菜单都靠它），全程无闪动。
-		var starttray = args.Any(a => a is "--tray" or "--hidden" or "--start-hidden");
+		// 参数设置里勾了「启动后隐藏到托盘」也走同一条路（配置在 MainWindow 构造时已读入）。
+		var starttray = args.Any(a => a is "--tray" or "--hidden" or "--start-hidden") || win.StartHiddenToTray;
 		if (starttray) win.starthidden();
 		else win.Show();
 		if (args.Any(a => a == "--test-ui-toast")) {

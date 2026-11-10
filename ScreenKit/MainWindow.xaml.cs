@@ -1298,6 +1298,9 @@ public partial class MainWindow : Window {
 		}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 	}
 
+	/// <summary>参数设置里勾了「启动后隐藏到托盘」（--hidden / --tray 也走同一路径）。</summary>
+	public bool StartHiddenToTray => opt.StartHidden;
+
 	public void RequestExit() {
 		forceExit = true;
 		try { Close(); } catch { }

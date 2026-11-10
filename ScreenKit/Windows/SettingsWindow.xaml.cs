@@ -221,6 +221,9 @@ public partial class SettingsWindow : Window {
 		tabsetime.Header = Loc.T("set.tab.ime");
 			lbsetlang.Text = Loc.T("set.lang");
 			lbsetlanghint.Text = Loc.T("set.lang.hint");
+			lbsetstartup.Text = Loc.T("set.startup");
+			estarthidden.Content = Loc.T("set.start.hidden");
+			lbsetstarthiddenhint.Text = Loc.T("set.start.hidden.hint");
 			lbsetchrome.Text = Loc.T("tts.chrome.path");
 			bsetchromebrowse.Content = Loc.T("tts.chrome.browse");
 			bsetchromedetect.Content = Loc.T("tts.chrome.detect");
@@ -564,6 +567,7 @@ public partial class SettingsWindow : Window {
 
 	void loadui(OcrOptions o) {
 		filluilang(o.UiLang);
+		estarthidden.IsChecked = o.StartHidden;
 		esetchromepath.Text = o.ChromeExe ?? "";
 		esetchromeidle.Text = ChromeTts.ClampIdle(o.ChromeIdleSec).ToString();
 
@@ -870,6 +874,7 @@ public partial class SettingsWindow : Window {
 
 		var langTag = (euilang.SelectedItem as ComboBoxItem)?.Tag as string ?? Loc.Zh;
 		Result.UiLang = Loc.Normalize(langTag);
+		Result.StartHidden = estarthidden.IsChecked == true;
 
 		var tag = (edevice.SelectedItem as ComboBoxItem)?.Tag as string ?? "Cpu";
 		Result.Device = tag switch {

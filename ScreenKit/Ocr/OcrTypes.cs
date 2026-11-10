@@ -348,6 +348,8 @@ public sealed class OcrOptions {
 	public string SnapAnnTool = "rect";
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
+	/// <summary>启动后隐藏到托盘：不调用 Show，主窗口不显示也不闪一下；热键和托盘照常可用。</summary>
+	public bool StartHidden = false;
 	/// <summary>开发者配置：保留 web/tools 里合并前的工具脚本。发布包不带 config.toml，按 false 处理。</summary>
 	public bool Dev = false;
 	/// <summary>功能模块是否启用。与对应 Tab 开关一起由「功能开关」写入。关闭后隐藏页面，停用热键、托盘和 HTTP，并释放已加载模型。</summary>
@@ -734,6 +736,7 @@ public sealed class OcrOptions {
 		SnapCopyAsPath = SnapCopyAsPath,
 		SnapAnnTool = string.IsNullOrWhiteSpace(SnapAnnTool) ? "rect" : SnapAnnTool,
 		UiLang = UiLang ?? "zh",
+		StartHidden = StartHidden,
 		Dev = Dev,
 		ModOcr = ModOcr,
 		ModTts = ModTts,

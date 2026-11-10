@@ -285,6 +285,8 @@ static class AppConfig {
 				o.PwLexLlm = (pwllm ?? "").Trim().Trim('"');
 			if (map.TryGetValue("ui_lang", out var ul) && !string.IsNullOrWhiteSpace(ul))
 				o.UiLang = Loc.Normalize(ul.Trim().Trim('"'));
+			if (map.TryGetValue("start_hidden", out var shid))
+				o.StartHidden = parsebool(shid, false);
 			if (map.TryGetValue("dev", out var devFlag))
 				o.Dev = parsebool(devFlag, false);
 			if (map.TryGetValue("mod_ocr", out var moc))
@@ -821,6 +823,8 @@ static class AppConfig {
 		sb.AppendLine($"pwgen_llm = \"{esc((o.PwLexLlm ?? "").Trim())}\"");
 		sb.AppendLine("# 界面语言：程序目录 lang/ 下的 toml 文件名，如 zh、en、ja、ko");
 		sb.AppendLine($"ui_lang = \"{esc(Loc.Normalize(o.UiLang))}\"");
+		sb.AppendLine("# 启动后隐藏到托盘：启动时不显示主窗口（也不闪一下），热键和托盘照常可用");
+		sb.AppendLine($"start_hidden = {(o.StartHidden ? "true" : "false")}");
 		sb.AppendLine("# 开发者配置：true 时保留 web/tools 里合并前的工具脚本。发布包不带 config.toml，按 false 处理");
 		sb.AppendLine($"dev = {(o.Dev ? "true" : "false")}");
 		sb.AppendLine($"# 功能开关。false 隐藏页面并停用热键、托盘和对应 HTTP；默认 true");
