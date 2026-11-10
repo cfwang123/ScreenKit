@@ -44,7 +44,7 @@ The bottom status bar keeps the listener beside the memory summary, for example 
 
 ## 2. Response conventions
 
-Failures generally return **HTTP 200**. Success or failure is only the JSON `code` and `data`. An unknown path, a wrong method, and an uncaught exception are still 200, with the error code in the JSON (404, 805, 900). OPTIONS preflight stays 204. A successful WebSocket upgrade stays 101. Only two cases change the HTTP status: a request body over **64MB** gets **413** (the body is not read), and more than **256** simultaneous connections get **503**. **Heavy-endpoint throttling is JSON-level**: when more than **8** OCR, synthesis, translation, face, chat, or network-lookup requests run at once, the extra ones return `code` **503** (still HTTP 200) immediately instead of queueing; retry later. Status, model lists, and text tools are not throttled.
+Failures generally return **HTTP 200**. Success or failure is only the JSON `code` and `data`. An unknown path, a wrong method, and an uncaught exception are still 200, with the error code in the JSON (404, 805, 900). OPTIONS preflight stays 204. A successful WebSocket upgrade stays 101. Only two cases change the HTTP status: a request body over **64MB** gets **413** (the body is not read), and more than **256** simultaneous connections get **503**. File uploads (`/api/web/upload`, `/api/sendfile/upload`) are exempt: the body is streamed straight to disk, so files of any size (1GB and up) are accepted. **Heavy-endpoint throttling is JSON-level**: when more than **8** OCR, synthesis, translation, face, chat, or network-lookup requests run at once, the extra ones return `code` **503** (still HTTP 200) immediately instead of queueing; retry later. Status, model lists, and text tools are not throttled.
 
 ### 2.1 Success (with payload)
 
@@ -80,7 +80,7 @@ Failures generally return **HTTP 200**. Success or failure is only the JSON `cod
 | 100 | Success |
 | 101 | OCR: no text; barcode: none found; Face: no face |
 | 404 | Unknown path |
-| 413 | Request body too large (over 64MB, HTTP status is also 413); the body is not read |
+| 413 | Request body too large (over 64MB, HTTP status is also 413); the body is not read. File uploads are exempt |
 | 503 | Heavy-endpoint slots full: more than 8 OCR / synthesis / translation / face / chat / network lookups at once (HTTP stays 200, `code` is 503); only above 256 simultaneous connections does the HTTP status become 503 |
 | 800 | Request parse failure / empty body |
 | 801 | Empty request |

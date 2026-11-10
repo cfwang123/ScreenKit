@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -225,13 +225,32 @@ sealed class SockHttpServer {
 		try { ns.Write(b, 0, b.Length); } catch { }
 	}
 
-	/// <summary>请求体上限。超过直接 413，不读进内存。</summary>
+	/// <summary>普通接口的请求体上限。这类接口要把体读进内存，超过直接 413。</summary>
 	const long MAXBODY = 64L * 1024 * 1024;
 
+	/// <summary>文件上传边收边写盘，不套内存上限。</summary>
+	static bool isupload(string target) {
+		var path = pathof(target);
+		return path is "/api/web/upload" or "/api/sendfile/upload";
+	}
+
+	/// <summary>取请求目标里的路径部分，绝对形式（http://host/...）也能认。</summary>
+	static string pathof(string target) {
+		var t = target ?? "";
+		var scheme = t.IndexOf("://", StringComparison.Ordinal);
+		if (scheme >= 0) {
+			var slash = t.IndexOf('/', scheme + 3);
+			t = slash >= 0 ? t.Substring(slash) : "/";
+		}
+		var q = t.IndexOf('?');
+		if (q >= 0) t = t.Substring(0, q);
+		return t.TrimEnd('/').ToLowerInvariant();
+	}
+
 	/// <summary>请求体过大：先回 413，再读掉一小段，免得 close 时 RST 把已经发出去的响应冲掉。</summary>
-	static void write413(Stream ns, long len) {
+	static void write413(Stream ns, long len, long max) {
 		var body = Encoding.UTF8.GetBytes(
-			"{\"code\":413,\"data\":\"请求体过大（" + len + " 字节），上限 " + MAXBODY + " 字节\"}");
+			"{\"code\":413,\"data\":\"请求体过大（" + len + " 字节），上限 " + max + " 字节\"}");
 		var head = Encoding.ASCII.GetBytes(
 			"HTTP/1.1 413 Payload Too Large\r\nConnection: close\r\nRetry-After: 1\r\n"
 			+ "Content-Type: application/json; charset=utf-8\r\nContent-Length: "
@@ -315,9 +334,10 @@ sealed class SockHttpServer {
 			}
 			hasLen = true;
 		}
-		// 大请求体先挡掉：不分配内存，也不等客户端传完。
-		if (hasLen && clen > MAXBODY) {
-			write413(ns, clen);
+		// 普通接口的大请求体先挡掉：不分配内存，也不等客户端传完。
+		// 文件上传按流边收边写盘，不受此限，1GB 以上也照收。
+		if (hasLen && clen > MAXBODY && !isupload(target)) {
+			write413(ns, clen, MAXBODY);
 			return null;
 		}
 		var chunked = !hasLen && (headers["Transfer-Encoding"] ?? "")

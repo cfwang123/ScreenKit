@@ -10068,6 +10068,40 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 					return 1;
 				}
 			}
+			// 文件上传按流写盘，不该套 64MB 的内存上限；这里走正式 SockHttpServer 传 80MB 验证不被 413 挡住
+			var strip = new SockHttpServer();
+			var port2 = 27536;
+			strip.Start("127.0.0.1", port2, ctx => { sv.TryHandle(ctx); });
+			try {
+				var bigLen = 80L * 1024 * 1024;
+				using (var bigHttp = new HttpClient(new HttpClientHandler {
+					UseProxy = false, UseCookies = true, CookieContainer = cookies,
+				}) {
+					Timeout = TimeSpan.FromMinutes(3),
+				}) {
+					using (var up = new HttpRequestMessage(HttpMethod.Post,
+						"http://127.0.0.1:" + port2 + "/api/web/upload?path=big.bin")) {
+						up.Content = new StreamContent(new CliZeroStream(bigLen));
+						up.Content.Headers.ContentLength = bigLen;
+						var upResp = Task.Run(() => bigHttp.SendAsync(up)).GetAwaiter().GetResult();
+						var upBody = Task.Run(() => upResp.Content.ReadAsStringAsync()).GetAwaiter().GetResult();
+						if (!upResp.IsSuccessStatusCode || upBody == null
+							|| upBody.IndexOf("\"code\":100", StringComparison.Ordinal) < 0) {
+							Err("sendfile-web: 大文件上传失败: " + (upBody ?? upResp.StatusCode.ToString()));
+							return 1;
+						}
+					}
+					var bigFile = new FileInfo(Path.Combine(dir, "big.bin"));
+					if (!bigFile.Exists || bigFile.Length != bigLen) {
+						Err("sendfile-web: 大文件落盘大小不符: " + (bigFile.Exists ? bigFile.Length : -1));
+						return 1;
+					}
+					bigFile.Delete();
+				}
+			}
+			finally {
+				try { strip.Stop(); } catch { }
+			}
 			using (var naked = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = TimeSpan.FromSeconds(8) }) {
 				var got = Task.Run(() => naked.GetByteArrayAsync(baseUrl + "/f/web.txt")).GetAwaiter().GetResult();
 				var text = Encoding.UTF8.GetString(got ?? Array.Empty<byte>());
@@ -10213,6 +10247,40 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
 		try { Console.Error.WriteLine(s); } catch { }
 		try { log?.WriteLine("[ERR] " + s); } catch { }
 	}
+}
+
+/// <summary>测试用的定长全零流：不占内存也能给 HttpClient 传出大文件。</summary>
+sealed class CliZeroStream : Stream {
+	readonly long len;
+	long pos;
+
+	public CliZeroStream(long len) {
+		this.len = len < 0 ? 0 : len;
+	}
+
+	public override bool CanRead => true;
+	public override bool CanSeek => false;
+	public override bool CanWrite => false;
+	public override long Length => len;
+	public override long Position {
+		get => pos;
+		set => throw new NotSupportedException();
+	}
+
+	public override int Read(byte[] buffer, int offset, int count) {
+		if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+		var left = len - pos;
+		if (left <= 0 || count <= 0) return 0;
+		if (count > left) count = (int)left;
+		Array.Clear(buffer, offset, count);
+		pos += count;
+		return count;
+	}
+
+	public override void Flush() { }
+	public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+	public override void SetLength(long value) => throw new NotSupportedException();
+	public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 }
 
 

@@ -51,59 +51,39 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- ScreenKit can now start hidden in the tray with --tray, so automated runs do not pop a window.
-- Russian word forms: every participle now expands into a full declension table (six cases by four genders/numbers, animate and inanimate accusative, archaic feminine instrumental); short passive forms and the rare past gerund are listed too.
-- Korean word forms: fourteen more common endings are listed, including -(으)려면, -아/어야만, -든가, -는 길에, -고야, -(으)ㄹ 수가 있다, -지 그래요?, -(으)면서도, -(으)려는 참이다, -(으)ㄴ 지 얼마 안 되다, -다가 보면 and -지 않을 수 없다.
-- Russian word forms: a dedicated negation group now lists не with every tense and person, negative pronouns (ничего, никогда, нигде), чуть не / едва не, не…, а…, and не надо / не нужно; adjectives get не + long and short forms with совсем не / не очень, and nouns get нет / не было / не будет + genitive plus это не + nominative.
-- Video batch convert: added a max frame rate option (default 20); sources above it are re-timed down, slower ones stay untouched
-- Settings > General adds a 'Hide to tray after startup' option: when on, the main window is never shown or flashed at launch, and the app stays in the tray with hotkeys, tray menu and HTTP working as usual.
+- Video batch convert adds a max frame rate option (default 20): sources above it are re-timed down, slower ones stay untouched.
+- Startup adds the `--hidden` and `--tray` switches, which go straight to the tray without showing the main window, so automated runs do not pop up.
+- Settings > General adds a Hide to tray after startup option (`start_hidden`): the main window is never shown or flashed at launch, and the app stays in the tray with hotkeys, tray menu and HTTP working as usual.
 
 #### Changed
 
-- Korean conjugation now lists the short negative (안) and the long negative (-지 않다) under each form instead of in a separate Negative section, for the tenses, aspects, honorifics, connectives, auxiliary verbs, mood and colloquial forms; the ability negative (못) joins the same row for verbs. Nouns use their own negative pattern (이/가 아니다).
-- Ability negation (못) now sits in its own Ability section for Korean verbs, instead of being merged into each tense row.
-- Korean conjugation adds negative and long-negative forms to the remaining categories: commands, suggestions, written and classical endings, style levels, contractions, colloquial forms, character and slang variants, dialects, North Korean and Yanbian forms, and the graded grammar list.
-- Korean noun connectives (면 / 고 / 지만 / 지 / 인데 / 기 전에 / 일 때 / 인 동안 / 일수록 / 기 때문에 and similar) now show the negative form alongside, e.g. 학교면 / 학교가 아니면.
-- --tray now suppresses the brief flash of the main window at startup instead of hiding it after it appears.
-- Korean noun forms now carry the negative alongside in the remaining categories too: modifiers, honorifics, mood, written and classical endings, contractions, colloquial and slang variants, dialects, North Korean and Yanbian forms, and the judgement patterns (예요 / 입니다 / 입니까). Grammatical particles such as 가/는/를/에 have no positive-negative pair, so they are left as is.
-- Startup: new --hidden switch starts straight to the tray; minimizing always hides to the tray, so the old tray checkbox is gone
+- Startup no longer flashes the main window on its way to the tray, whether a switch or the new option started it hidden; minimizing always hides to the tray, so the old Minimize to tray checkbox is gone.
 
 #### Fixed
 
 - Two crashes caused by USB cast scanning: the scan disposed its semaphore and event while probe threads were still running, so a late `Release()` threw `ObjectDisposedException` on a thread-pool thread and terminated the process. Scanning no longer runs on every start either: Wi-Fi Direct / ICS adapters (192.168.137.x) are no longer mistaken for a phone's USB NIC and local addresses are skipped. Unhandled exceptions are now written to `log/crash.txt`.
-- Chrome translation could fail with the error Unable to create translator for the given source and target language when the model folder was left behind empty by disk cleanup: Chrome's translate engine DLL and model files lived under the temp folder and were deleted while their registration records remained, so availability reported available but create always failed. Chrome's profile now lives under LocalAppData (existing data is moved over); the engine DLL is copied from your own Chrome when missing, empty model shells are unregistered so Chrome downloads them again, and the installed state checks for real model files instead of just the folder.
-- Chrome translation model install could fail with Unable to create translator for the given source and target language when an empty model folder was left registered as installed: the install path now unregisters such stale entries before downloading, and no-progress detection no longer aborts downloads on Chrome builds that emit no downloadprogress events.
-- Screen recording keeps audio when the default playback device changes: Bluetooth headset connect/disconnect or plugging in headphones no longer leaves the rest of the video silent
-- Korean word forms: noun negatives in the future tense were built with a bare jamo (학생이 아니ㄹ 거예요); they now read 학생이 아닐 거예요. Parallel endings like -ㄹ 수 있다/없다, -(으)ㄴ 적이 있다/없다, -(으)ㄹ 줄 알다/모르다 and -기 쉽다/어렵다 no longer lose their stem on the second half (먹을없다 → 먹을 수 없다), and three label pairs that shared a name are now distinct.
+- Chrome translation could fail with Unable to create translator for the given source and target language after disk cleanup deleted the models while their registration records survived: availability said available but create always failed. The Chrome profile now lives under LocalAppData (existing data is moved over); the engine DLL is copied from your own Chrome when missing, empty model folders left registered as installed are unregistered before installing and again when detected so Chrome downloads them anew; the installed state checks for real model files instead of just the folder, and no-progress detection no longer aborts downloads on Chrome builds that emit no downloadprogress events.
+- Screen recording keeps audio when the default playback device changes: Bluetooth headset connect/disconnect or plugging in headphones no longer leaves the rest of the video silent.
+- File sync uploads (web page and phone app) are no longer capped at 64MB: the body is streamed to disk, so files of 1GB and up work.
 
 ### 中文
 
 #### 新增
 
-- 新增 --tray 启动参数：程序启动后不显示主窗口，直接收进托盘，便于自动化时不影响他人操作。
-- 俄语词形变化：每个分词都展开成完整的六格变格表（六格 × 阳/中/阴/复，宾格分有生与无生，阴性工具格带旧变体），被动分词短尾和少用的过去时副动词也一并列出。
-- 韩语词形变化：补上 14 条常用语法，含-(으)려면、-아/어야만、-든가、-는 길에、-고야、-(으)ㄹ 수가 있다、-지 그래요?、-(으)면서도、-(으)려는 참이다、-(으)ㄴ 지 얼마 안 되다、-다가 보면、-지 않을 수 없다等。
-- 俄语词形变化：新增否定组，列出 не 加各时态各人称、否定代词（ничего / никогда / нигде）、чуть не / едва не、не…, а… 和 не надо / не нужно；形容词给出 не + 长尾与短尾、совсем не / не очень，名词给出 нет / не было / не будет + 第二格和 это не + 第一格。
-- 视频批量转换：新增「帧率上限」参数，默认 20；高于该值的视频降帧，低于的保持原样
-- 参数设置 → 常规新增「启动后隐藏到托盘」：勾选后启动时不显示主窗口也不闪一下，直接留在托盘，热键、托盘菜单和 HTTP 照常可用。
+- 视频批量转换新增「帧率上限」参数，默认 20：高于该值的视频降帧，低于的保持原样。
+- 启动新增 `--hidden`、`--tray` 参数，启动后不显示主窗口直接留在托盘，便于自动化时不影响他人操作。
+- 参数设置 → 常规新增「启动后隐藏到托盘」（`start_hidden`）：勾选后启动时不显示主窗口也不闪一下，直接留在托盘，热键、托盘菜单和 HTTP 照常可用。
 
 #### 变更
 
-- 韩语词形变化改为在每个变化下并列否定（안）和长否定（-지 않다），不再单列「否定」一节，覆盖时态、体、尊敬、连接、补助动词、语气和口语；动词的能力否定（못）也并入同一行。名词改用自身的否定说法（이/가 아니다）。
-- 韩语的能力否定（못）从各时态行里拆出，单独成「能力」一类。
-- 韩语词形变化的其余类别也补上否定与长否定：命令、提议、书面与古代语尾、文体、缩略、口语、角色语与俚俗、各地方言、朝鲜文化语与延边语，以及分级语法表。
-- 韩语名词的连接形（면 / 고 / 지만 / 지 / 인데 / 기 전에 / 일 때 / 인 동안 / 일수록 / 기 때문에 等 19 条）也并列否定，如 학교면 / 학교가 아니면。
-- --tray 启动时改为全程不显示主窗口，不再先闪现再隐藏。
-- 韩语名词的其余类别也并列否定：定语、尊敬、语气、书面与古代语尾、缩略、口语与俚俗、各地方言、朝鲜文化语与延边语，以及判断句式（예요 / 입니다 / 입니까）。가/는/를/에 这类格助词没有肯定否定之分，保持原样。
-- 启动：新增 --hidden 参数，启动后直接留在托盘；最小化一律隐藏到托盘，原来的托盘开关已去掉
+- 启动时不再先闪现主窗口（参数或设置项触发的隐藏启动都全程不显示）；最小化一律收进托盘，原来的「最小化时隐藏到通知栏」开关去掉。
 
 #### 修复
 
 - 修复 USB 投屏扫描导致的两次崩溃：扫描在探测线程还没结束时就把信号量和事件释放掉，迟到的 `Release()` 在线程池线程上抛 `ObjectDisposedException`，直接终止进程。扫描也不再每次启动就空跑：Wi‑Fi Direct / ICS 网卡（192.168.137.x）不再被当成手机 USB 网卡，本机地址跳过。未处理异常现在会写进 `log/crash.txt`。
-- Chrome 翻译可能报「Unable to create translator for the given source and target language」：Chrome 的翻译引擎库和模型文件原先放在临时目录，被磁盘清理删掉后注册记录还在，availability 说可用而 create 必然失败。Chrome 配置目录改到 LocalAppData（已有数据会迁移过去）；引擎库缺失时从本机 Chrome 复制，只剩空壳的模型会注销让 Chrome 重新下载；已装状态改为检查真实模型文件，不再只看目录是否存在。
-- 安装 Chrome 翻译模型时若残留空壳目录仍挂着已装，会报 Unable to create translator for the given source and target language：现在安装前先注销这类残留注册再下载，不会发 downloadprogress 事件的 Chrome 版本也不会被误判为下载停滞而中断。
-- 录屏中默认播放设备变化（蓝牙耳机连上/断开、插拔耳机）后不再后半段无声：检测到设备变更或采集被停就重开环回，系统 H.264 按墙钟补静音后接着写同一 AAC 音轨，其它后端分段录制再拼接
-- 韩语词形变化：名词将来时的否定形把字母直接拼进音节（학생이 아니ㄹ 거예요），改成학생이 아닐 거예요；-ㄹ 수 있다/없다、-(으)ㄴ 적이 있다/없다、-(으)ㄹ 줄 알다/모르다、-기 쉽다/어렵다 这类并列词尾的后半不再漏词干（먹을없다 → 먹을 수 없다）；三组同名的标签分开命名。
+- 修复 Chrome 翻译报「Unable to create translator for the given source and target language」：Chrome 的翻译引擎库和模型原先放在临时目录，被磁盘清理删掉后注册记录还在，availability 说可用而 create 必然失败。Chrome 配置目录改到 LocalAppData（已有数据会迁移过去）；引擎库缺失时从本机 Chrome 复制，只剩空壳的模型注册在安装前先注销、检测到也再注销一次，让 Chrome 重新下载；已装状态改为检查真实模型文件，不再只看目录是否存在，不会发 downloadprogress 事件的 Chrome 版本也不会被误判为下载停滞而中断。
+- 录屏中默认播放设备变化（蓝牙耳机连上/断开、插拔耳机）后不再后半段无声：检测到设备变更或采集被停就重开环回，系统 H.264 按墙钟补静音后接着写同一 AAC 音轨，其它后端分段录制再拼接。
+- 文件同步的上传不再受 64MB 限制，边收边写盘，1GB 以上的文件也能传。
 
 ## v1.0.35 (2026-11-05 ~ 11-08)
 
