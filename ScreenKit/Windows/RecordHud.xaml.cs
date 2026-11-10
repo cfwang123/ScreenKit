@@ -65,6 +65,8 @@ public partial class RecordHud : Window {
 	public bool IsRecording => started && (gifMode ? gifRec != null : rec != null) && !stopping;
 
 	public event Action Finished;
+	/// <summary>HUD 里改过选项后回调（已在 HUD 内落盘），主窗据此更新内存参数。</summary>
+	public event Action<RecordOptions, GifOptions> OptionsApplied;
 
 	public RecordHud(System.Drawing.Rectangle region, RecordOptions options = null)
 		: this(region, options, null, gif: false) { }
@@ -926,6 +928,7 @@ public partial class RecordHud : Window {
 			AppConfig.Save(cfg);
 		}
 		catch { }
+		notifyopts();
 		fillsummary();
 		layoutchrome();
 	}
@@ -941,7 +944,7 @@ public partial class RecordHud : Window {
 			AppConfig.LoadInto(cfg);
 			if (gifMode) {
 				cfg.GifRecord ??= new GifOptions();
-				var dlg = new GifOptionsWindow(cfg.GifRecord);
+				var dlg = new GifOptionsWindow(gifOpt);
 				try { dlg.Owner = Application.Current?.MainWindow; } catch { }
 				dlg.ShowDialog();
 				if (!dlg.Applied) return;
@@ -951,8 +954,7 @@ public partial class RecordHud : Window {
 					recOpt.LockAspectWhileRecording = cfg.Record.LockAspectWhileRecording;
 			}
 			else {
-				cfg.Record ??= new RecordOptions();
-				var dlg = new RecordOptionsWindow(cfg.Record);
+				var dlg = new RecordOptionsWindow(recOpt);
 				try { dlg.Owner = Application.Current?.MainWindow; } catch { }
 				dlg.ShowDialog();
 				if (!dlg.Applied) return;
@@ -960,6 +962,7 @@ public partial class RecordHud : Window {
 				cfg.Record = recOpt.Clone();
 			}
 			try { AppConfig.Save(cfg); } catch { }
+			notifyopts();
 			fillsummary();
 			layoutchrome();
 		}
@@ -967,6 +970,11 @@ public partial class RecordHud : Window {
 			MessageBox.Show(this, ex.Message, gifMode ? "GIF 录屏选项" : "录屏选项",
 				MessageBoxButton.OK, MessageBoxImage.Warning);
 		}
+	}
+
+	void notifyopts() {
+		try { OptionsApplied?.Invoke(gifMode ? null : recOpt.Clone(), gifMode ? gifOpt.Clone() : null); }
+		catch (Exception ex) { RecordLog.Ex("hud_options_notify", ex); }
 	}
 
 	void onstart() {

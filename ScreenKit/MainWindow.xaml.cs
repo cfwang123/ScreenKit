@@ -3410,6 +3410,7 @@ public partial class MainWindow : Window {
 			setstatus($"录屏区域 {r.Width}×{r.Height} · {ro.Codec} · {ro.Fps}fps · {ro.CrfLabel}");
 			var hud = new RecordHud(r, ro);
 			activeRecordHud = hud;
+			hud.OptionsApplied += (newRec, _) => { if (newRec != null) opt.Record = newRec; };
 			capturing = false;
 			hud.Closed += (_, _) => {
 				if (activeRecordHud == hud) activeRecordHud = null;
@@ -3461,6 +3462,7 @@ public partial class MainWindow : Window {
 			setstatus($"GIF 录屏区域 {r.Width}×{r.Height} · 采{GifOptions.CaptureFps}fps · 默认出{go.Fps}fps");
 			var hud = new RecordHud(r, go);
 			activeRecordHud = hud;
+			hud.OptionsApplied += (_, newGif) => { if (newGif != null) opt.GifRecord = newGif; };
 			capturing = false;
 			hud.Closed += (_, _) => {
 				if (activeRecordHud == hud) activeRecordHud = null;

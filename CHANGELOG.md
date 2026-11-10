@@ -46,6 +46,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Fixed
+
+- Screen recorder: changing audio or other options from the floating control bar now sticks for the next recording. The bar used to save the new options to disk but leave the running instance with the old ones, so the next selection still showed Mute and you had to open the dialog again to get System and the level meters back.
+
+### 中文
+
+#### 修复
+
+- 修复录屏控制条里改的声音/选项下次录屏又变回去：控制条只把新参数写进配置，本进程仍拿着旧值，下次选完区域还是显示「无声」，要再打开一次选项对话框才会出现「系统」和波形条。现在控制条改的选项会同步回主窗口。
+
 ## v1.0.36 (2026-11-08 ~ 11-10)
 
 ### English
