@@ -47,6 +47,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Changed
+
+- The Wubi / Japanese / Korean hotkeys (Ctrl+Alt+1/2/3) now toggle: press while another language is active to switch to it, press again while already in it to turn input off and let keys through. Disabled languages still ignore their hotkey.
+
+### 中文
+
+#### 变更
+
+- 输入法的五笔 / 日语 / 韩语热键（Ctrl+Alt+1/2/3）改为切换：当前不是这门语言就切过去，已经在这门语言时再按一次就关闭输入、按键交给当前窗口。关掉的语言仍不响应各自热键。
+
 ## v1.0.37 (2026-11-10)
 
 ### English

@@ -132,11 +132,11 @@ public sealed class OcrOptions {
 	public string HotkeyMdRead = "";
 	/// <summary>输入法切换语言，轮到末尾后关闭。默认 Ctrl+`。</summary>
 	public string HotkeyImeCycle = "Ctrl+`";
-	/// <summary>输入法切到五笔。默认 Ctrl+Alt+1。</summary>
+	/// <summary>输入法切到五笔；已经是五笔就关闭输入。默认 Ctrl+Alt+1。</summary>
 	public string HotkeyImeWubi = "Ctrl+Alt+1";
-	/// <summary>输入法切到日语。默认 Ctrl+Alt+2。</summary>
+	/// <summary>输入法切到日语；已经是日语就关闭输入。默认 Ctrl+Alt+2。</summary>
 	public string HotkeyImeJa = "Ctrl+Alt+2";
-	/// <summary>输入法切到韩语。默认 Ctrl+Alt+3。</summary>
+	/// <summary>输入法切到韩语；已经是韩语就关闭输入。默认 Ctrl+Alt+3。</summary>
 	public string HotkeyImeKo = "Ctrl+Alt+3";
 	/// <summary>输入法切到关闭，按键交给当前窗口。默认 Ctrl+Alt+4。</summary>
 	public string HotkeyImeOff = "Ctrl+Alt+4";

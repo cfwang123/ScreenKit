@@ -154,9 +154,21 @@ sealed class HangulIme : IDisposable {
 		showtray();
 	}
 
+	/// <summary>语言热键：不是这门语言就切过去，已经在这门语言就关掉输入（按键交给当前窗口）。</summary>
+	public void Toggle(string code) {
+		if (!ImeLex.DbInstalled) return;
+		var pick = code == "ja" ? Lang.Ja : code == "ko" ? Lang.Ko : Lang.Wubi;
+		if (!langon(pick)) return;
+		// 键盘钩子刚处理过同一次按键（钩子会吞掉，一般到不了这里）：别再切回去
+		if (Environment.TickCount - eng.LastToggleTick is >= 0 and < 80) return;
+		if (enabled && eng.AtCjk(pick)) Pause();
+		else Enter(code);
+	}
+
 	public void Pause() {
 		if (!enabled) return;
 		eng.SetOff(true);
+		hidecand();
 		showtray();
 	}
 

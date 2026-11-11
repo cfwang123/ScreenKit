@@ -4695,6 +4695,21 @@ static class Cli {
 		if (e.Off || e.LangCode != "ja") return "hot ja " + e.LangCode + " off=" + e.Off;
 		e.Key(Vk.D0 + 4, true, false, true, true, false);
 		if (!e.Off) return "hot off";
+		// 语言热键是切换：不是这门语言就切过去，已是这门语言就关闭，按键交给当前窗口
+		e.Key(Vk.D0 + 2, true, false, true, true, false);
+		if (e.Off || e.LangCode != "ja") return "toggle ja on " + e.LangCode + " off=" + e.Off;
+		e.Key(Vk.D0 + 2, true, false, true, true, false);
+		if (!e.Off) return "toggle ja off";
+		e.Key(Vk.D0 + 2, true, false, true, true, false);
+		if (e.Off || e.LangCode != "ja") return "toggle ja reopen " + e.LangCode;
+		e.ToggleEn();
+		if (e.Now != View.En) return "toggle en " + e.Now;
+		e.Key(Vk.D0 + 2, true, false, true, true, false);
+		if (e.Off || e.Now != View.Ja) return "toggle ja from en " + e.Now + " off=" + e.Off;
+		e.Key(Vk.D0 + 1, true, false, true, true, false);
+		if (e.Off || e.LangCode != "wubi") return "toggle wubi " + e.LangCode;
+		e.Key(Vk.D0 + 1, true, false, true, true, false);
+		if (!e.Off) return "toggle wubi off";
 		e.LoadMeta(false, Lang.Ja, false, false);
 		tap(Vk.A);
 		var kn = e.Key(Vk.Space, true, false, false, false, false);
@@ -4711,6 +4726,12 @@ static class Cli {
 		if (!e.Off) return "disabled ko hot opened";
 		e.Key(Vk.Oem3, true, false, true, false, false);
 		if (e.Off || e.LangCode != "wubi") return "disabled cycle wubi";
+		e.Key(Vk.D0 + 2, true, false, true, true, false);
+		if (e.Off || e.LangCode != "wubi") return "disabled ja toggle " + e.LangCode + " off=" + e.Off;
+		e.Key(Vk.D0 + 1, true, false, true, true, false);
+		if (!e.Off) return "disabled wubi toggle off";
+		e.Key(Vk.Oem3, true, false, true, false, false);
+		if (e.Off || e.LangCode != "wubi") return "disabled cycle reopen wubi";
 		e.Key(Vk.Oem3, true, false, true, false, false);
 		if (!e.Off) return "disabled cycle off";
 		e.ApplyOpts(false, true, false,

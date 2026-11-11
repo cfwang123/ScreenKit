@@ -88,6 +88,12 @@ class ImeEngine {
 	public Hot HotOff => hotoff;
 	public Hot HotCycle => hotcycle;
 
+	/// <summary>当前正在用这门语言打字：没关掉输入，也不是临时按 Shift 切出来的英文。</summary>
+	public bool AtCjk(Lang lang) => !off && !shiften && cjk == lang;
+
+	/// <summary>钩子里最后一次按语言热键的时刻。全局热键回调可能紧跟同一次按键再来一遍，靠它去重。</summary>
+	public int LastToggleTick { get; private set; }
+
 	public void SetCaps(bool on) {
 		if (caps == on) return;
 		caps = on;
@@ -260,23 +266,27 @@ class ImeEngine {
 	}
 
 	bool modehot(int vk, bool shift, bool ctrl, bool alt, bool win) {
-		if (hotzh.Hit(vk, shift, ctrl, alt, win)) {
-			if (usezh) enter(Lang.Wubi);
-			return usezh;
-		}
-		if (hotja.Hit(vk, shift, ctrl, alt, win)) {
-			if (useja) enter(Lang.Ja);
-			return useja;
-		}
-		if (hotko.Hit(vk, shift, ctrl, alt, win)) {
-			if (useko) enter(Lang.Ko);
-			return useko;
-		}
+		if (hotzh.Hit(vk, shift, ctrl, alt, win)) return togglemode(Lang.Wubi);
+		if (hotja.Hit(vk, shift, ctrl, alt, win)) return togglemode(Lang.Ja);
+		if (hotko.Hit(vk, shift, ctrl, alt, win)) return togglemode(Lang.Ko);
 		if (hotoff.Hit(vk, shift, ctrl, alt, win)) {
 			SetOff(true);
 			return true;
 		}
 		return false;
+	}
+
+	/// <summary>语言热键：当前不是这门语言就切过去；已经是就先关掉输入，按键交给当前窗口。
+	/// 关掉的语言不切过去，也不吃键。</summary>
+	bool togglemode(Lang lang) {
+		if (!langon(lang)) return false;
+		LastToggleTick = Environment.TickCount;
+		if (AtCjk(lang)) {
+			SetOff(true);
+			return true;
+		}
+		enter(lang);
+		return true;
 	}
 
 	void enter(Lang lang) {

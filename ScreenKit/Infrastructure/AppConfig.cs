@@ -703,7 +703,7 @@ static class AppConfig {
 		sb.AppendLine($"hotkey_mdread = \"{esc((o.HotkeyMdRead ?? "").Trim())}\"");
 		sb.AppendLine("# 切换语言，最后一项之后关闭。默认 Ctrl+`");
 		sb.AppendLine($"hotkey_ime_cycle = \"{esc((o.HotkeyImeCycle ?? "").Trim())}\"");
-		sb.AppendLine("# 切到五笔 / 日语 / 韩语 / 关闭");
+		sb.AppendLine("# 五笔 / 日语 / 韩语：不是这门语言就切过去，已经是这门语言就关闭输入");
 		sb.AppendLine($"hotkey_ime_wubi = \"{esc((o.HotkeyImeWubi ?? "").Trim())}\"");
 		sb.AppendLine($"hotkey_ime_ja = \"{esc((o.HotkeyImeJa ?? "").Trim())}\"");
 		sb.AppendLine($"hotkey_ime_ko = \"{esc((o.HotkeyImeKo ?? "").Trim())}\"");

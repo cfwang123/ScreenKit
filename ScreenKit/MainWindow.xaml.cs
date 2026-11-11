@@ -1052,17 +1052,17 @@ public partial class MainWindow : Window {
 			}));
 			hotkeyImeWubi = new GlobalHotkey(this, 0x7011);
 			hotkeyImeWubi.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
-				try { imeenter("wubi"); }
+				try { imetoggle("wubi"); }
 				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
 			}));
 			hotkeyImeJa = new GlobalHotkey(this, 0x7012);
 			hotkeyImeJa.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
-				try { imeenter("ja"); }
+				try { imetoggle("ja"); }
 				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
 			}));
 			hotkeyImeKo = new GlobalHotkey(this, 0x7013);
 			hotkeyImeKo.Fired += () => Dispatcher.BeginInvoke(new Action(() => {
-				try { imeenter("ko"); }
+				try { imetoggle("ko"); }
 				catch (Exception ex) { try { setstatus(ex.Message); } catch { } }
 			}));
 			hotkeyImeOff = new GlobalHotkey(this, 0x7014);
@@ -2429,12 +2429,12 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	void imeenter(string code) {
+	void imetoggle(string code) {
 		if (!ImeLex.DbInstalled) {
 			setstatus(Loc.T("hangul.needdb"));
 			return;
 		}
-		hangul?.Enter(code);
+		hangul?.Toggle(code);
 	}
 
 	void painthangul() {
