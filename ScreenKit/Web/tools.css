@@ -1498,3 +1498,67 @@ html[data-emjfont] .emjgrid .emjcell .emjg {
 /* 二维码识别：识别按钮与文件框底部对齐 */
 .qrsrow { align-items: flex-end; }
 .qrsrow .msg { align-self: center; }
+
+/* JSON / XML / YAML 查看器：上方工具条、中间原文、下方树形结果，树自己滚动。 */
+#box.panel.on:has(.jv) { overflow: hidden; }
+#box.panel.on:has(.jv) #box-body {
+	flex: 1 1 auto; min-height: 0; min-width: 0;
+	display: flex; flex-direction: column;
+}
+.jv {
+	display: flex; flex-direction: column;
+	flex: 1 1 auto; min-height: 0; min-width: 0;
+}
+.jv > .hint, .jv > .jv-bar { flex: none; }
+.jv-bar {
+	display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+	margin: 0 0 8px;
+}
+.jv-lb {
+	display: flex; align-items: center; gap: 6px;
+	flex: none; width: auto;
+}
+.jv-lb select { width: 132px; height: 32px; margin-top: 0; padding: 0 8px; }
+.jv-find { flex: 1 1 220px; min-width: 120px; height: 32px; margin-top: 0; }
+.jv-bar button {
+	flex: none; height: 32px; padding: 0 12px; cursor: pointer;
+	border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink);
+	font: 13px/1 "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+.jv-bar button:hover { background: #fff1e8; }
+.jv-in {
+	flex: 0 0 auto; min-height: 96px; max-height: 40%; height: 140px;
+	margin-top: 0; resize: vertical;
+	font: 13px/1.5 Consolas, "Cascadia Mono", monospace;
+}
+.jv-tree {
+	flex: 1 1 auto; min-height: 120px; margin-top: 8px;
+	overflow: auto; padding: 6px 8px;
+	border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+	font: 13px/1.6 Consolas, "Cascadia Mono", "Microsoft YaHei UI", monospace;
+	user-select: text; -webkit-user-select: text;
+}
+.jv-row { display: flex; align-items: flex-start; gap: 4px; white-space: pre-wrap; word-break: break-all; }
+.jv-row:hover { background: #f7f7f8; }
+.jv-tgl {
+	flex: none; width: 14px; text-align: center; cursor: pointer;
+	color: var(--muted); font-size: 10px; line-height: 20px;
+}
+.jv-tgl:hover { color: var(--accent); }
+.jv-k { color: #b4532a; cursor: pointer; }
+.jv-k:hover { text-decoration: underline; }
+.jv-i { color: #8a827a; }
+.jv-s { color: #1b7f3a; }
+.jv-n { color: #1452c8; }
+.jv-l { color: #a1421a; }
+.jv-z { color: var(--muted); font-style: italic; }
+.jv-tag { color: #7c3aed; }
+.jv-p { color: var(--muted); }
+.jv-cnt {
+	flex: none; margin-left: 6px; padding: 0 6px;
+	border-radius: 8px; background: #eef1f4; color: var(--muted);
+	font-size: 11px; line-height: 16px;
+}
+.jv-hit { background: #fde68a; border-radius: 3px; }
+.jv-stat { flex: none; margin-top: 6px; min-height: 1.2em; color: var(--muted); font-size: 12px; }
+.jv-stat.jv-bad { color: var(--danger); }

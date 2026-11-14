@@ -284,6 +284,19 @@
 					{
 						x:"button",
 						"type":"button",
+						"data-tool":"u-json",
+						"data-cat":"text",
+						"data-name":"json xml yaml 查看器 格式化 折叠 树形 结构 解析 预览 缩进",
+						"title":"把 JSON、XML 或 YAML 展开成可折叠的树，和浏览器控制台里看到的一样",
+						c:[
+						{x:"i.fa-solid.fa-file-code"},
+						{x:"span","data-k":"web.tool.json",c:"JSON/XML/YAML 查看器"},
+						{x:"i.star.fa-solid.fa-star","data-fav":"u-json","title":"收藏"}
+					]
+					},
+					{
+						x:"button",
+						"type":"button",
 						"data-tool":"u-py",
 						"data-cat":"text",
 						"data-name":"中文转拼音 拼音 首字母 npinyin",
