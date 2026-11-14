@@ -121,6 +121,7 @@ This program receives while it is running, and that can be turned off in Setting
 
 - **Text**
   - **Text convert**: Encoding, escaping, and common text transforms
+  - **JSON / XML / YAML viewer**: Paste text or drop a file and it becomes a collapsible tree like the one in browser devtools. Click a triangle to fold or unfold a node, type in the filter box to keep only matching nodes and highlight the hit, and double-click a value to copy it. The format is detected automatically or can be picked by hand.
   - **Chinese to pinyin**: Characters to pinyin or initials
   - **Document reader**: Preview Markdown, Word, PDF, Excel, CSV, images and text files as tabs rendered on demand, with click-to-zoom images
   - **Novel reader**: A separate page (`/reader`) like the dictionary, opened from a card under Text on the tools page; Ctrl+click opens it in a new window. Drop or add txt/md files; they stay in this browser. Select text for the dictionary popup (drag its edges or corners to resize, or maximize it). It reads with the current browser’s own voices by default, and can switch to Chrome offline or other voices. Reading starts at the top of the screen or at the selected word and highlights the current sentence. Google voices do not speak online; a missing offline pack is installed when reading starts, with a progress dialog that can be cancelled, and each voice shows whether that pack is installed. Choosing browser voices shows an Install models link
