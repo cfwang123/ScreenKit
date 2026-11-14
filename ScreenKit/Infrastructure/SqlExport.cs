@@ -83,19 +83,63 @@ sealed class SqlExportOptions {
 	public string Path = "";
 }
 
+enum SqlExportPhase {
+	Schema,
+	Data,
+	Index,
+	Done,
+}
+
 sealed class SqlExportProgress {
+	/// <summary>当前第几张表，从 1 开始。</summary>
 	public int Index;
 	public int Total;
 	public string Table = "";
+	/// <summary>本次导出累计已写行数。</summary>
 	public long Rows;
+	/// <summary>当前表已写行数。</summary>
+	public long TableRows;
+	/// <summary>当前表总行数，0 表示未知。</summary>
+	public long TableTotal;
+	public SqlExportPhase Phase;
 }
 
 sealed class SqlExportResult {
 	public int Files;
 	public long Rows;
 	public int Ms;
+	public bool Cancelled;
 	public string Note = "";
 	public string Error = "";
+}
+
+/// <summary>一次导出任务的共享状态：结果集、进度上报、取消标记。</summary>
+sealed class SqlExportJob {
+	public readonly SqlExportResult Result = new();
+	public readonly IProgress<SqlExportProgress> Sink;
+	public readonly CancellationToken Token;
+	int tick;
+
+	public SqlExportJob(IProgress<SqlExportProgress> sink, CancellationToken token) {
+		Sink = sink;
+		Token = token;
+		tick = Environment.TickCount;
+	}
+
+	public void cancel() => Token.ThrowIfCancellationRequested();
+
+	/// <summary>进度每 60ms 最多报一次，行数照常累计；收尾用 force。</summary>
+	public void report(SqlExportPhase phase, int index, int total, string table, long tableRows, long tableTotal, bool force = false) {
+		cancel();
+		if (Sink == null) return;
+		var now = Environment.TickCount;
+		if (!force && now - tick < 60) return;
+		tick = now;
+		Sink.Report(new SqlExportProgress {
+			Index = index, Total = total, Table = table, Phase = phase,
+			Rows = Result.Rows, TableRows = tableRows, TableTotal = tableTotal,
+		});
+	}
 }
 
 /// <summary>各目标引擎可选的版本，以及按版本要降级的语法。</summary>
@@ -193,8 +237,10 @@ static class SqlExport {
 		return list;
 	}
 
-	public static SqlExportResult Run(DbConnection cn, SqlExportOptions o, IProgress<SqlExportProgress> progress = null) {
-		var res = new SqlExportResult();
+	public static SqlExportResult Run(DbConnection cn, SqlExportOptions o, IProgress<SqlExportProgress> progress = null,
+		CancellationToken token = default) {
+		var job = new SqlExportJob(progress, token);
+		var res = job.Result;
 		var tick = Environment.TickCount;
 		if (cn == null) {
 			res.Error = Loc.T("sql.needconn");
@@ -209,8 +255,11 @@ static class SqlExport {
 			return res;
 		}
 		try {
-			if (o.Format == SqlExportFormat.Sql) sqlfile(cn, o, res, progress);
-			else tablefiles(cn, o, res, progress);
+			if (o.Format == SqlExportFormat.Sql) sqlfile(cn, o, job);
+			else tablefiles(cn, o, job);
+		}
+		catch (OperationCanceledException) {
+			res.Cancelled = true;
 		}
 		catch (Exception ex) {
 			res.Error = ex.Message;
@@ -221,7 +270,8 @@ static class SqlExport {
 
 	// ==================== SQL 脚本 ====================
 
-	static void sqlfile(DbConnection cn, SqlExportOptions o, SqlExportResult res, IProgress<SqlExportProgress> progress) {
+	static void sqlfile(DbConnection cn, SqlExportOptions o, SqlExportJob job) {
+		var res = job.Result;
 		var isresult = o.Scope == SqlExportScope.Result;
 		var names = new List<string>();
 		if (isresult) {
@@ -267,7 +317,7 @@ static class SqlExport {
 		w.WriteLine();
 
 		for (var i = 0; i < names.Count; i++) {
-			progress?.Report(new SqlExportProgress { Index = i + 1, Total = names.Count, Table = names[i], Rows = res.Rows });
+			job.report(SqlExportPhase.Schema, i + 1, names.Count, names[i], 0, 0, true);
 			var table = new SqlExportTable { Name = names[i] };
 			if (isresult) {
 				using var rs = openreader(cn, o.ResultSql);
@@ -286,8 +336,9 @@ static class SqlExport {
 				if (o.WithData) {
 					w.WriteLine();
 					w.WriteLine("-- " + Loc.T("sql.export.data", names[i]));
-					res.Rows += insertrows(w, rs, table, d, ver);
+					res.Rows += insertrows(w, rs, table, d, ver, job, i + 1, names.Count);
 				}
+				job.report(SqlExportPhase.Done, i + 1, names.Count, names[i], 0, 0, true);
 				w.WriteLine();
 				res.Files = 1;
 				continue;
@@ -314,7 +365,7 @@ static class SqlExport {
 				if (o.WithData) {
 					if (o.WithSchema) w.WriteLine();
 					w.WriteLine("-- " + Loc.T("sql.export.data", table.Name));
-					res.Rows += insertrows(w, rd, table, d, ver);
+					res.Rows += insertrows(w, rd, table, d, ver, job, i + 1, names.Count);
 				}
 			}
 			finally {
@@ -328,6 +379,7 @@ static class SqlExport {
 					foreach (var line in ddl) w.WriteLine(line);
 				}
 			}
+			job.report(SqlExportPhase.Done, i + 1, names.Count, names[i], 0, 0, true);
 			w.WriteLine();
 			res.Files = 1;
 		}
@@ -445,7 +497,8 @@ static class SqlExport {
 	}
 
 	/// <summary>多行 INSERT。SQL Server 2008 之前只支持一条 VALUES。</summary>
-	static long insertrows(StreamWriter w, DbDataReader rd, SqlExportTable t, SqlDialect d, Version ver) {
+	static long insertrows(StreamWriter w, DbDataReader rd, SqlExportTable t, SqlDialect d, Version ver,
+		SqlExportJob job, int index, int total) {
 		var q = DialectKind(d);
 		var tname = QuoteName(q, t.Name);
 		var cols = t.Columns;
@@ -473,8 +526,10 @@ static class SqlExport {
 				sb.Clear();
 				n = 0;
 			}
+			if ((rows & 0x3F) == 0) job.report(SqlExportPhase.Data, index, total, t.Name, rows, 0);
 		}
 		if (n > 0) w.WriteLine(sb.Append(';').ToString());
+		job.report(SqlExportPhase.Data, index, total, t.Name, rows, 0, true);
 		return rows;
 	}
 
@@ -717,7 +772,8 @@ static class SqlExport {
 
 	// ==================== 表格类格式 ====================
 
-	static void tablefiles(DbConnection cn, SqlExportOptions o, SqlExportResult res, IProgress<SqlExportProgress> progress) {
+	static void tablefiles(DbConnection cn, SqlExportOptions o, SqlExportJob job) {
+		var res = job.Result;
 		var names = new List<string>();
 		string resultsql = null;
 		if (o.Scope == SqlExportScope.Result) {
@@ -750,7 +806,7 @@ static class SqlExport {
 		if (multi) Directory.CreateDirectory(o.Path);
 		var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 		for (var i = 0; i < names.Count; i++) {
-			progress?.Report(new SqlExportProgress { Index = i + 1, Total = names.Count, Table = names[i], Rows = res.Rows });
+			job.report(SqlExportPhase.Schema, i + 1, names.Count, names[i], 0, 0, true);
 			var path = multi
 				? Path.Combine(o.Path, UniqueFile(SafeName(names[i]), used) + ExtOf(o.Format))
 				: o.Path;
@@ -770,21 +826,23 @@ static class SqlExport {
 				}
 				var dir = Path.GetDirectoryName(path);
 				if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-				if (o.Format == SqlExportFormat.Csv) res.Rows += writecsv(rd, cols, path, res);
-				else if (o.Format == SqlExportFormat.Html) res.Rows += writehtml(rd, cols, path, names[i], res);
-				else res.Rows += writexlsx(rd, cols, path, names[i], res);
+				if (o.Format == SqlExportFormat.Csv) res.Rows += writecsv(rd, cols, path, res, job, i + 1, names.Count);
+				else if (o.Format == SqlExportFormat.Html) res.Rows += writehtml(rd, cols, path, names[i], res, job, i + 1, names.Count);
+				else res.Rows += writexlsx(rd, cols, path, names[i], res, job, i + 1, names.Count);
 				res.Files++;
 			}
 			finally {
 				try { rd?.Dispose(); } catch { }
 			}
+			job.report(SqlExportPhase.Done, i + 1, names.Count, names[i], 0, 0, true);
 		}
 	}
 
 	/// <summary>单元格文本：空值留空，不与字面量 NULL 混淆。</summary>
 	static string celltext(object v) => v == null || v is DBNull ? "" : SqlTool.Text(v);
 
-	static long writecsv(DbDataReader rd, List<SqlExportColumn> cols, string path, SqlExportResult res) {
+	static long writecsv(DbDataReader rd, List<SqlExportColumn> cols, string path, SqlExportResult res,
+		SqlExportJob job, int index, int total) {
 		using var w = new StreamWriter(path, false, new UTF8Encoding(true));
 		w.NewLine = "\r\n";
 		w.WriteLine(string.Join(",", cols.ConvertAll(c => csv(c.Name)).ToArray()));
@@ -794,6 +852,7 @@ static class SqlExport {
 			for (var i = 0; i < cells.Length; i++) cells[i] = celltext(rd.GetValue(i));
 			w.WriteLine(string.Join(",", Array.ConvertAll(cells, csv)));
 			rows++;
+			if ((rows & 0xFF) == 0) job.report(SqlExportPhase.Data, index, total, "", rows, 0);
 			if (rows >= 1048576) {
 				res.Note = Loc.T("sql.export.toomany");
 				break;
@@ -810,7 +869,8 @@ static class SqlExport {
 		+ "tbody tr:nth-child(even){background:#fafbfc}"
 		+ ".cap{color:#718096;font-size:12px;margin-top:10px}";
 
-	static long writehtml(DbDataReader rd, List<SqlExportColumn> cols, string path, string title, SqlExportResult res) {
+	static long writehtml(DbDataReader rd, List<SqlExportColumn> cols, string path, string title, SqlExportResult res,
+		SqlExportJob job, int index, int total) {
 		using var w = new StreamWriter(path, false, new UTF8Encoding(false));
 		w.NewLine = "\r\n";
 		w.WriteLine("<!DOCTYPE html>");
@@ -826,6 +886,7 @@ static class SqlExport {
 			for (var i = 0; i < cells.Length; i++) cells[i] = celltext(rd.GetValue(i));
 			w.WriteLine("<tr>" + string.Concat(Array.ConvertAll(cells, v => "<td>" + Xesc(v) + "</td>")) + "</tr>");
 			rows++;
+			if ((rows & 0xFF) == 0) job.report(SqlExportPhase.Data, index, total, title, rows, 0);
 		}
 		w.WriteLine("</tbody></table>");
 		w.WriteLine("<p class=\"cap\">" + Xesc(Loc.T("sql.export.rowscap", rows)) + "</p>");
@@ -861,7 +922,8 @@ static class SqlExport {
 	}
 
 	/// <summary>手写最小工作簿，边读边写，不依赖 OpenXml（精简包里也能用）。</summary>
-	static long writexlsx(DbDataReader rd, List<SqlExportColumn> cols, string path, string title, SqlExportResult res) {
+	static long writexlsx(DbDataReader rd, List<SqlExportColumn> cols, string path, string title, SqlExportResult res,
+		SqlExportJob job, int index, int total) {
 		const int MaxRows = 1048575;
 		using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
 		using var zip = new ZipArchive(fs, ZipArchiveMode.Create);
@@ -934,6 +996,7 @@ static class SqlExport {
 				w.Write($"<c r=\"{ref_}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">{Xesc(v)}</t></is></c>");
 			}
 			w.Write("</row>");
+			if ((rows & 0xFF) == 0) job.report(SqlExportPhase.Data, index, total, title, rows, 0);
 		}
 		w.Write("</sheetData>");
 		w.Write("<autoFilter ref=\"A1:" + ColName(Math.Max(0, cols.Count - 1)) + "1\"/>");
