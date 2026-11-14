@@ -924,9 +924,18 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	var chartWait = [];
 	var chartPend = false;
 	var chartMs = 10 * 60 * 1000;
+	// emoji 字体单列一份：/api/fonts?emoji=1 只回画得出 emoji 的字体。
+	var emjFonts = null;
+	var emjAt = 0;
+	var emjWait = [];
+	var emjPend = false;
 
 	function chartfresh(){
 		return chartFonts && chartAt && Date.now() - chartAt < chartMs;
+	}
+
+	function emjfresh(){
+		return emjFonts && emjAt && Date.now() - emjAt < chartMs;
 	}
 
 	// 系统字体列表：缓存在期内直接给，过期或没有就去 /api/fonts 取一次；几个工具同时要也只发一个请求。
@@ -947,28 +956,57 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 				for (i = 0; i < data.length; i++) chartFonts.push(String(data[i]));
 				chartAt = Date.now();
 			}
-			fontready();
+			var cbs = chartWait;
+			chartWait = [];
+			for (i = 0; i < cbs.length; i++) cbs[i](chartFonts);
 		}, "", function(){
 			chartPend = false;
 			if (!chartFonts) chartFonts = [];
-			fontready();
+			var cbs = chartWait;
+			var i;
+			chartWait = [];
+			for (i = 0; i < cbs.length; i++) cbs[i](chartFonts);
 		});
 	}
 
-	function fontready(){
-		var cbs = chartWait;
-		var i;
-		chartWait = [];
-		for (i = 0; i < cbs.length; i++) cbs[i](chartFonts);
+	// 只回支持 emoji 的字体。
+	function emjfontlist(cb){
+		if (emjfresh()) {
+			cb(emjFonts);
+			return;
+		}
+		emjWait.push(cb);
+		if (emjPend) return;
+		emjPend = true;
+		get("/api/fonts?emoji=1", function(data){
+			var i;
+			emjPend = false;
+			emjFonts = [];
+			emjAt = 0;
+			if (data && data.length) {
+				for (i = 0; i < data.length; i++) emjFonts.push(String(data[i]));
+				emjAt = Date.now();
+			}
+			var cbs = emjWait;
+			emjWait = [];
+			for (i = 0; i < cbs.length; i++) cbs[i](emjFonts);
+		}, "", function(){
+			emjPend = false;
+			if (!emjFonts) emjFonts = [];
+			var cbs = emjWait;
+			var i;
+			emjWait = [];
+			for (i = 0; i < cbs.length; i++) cbs[i](emjFonts);
+		});
 	}
 
 	// 下拉框里填字体列表，第一个是「默认」。
-	function paintfonts(box, cur){
+	function paintfonts(box, list, cur){
 		var html = '<option value="">' + htmlenc(t("web.font.default") || "默认") + "</option>";
 		var i;
 		var name;
-		for (i = 0; i < chartFonts.length; i++) {
-			name = chartFonts[i];
+		for (i = 0; i < list.length; i++) {
+			name = list[i];
 			html += '<option value="' + htmlenc(name) + '" style="font-family:' + htmlenc(chartfaceq(name)) + ',sans-serif">'
 				+ htmlenc(name) + "</option>";
 		}
@@ -990,16 +1028,14 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			applychart();
 			if (SK.onchartfont) SK.onchartfont();
 		};
-		fontlist(function(){ paintchart(box); });
-	}
-
-	function paintchart(box){
-		if (!paintfonts(box, chartFont)) {
-			chartFont = "";
-			try { F.lset("sk-chart-font", ""); } catch (e) {}
-		}
-		applychart();
-		if (SK.onchartfont) SK.onchartfont();
+		fontlist(function(list){
+			if (!paintfonts(box, list, chartFont)) {
+				chartFont = "";
+				try { F.lset("sk-chart-font", ""); } catch (e) {}
+			}
+			applychart();
+			if (SK.onchartfont) SK.onchartfont();
+		});
 	}
 
 	// Emoji 查询单独一份字体：它默认用自带字体渲染，允许换成别的字体，和码表的字体互不影响。
@@ -1017,8 +1053,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			try { F.lset("sk-emj-font", emjFont); } catch (e) {}
 			if (SK.onemjfont) SK.onemjfont();
 		};
-		fontlist(function(){
-			if (!paintfonts(box, emjFont)) {
+		emjfontlist(function(list){
+			if (!paintfonts(box, list, emjFont)) {
 				emjFont = "";
 				try { F.lset("sk-emj-font", ""); } catch (e) {}
 			}

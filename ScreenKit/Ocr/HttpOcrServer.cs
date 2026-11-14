@@ -70,7 +70,9 @@ sealed partial class HttpOcrServer : IDisposable {
 	static readonly object scanlock = new();
 	static int scanAsrN, scanTtsN, scanFaceN, lastscan;
 	static string[] fontNames;
+	static string[] emjNames;
 	static int lastfonts;
+	static int lastemj;
 	static readonly object fontlock = new();
 
 	public HttpOcrServer(Func<OcrOptions> optionsFactory, OcrRunner sharedRunner) {
@@ -1079,8 +1081,10 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handlefonts(SockCtx ctx) {
+		var emoji = (query(ctx.Request, "emoji") ?? "").Trim();
+		var only = emoji is "1" or "true" or "yes";
 		var arr = JSONF.newArray();
-		foreach (var name in systemfonts())
+		foreach (var name in only ? emojifonts() : systemfonts())
 			arr.Add(name);
 		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", arr)));
 	}
@@ -1103,6 +1107,38 @@ sealed partial class HttpOcrServer : IDisposable {
 			fontNames = set.ToArray();
 			lastfonts = now;
 			return fontNames;
+		}
+	}
+
+	/// <summary>
+	/// 只留画得出 emoji 的字体：按字形表查几个有代表性的码位。只有 U+2600 那类符号、
+	/// 没有增补平面 emoji 的字体（Segoe UI Symbol、各种等线）不算，免得列表里混一堆用不了的字形。
+	/// </summary>
+	static string[] emojifonts() {
+		lock (fontlock) {
+			var now = Environment.TickCount;
+			if (emjNames != null && unchecked(now - lastemj) < FONTCACHEMS) return emjNames;
+			var list = new List<string>();
+			foreach (var name in systemfonts()) {
+				if (hasemoji(name)) list.Add(name);
+			}
+			emjNames = list.ToArray();
+			lastemj = now;
+			return emjNames;
+		}
+	}
+
+	/// <summary>看清单一族字体里有没有 emoji 字形。</summary>
+	static bool hasemoji(string name) {
+		try {
+			var face = new Typeface(new FontFamily(name), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+			if (!face.TryGetGlyphTypeface(out var glyph)) return false;
+			var map = glyph.CharacterToGlyphMap;
+			// 笑脸、点赞、火箭都是增补平面；缺一个就说明只是符号字体或只有零星 emoji。
+			return map.ContainsKey(0x1F600) && map.ContainsKey(0x1F44D) && map.ContainsKey(0x1F680);
+		}
+		catch {
+			return false;
 		}
 	}
 

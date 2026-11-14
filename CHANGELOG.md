@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Dictionary pronunciation now defaults to Microsoft Edge online voices; languages that were never configured no longer borrow the English row or fall back to SAPI, so web tool and web dictionary pronunciation for every language uses that language's Edge voice.
+- The font picker in Emoji lookup lists only fonts that actually contain emoji glyphs; the Unicode chart still lists every installed font.
 
 #### Fixed
 
@@ -73,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 词典发音的默认引擎改为 Edge 在线语音；没有配置过的语言不再借英语那一行、也不再用 SAPI，网页工具和网页词典里各语言的发音都用该语言自己的 Edge 发音人。
+- Emoji 查询的字体下拉只列真正带 emoji 字形的字体，Unicode 码表的字体下拉仍是全部本机字体。
 
 #### 修复
 
