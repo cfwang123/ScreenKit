@@ -241,6 +241,7 @@ static class AppConfig {
 				o.VidConvAudioKbps = VidConvert.NormKbps(vcKbps);
 			if (map.TryGetValue("vidconv_audio_hz", out var vch) && int.TryParse(vch, out var vcHz))
 				o.VidConvAudioHz = VidConvert.NormHz(vcHz);
+			LoadPlayer(map, o);
 			if (map.TryGetValue("vidconv_audio_mono", out var vcm))
 				o.VidConvAudioMono = parsebool(vcm, false);
 			if (map.TryGetValue("vidconv_out_mode", out var vcom) && !string.IsNullOrWhiteSpace(vcom))
@@ -800,6 +801,7 @@ static class AppConfig {
 		sb.AppendLine($"vidconv_audio_mono = {(o.VidConvAudioMono ? "true" : "false")}");
 		sb.AppendLine($"vidconv_out_mode = \"{VidConvert.NormOutMode(o.VidConvOutMode)}\"");
 		sb.AppendLine($"vidconv_out_dir = \"{esc((o.VidConvOutDir ?? "").Trim())}\"");
+		SavePlayer(sb, o);
 		sb.AppendLine($"# 视频转 GIF：帧率、调色板 32|64|128|256、较短边");
 		sb.AppendLine($"vidgif_fps = {VidGif.NormFps(o.VidGifFps)}");
 		sb.AppendLine($"vidgif_colors = {VidGif.NormColors(o.VidGifColors)}");
@@ -1131,6 +1133,84 @@ static class AppConfig {
 		}
 		dev = OcrDevice.Cpu;
 		return false;
+	}
+
+	// ==================== 媒体播放器 ====================
+	static void LoadPlayer(Dictionary<string, string> map, OcrOptions o) {
+		if (map.TryGetValue("play_mode", out var pm)) o.PlayMode = normplaymode(pm);
+		if (map.TryGetValue("play_volume", out var pv) &&
+			double.TryParse(pv, NumberStyles.Float, CultureInfo.InvariantCulture, out var pvd))
+			o.PlayVolume = Compat.Clamp(pvd, 0, 1);
+		if (map.TryGetValue("play_sub_on", out var pso)) o.PlaySubOn = parsebool(pso, true);
+		if (map.TryGetValue("play_sub_auto_load", out var psa)) o.PlaySubAutoLoad = parsebool(psa, true);
+		if (map.TryGetValue("play_sub_font", out var psf) && !string.IsNullOrWhiteSpace(psf))
+			o.PlaySubFont = psf.Trim().Trim('"');
+		if (map.TryGetValue("play_sub_size", out var pss) && int.TryParse(pss, out var pssN))
+			o.PlaySubSize = Compat.Clamp(pssN, 10, 120);
+		if (map.TryGetValue("play_sub_color", out var psc) && !string.IsNullOrWhiteSpace(psc))
+			o.PlaySubColor = psc.Trim().Trim('"');
+		if (map.TryGetValue("play_sub_outline", out var psoN) && !string.IsNullOrWhiteSpace(psoN))
+			o.PlaySubOutline = psoN.Trim().Trim('"');
+		if (map.TryGetValue("play_sub_bottom", out var psb) && int.TryParse(psb, out var psbN))
+			o.PlaySubBottom = Compat.Clamp(psbN, 0, 400);
+		if (map.TryGetValue("play_sub_delay", out var psd) && int.TryParse(psd, out var psdN))
+			o.PlaySubDelay = Compat.Clamp(psdN, -10000, 10000);
+		if (map.TryGetValue("play_lyric_lines", out var pll) && int.TryParse(pll, out var pllN))
+			o.PlayLyricLines = Compat.Clamp(pllN, 1, 4);
+		if (map.TryGetValue("play_sub_karaoke", out var psk)) o.PlaySubKaraoke = parsebool(psk, false);
+		if (map.TryGetValue("play_lyric_karaoke", out var plk)) o.PlayLyricKaraoke = parsebool(plk, true);
+		if (map.TryGetValue("play_kara_mode", out var pkm))
+			o.PlayKaraMode = string.Equals((pkm ?? "").Trim().Trim('"'), "char", StringComparison.OrdinalIgnoreCase) ? "char" : "sweep";
+		if (map.TryGetValue("play_kara_sung", out var pks) && !string.IsNullOrWhiteSpace(pks))
+			o.PlayKaraSung = pks.Trim().Trim('"');
+		if (map.TryGetValue("play_kara_unsung", out var pku) && !string.IsNullOrWhiteSpace(pku))
+			o.PlayKaraUnsung = pku.Trim().Trim('"');
+		if (map.TryGetValue("play_kara_feather", out var pkf) && int.TryParse(pkf, out var pkfN))
+			o.PlayKaraFeather = Compat.Clamp(pkfN, 0, 40);
+		if (map.TryGetValue("play_dict_auto", out var pda)) o.PlayDictAuto = parsebool(pda, true);
+		if (map.TryGetValue("play_dict_popup", out var pdp)) o.PlayDictPopup = parsebool(pdp, true);
+		if (map.TryGetValue("play_dict_pause", out var pdpz)) o.PlayDictPause = parsebool(pdpz, false);
+		if (map.TryGetValue("play_list_mode", out var plm)) o.PlayListMode = Playlist.modeparse(plm) switch {
+			PlayMode.Shuffle => "shuffle",
+			PlayMode.RepeatOne => "repeatone",
+			PlayMode.RepeatAll => "repeatall",
+			_ => "sequential",
+		};
+		if (map.TryGetValue("play_resume", out var prs)) o.PlayResume = parsebool(prs, true);
+	}
+
+	static string normplaymode(string s) {
+		var v = (s ?? "").Trim().Trim('"').ToLowerInvariant();
+		return v is "large" or "small" or "bar" or "fullscreen" or "translucent" ? v : "large";
+	}
+
+	static void SavePlayer(StringBuilder sb, OcrOptions o) {
+		sb.AppendLine("# 媒体播放器：窗口形态 large | small | bar | fullscreen | translucent");
+		sb.AppendLine($"play_mode = \"{normplaymode(o.PlayMode)}\"");
+		var vol = o.PlayVolume <= 0 || o.PlayVolume > 1 ? 0.8 : o.PlayVolume;
+		sb.AppendLine($"play_volume = {vol.ToString("0.###", CultureInfo.InvariantCulture)}");
+		sb.AppendLine($"play_sub_on = {(o.PlaySubOn ? "true" : "false")}");
+		sb.AppendLine($"play_sub_auto_load = {(o.PlaySubAutoLoad ? "true" : "false")}");
+		sb.AppendLine($"play_sub_font = \"{esc(string.IsNullOrWhiteSpace(o.PlaySubFont) ? "Microsoft YaHei UI" : o.PlaySubFont)}\"");
+		sb.AppendLine($"play_sub_size = {Compat.Clamp(o.PlaySubSize <= 0 ? 32 : o.PlaySubSize, 10, 120)}");
+		sb.AppendLine($"play_sub_color = \"{esc(o.PlaySubColor ?? "#FFFFFFFF")}\"");
+		sb.AppendLine($"play_sub_outline = \"{esc(o.PlaySubOutline ?? "#CC000000")}\"");
+		sb.AppendLine($"play_sub_bottom = {Compat.Clamp(o.PlaySubBottom, 0, 400)}");
+		sb.AppendLine($"play_sub_delay = {Compat.Clamp(o.PlaySubDelay, -10000, 10000)}");
+		sb.AppendLine($"play_lyric_lines = {Compat.Clamp(o.PlayLyricLines <= 0 ? 1 : o.PlayLyricLines, 1, 4)}");
+		sb.AppendLine($"# 进度蒙版：sweep 连续扫 | char 按字吸附");
+		sb.AppendLine($"play_sub_karaoke = {(o.PlaySubKaraoke ? "true" : "false")}");
+		sb.AppendLine($"play_lyric_karaoke = {(o.PlayLyricKaraoke ? "true" : "false")}");
+		sb.AppendLine($"play_kara_mode = \"{esc(o.PlayKaraMode == "char" ? "char" : "sweep")}\"");
+		sb.AppendLine($"play_kara_sung = \"{esc(o.PlayKaraSung ?? "#FFFFD84D")}\"");
+		sb.AppendLine($"play_kara_unsung = \"{esc(o.PlayKaraUnsung ?? "#B0FFFFFF")}\"");
+		sb.AppendLine($"play_kara_feather = {Compat.Clamp(o.PlayKaraFeather, 0, 40)}");
+		sb.AppendLine("# 点词查词：popup=false 时只写进大窗口的查词页");
+		sb.AppendLine($"play_dict_auto = {(o.PlayDictAuto ? "true" : "false")}");
+		sb.AppendLine($"play_dict_popup = {(o.PlayDictPopup ? "true" : "false")}");
+		sb.AppendLine($"play_dict_pause = {(o.PlayDictPause ? "true" : "false")}");
+		sb.AppendLine($"play_list_mode = \"{esc(o.PlayListMode ?? "sequential")}\"");
+		sb.AppendLine($"play_resume = {(o.PlayResume ? "true" : "false")}");
 	}
 
 	static bool parsebool(string s, bool def) {

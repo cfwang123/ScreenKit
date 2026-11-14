@@ -98,6 +98,7 @@ public partial class MainWindow : Window {
 	PixelArtWindow pixelArtWin;
 	VidConvertWindow vidConvWin;
 	VidGifWindow vidGifWin;
+	PlayerWindow playerWin;
 	QrMakeWindow qrMakeWin;
 	BatchRenameWindow renameWin;
 	HashWindow hashWin;
@@ -1900,6 +1901,7 @@ public partial class MainWindow : Window {
 		mncharart.Click += (_, _) => opencharart();
 		mnpixel.Click += (_, _) => openpixel();
 		mnvidconv.Click += (_, _) => openvidconv();
+		mnplayer.Click += (_, _) => openplayer();
 		mnvidgif.Click += (_, _) => openvidgif();
 		mnqrmake.Click += (_, _) => openqrmake();
 		mnrename.Click += (_, _) => openrename();
@@ -2084,6 +2086,8 @@ public partial class MainWindow : Window {
 			mnpixel.ToolTip = Loc.T("menu.pixel.tip");
 			mnvidconv.Header = Loc.T("menu.vidconv");
 			mnvidconv.ToolTip = Loc.T("menu.vidconv.tip");
+			mnplayer.Header = Loc.T("menu.player");
+			mnplayer.ToolTip = Loc.T("menu.player.tip");
 			mnvidgif.Header = Loc.T("menu.vidgif");
 			mnvidgif.ToolTip = Loc.T("menu.vidgif.tip");
 			mnqrmake.Header = Loc.T("menu.qrmake");
@@ -5269,6 +5273,30 @@ public partial class MainWindow : Window {
 		}
 	}
 
+	internal void openplayer(string path = null) {
+		try {
+			if (playerWin == null) {
+				playerWin = new PlayerWindow(opt);
+				attachdialogowner(playerWin, independent: true);
+				playerWin.Closed += (_, _) => {
+					playerWin = null;
+					try { AppConfig.Save(opt); } catch { }
+				};
+				playerWin.Show();
+			}
+			else {
+				if (playerWin.WindowState == WindowState.Minimized)
+					playerWin.WindowState = WindowState.Normal;
+				playerWin.Activate();
+			}
+			if (!string.IsNullOrWhiteSpace(path)) playerWin.OpenFile(path);
+		}
+		catch (Exception ex) {
+			MessageBox.Show(this, ex.Message, Loc.T("menu.player"),
+				MessageBoxButton.OK, MessageBoxImage.Warning);
+		}
+	}
+
 	void openvidgif() {
 		try {
 			if (vidGifWin != null) {
@@ -6072,6 +6100,7 @@ public partial class MainWindow : Window {
 		else if (id == "charart") opencharart();
 		else if (id == "pixel") openpixel();
 		else if (id == "vidconv") openvidconv();
+		else if (id == "player") openplayer();
 		else if (id == "vidgif") openvidgif();
 		else if (id == "qrmake") openqrmake();
 		else if (id == "cam") opencam();

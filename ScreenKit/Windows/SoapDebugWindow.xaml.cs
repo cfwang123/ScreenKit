@@ -436,6 +436,7 @@ public partial class SoapDebugWindow : Window {
 
 		bStartMock.Click += (_, _) => startMock();
 		bStopMock.Click += (_, _) => stopMock();
+		updmockstate(false);
 		bCopyMockUrl.Click += (_, _) => {
 			if (string.IsNullOrEmpty(eMockUrl.Text)) return;
 			try { Clipboard.SetText(eMockUrl.Text); } catch { }
@@ -548,11 +549,23 @@ public partial class SoapDebugWindow : Window {
 		mock.publish(session.Model, port);
 		eMockUrl.Text = mock.BaseUrl;
 		setstatus(Loc.T("soapdbg.started", mock.BaseUrl, string.Join(", ", mock.paths())));
+		updmockstate(true);
 	}
 
 	void stopMock() {
 		mock.stop();
 		setstatus(Loc.T("soapdbg.stopped"));
+		updmockstate(false);
+	}
+
+	/// <summary>模拟服务的启停状态：圆点与文字跟着变色，两个按钮互相禁用。</summary>
+	void updmockstate(bool on) {
+		dotMock.Fill = (Brush)FindResource(on ? "Success" : "BorderSoft");
+		lbMockState.Text = Loc.T(on ? "soapdbg.state.running" : "soapdbg.state.stopped");
+		lbMockState.Foreground = (Brush)FindResource(on ? "Success" : "TextMuted");
+		lbMockState.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
+		bStartMock.IsEnabled = !on;
+		bStopMock.IsEnabled = on;
 	}
 
 	void showMockLogDetail() {

@@ -222,6 +222,79 @@ public partial class App : System.Windows.Application {
 		var starttray = args.Any(a => a is "--tray" or "--hidden" or "--start-hidden") || win.StartHiddenToTray;
 		if (starttray) win.starthidden();
 		else win.Show();
+		// --play <文件>：直接打开媒体播放器并播放
+		var playIdx = Array.IndexOf(args, "--play");
+		var shotIdx = Array.IndexOf(args, "--player-shot");
+		if (playIdx >= 0) {
+			var playPath = playIdx + 1 < args.Length ? args[playIdx + 1] : null;
+			win.Dispatcher.BeginInvoke(new Action(() => {
+				win.openplayer();
+				var pw0 = Application.Current.Windows.OfType<PlayerWindow>().FirstOrDefault();
+				if (pw0 != null && !string.IsNullOrWhiteSpace(playPath)) pw0.PlaySingle(playPath);
+			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+		}
+		// --form large|small|bar|fullscreen|translucent：启动后直接切到指定形态
+		var formIdx = Array.IndexOf(args, "--form");
+		if (playIdx >= 0 && formIdx >= 0 && formIdx + 1 < args.Length) {
+			var formName = args[formIdx + 1].ToLowerInvariant();
+			win.Dispatcher.BeginInvoke(new Action(() => {
+				var pw1 = Application.Current.Windows.OfType<PlayerWindow>().FirstOrDefault();
+				if (pw1 == null) return;
+				pw1.SetForm(formName switch {
+					"small" => PlayerForm.Small,
+					"bar" => PlayerForm.Bar,
+					"fullscreen" => PlayerForm.Fullscreen,
+					"translucent" => PlayerForm.Translucent,
+					_ => PlayerForm.Large,
+				});
+			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+		}
+		// --player-shot <png> [毫秒] [seek秒] [目标形态]：自测用，渲染窗口成 PNG 后退出
+		if (playIdx >= 0 && shotIdx >= 0 && shotIdx + 1 < args.Length) {
+			var shotPath = args[shotIdx + 1];
+			var delay = shotIdx + 2 < args.Length && int.TryParse(args[shotIdx + 2], out var d0) ? d0 : 4000;
+			var seekTo = shotIdx + 3 < args.Length && double.TryParse(args[shotIdx + 3],
+				System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s0) ? s0 : -1;
+			var formArg = shotIdx + 4 < args.Length ? args[shotIdx + 4] : "";
+			win.Dispatcher.BeginInvoke(new Action(async () => {
+				var log = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+				Directory.CreateDirectory(log);
+				var txt = Path.Combine(log, "player_shot.txt");
+				var sb = new System.Text.StringBuilder();
+				// 等播放器开出来、字幕加载完
+				await System.Threading.Tasks.Task.Delay(600);
+				var pw = Application.Current.Windows.OfType<PlayerWindow>().FirstOrDefault();
+				if (pw == null) { File.WriteAllText(txt, "NO_PLAYER_WINDOW"); Shutdown(0); return; }
+				if (seekTo >= 0) pw.SeekTo(seekTo);
+				if (formArg.Length > 0) pw.SetForm(formArg.ToLowerInvariant() switch {
+					"small" => PlayerForm.Small,
+					"bar" => PlayerForm.Bar,
+					"fullscreen" => PlayerForm.Fullscreen,
+					"translucent" => PlayerForm.Translucent,
+					_ => PlayerForm.Large,
+				});
+				await System.Threading.Tasks.Task.Delay(delay);
+				var baseName = Path.Combine(Path.GetDirectoryName(shotPath) ?? ".", Path.GetFileNameWithoutExtension(shotPath));
+				sb.AppendLine(pw.ShotTo(shotPath));
+				// 再连拍两张，方便看蒙版推进
+				for (var i = 1; i <= 2; i++) {
+					await System.Threading.Tasks.Task.Delay(1500);
+					sb.AppendLine(pw.ShotTo($"{baseName}_{i}.png"));
+				}
+				// --player-click 行,字：点字幕里的字，验证取词与释义
+				var clickArg = Array.IndexOf(args, "--player-click");
+				if (clickArg >= 0 && clickArg + 1 < args.Length) {
+					var parts = args[clickArg + 1].Split(',');
+					var li = parts.Length > 0 && int.TryParse(parts[0], out var l0) ? l0 : 0;
+					var ci = parts.Length > 1 && int.TryParse(parts[1], out var c0) ? c0 : 0;
+					sb.AppendLine("click: " + pw.ClickChar(li, ci));
+					await System.Threading.Tasks.Task.Delay(600);
+					sb.AppendLine(pw.ShotTo($"{baseName}_click.png"));
+				}
+				File.WriteAllText(txt, sb.ToString());
+				Shutdown(0);
+			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+		}
 		if (args.Any(a => a == "--test-ui-toast")) {
 			win.Dispatcher.BeginInvoke(new Action(() => {
 				UiToast.Show(win, Loc.T("sf.recv.clip", "toast-test.bin"));

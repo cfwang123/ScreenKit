@@ -58,6 +58,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: export a table, the current result or the whole database as a SQL script in SQLite / MySQL / SQL Server dialect - pick the target SQL Server version (2005-2022) and newer-only syntax is downgraded automatically (datetime2/date/time to datetime, no DROP TABLE IF EXISTS, no multi-row INSERT) - or as xlsx / csv / html.
 - WebSocket debugger: a client that connects to ws:// or wss:// with subprotocol, Origin and extra headers, sends text, binary or ping frames and logs every frame plus the raw handshake; and a server that runs on this machine, echoes incoming messages on demand, and pushes to one or all connected clients.
 - JSON/XML/YAML viewer in the web tools: paste or drop a file and it turns into a collapsible tree like the browser console, with a filter box that keeps matching nodes and highlights the hit, expand/collapse all, and auto format detection for JSON, XML, and YAML.
+- Media player: play video and audio in one window with subtitles, lyrics, karaoke-style progress mask, click-to-look-up words, playlists (sequential/shuffle/repeat-one/repeat-all), and five window forms (large/small/audio bar/fullscreen/translucent).
 
 #### Changed
 
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：可把当前表、当前查询结果或整个库导出为 SQL 脚本，支持 SQLite / MySQL / SQL Server 三种方言；SQL Server 可选目标版本（2005~2022），选低版本时自动降级为新版本才有的语法（datetime2/date/time 改 datetime、不用 DROP TABLE IF EXISTS、不合并多行 INSERT），也可导出为 xlsx、csv、html。
 - 新增 WebSocket 调试：客户端可连 ws:// 或 wss://，支持子协议、Origin 和自定义请求头，按文本、二进制或 ping 发帧，日志里给出每一帧和握手原文；服务端页能在本机起一个服务，收到的消息可回显，也能推给某个或全部在线客户端。
 - 工具页新增 JSON/XML/YAML 查看器：粘贴或拖入文件后展开成和浏览器控制台一样的折叠树，过滤框只保留命中的节点并高亮，另有全部展开/折叠和 JSON、XML、YAML 的自动识别。
+- 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、点词查词、播放列表（顺序/随机/单曲循环/列表循环），以及大窗口、小窗、音频条、全屏、半透明五种形态。
 
 #### 变更
 

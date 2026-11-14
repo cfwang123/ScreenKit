@@ -60,6 +60,7 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
+				or "--test-media" or "--test-subtitle" or "--test-subtitle-hit" or "--test-karaoke" or "--test-playlist" or "--test-natsort"
 				or "--test-hash" or "--test-codestat" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
@@ -332,6 +333,37 @@ static class Cli {
 					return testimgconvert();
 				case "--test-vid-convert":
 					return testvidconvert();
+				case "--test-media": {
+					MediaTest.Attach(Out, Err);
+					var mf = i + 1 < args.Length ? args[i + 1] : "";
+					return MediaTest.Media(mf);
+				}
+				case "--test-subtitle": {
+					MediaTest.Attach(Out, Err);
+					var sf = i + 1 < args.Length ? args[i + 1] : "";
+					return MediaTest.Subtitle(sf);
+				}
+				case "--test-subtitle-hit": {
+					MediaTest.Attach(Out, Err);
+					var hf = i + 1 < args.Length ? args[i + 1] : "";
+					var ci = i + 2 < args.Length && int.TryParse(args[i + 2], out var c1) ? c1 : 0;
+					var ch = i + 3 < args.Length && int.TryParse(args[i + 3], out var c2) ? c2 : 0;
+					return MediaTest.Hit(hf, ci, ch);
+				}
+				case "--test-karaoke": {
+					MediaTest.Attach(Out, Err);
+					var kf = i + 1 < args.Length ? args[i + 1] : "";
+					var kt = i + 2 < args.Length && double.TryParse(args[i + 2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var kd) ? kd : -1;
+					return MediaTest.KaraokeTest(kf, kt);
+				}
+				case "--test-playlist": {
+					MediaTest.Attach(Out, Err);
+					var pd = i + 1 < args.Length ? args[i + 1] : "";
+					return MediaTest.PlaylistTest(pd);
+				}
+				case "--test-natsort":
+					MediaTest.Attach(Out, Err);
+					return MediaTest.SortTest();
 				case "--test-vid-gif":
 					return testvidgif();
 				case "--test-screenshot-dir":
