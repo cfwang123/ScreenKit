@@ -48,6 +48,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Fixed
+
+- Dictionary pronunciation: Edge voices are now picked per language, so each row keeps a voice of its own language instead of an English one.
+
+### 中文
+
+#### 修复
+
+- 词典发音：Edge 发音人按语言各自筛选，俄语等语言不会再配上英语发音人。
+
 ## v1.0.38 (2026-11-11 ~ 11-13)
 
 ### English

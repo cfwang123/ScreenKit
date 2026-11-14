@@ -634,6 +634,7 @@ public partial class SettingsWindow : Window {
 		edictlimit.Text = Compat.Clamp(o.DictLimit < 1 ? 1000 : o.DictLimit, 1, DictDb.SEARCH_MAX).ToString();
 		edicthold.Text = OnnxIdle.ClampMin(o.DictDbHoldMin).ToString();
 		loaddicttts(o);
+		_ = warmdictedgeasync();
 		var voiceOffline = string.Equals((o.AsrVoiceMode ?? "").Trim(), "offline", StringComparison.OrdinalIgnoreCase)
 			|| string.Equals((o.AsrVoiceMode ?? "").Trim(), "离线", StringComparison.OrdinalIgnoreCase);
 		easrvoiceoffline.IsChecked = voiceOffline;
@@ -1313,6 +1314,8 @@ public partial class SettingsWindow : Window {
 		foreach (var lang in DictTts.LangsOf(map)) {
 			if (!map.TryGetValue(lang, out var pref) || pref == null)
 				pref = DictTtsLang.Make(DictTts.DefaultEdge(lang));
+			// 旧配置里可能留着别的语言的发音人（例如俄语行存了 Aria），显示和保存都换成该语言自己的。
+			pref.Edge = DictTts.EdgeName(lang, pref.Edge);
 			adddictrow(lang, pref);
 		}
 		filldictadd();
@@ -1375,6 +1378,22 @@ public partial class SettingsWindow : Window {
 		pdicttts.Children.Remove(grid);
 		dictlasteng.Remove(row.Eng);
 		filldictadd();
+	}
+
+	/// <summary>参数设置里拉一次 Edge 发音人目录，拉到后按语言重填各行的发音人下拉。</summary>
+	async Task warmdictedgeasync() {
+		if (EdgeOnlineTts.Voices.Count > 0) return;
+		try {
+			await new EdgeOnlineTts().LoadVoicesAsync(CancellationToken.None).ConfigureAwait(true);
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("dict edge voices", ex);
+			return;
+		}
+		foreach (var row in dictrows) {
+			if (engtag(row.Eng) != DictTts.EDGE) continue;
+			filldictvoice(row);
+		}
 	}
 
 	void ondictttsadd(object sender, RoutedEventArgs e) {

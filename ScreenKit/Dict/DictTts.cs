@@ -46,16 +46,78 @@ static class DictTts {
 		return n;
 	}
 
+	/// <summary>Edge 各语言默认发音人。在线目录没拉到、或语言不在目录里时用这里的。</summary>
+	static readonly Dictionary<string, string> EdgeDefaults = new(StringComparer.OrdinalIgnoreCase) {
+		["zh"] = "zh-CN-XiaoxiaoNeural",
+		["ja"] = "ja-JP-NanamiNeural",
+		["ko"] = "ko-KR-SunHiNeural",
+		["en"] = "en-US-AriaNeural",
+		["vi"] = "vi-VN-HoaiMyNeural",
+		["yue"] = "zh-HK-HiuMaanNeural",
+		["ru"] = "ru-RU-SvetlanaNeural",
+		["fr"] = "fr-FR-DeniseNeural",
+		["de"] = "de-DE-KatjaNeural",
+		["es"] = "es-ES-ElviraNeural",
+		["pt"] = "pt-BR-FranciscaNeural",
+		["it"] = "it-IT-ElsaNeural",
+		["pl"] = "pl-PL-ZofiaNeural",
+		["uk"] = "uk-UA-PolinaNeural",
+		["tr"] = "tr-TR-EmelNeural",
+		["ar"] = "ar-SA-ZariyahNeural",
+		["th"] = "th-TH-PremwadeeNeural",
+		["nl"] = "nl-NL-ColetteNeural",
+		["sv"] = "sv-SE-SofieNeural",
+		["id"] = "id-ID-GadisNeural",
+		["hi"] = "hi-IN-SwaraNeural",
+		["cs"] = "cs-CZ-VlastaNeural",
+		["da"] = "da-DK-ChristelNeural",
+		["fi"] = "fi-FI-NooraNeural",
+		["nb"] = "nb-NO-PernilleNeural",
+		["el"] = "el-GR-AthinaNeural",
+		["he"] = "he-IL-HilaNeural",
+		["hu"] = "hu-HU-NoemiNeural",
+		["ro"] = "ro-RO-AlinaNeural",
+		["sk"] = "sk-SK-ViktoriaNeural",
+		["sl"] = "sl-SI-PetraNeural",
+		["bg"] = "bg-BG-KalinaNeural",
+		["hr"] = "hr-HR-GabrijelaNeural",
+		["ca"] = "ca-ES-JoanaNeural",
+	};
+
 	public static string DefaultEdge(string lang) {
-		if (lang == "ja") return "ja-JP-NanamiNeural";
-		if (lang == "ko") return "ko-KR-SunHiNeural";
-		if (lang == "zh") return "zh-CN-XiaoxiaoNeural";
-		return "en-US-AriaNeural";
+		lang = NormLang(lang);
+		if (lang.Length == 0) lang = "en";
+		if (EdgeDefaults.TryGetValue(lang, out var hit)) return hit;
+		// 表里没有：用在线目录里该语言第一个女声，实在没有才退回英文。
+		foreach (var v in EdgeOnlineTts.Voices) {
+			if (!edgematch(v, lang)) continue;
+			if (!string.Equals(v.Gender, TtsGender.Female, StringComparison.OrdinalIgnoreCase)) continue;
+			return v.Name;
+		}
+		foreach (var v in EdgeOnlineTts.Voices) {
+			if (edgematch(v, lang) && !string.IsNullOrEmpty(v.Name)) return v.Name;
+		}
+		return EdgeDefaults["en"];
 	}
 
+	/// <summary>粤语走 Edge 的香港中文发音人，其余语言看区域前缀是否是该语言。</summary>
+	static string Edgelocale(string lang) => lang == "yue" ? "zh-HK" : "";
+
+	static bool edgematch(SapiVoiceItem v, string lang) {
+		if (v == null) return false;
+		var want = Edgelocale(lang);
+		if (want.Length > 0)
+			return (v.Culture ?? "").StartsWith(want, StringComparison.OrdinalIgnoreCase);
+		return string.Equals(v.Lang, lang, StringComparison.OrdinalIgnoreCase);
+	}
+
+	/// <summary>已配置的发音人不属于这个语言时退回该语言的默认发音人。</summary>
 	public static string EdgeName(string lang, string configured) {
+		lang = NormLang(lang);
+		if (lang.Length == 0) lang = "en";
 		var name = (configured ?? "").Trim();
-		var prefix = (string.IsNullOrEmpty(lang) ? "en" : lang) + "-";
+		var prefix = Edgelocale(lang);
+		if (prefix.Length == 0) prefix = lang;
 		if (name.Length > 0 && name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
 			return name;
 		return DefaultEdge(lang);
@@ -134,7 +196,8 @@ static class DictTts {
 		}
 		var pref = src != null ? src.Clone() : DictTtsLang.Make(DefaultEdge(lang));
 		pref.Engine = NormEngine(pref.Engine);
-		if (string.IsNullOrWhiteSpace(pref.Edge)) pref.Edge = DefaultEdge(lang);
+		// 存着的发音人不属于这个语言（旧的跨语言选择）就换回该语言的默认发音人。
+		pref.Edge = EdgeName(lang, pref.Edge);
 		pref.Sapi = pref.Sapi ?? "";
 		pref.Onnx = pref.Onnx ?? "";
 		pref.WinRt = pref.WinRt ?? "";
@@ -192,25 +255,36 @@ static class DictTts {
 		return path;
 	}
 
-	public static (string Id, string LocKey)[] EdgeVoices(string lang) {
-		if (lang == "ja") return new[] {
-			("ja-JP-NanamiNeural", "dict.edge.nanami"),
-			("ja-JP-KeitaNeural", "dict.edge.keita"),
-		};
-		if (lang == "ko") return new[] {
-			("ko-KR-SunHiNeural", "dict.edge.sunhi"),
-			("ko-KR-InJoonNeural", "dict.edge.injoon"),
-		};
-		if (lang == "zh") return new[] {
-			("zh-CN-XiaoxiaoNeural", "dict.edge.xiaoxiao"),
-			("zh-CN-YunxiNeural", "dict.edge.yunxi"),
-		};
-		return new[] {
-			("en-US-AriaNeural", "dict.edge.aria"),
-			("en-US-GuyNeural", "dict.edge.guy"),
-			("en-GB-SoniaNeural", "dict.edge.sonia"),
-			("en-GB-RyanNeural", "dict.edge.ryan"),
-		};
+	/// <summary>有本地化短名的发音人；目录拉下来后仍然用这些名字显示。</summary>
+	static readonly Dictionary<string, string> EdgeLocKeys = new(StringComparer.OrdinalIgnoreCase) {
+		["en-US-AriaNeural"] = "dict.edge.aria",
+		["en-US-GuyNeural"] = "dict.edge.guy",
+		["en-GB-SoniaNeural"] = "dict.edge.sonia",
+		["en-GB-RyanNeural"] = "dict.edge.ryan",
+		["ja-JP-NanamiNeural"] = "dict.edge.nanami",
+		["ja-JP-KeitaNeural"] = "dict.edge.keita",
+		["ko-KR-SunHiNeural"] = "dict.edge.sunhi",
+		["ko-KR-InJoonNeural"] = "dict.edge.injoon",
+		["zh-CN-XiaoxiaoNeural"] = "dict.edge.xiaoxiao",
+		["zh-CN-YunxiNeural"] = "dict.edge.yunxi",
+	};
+
+	/// <summary>该语言的 Edge 发音人。在线目录有就按目录列（含各区域全部发音人），没有就用内置默认。</summary>
+	public static List<(string Label, string Id)> EdgeVoices(string lang) {
+		lang = NormLang(lang);
+		if (lang.Length == 0) lang = "en";
+		var list = new List<(string, string)>();
+		var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var v in EdgeOnlineTts.Voices) {
+			if (!edgematch(v, lang) || string.IsNullOrEmpty(v.Name)) continue;
+			if (!seen.Add(v.Name)) continue;
+			var label = EdgeLocKeys.TryGetValue(v.Name, out var key) ? Loc.T(key) : v.DisplayName;
+			list.Add((label, v.Name));
+		}
+		if (list.Count > 0) return list;
+		var def = DefaultEdge(lang);
+		list.Add((EdgeLocKeys.TryGetValue(def, out var dk) ? Loc.T(dk) : def, def));
+		return list;
 	}
 
 	public static List<(string Label, string Id)> Voices(string engine, string lang) {
@@ -234,7 +308,7 @@ static class DictTts {
 			return list;
 		}
 		if (engine == EDGE) {
-			foreach (var v in EdgeVoices(lang)) list.Add((Loc.T(v.LocKey), v.Id));
+			foreach (var v in EdgeVoices(lang)) list.Add((v.Label, v.Id));
 			return list;
 		}
 		if (engine == CHROME) {
@@ -341,6 +415,11 @@ static class DictTts {
 		if (hasWin && auto != WINRT) return 6;
 		if (!hasWin && auto != EDGE) return 6;
 		if (resolve(new DictTtsLang { Engine = SAPI }, "zh") != SAPI) return 7;
+		// 俄语行存了英语发音人时要用俄语自己的；存对了就保留。
+		if (EdgeName("ru", "en-US-AriaNeural") != DefaultEdge("ru")) return 8;
+		if (EdgeName("ru", "ru-RU-DmitryNeural") != "ru-RU-DmitryNeural") return 9;
+		if (EdgeName("en", "ru-RU-DmitryNeural") != DefaultEdge("en")) return 9;
+		if (DefaultEdge("ru").StartsWith("ru-RU-", StringComparison.OrdinalIgnoreCase) == false) return 10;
 		return 0;
 	}
 
