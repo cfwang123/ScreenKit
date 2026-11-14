@@ -1,5 +1,33 @@
 window.SK = window.SK || {};
 var SK = window.SK;
+
+// 调试开关：地址加 ?dbg=1 打开，?dbg=0 关掉并记住。
+// 打开后心跳里被吞掉的异常会打到控制台，看哪个工具出错时用。
+SK.dbg = (function(){
+	var key = "sk.dbg";
+	var q = String(location.search || "");
+	var m = /[?&]dbg=([^&]*)/.exec(q);
+	if (m) {
+		var on = m[1] !== "0" && m[1] !== "false";
+		try { on ? localStorage.setItem(key, "1") : localStorage.removeItem(key); }
+		catch (e) {}
+		return on;
+	}
+	try { return localStorage.getItem(key) === "1"; }
+	catch (e) { return false; }
+})();
+
+// 心跳里再高频的错也只报一次，免得刷屏。
+SK.dbgseen = {};
+SK.dbgerr = function(where, ex){
+	if (!SK.dbg) return;
+	var msg = ex && ex.message ? ex.message : String(ex);
+	var k = where + "|" + msg;
+	if (SK.dbgseen[k]) return;
+	SK.dbgseen[k] = 1;
+	try { console.error("[SK " + where + "] " + msg, ex); }
+	catch (e) {}
+};
 SK.icoPic = null;
 SK.icoUrl = "";
 SK.curtool = "home";
@@ -190,7 +218,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var spec = SK.utils[name];
 		if (spec && spec.dispose) {
 			try { spec.dispose(); }
-			catch (ex) {}
+			catch (ex) { SK.dbgerr("dispose " + name, ex); }
 		}
 		cleanutil();
 	}
@@ -225,7 +253,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			return;
 		}
 		if (SK.curtool !== name) disposeutil(SK.curtool);
-		stoptick();
+		tickstop();
 		SK.curtool = name;
 		if (name.indexOf("u-") === 0) {
 			openutil(name);
@@ -256,6 +284,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (SK.curtool === "chat" && SK.chatopen) SK.chatopen();
 		settitle();
 		if (!fromHist) pushhash(SK.curtool);
+		// 除了 home，任何工具只要有 ontimer 就要心跳在跑
+		if (SK.curtool !== "home") tickstart();
 	}
 
 	function settitle(){
@@ -1867,7 +1897,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 				afters = keep;
 				for (i = 0; i < due.length; i++) {
 					try { due[i].fn(); }
-					catch (ex) {}
+					catch (ex) { SK.dbgerr("after", ex); }
 				}
 			}
 		}
@@ -1875,7 +1905,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		var spec = SK.utils[SK.curtool];
 		if (spec && spec.ontimer) {
 			try { spec.ontimer(now); }
-			catch (ex) {}
+			catch (ex) { SK.dbgerr("ontimer " + SK.curtool, ex); }
 		}
 	}
 
