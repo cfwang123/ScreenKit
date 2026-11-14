@@ -63,7 +63,7 @@ static class Cli {
 				or "--test-hash" or "--test-codestat" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-sql" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
+				or "--test-wintop" or "--test-sql" or "--test-sqlexport" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -413,6 +413,8 @@ static class Cli {
 					return testwintop();
 				case "--test-sql":
 					return testsql();
+				case "--test-sqlexport":
+					return testsqlexport(args, i);
 				case "--test-autokey":
 					return testautokey();
 				case "--test-fastcopy":
@@ -7374,6 +7376,172 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return bad == 0 ? 0 : 1;
 	}
 
+	/// <summary>
+	/// --test-sqlexport：拿真实库跑一遍导出再导回新库，核对行数。
+	/// 参数：--test-sqlexport &lt;kind&gt; &lt;源库&gt; &lt;目标库&gt; [dialect] [version]
+	/// kind = mysql | mssql；连接参数从环境变量取，见下。
+	/// </summary>
+	static int testsqlexport(string[] args, int i) {
+		Out("=== 导出导入 --test-sqlexport ===");
+		var bad = 0;
+		var kind = args[i + 1];
+		var src = args[i + 2];
+		var dst = args[i + 3];
+		var dialect = i + 4 < args.Length ? args[i + 4] : kind;
+		var vertxt = i + 5 < args.Length ? args[i + 5] : "";
+		var ver = int.TryParse(vertxt, out var vm) ? new Version(vm, 0) : (Version)null;
+		// 目标库可以落在另一台服务器上（如 MySQL 导进 MariaDB）：SK_DST_KIND / SK_DST_HOST / ...
+		var dstkind = Environment.GetEnvironmentVariable("SK_DST_KIND") ?? kind;
+		var dsthost = Environment.GetEnvironmentVariable("SK_DST_HOST");
+		var dstuser = Environment.GetEnvironmentVariable("SK_DST_USER");
+		var dstpw = Environment.GetEnvironmentVariable("SK_DST_PW");
+		var dir = Path.Combine(Path.GetTempPath(), "sk-sqlexport-live-" + Environment.TickCount.ToString("x"));
+		Directory.CreateDirectory(dir);
+		try {
+			System.Data.Common.DbConnection connof(string k, string host, string user, string pw) {
+				var cs = k == SqlTool.Mysql ? SqlTool.MysqlConn(host, user, pw) : SqlTool.MssqlConn(host, user, pw);
+				return SqlTool.Connect(k, cs, out _);
+			}
+			var cn = connof(kind,
+				Environment.GetEnvironmentVariable("SK_SQL_HOST") ?? "127.0.0.1:3306",
+				Environment.GetEnvironmentVariable("SK_SQL_USER") ?? "sa",
+				Environment.GetEnvironmentVariable("SK_SQL_PW") ?? "");
+			if (cn == null) {
+				Err("FAIL: 连不上源库");
+				return 1;
+			}
+			System.Data.Common.DbConnection dcn = cn;
+			if (dsthost != null) {
+				dcn = connof(dstkind, dsthost, dstuser ?? "root", dstpw ?? "");
+				if (dcn == null) {
+					Err("FAIL: 连不上目标库服务器");
+					return 1;
+				}
+				Out($"目标服务器 {dstkind} @ {dsthost}");
+			}
+			try {
+				// 源库的表与行数基线
+				if (!SqlTool.UseDb(cn, kind, src, out var uerr)) {
+					Err("FAIL: 切到源库 " + uerr);
+					return 1;
+				}
+				var srcTables = new List<(string Name, long Rows)>();
+				var terr = "";
+				foreach (var t in SqlExport.Tables(cn, kind, out terr)) {
+					var c = SqlTool.Run(cn, "SELECT COUNT(*) FROM " + SqlTool.Quote(kind, t), 1);
+					if (c.Error.Length > 0 || c.Rows.Count == 0) {
+						Err($"FAIL: 数不到 {t} 的行数 {c.Error}");
+						bad++;
+						continue;
+					}
+					srcTables.Add((t, long.Parse(c.Rows[0][0])));
+				}
+				if (terr.Length > 0) {
+					Err("FAIL: 列表 " + terr);
+					bad++;
+				}
+				Out($"源库 {src}：{srcTables.Count} 张表，共 {srcTables.Sum(x => x.Rows)} 行");
+
+				// 建一个空的目标库
+				var mysqldst = dstkind == SqlTool.Mysql;
+				var drop = SqlTool.Run(dcn, mysqldst
+					? $"DROP DATABASE IF EXISTS {SqlTool.Quote(dstkind, dst)}"
+					: $"IF DB_ID('{dst}') IS NOT NULL BEGIN ALTER DATABASE [{dst}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{dst}]; END", 0);
+				if (drop.Error.Length > 0) {
+					Err("FAIL: 删旧目标库 " + drop.Error);
+					bad++;
+				}
+				var mk = SqlTool.Run(dcn, mysqldst
+					? $"CREATE DATABASE {SqlTool.Quote(dstkind, dst)}"
+					: $"CREATE DATABASE [{dst}]", 0);
+				if (mk.Error.Length > 0) {
+					Err("FAIL: 建目标库 " + mk.Error);
+					return 1;
+				}
+
+				// 导出：整库、目标方言
+				var d = dialect switch {
+					"mysql" => SqlDialect.Mysql,
+					"mssql" => SqlDialect.Mssql,
+					_ => SqlDialect.Sqlite,
+				};
+				var sqlfile = Path.Combine(dir, $"{src}-{dialect}.sql");
+				var tick = Environment.TickCount;
+				var rep = new SyncProgress(p => { });
+				var r = SqlExport.Run(cn, new SqlExportOptions {
+					Format = SqlExportFormat.Sql, Scope = SqlExportScope.Database,
+					Dialect = d, Version = ver, Kind = kind, Path = sqlfile,
+				}, rep);
+				if (r.Error.Length > 0) {
+					Err("FAIL: 导出 " + r.Error);
+					return 1;
+				}
+				var size = new FileInfo(sqlfile).Length;
+				Out($"导出 {r.Rows} 行 / {r.Files} 个文件 / {size / 1024} KB / {r.Ms} ms");
+				if (r.Rows != srcTables.Sum(x => x.Rows)) {
+					Err($"FAIL: 导出行数 {r.Rows} != 源库 {srcTables.Sum(x => x.Rows)}");
+					bad++;
+				}
+
+				// 导入目标库
+				if (!SqlTool.UseDb(dcn, dstkind, dst, out var uerr2)) {
+					Err("FAIL: 切到目标库 " + uerr2);
+					return 1;
+				}
+				var t0 = Environment.TickCount;
+				var n = SqlExport.Import(dcn, sqlfile, out var ierr);
+				if (ierr.Length > 0) {
+					Err("FAIL: 导入 " + ierr);
+					bad++;
+				}
+				else Out($"导入 {n} 句 / {Environment.TickCount - t0} ms");
+
+				// 逐表核对行数
+				var diffs = 0;
+				foreach (var (t, want) in srcTables) {
+					var c = SqlTool.Run(dcn, "SELECT COUNT(*) FROM " + SqlTool.Quote(dstkind, t), 1);
+					if (c.Error.Length > 0 || c.Rows.Count == 0) {
+						Err($"FAIL: 目标库数不到 {t} {c.Error}");
+						bad++;
+						diffs++;
+						continue;
+					}
+					var got = long.Parse(c.Rows[0][0]);
+					if (got != want) {
+						Err($"FAIL: {t} 行数 {got} != {want}");
+						bad++;
+						diffs++;
+					}
+				}
+				Out(diffs == 0 ? $"核对 {srcTables.Count} 张表行数一致" : $"有 {diffs} 张表行数不一致");
+
+				// 抽查：第一张表前几行
+				var spot = srcTables.Count > 0 ? srcTables[0].Name : "";
+				if (spot.Length > 0) {
+					var s1 = SqlTool.Run(dcn, SqlTool.TableSql(dstkind, spot, 3), 0);
+					Out($"{spot} 前 3 行：" + (s1.Error.Length > 0 ? s1.Error
+						: string.Join(" | ", s1.Rows.ConvertAll(row => string.Join(",", row)).ToArray())));
+				}
+			}
+			finally {
+				try { SqlTool.UseDb(cn, kind, kind == SqlTool.Mysql ? "mysql" : "master", out _); } catch { }
+				try { cn.Dispose(); } catch { }
+				if (!ReferenceEquals(dcn, cn)) {
+					try { dcn.Dispose(); } catch { }
+				}
+			}
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex);
+			bad++;
+		}
+		finally {
+			Out($"SQL 脚本留在 {dir}");
+		}
+		Out(bad == 0 ? "=== OK：导出导入 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static int testmqtt() {
 		Out("=== MQTT --test-mqtt ===");
 		return MqttBroker.Test(Out, Err);
@@ -7526,8 +7694,10 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				}
 			}
 			Out("mysql driver: " + (DbDriver.Installed(DbKind.Mysql) ? "OK" : "缺失"));
+			// MySqlConnector 不认 Server=h:port，端口要单独给 Port，否则连不上
 			var my1 = SqlTool.MysqlConn("h:3306", "u", "p");
-			if (!my1.Contains("Server=h:3306") || my1.Contains("Database=") || !my1.Contains("User ID=u")) {
+			if (!my1.Contains("Server=h") || !my1.Contains("Port=3306")
+				|| my1.Contains("Database=") || !my1.Contains("User ID=u")) {
 				Err("FAIL: mysql conn " + my1);
 				bad++;
 			}
@@ -7591,6 +7761,7 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Err("FAIL: mssql sql " + ms);
 				bad++;
 			}
+			bad += testexport(cn, db);
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex);
@@ -7602,6 +7773,347 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		Out(bad == 0 ? "=== OK：数据库查询 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	/// <summary>同步收集进度，替掉会排队的 Progress&lt;T&gt;。</summary>
+	sealed class SyncProgress : IProgress<SqlExportProgress> {
+		readonly Action<SqlExportProgress> sink;
+
+		public SyncProgress(Action<SqlExportProgress> sink) => this.sink = sink;
+
+		public void Report(SqlExportProgress value) => sink(value);
+	}
+
+	/// <summary>导出：三种方言的脚本、xlsx / csv / html 各写一份再检查内容。</summary>
+	static int testexport(System.Data.Common.DbConnection cn, string dbpath) {
+		var bad = 0;
+		var dir = Path.Combine(Path.GetTempPath(), "sk-sqlexport-" + Environment.TickCount.ToString("x"));
+		Directory.CreateDirectory(dir);
+		try {
+			var t = SqlExport.Tables(cn, SqlTool.Sqlite, out var terr);
+			if (terr.Length > 0 || !t.Contains("t")) {
+				Err("FAIL: export tables " + terr);
+				bad++;
+			}
+			var schema = new SqlExportTable { Name = "t" };
+			SqlExport.ReadSchema(cn, SqlTool.Sqlite, schema);
+			if (schema.Columns.Count != 3 || schema.Columns[0].Name != "id" || !schema.Columns[0].PrimaryKey) {
+				Err($"FAIL: export schema cols={schema.Columns.Count}");
+				bad++;
+			}
+			// 低版本降级：datetime2/date/time 回退 datetime
+			var dtcol = new SqlExportColumn { Name = "d", Kind = SqlTypeKind.DateTime };
+			if (SqlExport.typetext(dtcol, SqlDialect.Mssql, new Version(16, 0)) != "datetime2(3)"
+				|| SqlExport.typetext(dtcol, SqlDialect.Mssql, new Version(9, 0)) != "datetime") {
+				Err("FAIL: mssql 日期类型降级");
+				bad++;
+			}
+			var dcol = new SqlExportColumn { Name = "dt", Kind = SqlTypeKind.Date };
+			if (SqlExport.typetext(dcol, SqlDialect.Mssql, new Version(16, 0)) != "date"
+				|| SqlExport.typetext(dcol, SqlDialect.Mssql, new Version(9, 0)) != "datetime") {
+				Err("FAIL: mssql date 降级");
+				bad++;
+			}
+
+			foreach (var d in new[] { SqlDialect.Sqlite, SqlDialect.Mysql, SqlDialect.Mssql }) {
+				foreach (var ver in new[] { new Version(9, 0), new Version(16, 0) }) {
+					var path = Path.Combine(dir, $"t-{d}-{ver.Major}.sql");
+					var r = SqlExport.Run(cn, new SqlExportOptions {
+						Format = SqlExportFormat.Sql, Scope = SqlExportScope.Database,
+						Dialect = d, Version = ver, Kind = SqlTool.Sqlite, Path = path,
+					});
+					if (r.Error.Length > 0 || r.Rows < 2) {
+						Err($"FAIL: export sql {d} {ver} {r.Error} rows={r.Rows}");
+						bad++;
+						continue;
+					}
+					var text = File.ReadAllText(path);
+					if (!text.Contains("CREATE TABLE") || !text.Contains("INSERT INTO")) {
+						Err($"FAIL: export sql body {d} {ver}");
+						bad++;
+					}
+					if (d == SqlDialect.Mssql) {
+						var modern = ver.Major >= 10;
+						if (!modern && text.Contains("DROP TABLE IF EXISTS")) {
+							Err("FAIL: mssql 2005 不该用 DROP TABLE IF EXISTS");
+							bad++;
+						}
+						if (!modern && text.Contains("\r\n,(")) {
+							Err("FAIL: mssql 2005 出现了多行 VALUES");
+							bad++;
+						}
+						if (modern && !text.Contains("DROP TABLE IF EXISTS")) {
+							Err("FAIL: mssql 2022 应用 DROP TABLE IF EXISTS");
+							bad++;
+						}
+					}
+				}
+			}
+
+			// 查询结果导出：列类型从结果集推断
+			// 自增、默认值、时间列：三种方言的写法与低版本降级
+			var cr = SqlTool.Run(cn, "CREATE TABLE r (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+				+ "name VARCHAR(50) NOT NULL DEFAULT 'x', created DATETIME DEFAULT CURRENT_TIMESTAMP, ok INTEGER DEFAULT 1)", 0);
+			if (cr.Error.Length > 0) {
+				Err("FAIL: export rich create " + cr.Error);
+				bad++;
+			}
+			SqlTool.Run(cn, "INSERT INTO r (name) VALUES ('n')", 0);
+			string richof(SqlDialect d, Version v) {
+				var p = Path.Combine(dir, $"r-{d}-{v.Major}.sql");
+				var rr = SqlExport.Run(cn, new SqlExportOptions {
+					Format = SqlExportFormat.Sql, Scope = SqlExportScope.Table,
+					Dialect = d, Version = v, Kind = SqlTool.Sqlite, Table = "r", Path = p,
+				});
+				if (rr.Error.Length > 0) {
+					Err($"FAIL: export rich {d} {v.Major} {rr.Error}");
+					bad++;
+					return "";
+				}
+				return File.ReadAllText(p);
+			}
+			var rms = richof(SqlDialect.Mssql, new Version(16, 0));
+			var rold = richof(SqlDialect.Mssql, new Version(9, 0));
+			var rmy = richof(SqlDialect.Mysql, new Version(8, 0));
+			var rsl = richof(SqlDialect.Sqlite, new Version(3, 0));
+			if (!rms.Contains("IDENTITY(1,1)") || !rms.Contains("datetime2")) {
+				Err("FAIL: mssql 自增/时间列");
+				bad++;
+			}
+			if (!rold.Contains("IDENTITY(1,1)") || !rold.Contains("datetime") || rold.Contains("datetime2")) {
+				Err("FAIL: mssql 2005 时间列应为 datetime");
+				bad++;
+			}
+			if (!rmy.Contains("AUTO_INCREMENT") || !rmy.Contains("CURRENT_TIMESTAMP") || !rmy.Contains("ENGINE=InnoDB")) {
+				Err("FAIL: mysql 自增/默认值");
+				bad++;
+			}
+			if (!rsl.Contains("PRIMARY KEY AUTOINCREMENT")) {
+				Err("FAIL: sqlite 自增");
+				bad++;
+			}
+			if (!rms.Contains("DEFAULT GETDATE()") || !rms.Contains("DEFAULT 1")) {
+				Err("FAIL: mssql 默认值 " + (rms.Contains("DEFAULT GETDATE()") ? "" : "TIME"));
+				bad++;
+			}
+
+			var rres = SqlExport.Run(cn, new SqlExportOptions {				Format = SqlExportFormat.Sql, Scope = SqlExportScope.Result, Dialect = SqlDialect.Mssql,
+				Version = new Version(16, 0), Kind = SqlTool.Sqlite,
+				ResultSql = "SELECT id, name FROM t ORDER BY id", Table = "q",
+				Path = Path.Combine(dir, "res.sql"),
+			});
+			if (rres.Error.Length > 0 || rres.Rows != 2) {
+				Err("FAIL: export result " + rres.Error + " rows=" + rres.Rows);
+				bad++;
+			}
+
+			// xlsx：至少是个能解开的 zip，含工作表
+			var xlsx = Path.Combine(dir, "t.xlsx");
+			var rx = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Xlsx, Scope = SqlExportScope.Table,
+				Kind = SqlTool.Sqlite, Table = "t", Path = xlsx,
+			});
+			if (rx.Error.Length > 0 || rx.Rows != 2 || !File.Exists(xlsx)) {
+				Err("FAIL: export xlsx " + rx.Error + " rows=" + rx.Rows);
+				bad++;
+			}
+			else {
+				using var zip = new System.IO.Compression.ZipArchive(File.OpenRead(xlsx));
+				if (zip.GetEntry("xl/worksheets/sheet1.xml") == null) {
+					Err("FAIL: xlsx 缺工作表");
+					bad++;
+				}
+			}
+
+			var csvp = Path.Combine(dir, "t.csv");
+			var rc = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Csv, Scope = SqlExportScope.Table,
+				Kind = SqlTool.Sqlite, Table = "t", Path = csvp,
+			});
+			var csvlines = rc.Error.Length == 0 && File.Exists(csvp)
+				? File.ReadAllLines(csvp, Encoding.UTF8) : new string[0];
+			if (rc.Error.Length > 0 || csvlines.Length != 3 || !csvlines[0].StartsWith("id,name,note")) {
+				Err($"FAIL: export csv {rc.Error} lines={csvlines.Length}");
+				bad++;
+			}
+
+			// 整库导 csv 到目录，按表分文件
+			var outdir = Path.Combine(dir, "all");
+			var rm = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Csv, Scope = SqlExportScope.Database,
+				Kind = SqlTool.Sqlite, Path = outdir,
+			});
+			if (rm.Error.Length > 0 || rm.Files < 1 || !File.Exists(Path.Combine(outdir, "t.csv"))) {
+				Err($"FAIL: export csv dir {rm.Error} files={rm.Files}");
+				bad++;
+			}
+
+			var htmlp = Path.Combine(dir, "t.html");
+			var rh = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Html, Scope = SqlExportScope.Table,
+				Kind = SqlTool.Sqlite, Table = "t", Path = htmlp,
+			});
+			var html = rh.Error.Length == 0 && File.Exists(htmlp) ? File.ReadAllText(htmlp) : "";
+			if (rh.Error.Length > 0 || rh.Rows != 2 || !html.Contains("<table>") || !html.Contains("<th>name</th>")) {
+				Err("FAIL: export html " + rh.Error);
+				bad++;
+			}
+
+			// 进度：多行表导出要收到多次上报，且行数是递增的
+			var big = "CREATE TABLE big (id INTEGER PRIMARY KEY, v VARCHAR(64))";
+			SqlTool.Run(cn, big, 0);
+			var ins = new StringBuilder("INSERT INTO big (id, v) VALUES ");
+			for (var i = 1; i <= 600; i++) {
+				if (i > 1) ins.Append(',');
+				ins.Append($"({i}, 'v{i}')");
+			}
+			SqlTool.Run(cn, ins.ToString(), 0);
+			var seen = new List<SqlExportProgress>();
+			var got = new SyncProgress(p => seen.Add(p));
+			var rb = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Sql, Scope = SqlExportScope.Table,
+				Dialect = SqlDialect.Sqlite, Kind = SqlTool.Sqlite, Table = "big",
+				Path = Path.Combine(dir, "big.sql"),
+			}, got);
+			if (rb.Error.Length > 0 || rb.Rows != 600) {
+				Err($"FAIL: export progress rows={rb.Rows} {rb.Error}");
+				bad++;
+			}
+			// 每张表至少报一次阶段、结束时再报一次收尾；节流会把同一时刻的合并掉
+			if (seen.Count < 2) {
+				Err($"FAIL: export progress 只上报 {seen.Count} 次");
+				bad++;
+			}
+			else {
+				var maxrows = seen.Max(p => p.Rows);
+				if (maxrows != 600) {
+					Err($"FAIL: export progress 最终行数 {maxrows}");
+					bad++;
+				}
+			}
+
+			// 取消：一开始就取消，不该写出任何东西
+			var cancelpath = Path.Combine(dir, "cancel.sql");
+			var cts = new CancellationTokenSource();
+			cts.Cancel();
+			var rc2 = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Sql, Scope = SqlExportScope.Table,
+				Dialect = SqlDialect.Sqlite, Kind = SqlTool.Sqlite, Table = "big", Path = cancelpath,
+			}, null, cts.Token);
+			if (!rc2.Cancelled || rc2.Error.Length > 0) {
+				Err($"FAIL: export cancel cancelled={rc2.Cancelled} err={rc2.Error}");
+				bad++;
+			}
+
+			// 标识符与字符串写法：普通名字不加引号、不出现 N'...'、不加方括号
+			var qq = Path.Combine(dir, "q.sql");
+			var rq = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Sql, Scope = SqlExportScope.Table,
+				Dialect = SqlDialect.Mssql, Version = new Version(9, 0),
+				Kind = SqlTool.Sqlite, Table = "t", Path = qq,
+			});
+			if (rq.Error.Length > 0) {
+				Err("FAIL: export quoting " + rq.Error);
+				bad++;
+			}
+			else {
+				var qt = File.ReadAllText(qq);
+				if (qt.Contains("N'")) {
+					Err("FAIL: 不该出现 N'...' 字面量");
+					bad++;
+				}
+				if (qt.Contains('[') || qt.Contains(']')) {
+					Err("FAIL: 不该用方括号包标识符");
+					bad++;
+				}
+				if (!qt.Contains("CREATE TABLE t (") || !qt.Contains("INSERT INTO t (id, name, note)")) {
+					Err("FAIL: 普通标识符应裸写");
+					bad++;
+				}
+				if (!qt.Contains("OBJECT_ID('t', 'U')")) {
+					Err("FAIL: OBJECT_ID 参数写法 " + qt);
+					bad++;
+				}
+			}
+			// 中文 / 带空格 / 撞关键字的标识符要加引号，否则脚本跑不起来
+			SqlTool.Run(cn, "CREATE TABLE \"中文 表\" (\"select\" INTEGER, \"普通\" VARCHAR(10))", 0);
+			var qq2 = Path.Combine(dir, "q2.sql");
+			var rq2 = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Sql, Scope = SqlExportScope.Table,
+				Dialect = SqlDialect.Mssql, Version = new Version(16, 0),
+				Kind = SqlTool.Sqlite, Table = "中文 表", Path = qq2,
+			});
+			if (rq2.Error.Length > 0) {
+				Err("FAIL: export quote special " + rq2.Error);
+				bad++;
+			}
+			else {
+				var qt2 = File.ReadAllText(qq2);
+				if (!qt2.Contains("CREATE TABLE \"中文 表\"") || !qt2.Contains("\"select\"")
+					|| !qt2.Contains("\"普通\"")) {
+					Err("FAIL: 特殊标识符应加引号 " + qt2);
+					bad++;
+				}
+			}
+
+			// 自增列：SQL Server 显式插入必须包 IDENTITY_INSERT，否则脚本跑不起来
+			SqlTool.Run(cn, "CREATE TABLE idt (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)", 0);
+			SqlTool.Run(cn, "INSERT INTO idt (name) VALUES ('a'), ('b')", 0);
+			var idp = Path.Combine(dir, "idt.sql");
+			var rid = SqlExport.Run(cn, new SqlExportOptions {
+				Format = SqlExportFormat.Sql, Scope = SqlExportScope.Table,
+				Dialect = SqlDialect.Mssql, Version = new Version(16, 0),
+				Kind = SqlTool.Sqlite, Table = "idt", Path = idp,
+			});
+			if (rid.Error.Length > 0) {
+				Err("FAIL: export identity " + rid.Error);
+				bad++;
+			}
+			else {
+				var it = File.ReadAllText(idp);
+				if (!it.Contains("SET IDENTITY_INSERT idt ON;") || !it.Contains("SET IDENTITY_INSERT idt OFF;")) {
+					Err("FAIL: 自增列应包 IDENTITY_INSERT");
+					bad++;
+				}
+			}
+
+			// 小数精度：decimal(p,s) 同引擎导出要原样保留，不能被统一成 (18,6)
+			var col = new SqlExportColumn {
+				Name = "amt", Kind = SqlTypeKind.Decimal, SourceType = "decimal", Precision = 18, Scale = 2,
+			};
+			var dt = SqlExport.typetext(col, SqlDialect.Mssql, new Version(16, 0), true);
+			if (dt != "decimal(18,2)") {
+				Err("FAIL: decimal 精度应保留，实际 " + dt);
+				bad++;
+			}
+			// 时间精度：MySQL 侧必须带毫秒，否则 SQL Server 的 datetime 会被截到整秒
+			var mxcol = new SqlExportColumn { Name = "t", Kind = SqlTypeKind.DateTime };
+			var dtn = SqlExport.typetext(mxcol, SqlDialect.Mysql, new Version(8, 0));
+			if (dtn != "datetime(3)") {
+				Err("FAIL: MySQL datetime 应带毫秒，实际 " + dtn);
+				bad++;
+			}
+			// MySQL 行宽：列多且 varchar 宽时要自动降成 longtext，否则建表报 Row size too large
+			var fat = new SqlExportTable { Name = "fat" };
+			for (var i = 0; i < 60; i++)
+				fat.Columns.Add(new SqlExportColumn { Name = "c" + i, Kind = SqlTypeKind.Text, Size = 1000 });
+			var fw = typeof(SqlExport).GetMethod("MysqlRowBudget", BindingFlags.NonPublic | BindingFlags.Static);
+			var over = fw?.Invoke(null, new object[] { fat, false }) as HashSet<string>;
+			if (over == null || over.Count == 0) {
+				Err("FAIL: 超宽表应有列降成 longtext");
+				bad++;
+			}
+
+			if (bad == 0) Out($"export: OK ({dir})");
+		}
+		catch (Exception ex) {
+			Err("FAIL: export " + ex);
+			bad++;
+		}
+		finally {
+			try { Directory.Delete(dir, true); } catch { }
+		}
+		return bad;
 	}
 
 	static int testcast() {

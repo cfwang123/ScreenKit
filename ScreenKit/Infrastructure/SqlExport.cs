@@ -47,6 +47,9 @@ sealed class SqlExportColumn {
 	public SqlTypeKind Kind;
 	/// <summary>源库里的原始类型名，同引擎导出时原样写回。</summary>
 	public string SourceType = "";
+	/// <summary>数值列的精度与小数位，0 表示未知。</summary>
+	public int Precision;
+	public int Scale;
 	public bool Nullable = true;
 	public bool PrimaryKey;
 	public bool Identity;
@@ -420,6 +423,8 @@ static class SqlExport {
 	/// <summary>建表语句。同引擎导出时列类型原样保留，跨引擎按目标方言重写。</summary>
 	static string createof(SqlExportTable t, SqlDialect d, Version ver, bool sametype) {
 		var tname = qname(d, t.Name);
+		// MySQL 单行上限 65535 字节，utf8mb4 每个字符 3 字节还可能占 4，先按宽文本列预算
+		var budget = d == SqlDialect.Mysql ? MysqlRowBudget(t, sametype) : null;
 		var sb = new StringBuilder();
 		if (d == SqlDialect.Mssql) {
 			if (SqlTargets.DropIfExists(ver)) {
@@ -437,7 +442,7 @@ static class SqlExport {
 			: -1;
 		for (var i = 0; i < t.Columns.Count; i++) {
 			var c = t.Columns[i];
-			var line = $"  {qname(d, c.Name)} {typetext(c, d, ver, sametype)}";
+			var line = $"  {qname(d, c.Name)} {typetext(c, d, ver, sametype, budget)}";
 			var def = defaultof(c, d, ver);
 			if (def.Length > 0) line += " DEFAULT " + def;
 			if (c.Identity && i != sqlaic) line += identityof(d, c);
@@ -502,7 +507,7 @@ static class SqlExport {
 		return true;
 	}
 
-	/// <summary>多行 INSERT。SQL Server 2008 之前只支持一条 VALUES。</summary>
+	/// <summary>多行 INSERT。SQL Server 2008 之前只支持一条 VALUES；有自增列要先放开 IDENTITY_INSERT。</summary>
 	static long insertrows(StreamWriter w, DbDataReader rd, SqlExportTable t, SqlDialect d, Version ver,
 		SqlExportJob job, int index, int total) {
 		var tname = qname(d, t.Name);
@@ -510,6 +515,9 @@ static class SqlExport {
 		var head = "INSERT INTO " + tname + " ("
 			+ string.Join(", ", cols.ConvertAll(c => qname(d, c.Name)).ToArray()) + ") VALUES";
 		var batch = d == SqlDialect.Mssql && !SqlTargets.Modern(ver) ? 1 : 200;
+		// 显式带入自增列的值，SQL Server 必须先把 IDENTITY_INSERT 打开
+		var ident = d == SqlDialect.Mssql && cols.Exists(c => c.Identity);
+		if (ident) w.WriteLine($"SET IDENTITY_INSERT {tname} ON;");
 		var sb = new StringBuilder();
 		var n = 0;
 		long rows = 0;
@@ -534,6 +542,7 @@ static class SqlExport {
 			if ((rows & 0x3F) == 0) job.report(SqlExportPhase.Data, index, total, t.Name, rows, 0);
 		}
 		if (n > 0) w.WriteLine(sb.Append(';').ToString());
+		if (ident) w.WriteLine($"SET IDENTITY_INSERT {tname} OFF;");
 		job.report(SqlExportPhase.Data, index, total, t.Name, rows, 0, true);
 		return rows;
 	}
@@ -620,10 +629,86 @@ static class SqlExport {
 
 	// ==================== 类型与默认值 ====================
 
-	public static string typetext(SqlExportColumn c, SqlDialect d, Version ver) => typetext(c, d, ver, false);
+	/// <summary>把基名与长度拼回完整声明，同引擎导出时原样写回。</summary>
+	static string declared(string bare, int size) => declared(bare, size, 0, 0);
 
-	public static string typetext(SqlExportColumn c, SqlDialect d, Version ver, bool sametype) {
-		if (sametype && !string.IsNullOrWhiteSpace(c.SourceType)) return c.SourceType.Trim();
+	/// <summary>把基名与长度/精度拼回完整声明，同引擎导出时原样写回。</summary>
+	static string declared(string bare, int size, int prec, int scale) {
+		var tn = (bare ?? "").Trim();
+		if (tn.Length == 0) return tn;
+		var low = tn.ToLowerInvariant();
+		if (low.Contains('(')) return tn;
+		switch (low) {
+		case "varchar":
+		case "nvarchar":
+		case "char":
+		case "nchar":
+		case "varchar2":
+		case "nvarchar2":
+		case "binary":
+		case "varbinary":
+			return size > 0 ? $"{low}({size})" : tn;
+		case "decimal":
+		case "numeric":
+			if (prec > 0) return $"{low}({prec},{Math.Max(0, scale)})";
+			return $"{low}(18,6)";
+		default:
+			return tn;
+		}
+	}
+
+	/// <summary>
+	/// MySQL 一行的字节预算：按列顺序累加，超过上限的文本列降成 longtext（行内只占 12 字节指针），
+	/// 否则 277 列的表 CREATE 时会报 Row size too large。
+	/// </summary>
+	static HashSet<string> MysqlRowBudget(SqlExportTable t, bool sametype) {
+		const int Limit = 55000;
+		var over = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		var used = 0;
+		foreach (var c in t.Columns) {
+			var bytes = colbytes(c, sametype);
+			if (bytes < 0) {
+				used += 12;
+				continue;
+			}
+			// 指针或变长列本身的开销之外，文本列还要真占地方
+			if (c.Kind == SqlTypeKind.Text && used + bytes > Limit) {
+				over.Add(c.Name);
+				used += 12;
+				continue;
+			}
+			used += bytes;
+		}
+		return over;
+	}
+
+	/// <summary>该列在 MySQL 里占多少字节；-1 表示不定长（会当 longtext 处理）。</summary>
+	static int colbytes(SqlExportColumn c, bool sametype) {
+		var size = c.Size;
+		if (sametype && !string.IsNullOrWhiteSpace(c.SourceType)
+			&& c.SourceType.IndexOf("max", StringComparison.OrdinalIgnoreCase) >= 0) return -1;
+		return c.Kind switch {
+			SqlTypeKind.Int or SqlTypeKind.Bool => 4,
+			SqlTypeKind.BigInt => 8,
+			SqlTypeKind.Float => 8,
+			SqlTypeKind.Decimal => 12,
+			SqlTypeKind.Date or SqlTypeKind.DateTime => 8,
+			SqlTypeKind.Time => 6,
+			// utf8mb4 每字符按 4 字节算，再加 2 字节长度前缀
+			SqlTypeKind.Guid => 36 * 4 + 2,
+			SqlTypeKind.Blob => -1,
+			// 超过 4000 字符的跨引擎会变 longtext，也是不定长
+			_ => size > 0 && size <= 4000 ? size * 4 + 2 : -1,
+		};
+	}
+
+	public static string typetext(SqlExportColumn c, SqlDialect d, Version ver) => typetext(c, d, ver, false, null);
+
+	public static string typetext(SqlExportColumn c, SqlDialect d, Version ver, bool sametype, HashSet<string> overwide = null) {
+		var tooWide = overwide != null && overwide.Contains(c.Name);
+		// 超宽的列即使同引擎也要降级，否则目标端建表直接报 Row size too large
+		if (sametype && !tooWide && !string.IsNullOrWhiteSpace(c.SourceType))
+			return declared(c.SourceType, c.Size, c.Precision, c.Scale);
 		var size = c.Size;
 		if (d == SqlDialect.Mssql) {
 			var modern = SqlTargets.Modern(ver);
@@ -635,7 +720,7 @@ static class SqlExport {
 				SqlTypeKind.Bool => "bit",
 				SqlTypeKind.Date => modern ? "date" : "datetime",
 				SqlTypeKind.Time => modern ? "time" : "datetime",
-				SqlTypeKind.DateTime => modern ? "datetime2" : "datetime",
+				SqlTypeKind.DateTime => modern ? "datetime2(3)" : "datetime",
 				SqlTypeKind.Blob => "varbinary(max)",
 				SqlTypeKind.Guid => "uniqueidentifier",
 				_ => size > 0 && size <= 4000 ? $"nvarchar({size})" : "nvarchar(max)",
@@ -650,10 +735,11 @@ static class SqlExport {
 				SqlTypeKind.Bool => "tinyint(1)",
 				SqlTypeKind.Date => "date",
 				SqlTypeKind.Time => "time",
-				SqlTypeKind.DateTime => "datetime",
+				// SQL Server 的 datetime 带毫秒，不写精度会被 MySQL 截到整秒
+				SqlTypeKind.DateTime => "datetime(3)",
 				SqlTypeKind.Blob => "longblob",
 				SqlTypeKind.Guid => "char(36)",
-				_ => size > 0 && size <= 4000 ? $"varchar({size})" : "longtext",
+				_ => tooWide ? "longtext" : size > 0 && size <= 4000 ? $"varchar({size})" : "longtext",
 			};
 		}
 		return c.Kind switch {
@@ -718,6 +804,12 @@ static class SqlExport {
 
 	static string defaultof(SqlExportColumn c, SqlDialect d, Version ver) {
 		parsedefault(c, out var kind, out var text);
+		// 源库给的空串默认值放到数值列上：SQL Server / SQLite 会当成 0，MySQL 建表直接报错
+		if (kind == DefKind.Text && text.Trim().Length == 0
+			&& c.Kind is SqlTypeKind.Int or SqlTypeKind.BigInt or SqlTypeKind.Decimal or SqlTypeKind.Float) {
+			kind = DefKind.Number;
+			text = "0";
+		}
 		switch (kind) {
 		case DefKind.Number:
 			return text;
@@ -1134,6 +1226,7 @@ static class SqlExport {
 			using var cmd = cn.CreateCommand();
 			cmd.CommandText = "SELECT c.COLUMN_NAME, c.DATA_TYPE, c.CHARACTER_MAXIMUM_LENGTH, c.IS_NULLABLE, c.COLUMN_DEFAULT, "
 				+ "COLUMNPROPERTY(OBJECT_ID(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') AS IsIdentity, "
+				+ "c.NUMERIC_PRECISION, c.NUMERIC_SCALE, "
 				+ "CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc "
 				+ "  JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE ku ON ku.CONSTRAINT_NAME = tc.CONSTRAINT_NAME "
 				+ "  WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY' AND tc.TABLE_NAME = c.TABLE_NAME AND ku.COLUMN_NAME = c.COLUMN_NAME) "
@@ -1157,7 +1250,9 @@ static class SqlExport {
 				c.Size = len > 0 && len < int.MaxValue ? len : sz;
 				var ident = rd.GetValue(5) == DBNull.Value ? 0 : Convert.ToInt32(rd.GetValue(5), CultureInfo.InvariantCulture);
 				c.Identity = ident == 1;
-				c.PrimaryKey = Convert.ToInt32(rd.GetValue(6), CultureInfo.InvariantCulture) == 1;
+				c.Precision = rd.GetValue(6) == DBNull.Value ? 0 : Convert.ToInt32(rd.GetValue(6), CultureInfo.InvariantCulture);
+				c.Scale = rd.GetValue(7) == DBNull.Value ? 0 : Convert.ToInt32(rd.GetValue(7), CultureInfo.InvariantCulture);
+				c.PrimaryKey = Convert.ToInt32(rd.GetValue(8), CultureInfo.InvariantCulture) == 1;
 				list.Add(c);
 			}
 		}
@@ -1514,6 +1609,84 @@ static class SqlExport {
 		cmd.CommandText = sql;
 		cmd.CommandTimeout = 0;
 		return cmd.ExecuteReader();
+	}
+
+	/// <summary>
+	/// 跑一份导出脚本：按分号切句、跳过注释，逐句执行。
+	/// 只用于验证导出结果能不能导回，不处理 GO / DELIMITER 这类客户端指令。
+	/// </summary>
+	public static int Import(DbConnection cn, string path, out string error, IProgress<int> progress = null) {
+		error = "";
+		var n = 0;
+		try {
+			foreach (var stmt in statements(File.ReadAllText(path, Encoding.UTF8))) {
+				using (var cmd = cn.CreateCommand()) {
+					cmd.CommandText = stmt;
+					cmd.CommandTimeout = 0;
+					cmd.ExecuteNonQuery();
+				}
+				n++;
+				if ((n & 0x1F) == 0) progress?.Report(n);
+			}
+		}
+		catch (Exception ex) {
+			error = $"第 {n + 1} 句：{ex.Message}";
+			return -1;
+		}
+		progress?.Report(n);
+		return n;
+	}
+
+	/// <summary>把脚本切成一条条语句：跳过 -- 行注释与 /* */ 块注释，引号里的分号不算。</summary>
+	static List<string> statements(string sql) {
+		var list = new List<string>();
+		var sb = new StringBuilder();
+		var i = 0;
+		var len = sql.Length;
+		while (i < len) {
+			var ch = sql[i];
+			if (ch == '-' && i + 1 < len && sql[i + 1] == '-') {
+				while (i < len && sql[i] != '\n') i++;
+				continue;
+			}
+			if (ch == '/' && i + 1 < len && sql[i + 1] == '*') {
+				i += 2;
+				while (i + 1 < len && !(sql[i] == '*' && sql[i + 1] == '/')) i++;
+				i = Math.Min(len, i + 2);
+				continue;
+			}
+			if (ch == '\'') {
+				// 引号里的 '' 是转义的撇号
+				sb.Append(ch);
+				i++;
+				while (i < len) {
+					sb.Append(sql[i]);
+					if (sql[i] == '\'') {
+						if (i + 1 < len && sql[i + 1] == '\'') {
+							sb.Append(sql[i + 1]);
+							i += 2;
+							continue;
+						}
+						i++;
+						break;
+					}
+					i++;
+				}
+				continue;
+			}
+			if (ch == ';') {
+				var s = sb.ToString().Trim();
+				if (s.Length > 0) list.Add(s);
+				sb.Clear();
+				i++;
+				continue;
+			}
+			sb.Append(ch);
+			i++;
+		}
+		var tail = sb.ToString().Trim();
+		if (tail.Length > 0) list.Add(tail);
+		return list;
 	}
 
 	public static string SafeName(string name) {

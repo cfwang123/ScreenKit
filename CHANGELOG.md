@@ -55,30 +55,38 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Emoji lookup has a font picker: the grid and the large preview can be rendered with any installed font, remembered separately from the Unicode chart font.
+- Database query: export a table, the current result or the whole database as a SQL script in SQLite / MySQL / SQL Server dialect - pick the target SQL Server version (2005-2022) and newer-only syntax is downgraded automatically (datetime2/date/time to datetime, no DROP TABLE IF EXISTS, no multi-row INSERT) - or as xlsx / csv / html.
 
 #### Changed
 
 - Dictionary pronunciation now defaults to Microsoft Edge online voices; languages that were never configured no longer borrow the English row or fall back to SAPI, so web tool and web dictionary pronunciation for every language uses that language's Edge voice.
 - The font picker in Emoji lookup lists only fonts that actually contain emoji glyphs; the Unicode chart still lists every installed font.
+- Database query export now writes plain unquoted identifiers and single-quoted strings instead of [bracketed] names and N'...' literals; only names with spaces, non-ASCII characters or reserved words get quoted.
 
 #### Fixed
 
 - Dictionary pronunciation: Edge voices are now picked per language, so each row keeps a voice of its own language instead of an English one.
+- Database query: exporting crashed because progress updates touched UI controls from the export thread; export now runs behind a real progress window (per-table percent, rows written, elapsed time) with a working Cancel button.
+- Fix SQL export: preserve decimal precision, keep milliseconds in datetime, handle IDENTITY_INSERT for SQL Server, degrade over-wide MySQL rows to longtext, and accept host:port for MySQL
 
 ### 中文
 
 #### 新增
 
 - Emoji 查询增加字体选择：格子和右侧大字预览可以用本机任意字体显示，选择单独保存，不影响 Unicode 码表的字体设置。
+- 数据库查询：可把当前表、当前查询结果或整个库导出为 SQL 脚本，支持 SQLite / MySQL / SQL Server 三种方言；SQL Server 可选目标版本（2005~2022），选低版本时自动降级为新版本才有的语法（datetime2/date/time 改 datetime、不用 DROP TABLE IF EXISTS、不合并多行 INSERT），也可导出为 xlsx、csv、html。
 
 #### 变更
 
 - 词典发音的默认引擎改为 Edge 在线语音；没有配置过的语言不再借英语那一行、也不再用 SAPI，网页工具和网页词典里各语言的发音都用该语言自己的 Edge 发音人。
 - Emoji 查询的字体下拉只列真正带 emoji 字形的字体，Unicode 码表的字体下拉仍是全部本机字体。
+- 数据库查询导出：标识符默认裸写、字符串统一单引号，不再用方括号和 N 前缀；只有含空格、中文或撞关键字的名字才加引号。
 
 #### 修复
 
 - 词典发音：Edge 发音人按语言各自筛选，俄语等语言不会再配上英语发音人。
+- 数据库查询：导出时进度回调在导出线程上直接改控件导致崩溃；现在导出走独立进度窗口（表序号、百分比、已写行数、已用时），并支持取消。
+- 修复 SQL 导出：保留 decimal 精度与 datetime 毫秒，SQL Server 自增列补 IDENTITY_INSERT，MySQL 超宽表自动降为 longtext，MySQL 主机支持 host:port
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

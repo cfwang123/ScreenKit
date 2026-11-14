@@ -63,15 +63,27 @@ static class SqlTool {
 		return b.ConnectionString;
 	}
 
-	/// <summary>MySQL：<paramref name="host"/> 可带端口（host:3306）；库连上后再选，不写进连接串。</summary>
+	/// <summary>
+	/// MySQL：<paramref name="host"/> 可带端口（host:3306）；库连上后再选，不写进连接串。
+	/// MySqlConnector 不认 Server=host:port，端口要单独给 Port。
+	/// </summary>
 	public static string MysqlConn(string host, string user, string pw) {
+		var h = (host ?? "").Trim();
+		var port = "";
+		// 只有 host:port 这种单冒号且后半是数字才当端口，避免误切 IPv6
+		var colon = h.LastIndexOf(':');
+		if (colon > 0 && h.IndexOf(':') == colon && int.TryParse(h.Substring(colon + 1), out var pn) && pn > 0 && pn < 65536) {
+			port = h.Substring(colon + 1);
+			h = h.Substring(0, colon);
+		}
 		var b = new DbConnectionStringBuilder {
-			["Server"] = (host ?? "").Trim(),
+			["Server"] = h.Length > 0 ? h : "127.0.0.1",
 			["User ID"] = (user ?? "").Trim(),
 			["Password"] = pw ?? "",
 			["Connection Timeout"] = 8,
 			["Pooling"] = false,
 		};
+		if (port.Length > 0) b["Port"] = port;
 		return b.ConnectionString;
 	}
 
@@ -360,7 +372,10 @@ static class SqlTool {
 		return top > 0 ? $"SELECT * FROM {q} LIMIT {top}" : $"SELECT * FROM {q}";
 	}
 
-	static string quote(string kind, string name) {
+	static string quote(string kind, string name) => Quote(kind, name);
+
+	/// <summary>按引擎给标识符加引号，导出等外部调用共用。</summary>
+	public static string Quote(string kind, string name) {
 		if (kind == Mssql) return "[" + (name ?? "").Replace("]", "]]") + "]";
 		if (kind == Mysql) return "`" + (name ?? "").Replace("`", "``") + "`";
 		return "\"" + (name ?? "").Replace("\"", "\"\"") + "\"";
@@ -382,7 +397,10 @@ static class SqlTool {
 		return next;
 	}
 
-	static string text(object v) {
+	static string text(object v) => Text(v);
+
+	/// <summary>单元格显示文本；NULL、二进制、日期时间统一在这里收口，导出也用这套。</summary>
+	public static string Text(object v) {
 		if (v == null || v is DBNull) return "NULL";
 		if (v is byte[] b) return $"<{b.Length} bytes>";
 		// 时间部分是 0 就只给日期，免得纯日期列全带一串 00:00:00
