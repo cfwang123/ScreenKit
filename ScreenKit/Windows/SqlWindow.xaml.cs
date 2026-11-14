@@ -56,6 +56,7 @@ public partial class SqlWindow : Window {
 		brefresh.Content = Loc.T("sql.refresh");
 		bdata.Content = Loc.T("sql.query");
 		bschema.Content = Loc.T("sql.schema");
+		bexport.Content = Loc.T("sql.export");
 		tabdata.Header = Loc.T("sql.data");
 		tabschema.Header = Loc.T("sql.schema");
 		lbtop.Text = Loc.T("sql.top");
@@ -74,6 +75,7 @@ public partial class SqlWindow : Window {
 		brefresh.Click += (_, _) => reloadtables(false);
 		bdata.Click += (_, _) => loadtable();
 		bschema.Click += (_, _) => showschema();
+		bexport.Click += (_, _) => export();
 		brun.Click += (_, _) => run();
 		esql.PreviewKeyDown += (_, e) => {
 			if (e.Key == Key.F5 || (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)) {
@@ -94,6 +96,7 @@ public partial class SqlWindow : Window {
 		etop.SelectedIndex = 1;
 		etables.IsEnabled = false;
 		edbs.IsEnabled = false;
+		bexport.IsEnabled = false;
 		// 表下拉里选中一项就直接看内容，跟 sqlconsole 一致，不必再点「查询」
 		etables.SelectionChanged += (_, _) => {
 			if (tablesloading || etables.SelectedItem is not string t) return;
@@ -368,6 +371,8 @@ public partial class SqlWindow : Window {
 				cn = got;
 				kind = k;
 				bconnect.Content = Loc.T("sql.disconnect");
+				bconnect.Style = (Style)FindResource("DisconnectBtn");
+				bexport.IsEnabled = true;
 				ecxkind.IsEnabled = efile.IsEnabled = bfile.IsEnabled = false;
 				ehost.IsEnabled = euser.IsEnabled = epw.IsEnabled = false;
 				emhost.IsEnabled = emuser.IsEnabled = empw.IsEnabled = false;
@@ -385,7 +390,9 @@ public partial class SqlWindow : Window {
 		busy = false;
 		busyset(false, Loc.T("sql.disconnected"));
 		bconnect.Content = Loc.T("sql.connect");
+		bconnect.Style = (Style)FindResource("ConnectBtn");
 		ecxkind.IsEnabled = efile.IsEnabled = bfile.IsEnabled = true;
+		bexport.IsEnabled = false;
 		ehost.IsEnabled = euser.IsEnabled = epw.IsEnabled = true;
 		emhost.IsEnabled = emuser.IsEnabled = empw.IsEnabled = true;
 		eohost.IsEnabled = eoservice.IsEnabled = eouser.IsEnabled = eopw.IsEnabled = true;
@@ -408,6 +415,7 @@ public partial class SqlWindow : Window {
 		brefresh.IsEnabled = !on;
 		bdata.IsEnabled = !on;
 		bschema.IsEnabled = !on;
+		bexport.IsEnabled = !on;
 		brun.IsEnabled = !on;
 		edbs.IsEnabled = !on && edbs.Items.Count > 0;
 		etables.IsEnabled = !on && etables.Items.Count > 0;
@@ -579,6 +587,52 @@ public partial class SqlWindow : Window {
 	int toplimit() {
 		if (etop.SelectedItem is not string s) return 1000;
 		return int.TryParse(s, out var v) ? v : 1000;
+	}
+
+	/// <summary>导出：SQL 脚本或 xlsx / csv / html，整库导出时按表逐个写，全程显示进度。</summary>
+	async void export() {
+		if (cn == null) {
+			lbstat.Text = Loc.T("sql.needconn");
+			return;
+		}
+		if (busy) return;
+		var dlg = new SqlExportWindow(selectedtable(), (esql.Text ?? "").Trim(), kind) { Owner = this };
+		if (dlg.ShowDialog() != true || dlg.Result == null) return;
+		var o = dlg.Result;
+		if (o.Scope == SqlExportScope.Database) {
+			if (MessageBox.Show(this, Loc.T("sql.export.dbask"), Loc.T("sql.export.title"),
+				MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+		}
+
+		var prog = new SqlExportProgressWindow { Owner = this };
+		var n = ++gen;
+		busyset(true, Loc.T("sql.export.working"));
+		prog.Show();
+		SqlExportResult r = null;
+		try {
+			r = await Task.Run(() => SqlExport.Run(cn, o, prog, prog.Token));
+		}
+		catch (Exception ex) {
+			r = new SqlExportResult { Error = ex.Message };
+		}
+		finally {
+			if (n == gen) busyset(false, "");
+			prog.forceclose();
+		}
+		if (n != gen) return;
+		if (r.Cancelled || prog.WasCancelled) {
+			lbstat.Text = Loc.T("sql.export.progress.cancelled");
+			return;
+		}
+		if (r.Error.Length > 0) {
+			lbstat.Text = Loc.T("sql.export.fail", r.Error);
+			return;
+		}
+		var msg = r.Files > 1
+			? Loc.T("sql.export.done.multi", r.Files, r.Rows, r.Ms)
+			: Loc.T("sql.export.done", o.Path, r.Rows, r.Ms);
+		if (!string.IsNullOrEmpty(r.Note)) msg += "  " + r.Note;
+		lbstat.Text = msg;
 	}
 
 	/// <summary>排序后行不会重新 Loading，显式把已实化的行头刷一遍序号。</summary>

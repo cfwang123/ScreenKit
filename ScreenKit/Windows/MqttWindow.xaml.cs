@@ -72,6 +72,7 @@ public partial class MqttWindow : Window {
 	void updconnui() {
 		var on = cli.Connected;
 		bcconn.Content = on ? Loc.T("mqtt.disconnect") : Loc.T("mqtt.connect");
+		bcconn.Style = (Style)FindResource(on ? "DisconnectBtn" : "ConnectBtn");
 		bcsub.IsEnabled = on;
 		bcunsub.IsEnabled = on;
 		bcpub.IsEnabled = on;
@@ -199,6 +200,7 @@ public partial class MqttWindow : Window {
 	void updserverui() {
 		var on = srv != null && srv.Running;
 		bstoggle.Content = on ? Loc.T("mqtt.server.stop") : Loc.T("mqtt.server.start");
+		bstoggle.Style = (Style)FindResource(on ? "DisconnectBtn" : "ConnectBtn");
 		esport.IsEnabled = !on;
 		bspub.IsEnabled = on;
 		lbsstat.Text = on ? Loc.T("mqtt.server.running", srv.Port) : Loc.T("mqtt.server.stopped");

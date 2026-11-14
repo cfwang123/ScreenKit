@@ -72,7 +72,7 @@
 							<PasswordBox x:Name="ecpw" Width="100" Height="30" Padding="8,4" Margin="0,0,10,0"
 							             BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"
 							             AutomationProperties.AutomationId="mqtt.client.pw"/>
-							<Button x:Name="bcconn" Style="{StaticResource ToolBtn}"
+							<Button x:Name="bcconn" Style="{StaticResource ConnectBtn}"
 							        AutomationProperties.AutomationId="mqtt.client.connect"/>
 						</WrapPanel>
 					</Border>
@@ -168,7 +168,7 @@
 							<TextBlock x:Name="lbsport" Style="{StaticResource FieldLabel}"/>
 							<TextBox x:Name="esport" Style="{StaticResource FieldBox}" Width="80" Margin="0,0,12,0"
 							         AutomationProperties.AutomationId="mqtt.server.port"/>
-							<Button x:Name="bstoggle" Style="{StaticResource ToolBtn}" Margin="0,0,12,0"
+							<Button x:Name="bstoggle" Style="{StaticResource ConnectBtn}" Margin="0,0,12,0"
 							        AutomationProperties.AutomationId="mqtt.server.toggle"/>
 							<TextBlock x:Name="lbsstat" VerticalAlignment="Center"
 							           Foreground="{StaticResource TextMuted}"/>

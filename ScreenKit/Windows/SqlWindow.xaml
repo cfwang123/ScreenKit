@@ -124,7 +124,7 @@
 					             BorderBrush="{StaticResource BorderSoft}" VerticalContentAlignment="Center"/>
 				</StackPanel>
 
-				<Button x:Name="bconnect" Style="{StaticResource ToolBtn}" Margin="0"
+				<Button x:Name="bconnect" Style="{StaticResource ConnectBtn}" Margin="0"
 				        AutomationProperties.AutomationId="sql.connect"/>
 			</WrapPanel>
 			</StackPanel>
@@ -158,8 +158,10 @@
 				          Margin="0,0,12,0" AutomationProperties.AutomationId="sql.top"/>
 				<Button x:Name="bdata" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
 				        AutomationProperties.AutomationId="sql.query"/>
-				<Button x:Name="bschema" Style="{StaticResource ToolBtn}" Margin="0"
+				<Button x:Name="bschema" Style="{StaticResource ToolBtn}" Margin="0,0,6,0"
 				        AutomationProperties.AutomationId="sql.schema"/>
+				<Button x:Name="bexport" Style="{StaticResource ToolBtn}" Margin="0"
+				        AutomationProperties.AutomationId="sql.export"/>
 			</WrapPanel>
 
 			<Grid Grid.Row="1" Margin="0,0,0,8">

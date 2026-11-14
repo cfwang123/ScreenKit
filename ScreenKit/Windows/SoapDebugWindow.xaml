@@ -248,9 +248,11 @@
 							<TextBlock x:Name="lbPort" Text="端口" Style="{StaticResource FieldLabel}" />
 							<TextBox x:Name="ePort" Width="68" Height="28" Text="8080" Padding="4,2"
 									 VerticalContentAlignment="Center" AutomationProperties.AutomationId="soapdbg.port" />
-							<Button x:Name="bStartMock" Content="启动" Style="{StaticResource WideButton}" Margin="8,0,6,0"
+							<Button x:Name="bStartMock" Content="启动" Style="{StaticResource ConnectBtn}"
+									 Height="30" MinWidth="58" Padding="10,2" Margin="8,0,6,0"
 									AutomationProperties.AutomationId="soapdbg.mock.start" />
-							<Button x:Name="bStopMock" Content="停止" Style="{StaticResource WideButton}"
+							<Button x:Name="bStopMock" Content="停止" Style="{StaticResource DisconnectBtn}"
+									 Height="30" MinWidth="58" Padding="10,2"
 									AutomationProperties.AutomationId="soapdbg.mock.stop" />
 							<TextBlock x:Name="lbMockUrl" Text="服务地址" Style="{StaticResource FieldLabel}" Margin="14,0,6,0" />
 							<TextBox x:Name="eMockUrl" Width="200" Height="28" IsReadOnly="True" Padding="4,2"
