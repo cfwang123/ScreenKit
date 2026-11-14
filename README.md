@@ -168,7 +168,7 @@ This program receives while it is running, and that can be turned off in Setting
 - **Lookup**
   - **Japanese conjugation**: Enter the dictionary form or pick a word from the dropdown; auto tells a verb from an i-adjective, na-adjective or noun, and the type can be set by hand. Verbs are listed by class with auxiliaries, politeness, dialect forms and N5-N1 patterns; adjectives and nouns get their own patterns and literary forms, and rough, written, character-speech and sentence-ending groups are listed separately. Each form has a speak button.
   - **Korean word forms**: Pick verb, adjective or noun, type a word or choose one from the list. Forms are grouped by speech level, grammar pattern, contraction, colloquial and literary ending, classical ending, character speech, in-group slang, rough endings, dialect, North Korean, DPRK broadcast or Yanbian. Each form has a speak button.
-  - **Russian word forms**: Pick a type and enter the base form; every form is listed at once. Verbs show tense, mood, participles and gerunds, adjectives and nouns their full declension, each form with a speak button.
+  - **Russian word forms**: Pick a type and enter the base form; every form is listed at once. Verbs show tense, mood, participles and gerunds; each participle is expanded into a full declension table (masculine, neuter, feminine, plural, with animate and inanimate accusatives), short passive forms follow separately. Adjectives and nouns get their full declension, each form with a speak button.
   - **English word forms**: Pick auto, verb, adjective or noun and type a word or choose one from the list. Verbs list the sixteen tenses with negatives, questions, passive and moods. Objects follow the dictionary by default: none if intransitive, one if transitive, two if ditransitive, and the choice can be set by hand. Each object can be picked from the list or typed. Adjectives list the comparison forms, nouns the plurals, articles and agreement, each with a speak button.
   - **Word-form export**: `--conj-json [ja|ko|en]` exports the full table by type; Russian uses `node scripts/export-ru-conj.js`.
   - **Color chart**: Named colors
@@ -219,7 +219,7 @@ The slim package does not include models or the large runtimes; `7za.dll` is bun
 
 Barcode, ONNX text recognition, offline speech, face, local Chinese–English translation, the dictionary, the input method, PDF, FFmpeg, CUDA, and DirectML are installed or removed under **Help → Install features**, and using a component that is not installed yet shows a prompt.
 
-**Settings → General** can turn a group of features off. The UI language is switched on the menu bar or on that same page: Chinese, English, Japanese, Korean, German, Spanish, French, Portuguese, and Russian. **Help** holds Check for updates, Diagnostics, and Memory. A newer version lists the notes for each release since the one you have; pick a version to read that one, or read them all.
+**Settings → General** can turn a group of features off. The UI language is switched on the menu bar or on that same page: Chinese, English, Japanese, Korean, German, Spanish, French, Portuguese, and Russian. With **Hide to tray after startup** checked on that page, launching never shows or flashes the main window; the app starts in the tray, with hotkeys and the tray menu working as usual. **Help** holds Check for updates, Diagnostics, and Memory. A newer version lists the notes for each release since the one you have; pick a version to read that one, or read them all.
 
 ## Run
 
