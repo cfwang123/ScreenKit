@@ -72,6 +72,7 @@ public partial class SqlWindow : Window {
 		bdelconn.Click += (_, _) => delconn();
 		bfile.Click += (_, _) => pickfile();
 		bconnect.Click += (_, _) => connect();
+		setstat(false);
 		brefresh.Click += (_, _) => reloadtables(false);
 		bdata.Click += (_, _) => loadtable();
 		bschema.Click += (_, _) => showschema();
@@ -366,6 +367,7 @@ public partial class SqlWindow : Window {
 				busyset(false, "");
 				if (got == null) {
 					lbstat.Text = Loc.T("sql.fail", err);
+					setstat(false);
 					return;
 				}
 				cn = got;
@@ -378,6 +380,7 @@ public partial class SqlWindow : Window {
 				emhost.IsEnabled = emuser.IsEnabled = empw.IsEnabled = false;
 				eohost.IsEnabled = eoservice.IsEnabled = eouser.IsEnabled = eopw.IsEnabled = false;
 				lbstat.Text = Loc.T("sql.connected");
+				setstat(true);
 				reloaddbs();
 			}));
 		});
@@ -389,6 +392,7 @@ public partial class SqlWindow : Window {
 		gen++;
 		busy = false;
 		busyset(false, Loc.T("sql.disconnected"));
+		setstat(false);
 		bconnect.Content = Loc.T("sql.connect");
 		bconnect.Style = (Style)FindResource("ConnectBtn");
 		ecxkind.IsEnabled = efile.IsEnabled = bfile.IsEnabled = true;
@@ -406,6 +410,13 @@ public partial class SqlWindow : Window {
 		dgs.ItemsSource = null;
 		ecreate.Text = "";
 		try { old?.Dispose(); } catch { }
+	}
+
+	/// <summary>连接状态圆点：连上绿，断开灰。</summary>
+	void setstat(bool on) {
+		dotconn.Fill = (Brush)FindResource(on ? "Success" : "BorderSoft");
+		lbstat.Foreground = (Brush)FindResource(on ? "Success" : "TextMuted");
+		lbstat.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
 	}
 
 	void busyset(bool on, string msg) {

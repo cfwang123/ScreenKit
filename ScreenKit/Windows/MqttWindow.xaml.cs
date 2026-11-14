@@ -73,6 +73,7 @@ public partial class MqttWindow : Window {
 		var on = cli.Connected;
 		bcconn.Content = on ? Loc.T("mqtt.disconnect") : Loc.T("mqtt.connect");
 		bcconn.Style = (Style)FindResource(on ? "DisconnectBtn" : "ConnectBtn");
+		dotcli.Fill = (Brush)FindResource(on ? "Success" : "BorderSoft");
 		bcsub.IsEnabled = on;
 		bcunsub.IsEnabled = on;
 		bcpub.IsEnabled = on;
@@ -201,6 +202,10 @@ public partial class MqttWindow : Window {
 		var on = srv != null && srv.Running;
 		bstoggle.Content = on ? Loc.T("mqtt.server.stop") : Loc.T("mqtt.server.start");
 		bstoggle.Style = (Style)FindResource(on ? "DisconnectBtn" : "ConnectBtn");
+		// 运行中用绿点绿字，停止用灰点灰字，一眼看出服务端在不在跑
+		dotsrv.Fill = (Brush)FindResource(on ? "Success" : "BorderSoft");
+		lbsstat.Foreground = (Brush)FindResource(on ? "Success" : "TextMuted");
+		lbsstat.FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal;
 		esport.IsEnabled = !on;
 		bspub.IsEnabled = on;
 		lbsstat.Text = on ? Loc.T("mqtt.server.running", srv.Port) : Loc.T("mqtt.server.stopped");

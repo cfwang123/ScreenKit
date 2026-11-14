@@ -215,7 +215,13 @@
 			</TabControl>
 		</Grid>
 
-		<TextBlock x:Name="lbstat" Grid.Row="3" Margin="2,8,0,0" TextWrapping="Wrap"
-		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+		<StackPanel Grid.Row="3" Orientation="Horizontal" Margin="2,8,0,0">
+			<!-- 连接状态：连上绿点，断开灰点 -->
+			<Ellipse x:Name="dotconn" Width="9" Height="9" Fill="{StaticResource BorderSoft}"
+			         VerticalAlignment="Center" Margin="0,0,6,0"
+			         AutomationProperties.AutomationId="sql.dot"/>
+			<TextBlock x:Name="lbstat" TextWrapping="Wrap"
+			           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+		</StackPanel>
 	</Grid>
 </Window>

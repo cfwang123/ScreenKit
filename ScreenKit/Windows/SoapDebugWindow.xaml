@@ -254,6 +254,13 @@
 							<Button x:Name="bStopMock" Content="停止" Style="{StaticResource DisconnectBtn}"
 									 Height="30" MinWidth="58" Padding="10,2"
 									AutomationProperties.AutomationId="soapdbg.mock.stop" />
+							<!-- 运行状态：圆点 + 彩色文字，运行中绿、已停止灰 -->
+							<Ellipse x:Name="dotMock" Width="10" Height="10" Fill="{StaticResource BorderSoft}"
+									 VerticalAlignment="Center" Margin="8,0,6,0"
+									 AutomationProperties.AutomationId="soapdbg.mock.dot" />
+							<TextBlock x:Name="lbMockState" VerticalAlignment="Center" FontSize="12"
+									   Foreground="{StaticResource TextMuted}"
+									   AutomationProperties.AutomationId="soapdbg.mock.state" />
 							<TextBlock x:Name="lbMockUrl" Text="服务地址" Style="{StaticResource FieldLabel}" Margin="14,0,6,0" />
 							<TextBox x:Name="eMockUrl" Width="200" Height="28" IsReadOnly="True" Padding="4,2"
 									 VerticalContentAlignment="Center" Background="#F0F3F7"

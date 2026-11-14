@@ -74,6 +74,10 @@
 							             AutomationProperties.AutomationId="mqtt.client.pw"/>
 							<Button x:Name="bcconn" Style="{StaticResource ConnectBtn}"
 							        AutomationProperties.AutomationId="mqtt.client.connect"/>
+							<!-- 连接状态圆点：连上绿、断开灰 -->
+							<Ellipse x:Name="dotcli" Width="10" Height="10" Fill="{StaticResource BorderSoft}"
+							         VerticalAlignment="Center" Margin="10,0,0,0"
+							         AutomationProperties.AutomationId="mqtt.client.dot"/>
 						</WrapPanel>
 					</Border>
 
@@ -170,6 +174,10 @@
 							         AutomationProperties.AutomationId="mqtt.server.port"/>
 							<Button x:Name="bstoggle" Style="{StaticResource ConnectBtn}" Margin="0,0,12,0"
 							        AutomationProperties.AutomationId="mqtt.server.toggle"/>
+							<!-- 运行状态：圆点 + 彩色文字，运行中绿、已停止灰 -->
+							<Ellipse x:Name="dotsrv" Width="10" Height="10" Fill="{StaticResource BorderSoft}"
+							         VerticalAlignment="Center" Margin="0,0,6,0"
+							         AutomationProperties.AutomationId="mqtt.server.dot"/>
 							<TextBlock x:Name="lbsstat" VerticalAlignment="Center"
 							           Foreground="{StaticResource TextMuted}"/>
 						</WrapPanel>
