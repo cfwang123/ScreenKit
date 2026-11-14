@@ -5,6 +5,7 @@
 	var scanning = false;
 	var scanGen = 0;
 	var gen = 0;
+	var camgen = 0;
 	var detector = null;
 	var detBroken = false;
 	var last = "";
@@ -72,7 +73,10 @@
 			openid("");
 			arm();
 		},
-		dispose: halt
+		dispose: halt,
+		ontimer: function(){
+			if (SK.every("cam", 700)) camtick();
+		}
 	});
 
 	function bindfull(el){
@@ -122,16 +126,17 @@
 
 	function arm(){
 		var mine = ++gen;
-		function tick(){
-			if (mine !== gen) return;
-			if (SK.curtool !== "u-cam") {
-				halt();
-				return;
-			}
-			if (scanOn) grabscan();
-			setTimeout(tick, 700);
+		camgen = mine;
+	}
+
+	// 心跳里每 700ms 抓一帧扫码
+	function camtick(){
+		if (camgen !== gen) return;
+		if (SK.curtool !== "u-cam") {
+			halt();
+			return;
 		}
-		setTimeout(tick, 700);
+		if (scanOn) grabscan();
 	}
 
 	function halt(){
@@ -512,7 +517,7 @@
 			}
 			showlines(lines);
 		}, "cam-msg", true);
-		setTimeout(function(){
+		SK.after(function(){
 			if (mine === scanGen) scanning = false;
 		}, 4000);
 	}

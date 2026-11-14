@@ -274,8 +274,8 @@
 
 	// 输入变化先防抖 180 ms 再算：现在要先查一次词典，逐字触发太费。
 	function run(){
-		if (timer) clearTimeout(timer);
-		timer = setTimeout(go, 180);
+		if (timer) SK.cancelafter(timer);
+		timer = SK.after(go, 180);
 	}
 
 	function go(){

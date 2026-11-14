@@ -62,9 +62,10 @@
 		hideCopy: true,
 		hideOut: true,
 		live: false,
-		body: body,
+body: body,
 		open: open,
-		dispose: leave
+		dispose: leave,
+		ontimer: ontimer
 	});
 
 	function body(t){
@@ -185,6 +186,24 @@
 		window.removeEventListener("keyup", onup);
 		window.removeEventListener("blur", releaseall);
 		window.removeEventListener("resize", layoutkeys);
+	}
+
+	// 心跳驱动：音效闪烁、编曲播放、波形动画
+	function ontimer(now){
+		if (loop && loop.period) {
+			if (now - loop.at >= loop.period) {
+				loop.at = now;
+				loop.phase = !loop.phase;
+				try {
+					if (loop.kind === "alarm") loop.o.frequency.setValueAtTime(loop.phase ? 780 : 520, ensure().currentTime);
+					else if (loop.kind === "fire") loop.g.gain.setValueAtTime(loop.phase ? 0.18 : 0, ensure().currentTime);
+					else if (loop.kind === "phone") loop.g.gain.setValueAtTime(loop.phase ? 0.14 : 0, ensure().currentTime);
+				}
+				catch (e) {}
+			}
+		}
+		if (playTimer && SK.every("bitplay", 40)) pump();
+		if (waveon && SK.every("bitwave", 16)) drawwave();
 	}
 
 	function leave(){
@@ -317,14 +336,12 @@
 
 	function stopwave(){
 		waveon = false;
-		if (waveraf) cancelAnimationFrame(waveraf);
 		waveraf = 0;
 	}
 
 	function drawwave(){
 		waveraf = 0;
 		if (!waveon) return;
-		waveraf = requestAnimationFrame(drawwave);
 		var cv = page.doms.bitWave;
 		if (!cv) return;
 		var dpr = window.devicePixelRatio || 1;
@@ -591,7 +608,7 @@
 
 	function cleardemo(){
 		var i;
-		for (i = 0; i < demot.length; i++) clearTimeout(demot[i]);
+		for (i = 0; i < demot.length; i++) SK.cancelafter(demot[i]);
 		demot = [];
 	}
 
@@ -610,7 +627,7 @@
 
 	function stoploop(){
 		if (!loop) return;
-		if (loop.timer) clearInterval(loop.timer);
+		// 闪烁靠心跳推进，这里只需停掉音源
 		try { loop.o.stop(); } catch (e) {}
 		if (loop.o2) {
 			try { loop.o2.stop(); } catch (e2) {}
@@ -657,28 +674,10 @@
 		}
 		o.start();
 		if (o2) o2.start();
-		if (kind === "alarm") {
-			var hi = false;
-			timer = setInterval(function(){
-				hi = !hi;
-				try { o.frequency.setValueAtTime(hi ? 780 : 520, c.currentTime); } catch (e) {}
-			}, 260);
-		}
-		else if (kind === "fire") {
-			var on = false;
-			timer = setInterval(function(){
-				on = !on;
-				try { g.gain.setValueAtTime(on ? 0.18 : 0, c.currentTime); } catch (e) {}
-			}, 80);
-		}
-		else if (kind === "phone") {
-			var ring = true;
-			timer = setInterval(function(){
-				ring = !ring;
-				try { g.gain.setValueAtTime(ring ? 0.14 : 0, c.currentTime); } catch (e) {}
-			}, 420);
-		}
-		loop = { kind: kind, o: o, o2: o2, g: g, timer: timer };
+		// 闪烁相位由心跳推进，不再各自 setInterval
+		var period = kind === "alarm" ? 260 : (kind === "fire" ? 80 : 420);
+		var phase = true;
+		loop = { kind: kind, o: o, o2: o2, g: g, timer: 0, period: period, phase: phase, at: Date.now() };
 		paintloops();
 	}
 
@@ -863,7 +862,7 @@
 			if (n > 0) noteoff(seq[n - 1]);
 			if (n >= seq.length) return;
 			noteon(seq[n]);
-			demot.push(setTimeout(function(){ step(n + 1); }, 140));
+			demot.push(SK.after(function(){ step(n + 1); }, 140));
 		}
 		step(0);
 	}
@@ -1366,13 +1365,12 @@
 			marknow(heard);
 		}
 		pump();
-		playTimer = setInterval(pump, 40);
+		playTimer = 1;   // 标记在播，实际由心跳推进
 	}
 
 	function songstop(){
 		songgen++;
 		playOn = false;
-		if (playTimer) clearInterval(playTimer);
 		playTimer = null;
 		queued = [];
 		heard = -1;

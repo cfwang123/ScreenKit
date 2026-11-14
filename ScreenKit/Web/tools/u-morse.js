@@ -159,7 +159,7 @@
 	function stop(){
 		var on;
 		var i;
-		for (i = 0; i < timers.length; i++) clearTimeout(timers[i]);
+		for (i = 0; i < timers.length; i++) SK.cancelafter(timers[i]);
 		timers = [];
 		if (SK.bitblipstop) SK.bitblipstop();
 		on = F.qa(".morse-list button.on, .morse-pv span.on");
@@ -167,7 +167,7 @@
 	}
 
 	function later(ms, fn){
-		timers.push(setTimeout(fn, ms));
+		timers.push(SK.after(fn, ms));
 	}
 
 	// 播到第 order 个字符时，把预览里那一段点亮

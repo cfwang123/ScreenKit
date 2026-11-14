@@ -90,8 +90,8 @@
 		var randbtn = page.doms.jnRand;
 		if (randbtn) randbtn.onclick = rand;
 		q.oninput = function(){
-			clearTimeout(timer);
-			timer = setTimeout(paint, 120);
+			SK.cancelafter(timer);
+			timer = SK.after(paint, 120);
 		};
 		seg.onclick = function(ev){
 			var b = ev.target;

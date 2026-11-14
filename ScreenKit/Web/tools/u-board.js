@@ -164,7 +164,7 @@
 			txt.onblur = function(){
 				var token = texttok;
 				var armed = textarmed;
-				setTimeout(function(){
+				SK.after(function(){
 					if (!armed || token !== texttok || !edit || document.activeElement === txt) return;
 					committext(true);
 				}, 0);
@@ -397,7 +397,7 @@
 			F.append(document.body, a);
 			a.click();
 			a.remove();
-			setTimeout(function(){ F.unurl(url); }, 1500);
+			SK.after(function(){ F.unurl(url); }, 1500);
 			say("web.board.saved");
 		});
 	}
@@ -493,7 +493,7 @@
 	function up(){
 		if (tool === "text" && edit && !textarmed) {
 			var txt = page.doms.boardTxt;
-			if (txt) setTimeout(function(){
+			if (txt) SK.after(function(){
 				if (!edit || textarmed) return;
 				txt.focus();
 				textarmed = document.activeElement === txt;
@@ -674,7 +674,7 @@
 		txt.hidden = false;
 		txt.style.height = Math.max(32, Math.round(size * sy) + 8) + "px";
 		var token = texttok;
-		setTimeout(function(){
+		SK.after(function(){
 			if (token !== texttok || !edit) return;
 			txt.focus();
 			textarmed = document.activeElement === txt;

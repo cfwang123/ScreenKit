@@ -64,13 +64,13 @@
 	}
 
 	function scheduleopts(){
-		if (savetimer) clearTimeout(savetimer);
-		savetimer = setTimeout(saveopts, SAVEDELAY);
+		if (savetimer) SK.cancelafter(savetimer);
+		savetimer = SK.after(saveopts, SAVEDELAY);
 	}
 
 	function flushopts(){
 		if (!savetimer) return;
-		clearTimeout(savetimer);
+		SK.cancelafter(savetimer);
 		savetimer = 0;
 		saveopts();
 	}

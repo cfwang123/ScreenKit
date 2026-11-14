@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query export now writes plain unquoted identifiers and single-quoted strings instead of [bracketed] names and N'...' literals; only names with spaces, non-ASCII characters or reserved words get quoted.
 - Use distinct button colors for connection state: green to connect, red to disconnect, and a highlighted send button in the HTTP debug window
 - Free the tool panel DOM and leftover globals when leaving a web tool, so each entry rebuilds a fresh DOM and memory is released
+- Drive all web tools from one shared 16ms timer instead of per-tool setInterval/setTimeout, so timers stop and pending work is dropped when leaving a tool
 
 #### Fixed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询导出：标识符默认裸写、字符串统一单引号，不再用方括号和 N 前缀；只有含空格、中文或撞关键字的名字才加引号。
 - 连接状态改用醒目配色：连接为绿色、断开为红色，HTTP 调试的发送按钮改强调色
 - web 工具离开时清空面板 DOM 与残留全局引用，再次进入时重新生成
+- web 工具改为共用一个 16ms 全局定时器，工具不再自建 setInterval/setTimeout，离开工具时定时器停止、挂起任务作废
 
 #### 修复
 

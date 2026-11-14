@@ -39,7 +39,7 @@
 			fillttsmodels();
 			if (!hasEdge && ttsEdgeWait < 2) {
 				ttsEdgeWait++;
-				setTimeout(fetchtts, ttsEdgeWait === 1 ? 2000 : 4000);
+				SK.after(fetchtts, ttsEdgeWait === 1 ? 2000 : 4000);
 			}
 		}, "tts-msg");
 	}
@@ -143,7 +143,7 @@
 		F.append(document.body, a);
 		a.click();
 		document.body.removeChild(a);
-		setTimeout(function(){ F.unurl(url); }, 4000);
+		SK.after(function(){ F.unurl(url); }, 4000);
 		SK.msg("tts-msg", "已下载 " + a.download);
 	}
 

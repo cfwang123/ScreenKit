@@ -125,7 +125,7 @@
 	function live(){
 		fxseq++;
 		if (fxtimer) {
-			clearTimeout(fxtimer);
+			SK.cancelafter(fxtimer);
 			fxtimer = 0;
 		}
 		var mine = fxseq;
@@ -142,7 +142,7 @@
 			return;
 		}
 		SK.msg("box-msg", "");
-		fxtimer = setTimeout(function(){
+		fxtimer = SK.after(function(){
 			fxtimer = 0;
 			if (mine !== fxseq || SK.curtool !== "u-unit") return;
 			SK.doms.boxOut.value = "";

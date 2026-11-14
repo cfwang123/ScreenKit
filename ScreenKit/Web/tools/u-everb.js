@@ -720,8 +720,8 @@
 
 
 	function run(){
-		if (timer) clearTimeout(timer);
-		timer = setTimeout(go, 150);
+		if (timer) SK.cancelafter(timer);
+		timer = SK.after(go, 150);
 	}
 
 	function go(){

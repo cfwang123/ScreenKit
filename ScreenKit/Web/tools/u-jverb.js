@@ -283,8 +283,8 @@
 	function setopt(value, key, fb){ SK.setopt("jv-sel", value, key, fb); }
 
 	function run(){
-		if (timer) clearTimeout(timer);
-		timer = setTimeout(go, 180);
+		if (timer) SK.cancelafter(timer);
+		timer = SK.after(go, 180);
 	}
 
 	function go(){

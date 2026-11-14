@@ -1,5 +1,6 @@
 (function(){
 	var page = null;
+var watchend = 0;
 	SK.regutil("u-watch", {
 		title: "计时",
 		go: "复位",
@@ -26,6 +27,11 @@
 			page = t;
 			filluntil();
 			watchmode();
+		},
+		ontimer: function(){
+			if (!SK.watchOn) return;
+			if (!SK.every("watch", 50)) return;
+			paintwatch();
 		}
 	});
 
@@ -113,8 +119,25 @@
 		return t;
 	}
 
+	// 心跳里统一刷新读数：正计时装已累计+本段，倒计时装剩余
+	function paintwatch(){
+		if (!SK.watchOn) return;
+		if (!watchend) {
+			SK.doms.boxOut.value = fmtwatch(SK.watchAcc + Date.now() - SK.watch0);
+			return;
+		}
+		var left = watchend - Date.now();
+		if (left <= 0) {
+			watchend = 0;
+			donebox();
+			return;
+		}
+		SK.doms.boxOut.value = curmode() === "until" ? fmtleft(left) : fmthms(Math.ceil(left / 1000));
+	}
+
 	function donebox(){
 		SK.stoptick();
+		watchend = 0;
 		watchcap(page.doms.boxStart, "web.go.start", "开始");
 		SK.doms.boxOut.value = "00:00:00\n" + say("web.watch.done", "时间到");
 		SK.msg("box-msg", say("web.watch.done", "时间到"));
@@ -170,28 +193,19 @@
 		}
 		SK.watch0 = Date.now();
 		SK.watchOn = true;
+		SK.tickrun();
 		watchcap(btn, "web.f.stop", "停止");
-		SK.tick = setInterval(function(){
-			SK.doms.boxOut.value = fmtwatch(SK.watchAcc + Date.now() - SK.watch0);
-		}, 50);
 	}
 
 	function startdown(){
 		SK.stoptick();
 		var sec = readsec(true);
-		var end = Date.now() + sec * 1000;
+		watchend = Date.now() + sec * 1000;
 		SK.watchOn = true;
+		SK.tickrun();
 		watchcap(page.doms.boxStart, "web.f.stop", "停止");
 		SK.doms.boxOut.value = fmthms(sec);
 		SK.msg("box-msg", say("web.watch.run", "计时中"));
-		SK.tick = setInterval(function(){
-			var left = Math.ceil((end - Date.now()) / 1000);
-			if (left <= 0) {
-				donebox();
-				return;
-			}
-			SK.doms.boxOut.value = fmthms(left);
-		}, 200);
 	}
 
 	function watchuntil(){
@@ -206,18 +220,11 @@
 			return;
 		}
 		SK.watchOn = true;
+		watchend = end;
+		SK.tickrun();
 		watchcap(page.doms.boxStart, "web.f.stop", "停止");
 		SK.msg("box-msg", say("web.watch.run", "计时中"));
-		function tick(){
-			var left = end - Date.now();
-			if (left <= 0) {
-				donebox();
-				return;
-			}
-			SK.doms.boxOut.value = fmtleft(left);
-		}
-		tick();
-		SK.tick = setInterval(tick, 200);
+		paintwatch();
 	}
 
 	function watchreset(){

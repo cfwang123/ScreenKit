@@ -69,7 +69,7 @@
 			var cw = el.clientWidth;
 			if (cw <= 0) {
 				// 刚切到工具页时容器可能还没显示，等一帧再量。
-				if (tries < 5) { tries++; setTimeout(refit, 40); }
+				if (tries < 5) { tries++; SK.after(refit, 40); }
 				return;
 			}
 			tries = 0;
@@ -80,8 +80,8 @@
 		}
 
 		function onresize(){
-			if (rtimer) clearTimeout(rtimer);
-			rtimer = setTimeout(refit, 150);
+			if (rtimer) SK.cancelafter(rtimer);
+			rtimer = SK.after(refit, 150);
 		}
 
 		function refit(){

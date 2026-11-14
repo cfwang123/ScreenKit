@@ -21,13 +21,13 @@
 
 	// 输入或切换选项后等 200ms 再生成，连续打字只发最后一次请求。
 	function qrschedule(){
-		if (timer) clearTimeout(timer);
-		timer = setTimeout(qrmake, 200);
+		if (timer) SK.cancelafter(timer);
+		timer = SK.after(qrmake, 200);
 	}
 
 	function qrmake(){
 		if (timer) {
-			clearTimeout(timer);
+			SK.cancelafter(timer);
 			timer = null;
 		}
 		var img = SK.doms.qrImg;

@@ -55,8 +55,10 @@
 			}
 			ensurelang();
 			paint();
-			SK.stoptick();
-			SK.tick = setInterval(paint, 1000);
+		},
+		ontimer: function(){
+			// 每秒重画一次即可，10ms 心跳里靠 every 降频
+			if (SK.every("wclock", 1000)) paint();
 		}
 	});
 

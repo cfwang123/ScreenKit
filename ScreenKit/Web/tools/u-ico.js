@@ -234,7 +234,7 @@
 				F.append(document.body, a);
 				a.click();
 				document.body.removeChild(a);
-				setTimeout(function(){ F.unurl(url); }, 4000);
+				SK.after(function(){ F.unurl(url); }, 4000);
 				SK.msg("box-msg", "已下载 " + a.download + "（" + blob.size + " 字节）");
 			}, function(){
 				SK.msg("box-msg", "生成失败", true);

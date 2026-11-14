@@ -256,29 +256,35 @@
 
 	function startbeat(sock){
 		stopbeat();
-		beatsince = 0;
-		beat = setInterval(function(){
-			if (ws !== sock || sock.readyState !== 1) { stopbeat(); return; }
-			if (beatsince && Date.now() - beatsince >= 5000) {
-				stopbeat();
-				try { sock.close(); } catch (e) {}
-				return;
-			}
-			try {
-				sock.send(F.json({ op: "ping" }));
-				beatsince = Date.now();
-			}
-			catch (e) {
-				stopbeat();
-				try { sock.close(); } catch (e2) {}
-			}
-		}, 5000);
+		beat = sock;
+		beatsince = Date.now();
+		SK.tickrun();
 	}
 
 	function stopbeat(){
-		if (beat) clearInterval(beat);
 		beat = 0;
 		beatsince = 0;
+	}
+
+	// 心跳里每 5 秒发一次 ping，超时没回就当断线
+	function beatpump(){
+		var sock = beat;
+		if (!sock) return;
+		if (ws !== sock || sock.readyState !== 1) { stopbeat(); return; }
+		var now = Date.now();
+		if (beatsince && now - beatsince >= 5000) {
+			stopbeat();
+			try { sock.close(); } catch (e) {}
+			return;
+		}
+		try {
+			sock.send(F.json({ op: "ping" }));
+			beatsince = now;
+		}
+		catch (e) {
+			stopbeat();
+			try { sock.close(); } catch (e2) {}
+		}
 	}
 
 	function targetof(need){
@@ -327,7 +333,7 @@
 	// 服务端两条消息至少间隔 200ms，图片排在文本后面逐张发送。
 	function sendfiles(list, aim, n){
 		if (n >= list.length) return;
-		setTimeout(function(){
+		SK.after(function(){
 			upload(list[n].file, "image", aim, function(){
 				sendfiles(list, aim, n + 1);
 			});
@@ -775,6 +781,11 @@
 
 	SK.chatopen = open;
 	SK.chatclose = leave;
-	SK.regutil("chat", { dispose: leave });
+	SK.regutil("chat", {
+		dispose: leave,
+		ontimer: function(){
+			if (beat && SK.every("chatbeat", 5000)) beatpump();
+		}
+	});
 })();
 

@@ -77,8 +77,8 @@
 	}
 
 	function schedule(){
-		if (wait) clearTimeout(wait);
-		wait = setTimeout(function(){
+		if (wait) SK.cancelafter(wait);
+		wait = SK.after(function(){
 			wait = 0;
 			paint();
 		}, 200);

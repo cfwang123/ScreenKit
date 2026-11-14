@@ -48,8 +48,8 @@
 
 	function run(){
 		var n = ++seq;
-		if (wait) clearTimeout(wait);
-		wait = setTimeout(function(){
+		if (wait) SK.cancelafter(wait);
+		wait = SK.after(function(){
 			wait = 0;
 			SK.post("/api/pinyin", { text: SK.val("box-in") }, function(data){
 				if (n !== seq) return;

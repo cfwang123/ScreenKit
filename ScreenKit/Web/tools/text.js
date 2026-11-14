@@ -39,8 +39,8 @@
 
 	function textlive(){
 		if (!lastop || lastop === "yomi" || lastop === "yomimono") return;
-		if (textwait) clearTimeout(textwait);
-		textwait = setTimeout(function(){
+		if (textwait) SK.cancelafter(textwait);
+		textwait = SK.after(function(){
 			textwait = 0;
 			textop(lastop);
 		}, 200);
@@ -506,7 +506,7 @@
 
 	function txswap(){
 		if (textwait) {
-			clearTimeout(textwait);
+			SK.cancelafter(textwait);
 			textwait = 0;
 		}
 		textseq++;

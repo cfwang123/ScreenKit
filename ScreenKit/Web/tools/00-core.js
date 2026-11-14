@@ -4,7 +4,6 @@ SK.icoPic = null;
 SK.icoUrl = "";
 SK.curtool = "home";
 SK.reNote = "";
-SK.tick = null;
 SK.watchOn = false;
 SK.watch0 = 0;
 SK.watchAcc = 0;
@@ -215,6 +214,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			SK.icoUrl = "";
 		}
 		SK.icoPic = null;
+		tickstop();
 	}
 
 	function show(name, fromHist){
@@ -1834,12 +1834,110 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		];
 	}
 
+	// ==================== 全局定时器 ====================
+	// 整个工具集只有这一条 16ms 心跳：工具不再各自 setInterval / setTimeout，
+	// 而是在 spec.ontimer(now) 里做事，离开工具时心跳自动停、挂起的任务自动清。
+	var TICK_MS = 16; // 16ms 对齐 60fps，动画和秒表都够用
+	var tickid = null;
+	var slots = {};      // 周期判断用：key -> 上次触发时刻
+	var afters = [];     // 挂起的一次性任务
+	var afterseq = 0;
+	var TICKOFF = false;   // 当前工具是否已停表
+
+	function nowms(){ return Date.now(); }
+
+	function tickstart(){
+		TICKOFF = false;
+		if (tickid) return;
+		tickid = setInterval(tickpump, TICK_MS);
+	}
+
+	function tickpump(){
+		var now = nowms();
+		// 到期的一次性任务先跑，跑之前就摘掉，回调里再排任务也不会重复
+		if (afters.length) {
+			var due = [];
+			var keep = [];
+			var i;
+			for (i = 0; i < afters.length; i++) {
+				if (afters[i].at <= now) due.push(afters[i]);
+				else keep.push(afters[i]);
+			}
+			if (due.length) {
+				afters = keep;
+				for (i = 0; i < due.length; i++) {
+					try { due[i].fn(); }
+					catch (ex) {}
+				}
+			}
+		}
+		if (TICKOFF) return;
+		var spec = SK.utils[SK.curtool];
+		if (spec && spec.ontimer) {
+			try { spec.ontimer(now); }
+			catch (ex) {}
+		}
+	}
+
+	// 周期判断：同一个 key 每 ms 毫秒只返回一次 true。
+	// 工具在 ontimer 里写 if (!SK.every("paint", 1000)) return;
+	function every(key, ms){
+		if (!ms || ms < TICK_MS) ms = TICK_MS;
+		var t = nowms();
+		var last = slots[key];
+		// 第一次调用立即触发，免得定时器启动后要干等一个周期
+		if (last === undefined) {
+			slots[key] = t;
+			return true;
+		}
+		// 时钟回拨或标签页休眠后补跑，不等积攒的时间
+		if (t < last || t - last >= ms) {
+			slots[key] = t;
+			return true;
+		}
+		return false;
+	}
+
+	// 一次性任务，返回可用于取消的 id。离开工具时全部作废。
+	function after(fn, ms){
+		if (typeof fn !== "function") return 0;
+		var id = ++afterseq;
+		afters.push({ id: id, fn: fn, at: nowms() + Math.max(0, ms || 0) });
+		tickstart();
+		return id;
+	}
+
+	function cancelafter(id){
+		if (!id) return;
+		var keep = [];
+		var i;
+		for (i = 0; i < afters.length; i++)
+			if (afters[i].id !== id) keep.push(afters[i]);
+		afters = keep;
+	}
+
+	// 停当前工具的计时：保留全局心跳，其它工具照常跑。
+	// 工具里原来调 stoptick() 的地方继续能用，语义不变。
 	function stoptick(){
-		if (SK.watchOn) SK.watchAcc += Date.now() - SK.watch0;
+		if (SK.watchOn) SK.watchAcc = (SK.watchAcc || 0) + (nowms() - SK.watch0);
 		SK.watchOn = false;
-		if (SK.tick) {
-			clearInterval(SK.tick);
-			SK.tick = null;
+		TICKOFF = true;
+		afters = [];
+		slots = {};
+	}
+
+	// 恢复当前工具的计时，工具按「开始」时调
+	function tickrun(){
+		TICKOFF = false;
+		tickstart();
+	}
+
+	// 彻底停掉心跳，只在离开工具时用
+	function tickstop(){
+		stoptick();
+		if (tickid) {
+			clearInterval(tickid);
+			tickid = null;
 		}
 	}
 
@@ -1910,6 +2008,7 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		if (spec.hideOut) SK.doms.boxOut.parentElement.style.display = "none";
 		if (spec.open) spec.open(SK.curpage);
 		if (spec.live === true || (spec.live !== false && textcard(name))) bindboxlive();
+		tickstart();
 	}
 
 	function textcard(name){
@@ -2023,6 +2122,11 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.hsl2rgb = hsl2rgb;
 	SK.cmyk2rgb = cmyk2rgb;
 	SK.stoptick = stoptick;
+	SK.tickstart = tickstart;
+	SK.tickrun = tickrun;
+	SK.every = every;
+	SK.after = after;
+	SK.cancelafter = cancelafter;
 	SK.seticopic = seticopic;
 	SK.esc = esc;
 	SK.tx = tx;
