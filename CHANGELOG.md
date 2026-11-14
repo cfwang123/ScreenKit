@@ -73,6 +73,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database query: exporting crashed because progress updates touched UI controls from the export thread; export now runs behind a real progress window (per-table percent, rows written, elapsed time) with a working Cancel button.
 - Fix SQL export: preserve decimal precision, keep milliseconds in datetime, handle IDENTITY_INSERT for SQL Server, degrade over-wide MySQL rows to longtext, and accept host:port for MySQL
 - Fix SQL export between SQLite and other engines: give primary key and index text columns a bounded length so SQL Server accepts them, and support SQLite files as both source and target
+- Fix the 8bit composer stopping after the first beat: the playback step function was scoped inside the play handler, so the shared timer could not reach it
 
 ### 中文
 
@@ -97,6 +98,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库查询：导出时进度回调在导出线程上直接改控件导致崩溃；现在导出走独立进度窗口（表序号、百分比、已写行数、已用时），并支持取消。
 - 修复 SQL 导出：保留 decimal 精度与 datetime 毫秒，SQL Server 自增列补 IDENTITY_INSERT，MySQL 超宽表自动降为 longtext，MySQL 主机支持 host:port
 - 修复 SQLite 与其它数据库互导：主键和索引的文本列加上长度上限，否则 SQL Server 建表失败；导出目标支持 SQLite 文件
+- 修复 8bit 编曲只播第一个节拍：推进函数原先定义在播放处理函数内部，共用定时器取不到它
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

@@ -979,6 +979,7 @@ body: body,
 	var playOn = false;
 	var playTimer = null;
 	var songgen = 0;
+var playgen = 0;
 	var nextTime = 0;
 	var cursor = 0;
 	var queued = [];
@@ -1348,24 +1349,28 @@ body: body,
 		nextTime = c.currentTime + 0.06;
 		queued = [];
 		paintplaybtn();
-		function pump(){
-			if (!playOn || gen !== songgen || !ac) return;
-			var horizon = ac.currentTime + 0.18;
-			var dur = stepdur();
-			var i, hear = -1;
-			while (nextTime < horizon) {
-				firestep(cursor, nextTime);
-				cursor = (cursor + 1) % STEPS;
-				nextTime += dur;
-			}
-			for (i = 0; i < queued.length; i++)
-				if (queued[i].t <= ac.currentTime) hear = queued[i].step;
-			heard = hear;
-			queued = queued.filter(function(q){ return q.t + dur > ac.currentTime - 0.05; });
-			marknow(heard);
-		}
+		playgen = gen;
 		pump();
-		playTimer = 1;   // 标记在播，实际由心跳推进
+		playTimer = 1;
+	}
+
+	// 编曲推进：提前 0.18 秒排下一批音，由心跳每 40ms 调一次
+	function pump(){
+		if (!playOn || !ac) return;
+		if (playgen !== songgen) return;
+		var horizon = ac.currentTime + 0.18;
+		var dur = stepdur();
+		var i, hear = -1;
+		while (nextTime < horizon) {
+			firestep(cursor, nextTime);
+			cursor = (cursor + 1) % STEPS;
+			nextTime += dur;
+		}
+		for (i = 0; i < queued.length; i++)
+			if (queued[i].t <= ac.currentTime) hear = queued[i].step;
+		heard = hear;
+		queued = queued.filter(function(q){ return q.t + dur > ac.currentTime - 0.05; });
+		marknow(heard);
 	}
 
 	function songstop(){
