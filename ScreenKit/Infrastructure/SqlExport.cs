@@ -425,6 +425,8 @@ static class SqlExport {
 		var tname = qname(d, t.Name);
 		// MySQL 单行上限 65535 字节，utf8mb4 每个字符 3 字节还可能占 4，先按宽文本列预算
 		var budget = d == SqlDialect.Mysql ? MysqlRowBudget(t, sametype) : null;
+		// 主键/索引列不能是无长度上限的 text：SQL Server 索引键最多 900 字节，MySQL 最多 3072
+		var keyed = KeyedColumns(t);
 		var sb = new StringBuilder();
 		if (d == SqlDialect.Mssql) {
 			if (SqlTargets.DropIfExists(ver)) {
@@ -442,7 +444,7 @@ static class SqlExport {
 			: -1;
 		for (var i = 0; i < t.Columns.Count; i++) {
 			var c = t.Columns[i];
-			var line = $"  {qname(d, c.Name)} {typetext(c, d, ver, sametype, budget)}";
+			var line = $"  {qname(d, c.Name)} {typetext(c, d, ver, sametype, budget, keyed.Contains(c.Name))}";
 			var def = defaultof(c, d, ver);
 			if (def.Length > 0) line += " DEFAULT " + def;
 			if (c.Identity && i != sqlaic) line += identityof(d, c);
@@ -463,6 +465,17 @@ static class SqlExport {
 		if (d == SqlDialect.Mysql) sb.Append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 		sb.Append(";\r\n");
 		return sb.ToString();
+	}
+
+	/// <summary>主键列与所有索引列：这些列不能是无长度上限的 text。</summary>
+	static HashSet<string> KeyedColumns(SqlExportTable t) {
+		var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+		foreach (var c in t.Columns)
+			if (c.PrimaryKey) set.Add(c.Name);
+		foreach (var ix in t.Indexes)
+			foreach (var n in ix.Columns)
+				set.Add(n);
+		return set;
 	}
 
 	/// <summary>自增写法各方言不同；SQLite 只有 INTEGER PRIMARY KEY 能自增，跟着主键一起写。</summary>
@@ -704,7 +717,7 @@ static class SqlExport {
 
 	public static string typetext(SqlExportColumn c, SqlDialect d, Version ver) => typetext(c, d, ver, false, null);
 
-	public static string typetext(SqlExportColumn c, SqlDialect d, Version ver, bool sametype, HashSet<string> overwide = null) {
+	public static string typetext(SqlExportColumn c, SqlDialect d, Version ver, bool sametype, HashSet<string> overwide = null, bool keyed = false) {
 		var tooWide = overwide != null && overwide.Contains(c.Name);
 		// 超宽的列即使同引擎也要降级，否则目标端建表直接报 Row size too large
 		if (sametype && !tooWide && !string.IsNullOrWhiteSpace(c.SourceType))
@@ -723,7 +736,10 @@ static class SqlExport {
 				SqlTypeKind.DateTime => modern ? "datetime2(3)" : "datetime",
 				SqlTypeKind.Blob => "varbinary(max)",
 				SqlTypeKind.Guid => "uniqueidentifier",
-				_ => size > 0 && size <= 4000 ? $"nvarchar({size})" : "nvarchar(max)",
+				// 索引键最多 900 字节；nvarchar 每字符 2 字节，450 就是上限
+				_ => tooWide ? "nvarchar(max)"
+					: size > 0 && size <= 4000 ? $"nvarchar({size})"
+					: keyed ? "nvarchar(450)" : "nvarchar(max)",
 			};
 		}
 		if (d == SqlDialect.Mysql) {
@@ -739,7 +755,9 @@ static class SqlExport {
 				SqlTypeKind.DateTime => "datetime(3)",
 				SqlTypeKind.Blob => "longblob",
 				SqlTypeKind.Guid => "char(36)",
-				_ => tooWide ? "longtext" : size > 0 && size <= 4000 ? $"varchar({size})" : "longtext",
+				_ => tooWide ? "longtext"
+					: size > 0 && size <= 4000 ? $"varchar({size})"
+					: keyed ? "varchar(255)" : "longtext",
 			};
 		}
 		return c.Kind switch {

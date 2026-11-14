@@ -7379,7 +7379,8 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 	/// <summary>
 	/// --test-sqlexport：拿真实库跑一遍导出再导回新库，核对行数。
 	/// 参数：--test-sqlexport &lt;kind&gt; &lt;源库&gt; &lt;目标库&gt; [dialect] [version]
-	/// kind = mysql | mssql；连接参数从环境变量取，见下。
+	/// kind = mysql | mssql | sqlite；连接参数从环境变量取，见下。
+	/// sqlite 的源/目标是文件路径，没有“库”的概念；目标用另一引擎时靠 SK_DST_KIND / SK_DST_HOST 指定。
 	/// </summary>
 	static int testsqlexport(string[] args, int i) {
 		Out("=== 导出导入 --test-sqlexport ===");
@@ -7391,7 +7392,10 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		var vertxt = i + 5 < args.Length ? args[i + 5] : "";
 		var ver = int.TryParse(vertxt, out var vm) ? new Version(vm, 0) : (Version)null;
 		// 目标库可以落在另一台服务器上（如 MySQL 导进 MariaDB）：SK_DST_KIND / SK_DST_HOST / ...
+		// dst 带 .db/.sqlite/.sqlite3 后缀时，目标就是 sqlite 文件，不用再设 SK_DST_KIND
 		var dstkind = Environment.GetEnvironmentVariable("SK_DST_KIND") ?? kind;
+		var dsext = Path.GetExtension(dst).ToLowerInvariant();
+		if (dsext is ".db" or ".sqlite" or ".sqlite3") dstkind = SqlTool.Sqlite;
 		var dsthost = Environment.GetEnvironmentVariable("SK_DST_HOST");
 		var dstuser = Environment.GetEnvironmentVariable("SK_DST_USER");
 		var dstpw = Environment.GetEnvironmentVariable("SK_DST_PW");
@@ -7399,11 +7403,14 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		Directory.CreateDirectory(dir);
 		try {
 			System.Data.Common.DbConnection connof(string k, string host, string user, string pw) {
-				var cs = k == SqlTool.Mysql ? SqlTool.MysqlConn(host, user, pw) : SqlTool.MssqlConn(host, user, pw);
+				var cs = k == SqlTool.Sqlite ? SqlTool.SqliteConn(host)
+					: k == SqlTool.Mysql ? SqlTool.MysqlConn(host, user, pw)
+					: SqlTool.MssqlConn(host, user, pw);
 				return SqlTool.Connect(k, cs, out _);
 			}
+			// sqlite 没有库：src/dst 就是文件路径，连接串直接用它
 			var cn = connof(kind,
-				Environment.GetEnvironmentVariable("SK_SQL_HOST") ?? "127.0.0.1:3306",
+				kind == SqlTool.Sqlite ? src : Environment.GetEnvironmentVariable("SK_SQL_HOST") ?? "127.0.0.1:3306",
 				Environment.GetEnvironmentVariable("SK_SQL_USER") ?? "sa",
 				Environment.GetEnvironmentVariable("SK_SQL_PW") ?? "");
 			if (cn == null) {
@@ -7411,13 +7418,13 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				return 1;
 			}
 			System.Data.Common.DbConnection dcn = cn;
-			if (dsthost != null) {
-				dcn = connof(dstkind, dsthost, dstuser ?? "root", dstpw ?? "");
+			if (dsthost != null || dstkind == SqlTool.Sqlite) {
+				dcn = connof(dstkind, dsthost ?? dst, dstuser ?? "root", dstpw ?? "");
 				if (dcn == null) {
 					Err("FAIL: 连不上目标库服务器");
 					return 1;
 				}
-				Out($"目标服务器 {dstkind} @ {dsthost}");
+				Out($"目标 {dstkind} @ {dsthost ?? dst}");
 			}
 			try {
 				// 源库的表与行数基线
@@ -7442,21 +7449,49 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				}
 				Out($"源库 {src}：{srcTables.Count} 张表，共 {srcTables.Sum(x => x.Rows)} 行");
 
-				// 建一个空的目标库
-				var mysqldst = dstkind == SqlTool.Mysql;
-				var drop = SqlTool.Run(dcn, mysqldst
-					? $"DROP DATABASE IF EXISTS {SqlTool.Quote(dstkind, dst)}"
-					: $"IF DB_ID('{dst}') IS NOT NULL BEGIN ALTER DATABASE [{dst}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{dst}]; END", 0);
-				if (drop.Error.Length > 0) {
-					Err("FAIL: 删旧目标库 " + drop.Error);
-					bad++;
+				// 建一个空的目标库；sqlite 的目标就是文件，删掉重建即可
+				if (dstkind == SqlTool.Sqlite) {
+					if (!ReferenceEquals(dcn, cn)) {
+						try { dcn.Dispose(); } catch { }
+					}
+					try { File.Delete(dst); } catch { }
+					dcn = connof(SqlTool.Sqlite, dst, "", "");
+					if (dcn == null) {
+						Err("FAIL: 建 sqlite 目标库 " + dst);
+						return 1;
+					}
 				}
-				var mk = SqlTool.Run(dcn, mysqldst
-					? $"CREATE DATABASE {SqlTool.Quote(dstkind, dst)}"
-					: $"CREATE DATABASE [{dst}]", 0);
-				if (mk.Error.Length > 0) {
-					Err("FAIL: 建目标库 " + mk.Error);
-					return 1;
+				else {
+					var mysqldst = dstkind == SqlTool.Mysql;
+					// SQL Server 的 DROP 要分步执行：一条带 BEGIN...END 的语句走 ExecuteReader 会解析失败
+					if (mysqldst) {
+						var drop = SqlTool.Run(dcn, $"DROP DATABASE IF EXISTS {SqlTool.Quote(dstkind, dst)}", 0);
+						if (drop.Error.Length > 0) {
+							Err("FAIL: 删旧目标库 " + drop.Error);
+							bad++;
+						}
+					}
+					else {
+						var has = SqlTool.Run(dcn, $"SELECT DB_ID('{dst}')", 1);
+						// DB_ID 查不到时返回 NULL，取出来是空串
+						var exists = has.Error.Length == 0 && has.Rows.Count > 0
+							&& has.Rows[0].Length > 0 && !string.IsNullOrWhiteSpace(has.Rows[0][0]);
+						if (exists) {
+							SqlTool.Run(dcn, $"ALTER DATABASE [{dst}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE", 0);
+							var drop = SqlTool.Run(dcn, $"DROP DATABASE [{dst}]", 0);
+							if (drop.Error.Length > 0) {
+								Err("FAIL: 删旧目标库 " + drop.Error);
+								bad++;
+							}
+						}
+					}
+					var mk = SqlTool.Run(dcn, mysqldst
+						? $"CREATE DATABASE {SqlTool.Quote(dstkind, dst)}"
+						: $"CREATE DATABASE [{dst}]", 0);
+					if (mk.Error.Length > 0) {
+						Err("FAIL: 建目标库 " + mk.Error);
+						return 1;
+					}
 				}
 
 				// 导出：整库、目标方言
@@ -7465,7 +7500,8 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 					"mssql" => SqlDialect.Mssql,
 					_ => SqlDialect.Sqlite,
 				};
-				var sqlfile = Path.Combine(dir, $"{src}-{dialect}.sql");
+				var label = Path.GetFileNameWithoutExtension(src);
+				var sqlfile = Path.Combine(dir, $"{label}-{dialect}.sql");
 				var tick = Environment.TickCount;
 				var rep = new SyncProgress(p => { });
 				var r = SqlExport.Run(cn, new SqlExportOptions {
@@ -8101,6 +8137,25 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			var over = fw?.Invoke(null, new object[] { fat, false }) as HashSet<string>;
 			if (over == null || over.Count == 0) {
 				Err("FAIL: 超宽表应有列降成 longtext");
+				bad++;
+			}
+			// 主键/索引列不能是无长度上限的 text：SQL Server 索引键最多 900 字节，MySQL 也不能给 longtext 建索引
+			var kt = new SqlExportTable { Name = "kt" };
+			var kcol = new SqlExportColumn { Name = "k", Kind = SqlTypeKind.Text, PrimaryKey = true };
+			kt.Columns.Add(kcol);
+			var km = SqlExport.typetext(kcol, SqlDialect.Mssql, new Version(16, 0), false, null, true);
+			if (km != "nvarchar(450)") {
+				Err("FAIL: 主键文本列应有长度上限，实际 " + km);
+				bad++;
+			}
+			var ky = SqlExport.typetext(kcol, SqlDialect.Mysql, new Version(8, 0), false, null, true);
+			if (ky != "varchar(255)") {
+				Err("FAIL: MySQL 主键文本列应为 varchar，实际 " + ky);
+				bad++;
+			}
+			// 非键列不受影响，仍是 max/longtext
+			if (SqlExport.typetext(kcol, SqlDialect.Mssql, new Version(16, 0)) != "nvarchar(max)") {
+				Err("FAIL: 非键文本列应保持 nvarchar(max)");
 				bad++;
 			}
 
