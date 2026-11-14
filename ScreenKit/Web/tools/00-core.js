@@ -184,12 +184,37 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	}
 
 	// 离开工具时调用 spec.dispose，用来停声音、关设备。没有资源的工具不用写。
+	// 之后统一把面板 DOM 和工具留下的全局引用清掉：工具体是每次打开重新生成的，
+	// 留着旧节点只会占内存，还会让旧的事件回调继续挂在脱离文档的元素上。
 	function disposeutil(name){
 		if (!name || name === "home") return;
 		var spec = SK.utils[name];
-		if (!spec || !spec.dispose) return;
-		try { spec.dispose(); }
-		catch (ex) {}
+		if (spec && spec.dispose) {
+			try { spec.dispose(); }
+			catch (ex) {}
+		}
+		cleanutil();
+	}
+
+	// 清空工具面板和它带来的临时状态。DOM 清掉后下次 openutil 会重新生成。
+	function cleanutil(){
+		var body = SK.doms && SK.doms.boxBody;
+		if (body) {
+			// 先断开输入绑定，避免 innerHTML 变化时还触发 utilrun
+			body.oninput = null;
+			body.onchange = null;
+			body.innerHTML = "";
+		}
+		var out = SK.doms && SK.doms.boxOut;
+		if (out) out.value = "";
+		SK.curpage = null;
+		util = "";
+		// 图标工具把预览图挂在全局，不释放会一直占着 blob
+		if (SK.icoUrl) {
+			try { F.unurl(SK.icoUrl); } catch (ex) {}
+			SK.icoUrl = "";
+		}
+		SK.icoPic = null;
 	}
 
 	function show(name, fromHist){
