@@ -929,6 +929,54 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 		return chartFonts && chartAt && Date.now() - chartAt < chartMs;
 	}
 
+	// 系统字体列表：缓存在期内直接给，过期或没有就去 /api/fonts 取一次；几个工具同时要也只发一个请求。
+	function fontlist(cb){
+		if (chartfresh()) {
+			cb(chartFonts);
+			return;
+		}
+		chartWait.push(cb);
+		if (chartPend) return;
+		chartPend = true;
+		get("/api/fonts", function(data){
+			var i;
+			chartPend = false;
+			chartFonts = [];
+			chartAt = 0;
+			if (data && data.length) {
+				for (i = 0; i < data.length; i++) chartFonts.push(String(data[i]));
+				chartAt = Date.now();
+			}
+			fontready();
+		}, "", function(){
+			chartPend = false;
+			if (!chartFonts) chartFonts = [];
+			fontready();
+		});
+	}
+
+	function fontready(){
+		var cbs = chartWait;
+		var i;
+		chartWait = [];
+		for (i = 0; i < cbs.length; i++) cbs[i](chartFonts);
+	}
+
+	// 下拉框里填字体列表，第一个是「默认」。
+	function paintfonts(box, cur){
+		var html = '<option value="">' + htmlenc(t("web.font.default") || "默认") + "</option>";
+		var i;
+		var name;
+		for (i = 0; i < chartFonts.length; i++) {
+			name = chartFonts[i];
+			html += '<option value="' + htmlenc(name) + '" style="font-family:' + htmlenc(chartfaceq(name)) + ',sans-serif">'
+				+ htmlenc(name) + "</option>";
+		}
+		box.innerHTML = html;
+		box.value = cur || "";
+		return box.value === (cur || "");
+	}
+
 	function chartfont(id){
 		var box = domof(id);
 		if (!box) return;
@@ -942,53 +990,44 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 			applychart();
 			if (SK.onchartfont) SK.onchartfont();
 		};
-		if (chartfresh()) {
-			paintchart(box);
-			return;
-		}
-		if (chartFonts) paintchart(box);
-		chartWait.push(box);
-		if (chartPend) return;
-		chartPend = true;
-		get("/api/fonts", function(data){
-			var i;
-			chartPend = false;
-			chartFonts = [];
-			chartAt = 0;
-			if (data && data.length) {
-				for (i = 0; i < data.length; i++) chartFonts.push(String(data[i]));
-				chartAt = Date.now();
-			}
-			var nodes = chartWait;
-			chartWait = [];
-			for (i = 0; i < nodes.length; i++) paintchart(nodes[i]);
-		}, "", function(){
-			chartPend = false;
-			if (!chartFonts) chartFonts = [];
-			var nodes = chartWait;
-			var i;
-			chartWait = [];
-			for (i = 0; i < nodes.length; i++) paintchart(nodes[i]);
-		});
+		fontlist(function(){ paintchart(box); });
 	}
 
 	function paintchart(box){
-		var html = '<option value="">默认</option>';
-		var i;
-		var name;
-		for (i = 0; i < chartFonts.length; i++) {
-			name = chartFonts[i];
-			html += '<option value="' + htmlenc(name) + '" style="font-family:' + htmlenc(chartfaceq(name)) + ',sans-serif">'
-				+ htmlenc(name) + "</option>";
-		}
-		box.innerHTML = html;
-		if (chartFont) box.value = chartFont;
-		if (box.value !== chartFont) {
+		if (!paintfonts(box, chartFont)) {
 			chartFont = "";
 			try { F.lset("sk-chart-font", ""); } catch (e) {}
 		}
 		applychart();
 		if (SK.onchartfont) SK.onchartfont();
+	}
+
+	// Emoji 查询单独一份字体：它默认用自带字体渲染，允许换成别的字体，和码表的字体互不影响。
+	var emjFont = null;
+
+	function emjfont(id){
+		var box = domof(id);
+		if (!box) return;
+		if (emjFont == null) {
+			emjFont = "";
+			try { emjFont = F.lget("sk-emj-font") || ""; } catch (e) {}
+		}
+		box.onchange = function(){
+			emjFont = box.value || "";
+			try { F.lset("sk-emj-font", emjFont); } catch (e) {}
+			if (SK.onemjfont) SK.onemjfont();
+		};
+		fontlist(function(){
+			if (!paintfonts(box, emjFont)) {
+				emjFont = "";
+				try { F.lset("sk-emj-font", ""); } catch (e) {}
+			}
+			if (SK.onemjfont) SK.onemjfont();
+		});
+	}
+
+	function emjface(){
+		return emjFont ? chartfaceq(emjFont) + ", " : "";
 	}
 
 	function applychart(){
@@ -1882,6 +1921,8 @@ F.tags = function(name, root){ return (root || document).getElementsByTagName(na
 	SK.get = get;
 	SK.chartfont = chartfont;
 	SK.chartface = chartface;
+	SK.emjfont = emjfont;
+	SK.emjface = emjface;
 	SK.fillsel = fillsel;
 	SK.readfile = readfile;
 	SK.copytext = copytext;

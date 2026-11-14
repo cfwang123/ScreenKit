@@ -52,6 +52,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- Emoji lookup has a font picker: the grid and the large preview can be rendered with any installed font, remembered separately from the Unicode chart font.
+
 #### Changed
 
 - Dictionary pronunciation now defaults to Microsoft Edge online voices; languages that were never configured no longer borrow the English row or fall back to SAPI, so web tool and web dictionary pronunciation for every language uses that language's Edge voice.
@@ -61,6 +65,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Dictionary pronunciation: Edge voices are now picked per language, so each row keeps a voice of its own language instead of an English one.
 
 ### 中文
+
+#### 新增
+
+- Emoji 查询增加字体选择：格子和右侧大字预览可以用本机任意字体显示，选择单独保存，不影响 Unicode 码表的字体设置。
 
 #### 变更
 

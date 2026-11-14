@@ -11,6 +11,7 @@
 			return [
 				F.CreateDOM(t, { x: "div.uquery", c: [
 					{ x: "input.u-q", name: "emjQ", type: "text", "data-kph": "web.emj.ph", placeholder: "搜索：smile、笑、U+1F600" },
+					{ x: "select.u-font.ufont", name: "emjFont", title: "字体" },
 					{ x: "span.u-msg.msg", name: "emjMsg" }
 				] }),
 				F.CreateDOM(t, { x: "p.hint", "data-k": "web.emj.hint", c: "点一下选中并复制。左边按分类分组，中间按子分类铺开，右边是大字、中英文名和编码。" }),
@@ -40,6 +41,9 @@
 			page.doms.emjGroups.onclick = ongroup;
 			page.doms.emjGrid.onclick = oncell;
 			page.doms.emjCh.onclick = pickcopy;
+			SK.onemjfont = applyfont;
+			applyfont();
+			SK.emjfont("emj-font");
 			reset();
 			paint();
 			fontcheck();
@@ -54,6 +58,19 @@
 			fontcheck();
 		}
 	});
+
+	// 选中的字体写成根上的 --emjfont，格子和大字预览共用；「默认」时清掉，回到自带字体。
+	function applyfont(){
+		var root = document.documentElement;
+		var face = SK.emjface ? SK.emjface() : "";
+		if (!face) {
+			root.style.removeProperty("--emjfont");
+			F.unset(root, "data-emjfont");
+			return;
+		}
+		root.style.setProperty("--emjfont", face.replace(/,\s*$/, ""));
+		F.seta(root, "data-emjfont", "1");
+	}
 
 	function data(){
 		return SK.emojidata || { g: [], s: [], r: [] };
