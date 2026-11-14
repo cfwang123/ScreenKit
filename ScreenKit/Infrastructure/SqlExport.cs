@@ -419,31 +419,38 @@ static class SqlExport {
 
 	/// <summary>建表语句。同引擎导出时列类型原样保留，跨引擎按目标方言重写。</summary>
 	static string createof(SqlExportTable t, SqlDialect d, Version ver, bool sametype) {
-		var q = DialectKind(d);
-		var tname = QuoteName(q, t.Name);
+		var tname = qname(d, t.Name);
 		var sb = new StringBuilder();
 		if (d == SqlDialect.Mssql) {
 			if (SqlTargets.DropIfExists(ver)) {
 				sb.Append($"DROP TABLE IF EXISTS {tname};\r\n");
 			}
-			else sb.Append($"IF OBJECT_ID(N'{strlit(t.Name)}', N'U') IS NOT NULL DROP TABLE {tname};\r\n");
+			else sb.Append($"IF OBJECT_ID('{strlit(t.Name)}', 'U') IS NOT NULL DROP TABLE {tname};\r\n");
 		}
 		else sb.Append($"DROP TABLE IF EXISTS {tname};\r\n");
 		sb.Append($"CREATE TABLE {tname} (\r\n");
 		var lines = new List<string>();
 		var pk = new List<string>();
-		foreach (var c in t.Columns) {
-			var line = $"  {QuoteName(q, c.Name)} {typetext(c, d, ver, sametype)}";
+		// SQLite 的自增必须写在同一列上：id INTEGER PRIMARY KEY AUTOINCREMENT
+		var sqlaic = d == SqlDialect.Sqlite
+			? t.Columns.FindIndex(c => c.Identity && c.PrimaryKey && c.Kind is SqlTypeKind.Int or SqlTypeKind.BigInt)
+			: -1;
+		for (var i = 0; i < t.Columns.Count; i++) {
+			var c = t.Columns[i];
+			var line = $"  {qname(d, c.Name)} {typetext(c, d, ver, sametype)}";
 			var def = defaultof(c, d, ver);
 			if (def.Length > 0) line += " DEFAULT " + def;
-			if (c.Identity) line += identityof(d, c);
+			if (c.Identity && i != sqlaic) line += identityof(d, c);
 			if (!c.Nullable) line += " NOT NULL";
-			if (c.PrimaryKey) pk.Add(QuoteName(q, c.Name));
+			if (c.PrimaryKey) {
+				if (i == sqlaic) line += " PRIMARY KEY AUTOINCREMENT";
+				else pk.Add(qname(d, c.Name));
+			}
 			lines.Add(line);
 		}
 		if (pk.Count > 0) {
 			if (d == SqlDialect.Mssql)
-				lines.Add($"  CONSTRAINT {QuoteName(q, truncate("PK_" + t.Name, 120))} PRIMARY KEY ({string.Join(", ", pk.ToArray())})");
+				lines.Add($"  CONSTRAINT {qname(d, truncate("PK_" + t.Name, 120))} PRIMARY KEY ({string.Join(", ", pk.ToArray())})");
 			else lines.Add($"  PRIMARY KEY ({string.Join(", ", pk.ToArray())})");
 		}
 		sb.Append(string.Join(",\r\n", lines.ToArray()));
@@ -453,19 +460,18 @@ static class SqlExport {
 		return sb.ToString();
 	}
 
-	/// <summary>自增写法各方言不同；SQLite 只有 INTEGER PRIMARY KEY 能自增，非主键列加不了。</summary>
+	/// <summary>自增写法各方言不同；SQLite 只有 INTEGER PRIMARY KEY 能自增，跟着主键一起写。</summary>
 	static string identityof(SqlDialect d, SqlExportColumn c) => d switch {
 		SqlDialect.Mssql => " IDENTITY(1,1)",
 		SqlDialect.Mysql => " AUTO_INCREMENT",
-		_ => c.PrimaryKey && c.Kind is SqlTypeKind.Int or SqlTypeKind.BigInt ? " AUTOINCREMENT" : "",
+		_ => "",
 	};
 
 	static string truncate(string s, int n) => string.IsNullOrEmpty(s) || s.Length <= n ? s : s.Substring(0, n);
 
 	static List<string> indexof(SqlExportTable t, SqlDialect d, Version ver) {
 		var list = new List<string>();
-		var q = DialectKind(d);
-		var tname = QuoteName(q, t.Name);
+		var tname = qname(d, t.Name);
 		foreach (var ix in t.Indexes) {
 			if (ix.Columns.Count == 0) continue;
 			// 目标端不能给 text / nvarchar(max) / blob 建普通索引，跳过免得导入报错
@@ -481,8 +487,8 @@ static class SqlExport {
 			var name = ix.Name;
 			if (d == SqlDialect.Sqlite) name = t.Name + "_" + name;
 			name = truncate(name, 120);
-			list.Add($"CREATE {(ix.Unique ? "UNIQUE " : "")}INDEX {QuoteName(q, name)} ON {tname} "
-				+ $"({string.Join(", ", ix.Columns.ConvertAll(c => QuoteName(q, c)).ToArray())});");
+			list.Add($"CREATE {(ix.Unique ? "UNIQUE " : "")}INDEX {qname(d, name)} ON {tname} "
+				+ $"({string.Join(", ", ix.Columns.ConvertAll(c => qname(d, c)).ToArray())});");
 		}
 		return list;
 	}
@@ -499,11 +505,10 @@ static class SqlExport {
 	/// <summary>多行 INSERT。SQL Server 2008 之前只支持一条 VALUES。</summary>
 	static long insertrows(StreamWriter w, DbDataReader rd, SqlExportTable t, SqlDialect d, Version ver,
 		SqlExportJob job, int index, int total) {
-		var q = DialectKind(d);
-		var tname = QuoteName(q, t.Name);
+		var tname = qname(d, t.Name);
 		var cols = t.Columns;
 		var head = "INSERT INTO " + tname + " ("
-			+ string.Join(", ", cols.ConvertAll(c => QuoteName(q, c.Name)).ToArray()) + ") VALUES";
+			+ string.Join(", ", cols.ConvertAll(c => qname(d, c.Name)).ToArray()) + ") VALUES";
 		var batch = d == SqlDialect.Mssql && !SqlTargets.Modern(ver) ? 1 : 200;
 		var sb = new StringBuilder();
 		var n = 0;
@@ -583,10 +588,9 @@ static class SqlExport {
 		strlit(sb, Convert.ToString(v, CultureInfo.InvariantCulture), d);
 	}
 
-	/// <summary>SQL Server 非 ASCII 加 N 前缀；MySQL 反斜杠要转义。</summary>
+	/// <summary>字符串字面量统一单引号；MySQL 反斜杠要转义。</summary>
 	static void strlit(StringBuilder sb, string s, SqlDialect d) {
 		s ??= "";
-		if (d == SqlDialect.Mssql && !isascii(s)) sb.Append('N');
 		sb.Append('\'');
 		if (d == SqlDialect.Mysql) {
 			for (var i = 0; i < s.Length; i++) {
@@ -601,12 +605,6 @@ static class SqlExport {
 	}
 
 	static string strlit(string s) => (s ?? "").Replace("'", "''");
-
-	static bool isascii(string s) {
-		for (var i = 0; i < s.Length; i++)
-			if (s[i] > 127) return false;
-		return true;
-	}
 
 	static string hex(byte[] bytes) {
 		var sb = new StringBuilder(bytes.Length * 2);
@@ -1076,7 +1074,7 @@ static class SqlExport {
 		catch { }
 		try {
 			using var cmd = cn.CreateCommand();
-			cmd.CommandText = "PRAGMA table_info(" + QuoteName(SqlTool.Sqlite, table) + ")";
+			cmd.CommandText = "PRAGMA table_info(" + SqlTool.Quote(SqlTool.Sqlite, table) + ")";
 			using var rd = cmd.ExecuteReader();
 			while (rd.Read()) {
 				var declared = rd.GetValue(2) == DBNull.Value ? "" : Convert.ToString(rd.GetValue(2), CultureInfo.InvariantCulture);
@@ -1215,7 +1213,7 @@ static class SqlExport {
 	static void sqliteindexes(DbConnection cn, SqlExportTable t) {
 		var names = new List<(string Name, bool Unique)>();
 		using (var cmd = cn.CreateCommand()) {
-			cmd.CommandText = "PRAGMA index_list(" + QuoteName(SqlTool.Sqlite, t.Name) + ")";
+			cmd.CommandText = "PRAGMA index_list(" + SqlTool.Quote(SqlTool.Sqlite, t.Name) + ")";
 			using var rd = cmd.ExecuteReader();
 			while (rd.Read()) {
 				var name = Convert.ToString(rd.GetValue(1), CultureInfo.InvariantCulture) ?? "";
@@ -1226,7 +1224,7 @@ static class SqlExport {
 		foreach (var (name, unique) in names) {
 			var ix = new SqlExportIndex { Name = name, Unique = unique };
 			using var cmd = cn.CreateCommand();
-			cmd.CommandText = "PRAGMA index_info(" + QuoteName(SqlTool.Sqlite, name) + ")";
+			cmd.CommandText = "PRAGMA index_info(" + SqlTool.Quote(SqlTool.Sqlite, name) + ")";
 			using var rd = cmd.ExecuteReader();
 			var order = new List<(int Seq, string Col)>();
 			while (rd.Read()) {
@@ -1447,20 +1445,69 @@ static class SqlExport {
 		catch { return 0; }
 	}
 
-	// ==================== 通用 ====================
+	/// <summary>读源库用的语句，走源库方言的引号。</summary>
+	static string SelectOf(string kind, string table) => "SELECT * FROM " + SqlTool.Quote(kind, table);
 
-	/// <summary>按源库方言给标识符加引号，支持 a.b 这种带架构/库的名字。</summary>
-	public static string QuoteName(string kind, string name) {
+	/// <summary>
+	/// 导出脚本里的标识符：普通名字直接裸写，只有含特殊字符或撞关键字时才加引号
+	/// （SQL Server / SQLite 用双引号，MySQL 用反引号）；支持 a.b 这种带架构/库的名字。
+	/// </summary>
+	static string qname(SqlDialect d, string name) {
 		var parts = (name ?? "").Split('.');
 		var sb = new StringBuilder();
 		for (var i = 0; i < parts.Length; i++) {
 			if (i > 0) sb.Append('.');
-			sb.Append(SqlTool.Quote(kind, parts[i]));
+			var p = parts[i];
+			sb.Append(safe(p, d) ? p : wrap(p, d));
 		}
 		return sb.ToString();
 	}
 
-	static string SelectOf(string kind, string table) => "SELECT * FROM " + QuoteName(kind, table);
+	static string wrap(string name, SqlDialect d) => d == SqlDialect.Mysql
+		? "`" + (name ?? "").Replace("`", "``") + "`"
+		: "\"" + (name ?? "").Replace("\"", "\"\"") + "\"";
+
+	/// <summary>字母或下划线开头、其余是字母数字下划线，且不是关键字。</summary>
+	static bool safe(string name, SqlDialect d) {
+		if (string.IsNullOrEmpty(name)) return false;
+		var c = name[0];
+		if (c != '_' && !(c >= 'a' && c <= 'z') && !(c >= 'A' && c <= 'Z')) return false;
+		for (var i = 1; i < name.Length; i++) {
+			c = name[i];
+			if (c == '_' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9') continue;
+			return false;
+		}
+		return !reserved(name, d);
+	}
+
+	/// <summary>常见关键字：这些当列名或表名时必须加引号，否则脚本跑不起来。</summary>
+	static bool reserved(string name, SqlDialect d) {
+		var up = name.ToUpperInvariant();
+		var common = new[] {
+			"ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "BACKUP", "BEGIN", "BETWEEN", "BY", "CASE",
+			"CHECK", "COLUMN", "CONSTRAINT", "CREATE", "CURRENT", "DEFAULT", "DELETE", "DESC", "DISTINCT",
+			"DROP", "EXEC", "EXISTS", "FETCH", "FOR", "FOREIGN", "FROM", "FULL", "GRANT", "GROUP", "HAVING",
+			"INDEX", "INNER", "INSERT", "INTO", "IS", "JOIN", "KEY", "LEFT", "LIKE", "LIMIT", "NOT", "NULL",
+			"OFFSET", "ON", "OPEN", "OR", "ORDER", "OUTER", "PRIMARY", "PROC", "PROCEDURE", "REFERENCES",
+			"RIGHT", "RULE", "SCHEMA", "SELECT", "SET", "SOME", "TABLE", "TEMP", "TOP", "TRANSACTION",
+			"TRIGGER", "UNION", "UNIQUE", "UPDATE", "USER", "USING", "VALUES", "VIEW", "WHEN", "WHERE", "WITH",
+		};
+		if (Array.IndexOf(common, up) >= 0) return true;
+		if (d == SqlDialect.Mysql) {
+			var extra = new[] { "ACCESSIBLE", "ANALYZE", "BLOB", "DATABASE", "DIV", "EXPLAIN", "IGNORE",
+				"INTERVAL", "KILL", "LOCK", "MATCH", "MOD", "NATURAL", "OPTION", "OUT", "REGEXP", "RELEASE",
+				"REPLACE", "REQUIRE", "SHOW", "SPATIAL", "STATUS", "STRAIGHT_JOIN", "TERMINATED", "UNDO", "VARBINARY",
+				"VARCHAR", "WHILE", "WRITE", "XOR", "ZEROFILL" };
+			return Array.IndexOf(extra, up) >= 0;
+		}
+		if (d == SqlDialect.Mssql) {
+			var extra = new[] { "AVG", "COUNT", "IDENTITY", "IMAGE", "MAX", "MIN", "NTEXT", "PIVOT", "PLAN",
+				"PRECISION", "PUBLIC", "READ", "ROWCOUNT", "SEED", "SIZE", "SUM", "TABLESAMPLE", "TEXTSIZE", "TRY",
+				"UNPIVOT", "VARBINARY", "VARCHAR", "WHILE", "WRITE" };
+			return Array.IndexOf(extra, up) >= 0;
+		}
+		return false;
+	}
 
 	static DbDataReader openreader(DbConnection cn, string sql) {
 		var cmd = cn.CreateCommand();
