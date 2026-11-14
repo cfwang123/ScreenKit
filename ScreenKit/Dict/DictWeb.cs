@@ -27,10 +27,10 @@ static class DictWeb {
 	}
 
 	public static string NormLang(string lang) {
-		// 网页传的是 zh-CN、ja-JP 这类带地区的码，先归到主语言；词典只收中日韩英。
+		// 网页传的是 zh-CN、ja-JP 这类带地区的码，先归到主语言。发音按该语言在词典发音表里的设置，
+		// 表里没有（或不是中日韩英）时也照原语言走，不能一律当成英语去念俄语、德语文本。
 		var s = DictTts.NormLang(lang);
-		if (s == "zh" || s == "en" || s == "ja" || s == "ko") return s;
-		return "en";
+		return s.Length > 0 ? s : "en";
 	}
 
 	public static List<DictHit> Hits(OcrOptions o, string q, string dict, int limit) {

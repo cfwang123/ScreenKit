@@ -52,11 +52,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- Dictionary pronunciation now defaults to Microsoft Edge online voices; languages that were never configured no longer borrow the English row or fall back to SAPI, so web tool and web dictionary pronunciation for every language uses that language's Edge voice.
+
 #### Fixed
 
 - Dictionary pronunciation: Edge voices are now picked per language, so each row keeps a voice of its own language instead of an English one.
 
 ### 中文
+
+#### 变更
+
+- 词典发音的默认引擎改为 Edge 在线语音；没有配置过的语言不再借英语那一行、也不再用 SAPI，网页工具和网页词典里各语言的发音都用该语言自己的 Edge 发音人。
 
 #### 修复
 

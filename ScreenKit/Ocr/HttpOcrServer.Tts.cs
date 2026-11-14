@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Speech.Synthesis;
 using System.Windows.Threading;
 using ScreenKit.Json;
@@ -268,12 +268,10 @@ sealed partial class HttpOcrServer {
 		writejson(ctx, 200, JSONF.newObject(("code", 100), ("data", JSONF.newObject(("format", "wav"), ("sample_rate", made.Sr), ("samples", made.Samples.Length), ("wav_base64", Convert.ToBase64String(wav)), ("engine", made.Engine), ("model", made.Model), ("voice", made.Voice), ("speaker_id", made.Sid), ("provider", made.Provider))), ("time", ms), ("timestamp", DateTimeOffset.Now.ToUnixTimeSeconds())));
 	}
 
-	/// <summary>请求没指定引擎/模型/发音人时，按词典发音表取这个语言的配置；表里没这个语言（且非中日韩英）返回 null。</summary>
+	/// <summary>请求没指定引擎/模型/发音人时，按词典发音表取这个语言的配置；表里没这个语言就用该语言的 Edge 默认发音人。</summary>
 	DictTtsLang dictprefof(string lang) {
 		if (lang.Length == 0) return null;
 		var o = getOpts?.Invoke();
-		var map = o?.DictTtsMap;
-		if (!DictTts.IsCoreLang(lang) && (map == null || !map.ContainsKey(lang))) return null;
 		return DictTts.For(o, lang);
 	}
 

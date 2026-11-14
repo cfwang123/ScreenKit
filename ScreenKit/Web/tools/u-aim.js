@@ -585,6 +585,17 @@
 			speakchrome(text, picked, mine);
 			return;
 		}
+		// 没指定声音时用程序里的 Edge 在线语音（和划词浮窗、词典发音同一套参数），
+		// 浏览器自带的语音只作为后端不可用时的兜底。
+		if (!picked) {
+			postedgedefault(text, mine, function(){ speaklocal(text, null, mine); });
+			return;
+		}
+		speaklocal(text, picked, mine);
+	}
+
+	function speaklocal(text, picked, mine){
+		var syn = window.speechSynthesis;
 		var u = new SpeechSynthesisUtterance(text);
 		if (picked) {
 			u.voice = picked;
@@ -601,6 +612,33 @@
 		};
 		SK.msg("aim-msg", tx("web.aim.speaking", "正在朗读"));
 		syn.speak(u);
+	}
+
+	// 不带 engine/voice：后端按「词典发音」里该语言的设置合成，未配置的语言用 Edge。
+	function postedgedefault(text, mine, fallback){
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", "/api/tts", true);
+		F.hdr(xhr, "Content-Type", "application/json;charset=utf-8");
+		xhr.onload = function(){
+			var jo, b64;
+			if (mine !== speakGen) return;
+			try { jo = F.parse(xhr.responseText); }
+			catch (e) { fallback(); return; }
+			b64 = jo && jo.code === 100 && jo.data ? jo.data.wav_base64 : "";
+			if (!b64) { fallback(); return; }
+			SK.playwav(b64, "aim-msg", function(){
+				if (mine === speakGen && SK.curtool === "u-aim") SK.msg("aim-msg", "");
+			});
+		};
+		xhr.onerror = function(){
+			if (mine !== speakGen) return;
+			fallback();
+		};
+		SK.msg("aim-msg", tx("web.aim.speaking", "正在朗读"));
+		xhr.send(F.json({
+			text: text,
+			lang: vlang() || speechlang()
+		}));
 	}
 
 	function sysvoice(v){

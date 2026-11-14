@@ -56,8 +56,9 @@ public sealed class DictTtsLang {
 		Rate = Rate,
 	};
 
+	/// <summary>新建一行时的默认值：引擎 Edge，发音人按语言取。</summary>
 	public static DictTtsLang Make(string edge) => new() {
-		Engine = "auto",
+		Engine = DictTts.EDGE,
 		Sapi = "",
 		Edge = edge ?? "",
 		Onnx = "",

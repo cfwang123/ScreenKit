@@ -190,10 +190,8 @@ static class DictTts {
 		if (lang.Length == 0) lang = "en";
 		DictTtsLang src = null;
 		var map = o?.DictTtsMap;
-		if (map != null) {
-			if (!map.TryGetValue(lang, out src) && lang != "en")
-				map.TryGetValue("en", out src);
-		}
+		// 表里没有这个语言就用它自己的 Edge 默认发音人，不要借英语那一行的引擎和发音人。
+		map?.TryGetValue(lang, out src);
 		var pref = src != null ? src.Clone() : DictTtsLang.Make(DefaultEdge(lang));
 		pref.Engine = NormEngine(pref.Engine);
 		// 存着的发音人不属于这个语言（旧的跨语言选择）就换回该语言的默认发音人。
@@ -420,6 +418,14 @@ static class DictTts {
 		if (EdgeName("ru", "ru-RU-DmitryNeural") != "ru-RU-DmitryNeural") return 9;
 		if (EdgeName("en", "ru-RU-DmitryNeural") != DefaultEdge("en")) return 9;
 		if (DefaultEdge("ru").StartsWith("ru-RU-", StringComparison.OrdinalIgnoreCase) == false) return 10;
+		// 没配置过的语言一律 Edge，不再借英语那行或用 SAPI。
+		foreach (var lg in new[] { "zh", "en", "ja", "ko", "ru", "de" }) {
+			var fresh = DictTtsLang.Make(DefaultEdge(lg));
+			if (NormEngine(fresh.Engine) != EDGE) return 11;
+			var f = For(new OcrOptions(), lg);
+			if (ResolveEngine(f.Engine, lg) != EDGE) return 12;
+			if (VoiceOf(f, lg, EDGE) != DefaultEdge(lg)) return 13;
+		}
 		return 0;
 	}
 

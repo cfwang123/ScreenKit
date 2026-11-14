@@ -1639,7 +1639,7 @@
 
 	function ttsbody(text){
 		var b = { text: text, speed: st.rate, volume: 100 };
-		var eng = st.engine || "chrome";
+		var eng = st.engine || "edge";
 		if (eng.indexOf("sherpa|") === 0) {
 			b.engine = "sherpa";
 			b.model = eng.substring(7);
@@ -1901,7 +1901,7 @@
 		if (keep) {
 			for (i = 0; i < list.length; i++) if (list[i] === keep) st.engine = keep;
 		}
-		if (!st.engine) st.engine = list.indexOf("browser") >= 0 ? "browser" : (list[0] || "browser");
+		if (!st.engine) st.engine = list.indexOf("edge") >= 0 ? "edge" : (list.indexOf("browser") >= 0 ? "browser" : (list[0] || "browser"));
 		sel.value = st.engine;
 		fillvlang();
 	}
