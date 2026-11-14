@@ -89,6 +89,7 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miPerfMon;
 	Forms.ToolStripMenuItem miHttpDbg;
 	Forms.ToolStripMenuItem miMqtt;
+	Forms.ToolStripMenuItem miWsDbg;
 	Forms.ToolStripMenuItem miUdpDbg;
 	Forms.ToolStripMenuItem miSoapDbg;
 	Forms.ToolStripMenuItem miNetMon;
@@ -250,6 +251,7 @@ sealed class TrayIcon : IDisposable {
 		miPerfMon = item("tray.perfmon", () => PerfMonRequested?.Invoke());
 		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
 		miMqtt = item("tray.mqtt", () => MqttRequested?.Invoke());
+		miWsDbg = item("tray.wsdbg", () => WsDbgRequested?.Invoke());
 		miUdpDbg = item("tray.udpdbg", () => UdpDbgRequested?.Invoke());
 		miSoapDbg = item("tray.soapdbg", () => SoapDbgRequested?.Invoke());
 		miNetMon = item("tray.netmon", () => NetMonRequested?.Invoke());
@@ -312,6 +314,7 @@ sealed class TrayIcon : IDisposable {
 		miNetGroup.DropDownItems.Add(miNet);
 		miNetGroup.DropDownItems.Add(miHttpDbg);
 		miNetGroup.DropDownItems.Add(miMqtt);
+		miNetGroup.DropDownItems.Add(miWsDbg);
 		miNetGroup.DropDownItems.Add(miUdpDbg);
 		miNetGroup.DropDownItems.Add(miSoapDbg);
 		miNetGroup.DropDownItems.Add(miPortUse);
@@ -558,6 +561,7 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miSys, null);
 		setshortcut(miHttpDbg, null);
 		setshortcut(miMqtt, null);
+		setshortcut(miWsDbg, null);
 		setshortcut(miUdpDbg, null);
 		setshortcut(miSoapDbg, null);
 		setshortcut(miNetMon, null);
@@ -656,6 +660,7 @@ sealed class TrayIcon : IDisposable {
 			settext(miPerfMon, "tray.perfmon");
 			settext(miHttpDbg, "tray.httpdbg");
 			settext(miMqtt, "tray.mqtt");
+			settext(miWsDbg, "tray.wsdbg");
 			settext(miUdpDbg, "tray.udpdbg");
 			settext(miSoapDbg, "tray.soapdbg");
 			settext(miNetMon, "tray.netmon");
@@ -858,6 +863,7 @@ sealed class TrayIcon : IDisposable {
 	public event Action PerfMonRequested;
 	public event Action HttpDbgRequested;
 	public event Action MqttRequested;
+	public event Action WsDbgRequested;
 	public event Action UdpDbgRequested;
 	public event Action SoapDbgRequested;
 	public event Action NetMonRequested;

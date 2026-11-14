@@ -68,6 +68,7 @@ static class ToolHub {
 		new() { Id = "w-net", Cat = "net", Kind = "act", Open = "net", NameKey = "menu.net", TipKey = "menu.net.tip", Glyph = "\uE839" },
 		new() { Id = "w-httpdbg", Cat = "net", Kind = "act", Open = "httpdbg", NameKey = "menu.httpdbg", TipKey = "menu.httpdbg.tip", Glyph = "\uE774" },
 		new() { Id = "w-mqtt", Cat = "net", Kind = "act", Open = "mqtt", NameKey = "menu.mqtt", TipKey = "menu.mqtt.tip", Glyph = "\uEC05" },
+		new() { Id = "w-wsdbg", Cat = "net", Kind = "act", Open = "wsdbg", NameKey = "menu.wsdbg", TipKey = "menu.wsdbg.tip", Glyph = "\uE968" },
 		new() { Id = "w-udpdbg", Cat = "net", Kind = "act", Open = "udpdbg", NameKey = "menu.udpdbg", TipKey = "menu.udpdbg.tip", Glyph = "\uE839" },
 		new() { Id = "w-soapdbg", Cat = "net", Kind = "act", Open = "soapdbg", NameKey = "menu.soapdbg", TipKey = "menu.soapdbg.tip", Glyph = "\uE774" },
 		new() { Id = "w-portuse", Cat = "net", Kind = "act", Open = "portuse", NameKey = "menu.portuse", TipKey = "menu.portuse.tip", Glyph = "\uE839" },

@@ -238,6 +238,9 @@
 					<MenuItem x:Name="mnmqtt" Header="MQTT 调试(_Q)…"
 					          AutomationProperties.AutomationId="menu.mqtt"
 					          ToolTip="连 MQTT 服务器收发消息，也能在本机起一个服务端"/>
+					<MenuItem x:Name="mnwsdbg" Header="WebSocket 调试(_B)…"
+					          AutomationProperties.AutomationId="menu.wsdbg"
+					          ToolTip="连 WebSocket 收发帧，也能在本机起一个服务端回显或推送"/>
 					<MenuItem x:Name="mnudpdbg" Header="TCP/UDP/串口调试(_P)…"
 					          AutomationProperties.AutomationId="menu.udpdbg"
 					          ToolTip="TCP 连接或监听后发送，UDP 监听后发送，串口打开后收发"/>

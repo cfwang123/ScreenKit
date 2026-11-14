@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Emoji lookup has a font picker: the grid and the large preview can be rendered with any installed font, remembered separately from the Unicode chart font.
 - Database query: export a table, the current result or the whole database as a SQL script in SQLite / MySQL / SQL Server dialect - pick the target SQL Server version (2005-2022) and newer-only syntax is downgraded automatically (datetime2/date/time to datetime, no DROP TABLE IF EXISTS, no multi-row INSERT) - or as xlsx / csv / html.
+- WebSocket debugger: a client that connects to ws:// or wss:// with subprotocol, Origin and extra headers, sends text, binary or ping frames and logs every frame plus the raw handshake; and a server that runs on this machine, echoes incoming messages on demand, and pushes to one or all connected clients.
 
 #### Changed
 
@@ -77,6 +78,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Emoji 查询增加字体选择：格子和右侧大字预览可以用本机任意字体显示，选择单独保存，不影响 Unicode 码表的字体设置。
 - 数据库查询：可把当前表、当前查询结果或整个库导出为 SQL 脚本，支持 SQLite / MySQL / SQL Server 三种方言；SQL Server 可选目标版本（2005~2022），选低版本时自动降级为新版本才有的语法（datetime2/date/time 改 datetime、不用 DROP TABLE IF EXISTS、不合并多行 INSERT），也可导出为 xlsx、csv、html。
+- 新增 WebSocket 调试：客户端可连 ws:// 或 wss://，支持子协议、Origin 和自定义请求头，按文本、二进制或 ping 发帧，日志里给出每一帧和握手原文；服务端页能在本机起一个服务，收到的消息可回显，也能推给某个或全部在线客户端。
 
 #### 变更
 

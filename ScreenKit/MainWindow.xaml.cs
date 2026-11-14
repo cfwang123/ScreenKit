@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -116,6 +117,7 @@ public partial class MainWindow : Window {
 	PerfMonWindow perfMonWin;
 	HttpDebugWindow httpDbgWin;
 	MqttWindow mqttWin;
+	WsDebugWindow wsDbgWin;
 	UdpDebugWindow udpDbgWin;
 	SoapDebugWindow soapDbgWin;
 	ZhConvertWindow zhConvWin;
@@ -762,6 +764,7 @@ public partial class MainWindow : Window {
 			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon()));
 			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg()));
 			tray.MqttRequested += () => Dispatcher.BeginInvoke(new Action(() => openmqtt()));
+		tray.WsDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openwsdbg()));
 			tray.UdpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openudpdbg()));
 			tray.SoapDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => opensoapdbg()));
 			tray.NetMonRequested += () => Dispatcher.BeginInvoke(new Action(() => opennetmon()));
@@ -1925,6 +1928,7 @@ public partial class MainWindow : Window {
 		mnperfmon.Click += (_, _) => openperfmon();
 		mnhttpdbg.Click += (_, _) => openhttpdbg();
 		mnmqtt.Click += (_, _) => openmqtt();
+		mnwsdbg.Click += (_, _) => openwsdbg();
 		mnudpdbg.Click += (_, _) => openudpdbg();
 		mnsoapdbg.Click += (_, _) => opensoapdbg();
 		mnzhconv.Click += (_, _) => openzhconv();
@@ -2136,6 +2140,8 @@ public partial class MainWindow : Window {
 			mnhttpdbg.ToolTip = Loc.T("menu.httpdbg.tip");
 			mnmqtt.Header = Loc.T("menu.mqtt");
 			mnmqtt.ToolTip = Loc.T("menu.mqtt.tip");
+			mnwsdbg.Header = Loc.T("menu.wsdbg");
+			mnwsdbg.ToolTip = Loc.T("menu.wsdbg.tip");
 			mnudpdbg.Header = Loc.T("menu.udpdbg");
 			mnudpdbg.ToolTip = Loc.T("menu.udpdbg.tip");
 			mnsoapdbg.Header = Loc.T("menu.soapdbg");
@@ -4958,6 +4964,9 @@ public partial class MainWindow : Window {
 	void openmqtt() =>
 		opentoolwin(ref mqttWin, () => new MqttWindow(), "menu.mqtt");
 
+	void openwsdbg() =>
+		opentoolwin(ref wsDbgWin, () => new WsDebugWindow(), "menu.wsdbg");
+
 	void openudpdbg() =>
 		opentoolwin(ref udpDbgWin, () => new UdpDebugWindow(), "menu.udpdbg");
 
@@ -5169,6 +5178,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(sysWin, w)) sysWin = null;
 				else if (ReferenceEquals(httpDbgWin, w)) httpDbgWin = null;
 				else if (ReferenceEquals(mqttWin, w)) mqttWin = null;
+				else if (ReferenceEquals(wsDbgWin, w)) wsDbgWin = null;
 				else if (ReferenceEquals(soapDbgWin, w)) soapDbgWin = null;
 				else if (ReferenceEquals(zhConvWin, w)) zhConvWin = null;
 				else if (ReferenceEquals(winCalWin, w)) winCalWin = null;
@@ -6002,6 +6012,7 @@ public partial class MainWindow : Window {
 			Tag = card,
 			Child = row,
 		};
+		AutomationProperties.SetAutomationId(box, "tool." + card.Id);
 		box.MouseEnter += (_, _) =>
 			box.Background = new SolidColorBrush(Color.FromRgb(0xE4, 0xE8, 0xED));
 		box.MouseLeave += (_, _) =>
@@ -6069,6 +6080,7 @@ public partial class MainWindow : Window {
 		else if (id == "net") opennettool();
 		else if (id == "httpdbg") openhttpdbg();
 		else if (id == "mqtt") openmqtt();
+		else if (id == "wsdbg") openwsdbg();
 		else if (id == "udpdbg") openudpdbg();
 		else if (id == "soapdbg") opensoapdbg();
 		else if (id == "portuse") openportuse();

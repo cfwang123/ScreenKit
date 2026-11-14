@@ -63,7 +63,7 @@ static class Cli {
 				or "--test-hash" or "--test-codestat" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-sql" or "--test-sqlexport" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt"
+				or "--test-wintop" or "--test-sql" or "--test-sqlexport" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt" or "--test-wsdbg"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -443,6 +443,8 @@ static class Cli {
 					return testdesknote();
 				case "--test-mqtt":
 					return testmqtt();
+				case "--test-wsdbg":
+					return testwsdbg();
 				case "--fc-copy":
 				case "--fc-cut":
 				case "--fc-delete":
@@ -7583,6 +7585,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		return MqttBroker.Test(Out, Err);
 	}
 
+	static int testwsdbg() {
+		Out("=== WebSocket --test-wsdbg ===");
+		return WsServer.Test(Out, Err);
+	}
+
 	static int testsql() {
 		Out("=== 数据库查询 --test-sql ===");
 		var bad = 0;
@@ -9832,6 +9839,7 @@ ScreenKit CLI — Umi-OCR / Rapid PP-OCR + onnxgpu64（exe: ScreenKit.exe）
       --test-sysinfo  只读检查系统信息及各类设备扫描
       --test-usbdesc  经集线器只读读取设备/配置/字符串描述符与管道，并打印一台设备
       --test-tls  目标地址解析 8 项，并对本机自签名证书做一次完整握手
+--test-wsdbg  WebSocket：Accept 计算、帧编解码（5/300/70000 B），本机起服务端后握手、文本、二进制、ping/pong、推送、回显与关闭
       --test-systool  只读检查进程、环境变量、已安装程序、服务、商店应用和 txt 关联，并查一个被本进程占用的临时文件
       --test-fileprobe  用临时文件检查魔数、UTF-8、GBK，以及 exe/dll 的节、导入导出和签名
       --test-perfmon  采样 CPU、内存、网络和磁盘速率，并检查小窗开关能保存

@@ -1,0 +1,224 @@
+<Window x:Class="ScreenKit.WsDebugWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="WebSocket 调试"
+        Width="1080" Height="760"
+        MinWidth="880" MinHeight="600"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        FontSize="13"
+        AutomationProperties.AutomationId="wsdbg.window">
+	<Window.Resources>
+		<Style x:Key="FieldLabel" TargetType="TextBlock">
+			<Setter Property="VerticalAlignment" Value="Center"/>
+			<Setter Property="Margin" Value="0,0,6,0"/>
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+		</Style>
+		<Style x:Key="FieldBox" TargetType="TextBox">
+			<Setter Property="Height" Value="30"/>
+			<Setter Property="Padding" Value="8,4"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+			<Setter Property="BorderBrush" Value="{StaticResource BorderSoft}"/>
+			<Setter Property="SpellCheck.IsEnabled" Value="False"/>
+		</Style>
+		<Style x:Key="FieldCombo" TargetType="ComboBox">
+			<Setter Property="Height" Value="30"/>
+			<Setter Property="VerticalContentAlignment" Value="Center"/>
+		</Style>
+	</Window.Resources>
+
+	<Grid Margin="16">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<TextBlock x:Name="lbhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,10"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+
+		<TabControl x:Name="tabs" Grid.Row="1" BorderBrush="{StaticResource BorderSoft}"
+		            AutomationProperties.AutomationId="wsdbg.tabs">
+
+			<!-- ==================== 客户端 ==================== -->
+			<TabItem x:Name="tabclient" AutomationProperties.AutomationId="wsdbg.tab.client">
+				<Grid Margin="10">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+					</Grid.RowDefinitions>
+
+					<Border Grid.Row="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
+					        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+						<WrapPanel VerticalAlignment="Center">
+							<TextBlock x:Name="lbcurl" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="ecurl" Style="{StaticResource FieldBox}" Width="300" Margin="0,0,10,0"
+							         ToolTip="ws:// 或 wss://；不写协议默认 ws://。例 ws://127.0.0.1:9001/echo"
+							         AutomationProperties.AutomationId="wsdbg.client.url"/>
+							<TextBlock x:Name="lbcproto" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="ecproto" Style="{StaticResource FieldBox}" Width="100" Margin="0,0,10,0"
+							         ToolTip="Sec-WebSocket-Protocol，多个用逗号分隔，可留空"
+							         AutomationProperties.AutomationId="wsdbg.client.proto"/>
+							<TextBlock x:Name="lbcorigin" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="ecorigin" Style="{StaticResource FieldBox}" Width="140" Margin="0,0,10,0"
+							         ToolTip="Origin，有些服务端会校验；可留空"
+							         AutomationProperties.AutomationId="wsdbg.client.origin"/>
+							<Button x:Name="bcconn" Style="{StaticResource ConnectBtn}"
+							        AutomationProperties.AutomationId="wsdbg.client.connect"/>
+						</WrapPanel>
+					</Border>
+
+					<Expander x:Name="expheaders" Grid.Row="1" Margin="0,0,0,8"
+					          AutomationProperties.AutomationId="wsdbg.client.headers.expander">
+						<Expander.Header>
+							<TextBlock x:Name="lbeheaders" FontSize="12"/>
+						</Expander.Header>
+						<TextBox x:Name="echeaders" Height="66" AcceptsReturn="True" AcceptsTab="True"
+						         VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+						         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+						         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+						         SpellCheck.IsEnabled="False"
+						         ToolTip="一行一个 名称: 值。Host / Upgrade / Connection / Sec-WebSocket-Key 会自动生成，填了也忽略"
+						         AutomationProperties.AutomationId="wsdbg.client.headers"/>
+					</Expander>
+
+					<DockPanel Grid.Row="2" Margin="0,0,0,4">
+						<TextBlock x:Name="lbcsend" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+						<CheckBox x:Name="cchex" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+						          AutomationProperties.AutomationId="wsdbg.client.hex"/>
+						<CheckBox x:Name="cctrust" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+						          AutomationProperties.AutomationId="wsdbg.client.trust"/>
+						<ComboBox x:Name="ccop" DockPanel.Dock="Right" Style="{StaticResource FieldCombo}" Width="96" Margin="12,0,0,0"
+						          AutomationProperties.AutomationId="wsdbg.client.opcode"/>
+					</DockPanel>
+					<Grid Grid.Row="3" Margin="0,0,0,8">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBox x:Name="ecsend" Grid.Column="0" Height="76" AcceptsReturn="True" AcceptsTab="True"
+						         VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+						         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+						         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+						         SpellCheck.IsEnabled="False"
+						         AutomationProperties.AutomationId="wsdbg.client.send"/>
+						<Button x:Name="bcsend" Grid.Column="1" Style="{StaticResource ToolBtn}" Margin="8,0,0,0"
+						        Width="88" VerticalAlignment="Stretch"
+						        AutomationProperties.AutomationId="wsdbg.client.sendbtn"/>
+					</Grid>
+
+					<StackPanel Grid.Row="4" Orientation="Horizontal" Margin="0,0,0,4">
+						<TextBlock x:Name="lbcstat" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+						           Margin="0,0,12,0"/>
+						<Ellipse x:Name="dotc" Width="10" Height="10" Fill="{StaticResource BorderSoft}"
+						         VerticalAlignment="Center" Margin="0,0,10,0"/>
+						<Button x:Name="bcclear" Style="{StaticResource ToolBtnSm}" Margin="0"/>
+						<Button x:Name="bccopy" Style="{StaticResource ToolBtnSm}"/>
+						<CheckBox x:Name="ccautoscroll" IsChecked="True" VerticalAlignment="Center" Margin="8,0,0,0"
+						          AutomationProperties.AutomationId="wsdbg.client.autoscroll"/>
+					</StackPanel>
+
+					<TextBox x:Name="eclog" Grid.Row="5" IsReadOnly="True" AcceptsReturn="True"
+					         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+					         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+					         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+					         AutomationProperties.AutomationId="wsdbg.client.log"/>
+				</Grid>
+			</TabItem>
+
+			<!-- ==================== 服务端 ==================== -->
+			<TabItem x:Name="tabserver" AutomationProperties.AutomationId="wsdbg.tab.server">
+				<Grid Margin="10">
+					<Grid.RowDefinitions>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="*"/>
+						<RowDefinition Height="Auto"/>
+						<RowDefinition Height="Auto"/>
+					</Grid.RowDefinitions>
+
+					<Border Grid.Row="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
+					        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+						<WrapPanel VerticalAlignment="Center">
+							<TextBlock x:Name="lbsport" Style="{StaticResource FieldLabel}"/>
+							<TextBox x:Name="esport" Style="{StaticResource FieldBox}" Width="80" Margin="0,0,12,0"
+							         ToolTip="0 表示随便挑一个空闲端口"
+							         AutomationProperties.AutomationId="wsdbg.server.port"/>
+							<Button x:Name="bstoggle" Style="{StaticResource ConnectBtn}" Margin="0,0,12,0"
+							        AutomationProperties.AutomationId="wsdbg.server.toggle"/>
+							<CheckBox x:Name="csecho" VerticalAlignment="Center" Margin="0,0,12,0"
+							          AutomationProperties.AutomationId="wsdbg.server.echo"/>
+							<Ellipse x:Name="dotsrv" Width="10" Height="10" Fill="{StaticResource BorderSoft}"
+							         VerticalAlignment="Center" Margin="0,0,6,0"
+							         AutomationProperties.AutomationId="wsdbg.server.dot"/>
+							<TextBlock x:Name="lbsstat" VerticalAlignment="Center"
+							           Foreground="{StaticResource TextMuted}"/>
+						</WrapPanel>
+					</Border>
+
+					<Grid Grid.Row="1">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="280"/>
+							<ColumnDefinition Width="8"/>
+							<ColumnDefinition Width="*"/>
+						</Grid.ColumnDefinitions>
+						<DockPanel Grid.Column="0">
+							<TextBlock x:Name="lbclients" DockPanel.Dock="Top" Margin="0,0,0,4"
+							           Foreground="{StaticResource TextMuted}"/>
+							<ListBox x:Name="lclients" BorderBrush="{StaticResource BorderSoft}"
+							         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+							         AutomationProperties.AutomationId="wsdbg.server.clients"/>
+						</DockPanel>
+						<DockPanel Grid.Column="2">
+							<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
+								<TextBlock x:Name="lbslog" VerticalAlignment="Center"
+								           Foreground="{StaticResource TextMuted}"/>
+								<Button x:Name="bsclear" Style="{StaticResource ToolBtnSm}" Margin="10,0,0,0"/>
+								<Button x:Name="bscopy" Style="{StaticResource ToolBtnSm}"/>
+							</StackPanel>
+							<TextBox x:Name="eslog" IsReadOnly="True" AcceptsReturn="True"
+							         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+							         TextWrapping="NoWrap" FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI"
+							         FontSize="12" Padding="8" BorderBrush="{StaticResource BorderSoft}"
+							         AutomationProperties.AutomationId="wsdbg.server.log"/>
+						</DockPanel>
+					</Grid>
+
+					<DockPanel Grid.Row="2" Margin="0,8,0,4">
+						<TextBlock x:Name="lbppush" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"/>
+						<CheckBox x:Name="cphex" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0"
+						          AutomationProperties.AutomationId="wsdbg.server.hex"/>
+						<ComboBox x:Name="cpop" DockPanel.Dock="Right" Style="{StaticResource FieldCombo}" Width="96" Margin="12,0,0,0"
+						          AutomationProperties.AutomationId="wsdbg.server.opcode"/>
+					</DockPanel>
+					<Grid Grid.Row="3">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBox x:Name="epsend" Grid.Column="0" Height="72" AcceptsReturn="True" AcceptsTab="True"
+						         VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+						         FontFamily="Consolas, Cascadia Mono, Microsoft YaHei UI" FontSize="12"
+						         Padding="8" BorderBrush="{StaticResource BorderSoft}"
+						         SpellCheck.IsEnabled="False"
+						         AutomationProperties.AutomationId="wsdbg.server.send"/>
+						<StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Stretch">
+							<Button x:Name="bpush" Style="{StaticResource ToolBtn}" Width="100" Margin="0,0,0,4"
+							        AutomationProperties.AutomationId="wsdbg.server.push"/>
+							<Button x:Name="bpushall" Style="{StaticResource ToolBtn}" Width="100" Margin="0"
+							        AutomationProperties.AutomationId="wsdbg.server.pushall"/>
+						</StackPanel>
+					</Grid>
+				</Grid>
+			</TabItem>
+		</TabControl>
+
+		<TextBlock x:Name="lbstat" Grid.Row="2" Margin="0,8,0,0" TextWrapping="Wrap"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+	</Grid>
+</Window>
