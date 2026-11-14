@@ -508,6 +508,9 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 .rv-decl td.rc { color: var(--muted); font-size: 12px; white-space: nowrap; }
 .rv-decl .df { overflow-wrap: anywhere; }
 .rv-decl tr:first-child th { border: 0; }
+/* 分词变格表里每个词形各带一个发音按钮，字号小一号才不撑开行高。 */
+.rv-decl .jv-spk { width: 18px; height: 18px; line-height: 18px; margin: 0 2px 0 1px; font-size: 11px; }
+.rv-part .jv-spk { width: 20px; height: 20px; line-height: 20px; margin: 0 2px 0 4px; font-size: 12px; }
 .grad-lab { color: var(--muted); font-size: 12px; margin-top: 8px; }
 .grad-stops { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .grad-stop { display: flex; align-items: center; gap: 8px; }
