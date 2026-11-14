@@ -1718,6 +1718,7 @@
 	}
 
 	// 单个分词展开成六格：宾格分有生/无生，阴性工具格带旧变体，-ся 贴在每个词形后面。
+	// 每个词形后都带发音按钮，一格里有两个形式（有生/无生、-ою 旧变体）时各点各的。
 	function declHtml(m, lang){
 		var refl = /ся$/.test(m) ? "ся" : "";
 		var w = refl ? m.slice(0, -2) : m;
@@ -1726,6 +1727,7 @@
 		var st = w.slice(0, -2);
 		var anim = L(lang, ["有生", "anim."]);
 		var inan = L(lang, ["无生", "inan."]);
+		var tip = SK.esc(tx("dict.speak", "发音"));
 		var cols = [LAB.dc_m, LAB.dc_n, LAB.dc_f, LAB.dc_pl];
 		var html = '<div class="rv-scroll"><table class="rv-decl"><tr><th></th>';
 		var i;
@@ -1740,17 +1742,32 @@
 			if (c === 4) cells[2] = [st + e.f[c], st + (act ? "ею" : "ою")];
 			html += '<tr><td class="rc">' + esch(L(lang, CASE[c])) + "</td>";
 			for (i = 0; i < 4; i++) {
-				var txt = cells[i].map(function(f){ return f + refl; }).join(" / ");
 				if (c === 3 && (i === 0 || i === 3)) {
-					txt = cells[i][0] + refl + "（" + anim + "）<br>" + cells[i][1] + refl + "（" + inan + "）";
-					html += '<td class="c-anim">' + txt + "</td>";
+					html += '<td class="c-anim">' + deccell([cells[i][0]], refl, tip, "（" + anim + "）")
+						+ "<br>" + deccell([cells[i][1]], refl, tip, "（" + inan + "）") + "</td>";
 					continue;
 				}
-				html += '<td><span class="df">' + esch(txt) + "</span></td>";
+				html += "<td>" + deccell(cells[i], refl, tip, "") + "</td>";
 			}
 			html += "</tr>";
 		}
 		return html + "</table></div>";
+	}
+
+	// 一格里的词形，多个用 / 分隔；每个词形跟一个发音按钮，tail（有生/无生）跟在该词形后面。
+	function deccell(forms, refl, tip, tail){
+		var out = [];
+		for (var i = 0; i < forms.length; i++) {
+			var f = forms[i] + refl;
+			out.push('<span class="df">' + esch(f + (tail || "")) + "</span>" + spkbtn(f, tip));
+		}
+		return out.join(" / ");
+	}
+
+	function spkbtn(text, tip){
+		if (!text) return "";
+		return '<button type="button" class="jv-spk" data-v="' + esc(saytext(text)) + '" title="' + tip + '">'
+			+ '<i class="fa-solid fa-volume-high"></i></button>';
 	}
 
 	function esch(s){
@@ -1759,7 +1776,8 @@
 
 	function adddecl(rows, g, m, lang){
 		if (!m) return;
-		rows.push({ g: g, name: "", text: "", blk: '<div class="rv-part">' + esch(m) + "</div>" + declHtml(m, lang) });
+		var tip = SK.esc(tx("dict.speak", "发音"));
+		rows.push({ g: g, name: "", text: "", blk: '<div class="rv-part">' + esch(m) + spkbtn(m, tip) + "</div>" + declHtml(m, lang) });
 	}
 
 	function gerPres(stem, t, refl){
