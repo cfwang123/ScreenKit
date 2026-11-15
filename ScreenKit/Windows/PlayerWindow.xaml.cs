@@ -64,6 +64,7 @@ public partial class PlayerWindow : Window {
 		InitializeComponent();
 		this.opt = opt;
 		layer = new TimedTextLayer(ptext);
+		SourceInitialized += (_, _) => darktitle();
 		icwords.ItemsSource = words;
 		dictlist.ItemsSource = dicthits;
 		wire();
@@ -91,6 +92,20 @@ public partial class PlayerWindow : Window {
 	}
 
 	readonly OcrOptions opt;
+
+	/// <summary>系统标题栏跟着暗色走（Win10 1809 起支持，旧系统直接忽略）。</summary>
+	void darktitle() {
+		try {
+			var h = new WindowInteropHelper(this).Handle;
+			var v = 1;
+			if (DwmSetWindowAttribute(h, 20, ref v, sizeof(int)) != 0)
+				DwmSetWindowAttribute(h, 19, ref v, sizeof(int));
+		}
+		catch { }
+	}
+
+	[DllImport("dwmapi.dll")]
+	static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
 	void loadopts() {
 		var o = opt;
@@ -139,8 +154,6 @@ public partial class PlayerWindow : Window {
 		bfull.Click += (_, _) => setfull(!fullscreen);
 		bside.Click += (_, _) => setside(!sideopen);
 		btop.Click += (_, _) => togglepin();
-		bmin.Click += (_, _) => WindowState = WindowState.Minimized;
-		bclose.Click += (_, _) => Close();
 		bopen.Click += (_, _) => openfile();
 		bsub.Click += (_, _) => togglesub();
 		bsubopen.Click += (_, _) => opensub();
@@ -273,7 +286,6 @@ public partial class PlayerWindow : Window {
 			lastseq = -1;
 			lastpos = -1;
 			imgvideo.Source = null;
-			lbhead.Text = item.Display;
 			Title = item.Display + " - 媒体播放器";
 			lbempty.Visibility = Visibility.Collapsed;
 			autotext(item.Path);
@@ -773,8 +785,8 @@ public partial class PlayerWindow : Window {
 		}
 		else {
 			fullscreen = false;
-			WindowStyle = WindowStyle.None;
-			ResizeMode = ResizeMode.CanResizeWithGrip;
+			WindowStyle = WindowStyle.SingleBorderWindow;
+			ResizeMode = ResizeMode.CanResize;
 			WindowState = WindowState.Normal;
 			if (hassavedrect) {
 				try {
@@ -846,16 +858,6 @@ public partial class PlayerWindow : Window {
 
 	// ==================== 鼠标与键盘 ====================
 	#region
-	void headdown(object sender, MouseButtonEventArgs e) {
-		if (e.ClickCount == 2) {
-			if (fullscreen) return;
-			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-			return;
-		}
-		if (fullscreen) return;
-		try { DragMove(); } catch { }
-	}
-
 	void stagedown(object sender, MouseButtonEventArgs e) {
 		var now = Environment.TickCount;
 		if (now - lastclick < 400) clickcount++;

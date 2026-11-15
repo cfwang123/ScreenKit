@@ -4,7 +4,7 @@
         Title="媒体播放器"
         Width="1280" Height="720"
         MinWidth="720" MinHeight="420"
-        WindowStyle="None"
+        ResizeMode="CanResize"
         Background="#FF0B0E11"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
@@ -134,17 +134,14 @@
 		</Grid.ColumnDefinitions>
 
 		<!-- 标题栏 -->
-		<Border x:Name="phead" Grid.Row="0" Grid.ColumnSpan="3" Background="#FF15191D" MouseLeftButtonDown="headdown">
+		<!-- 工具条：最小化/最大化/关闭用系统标题栏，这里只放功能按钮 -->
+		<Border x:Name="phead" Grid.Row="0" Grid.ColumnSpan="3" Background="#FF15191D">
 			<Grid>
-				<TextBlock x:Name="lbhead" Text="媒体播放器" Foreground="#FFB9C6CE" FontSize="12"
-				           VerticalAlignment="Center" Margin="12,0" TextTrimming="CharacterEllipsis"/>
 				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0">
 					<Button x:Name="bopen" Style="{StaticResource tbBtn}" Content="打开" ToolTip="打开文件或目录"/>
 					<Button x:Name="btop" Style="{StaticResource tbBtn}" Content="置顶" ToolTip="窗口固定在最前"/>
 					<Button x:Name="bfull" Style="{StaticResource tbBtn}" Content="全屏" ToolTip="全屏 (F)"/>
 					<Button x:Name="bside" Style="{StaticResource tbBtn}" Content="侧栏" ToolTip="显示或收起右侧栏 (H)"/>
-					<Button x:Name="bmin" Style="{StaticResource tbBtn}" Content="—" ToolTip="最小化"/>
-					<Button x:Name="bclose" Style="{StaticResource tbBtn}" Content="✕" ToolTip="关闭"/>
 				</StackPanel>
 			</Grid>
 		</Border>
