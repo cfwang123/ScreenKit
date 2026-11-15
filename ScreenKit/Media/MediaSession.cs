@@ -18,7 +18,7 @@ sealed class VideoFrame {
 /// 视频帧拷出来后放共享帧槽，UI 线程只读最新的那一帧。
 /// </summary>
 unsafe sealed class MediaSession : IDisposable {
-	public const int VIDEOQUEUE = 32;
+	public const int VIDEOQUEUE = 96;
 	public const int AUDIOQUEUE = 64;
 	/// <summary>已解码未显示的帧上限；太小会在慢机器上丢帧，太大延迟高。</summary>
 	public const int FRAMEBUF = 8;
@@ -41,6 +41,7 @@ unsafe sealed class MediaSession : IDisposable {
 	volatile bool stop;
 	volatile bool paused;
 	volatile bool eofdemux, eofvideo, eofaudio;
+	volatile bool vresync;
 	volatile bool disposed;
 
 	VideoFrame latest;
@@ -102,6 +103,7 @@ unsafe sealed class MediaSession : IDisposable {
 		eofdemux = eofvideo = eofaudio = false;
 		stop = false;
 		paused = false;
+		vresync = false;
 		dropcount = 0;
 		lock (lockframe) { latest = null; frames.Clear(); frameseq = 0; }
 		startthreads();
@@ -125,9 +127,11 @@ unsafe sealed class MediaSession : IDisposable {
 		}
 	}
 
-	/// <summary>默默读包并按流放进对应队列。视频队列满就丢包，绝不能因此饿死音频。</summary>
+	/// <summary>默默读包并按流放进对应队列。视频队列满先等，实在等不到才跳到下一个关键帧，绝不中途丢包破坏参考帧。</summary>
 	void demuxloop() {
 		var spin = 0;
+		var skipvideo = false;
+		var fullsince = 0;
 		try {
 			while (!stop) {
 				// 只对音频做背压：音频是主时钟，缺包会冻结进度
@@ -140,10 +144,29 @@ unsafe sealed class MediaSession : IDisposable {
 				var r = demux.ReadPacket(out var p);
 				if (!r) { eofdemux = true; break; }
 				var isvideo = p->stream_index == demux.VideoIndex;
-				if (isvideo && videofull()) {
-					// 视频解码跟不上：丢掉这个包，让音频继续走
-					ffmpeg.av_packet_unref(p);
-					continue;
+				if (isvideo) {
+					if (videofull()) {
+						if (fullsince == 0) fullsince = Environment.TickCount;
+						var waited = unchecked(Environment.TickCount - fullsince);
+						if (!skipvideo && waited < 600) {
+							// 解码线程还在追，等它消费，别动画面
+							ffmpeg.av_packet_unref(p);
+							sleep(4);
+							continue;
+						}
+						skipvideo = true;
+					}
+					else fullsince = 0;
+					// 队列持续满：丢到下一个关键帧，靠它重建参考链
+					if (skipvideo) {
+						if ((p->flags & ffmpeg.AV_PKT_FLAG_KEY) == 0) {
+							ffmpeg.av_packet_unref(p);
+							continue;
+						}
+						skipvideo = false;
+						fullsince = 0;
+						vresync = true;
+					}
 				}
 				var copy = AVPacketRef.Clone(p);
 				ffmpeg.av_packet_unref(p);
@@ -190,10 +213,13 @@ unsafe sealed class MediaSession : IDisposable {
 					continue;
 				}
 				spin = 0;
-				using (item) {
-					vdec.Send(item.Ptr);
+				if (vresync) {
+					vresync = false;
+					vdec.Flush();
 				}
-				while (!stop && vdec.Receive(out var pts)) publish(pts);
+				using (item) {
+					send(item.Ptr);
+				}
 			}
 		}
 		catch (Exception ex) {
@@ -201,6 +227,15 @@ unsafe sealed class MediaSession : IDisposable {
 		}
 		finally {
 			eofvideo = true;
+		}
+	}
+
+	/// <summary>send/receive 必须交替：返回 EAGAIN 说明要先收帧，硬送会被丢掉，参考帧一断就花屏。</summary>
+	void send(AVPacket* p) {
+		while (!stop) {
+			var r = vdec.Send(p);
+			while (!stop && vdec.Receive(out var pts)) publish(pts);
+			if (r != ffmpeg.AVERROR(ffmpeg.EAGAIN)) return;
 		}
 	}
 
@@ -229,12 +264,7 @@ unsafe sealed class MediaSession : IDisposable {
 				}
 				spin = 0;
 				using (item) {
-					adec.Send(item.Ptr);
-				}
-				while (!stop) {
-					var pcm = adec.Receive();
-					if (pcm == null) break;
-					if (!paused) audio.Push(pcm);
+					sendaudio(item.Ptr);
 				}
 			}
 		}
@@ -243,6 +273,18 @@ unsafe sealed class MediaSession : IDisposable {
 		}
 		finally {
 			eofaudio = true;
+		}
+	}
+
+	void sendaudio(AVPacket* p) {
+		while (!stop) {
+			var r = adec.Send(p);
+			while (!stop) {
+				var pcm = adec.Receive();
+				if (pcm == null) break;
+				if (!paused) audio.Push(pcm);
+			}
+			if (r != ffmpeg.AVERROR(ffmpeg.EAGAIN)) return;
 		}
 	}
 
@@ -366,6 +408,7 @@ unsafe sealed class MediaSession : IDisposable {
 		audio?.Rebase(target);
 		clock.Rebase(target);
 		eofdemux = eofvideo = eofaudio = false;
+		vresync = false;
 		lastsent = target - 0.001;
 		dropcount = 0;
 		lock (lockframe) { latest = null; frames.Clear(); }

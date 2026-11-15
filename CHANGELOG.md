@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - JSON/XML/YAML viewer in the web tools: paste or drop a file and it turns into a collapsible tree like the browser console, with a filter box that keeps matching nodes and highlights the hit, expand/collapse all, and auto format detection for JSON, XML, and YAML.
 - Media player: play video and audio in one window with subtitles, lyrics, karaoke-style progress mask, click-to-look-up words, playlists (sequential/shuffle/repeat-one/repeat-all), and five window forms (large/small/audio bar/fullscreen/translucent).
 - Media player: click the video area to start or pause playback
+- Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved
 
 #### Changed
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - JSON viewer: expanded nodes can now be collapsed again
 - Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge
 - 3D function plotter: filled surface no longer renders as a dot cloud
+- Media player: stop dropping video packets when the queue is full, which broke the H.264 reference chain and caused garbled frames
 
 ### 中文
 
@@ -99,6 +101,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页新增 JSON/XML/YAML 查看器：粘贴或拖入文件后展开成和浏览器控制台一样的折叠树，过滤框只保留命中的节点并高亮，另有全部展开/折叠和 JSON、XML、YAML 的自动识别。
 - 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、点词查词、播放列表（顺序/随机/单曲循环/列表循环），以及大窗口、小窗、音频条、全屏、半透明五种形态。
 - 媒体播放器：在视频画面区单击即可播放或暂停
+- 播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住
 
 #### 变更
 
@@ -127,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - JSON 查看器：展开的节点现在可以正常收起了
 - 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白
 - 三维函数图像：曲面填充不再变成一片点阵
+- 播放器：队列满时不再丢视频包（会破坏 H.264 参考帧导致花屏），改为背压等待、必要时跳到下一个关键帧重建
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

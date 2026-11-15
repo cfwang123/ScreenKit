@@ -151,18 +151,39 @@ sealed class TimedTextLayer {
 		var scale = availh / 720.0;
 		if (scale < 0.5) scale = 0.5;
 		if (scale > 2.5) scale = 2.5;
+		lastscale = scale;
 		var fs = Math.Max(12, FontSize * scale);
+		lastfs = fs;
 		var maxw = Math.Max(120, root.ActualWidth - 80);
 		// 音频条这类很矮的容器：把字号压到放得下为止，否则文字会被上边裁掉
 		var rows = Math.Max(1, lines.Count);
 		var cap = (availh - 8) / (rows * 1.45);
 		if (cap > 8 && fs > cap) fs = cap;
+		lastfs = fs;
 		var totalh = 0.0;
 		foreach (var l in lines) {
 			if (l == null) { totalh += fs * 0.4; continue; }
 			l.Layout(fs, maxw);
 			totalh += l.Height + 4;
 		}
+		place(totalh, fs, availh, scale);
+	}
+
+	/// <summary>只按新的底部留白重排位置，不重新测量文字；拖动字幕时用，避免每帧重测。</summary>
+	public void reposition() {
+		if (lines.Count == 0) return;
+		var availh = root.ActualHeight;
+		if (availh <= 0) return;
+		var fs = lastfs > 0 ? lastfs : FontSize;
+		var totalh = 0.0;
+		foreach (var l in lines) {
+			if (l == null) { totalh += fs * 0.4; continue; }
+			totalh += l.Height + 4;
+		}
+		place(totalh, fs, availh, lastscale > 0 ? lastscale : 1);
+	}
+
+	void place(double totalh, double fs, double availh, double scale) {
 		// 底部留白也不能超过容器高度的一半，否则矮窗里整行被顶出去
 		var margin = Math.Min(BottomMargin * scale, availh * 0.34);
 		var y = availh - margin - totalh;
@@ -175,6 +196,14 @@ sealed class TimedTextLayer {
 			y += l.Height + 4;
 		}
 	}
+
+	/// <summary>当前排版用的缩放倍数：拖动字幕时把像素位移换算回 BottomMargin。</summary>
+	public double Scale => lastscale > 0 ? lastscale : 1;
+	double lastscale = 1;
+	double lastfs;
+
+	/// <summary>容器可视高度，拖动时用作上界。</summary>
+	public double ViewHeight => root.ActualHeight;
 
 	// ==================== 命中 ====================
 	/// <summary>

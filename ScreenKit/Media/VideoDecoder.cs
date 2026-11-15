@@ -42,11 +42,10 @@ unsafe sealed class VideoDecoder : IDisposable {
 		}
 	}
 
-	/// <summary>送一个包。返回是否可能已有帧可收（EAGAIN 也算 true，要继续 receive）。</summary>
-	public bool Send(AVPacket* p) {
-		if (disposed || dec == null) return false;
-		var r = ffmpeg.avcodec_send_packet(dec, p);
-		return r >= 0 || r == ffmpeg.AVERROR(ffmpeg.EAGAIN);
+	/// <summary>送一个包，返回原始返回码；EAGAIN 表示要先收帧再送，不能当失败扔包。</summary>
+	public int Send(AVPacket* p) {
+		if (disposed || dec == null) return -1;
+		return ffmpeg.avcodec_send_packet(dec, p);
 	}
 
 	/// <summary>排空：送 null 包让解码器吐出剩余帧。</summary>

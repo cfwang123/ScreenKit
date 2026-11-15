@@ -266,6 +266,13 @@ public partial class App : System.Windows.Application {
 				if (tabArg.Length > 0)
 					pw.SetTab(tabArg == "list" ? SideTab.List : tabArg == "subtitle" ? SideTab.Subtitle : SideTab.Study);
 				await System.Threading.Tasks.Task.Delay(delay);
+				// --player-subdy <像素>：自测字幕上下拖动（正数向上）
+				var subdyArg = Array.IndexOf(args, "--player-subdy");
+				if (subdyArg >= 0 && subdyArg + 1 < args.Length
+					&& double.TryParse(args[subdyArg + 1], System.Globalization.NumberStyles.Float,
+						System.Globalization.CultureInfo.InvariantCulture, out var sdy)) {
+					sb.AppendLine("subdy: " + pw.NudgeSubtitle(sdy));
+				}
 				var baseName = Path.Combine(Path.GetDirectoryName(shotPath) ?? ".", Path.GetFileNameWithoutExtension(shotPath));
 				sb.AppendLine(pw.ShotTo(shotPath));
 				// 再连拍两张，方便看蒙版推进

@@ -106,7 +106,7 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 				try {
 					if (p->stream_index != demux.AudioIndex) continue;
 					var pts = p->pts == NOPTS ? est : p->pts * tb;
-					if (!adec.Send(p)) continue;
+					if (adec.Send(p) < 0) continue;
 					while (!stop) {
 						var pcm = adec.Receive();
 						if (pcm == null) break;

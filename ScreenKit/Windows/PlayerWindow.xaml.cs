@@ -214,7 +214,8 @@ public partial class PlayerWindow : Window {
 		layer.SungColor = ColorUtil.Parse(o.PlayKaraSung, Color.FromRgb(0xFF, 0xD8, 0x4D));
 		layer.UnsungColor = ColorUtil.Parse(o.PlayKaraUnsung, Color.FromArgb(0xB0, 0xFF, 0xFF, 0xFF));
 		layer.OutlineColor = ColorUtil.Parse(o.PlaySubOutline, Color.FromArgb(0xCC, 0, 0, 0));
-		layer.BottomMargin = o.PlaySubBottom > 0 ? o.PlaySubBottom : 48;
+		// 0 是用户拖到最底的真实值，配置里有该键才读得到；没该键时字段保持默认 48
+		layer.BottomMargin = o.PlaySubBottom >= 0 ? o.PlaySubBottom : 48;
 		layer.SnapToChar = string.Equals(o.PlayKaraMode, "char", StringComparison.OrdinalIgnoreCase);
 		layer.FeatherPx = o.PlayKaraFeather;
 		layer.Karaoke = true;
@@ -1527,6 +1528,15 @@ public partial class PlayerWindow : Window {
 		return $"paused {before}->{state.Paused} hasfile={list.Current != null} icon={bplay.Content}";
 	}
 
+	/// <summary>自测用：把字幕整体上下移动 dy 像素（正数向上），返回移动后的底部留白。</summary>
+	public string NudgeSubtitle(double dy) {
+		subbottom0 = layer.BottomMargin;
+		var y0 = layer.BottomMargin;
+		layer.BottomMargin = Math.Max(0, y0 + dy);
+		layer.reposition();
+		return $"bottom {y0:0.#} -> {layer.BottomMargin:0.#} scale={layer.Scale:0.##} viewh={layer.ViewHeight:0.#}";
+	}
+
 	/// <summary>自测用：把整个窗口渲染成 PNG，并回传界面上关键状态。</summary>
 	public string ShotTo(string path) {
 		var scale = ScreenDpi.SystemScale();
@@ -1539,7 +1549,8 @@ public partial class PlayerWindow : Window {
 			$"cue={(layer.CueText is { Length: > 0 } s ? s : "(空)")} lines={layer.LineCount} " +
 			$"sub={state.SubtitleOn} pos={session.PositionSec:0.###} hasvideo={session.HasVideo} " +
 			$"subn={sub?.Cues.Count ?? 0} lyricn={lyric?.Cues.Count ?? 0} clip={state.ClipKey} lang={state.Lang} " +
-			$"query={state.StudyQuery} cur={allcues.FirstOrDefault(c => c.IsCurrent)?.No ?? "-"}";
+			$"query={state.StudyQuery} cur={allcues.FirstOrDefault(c => c.IsCurrent)?.No ?? "-"} " +
+			$"subbottom={layer.BottomMargin:0.#}";
 		try {
 			UpdateLayout();
 			layer.relayout();

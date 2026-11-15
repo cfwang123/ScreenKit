@@ -38,10 +38,10 @@ unsafe sealed class AudioDecoder : IDisposable {
 		}
 	}
 
-	public bool Send(AVPacket* p) {
-		if (disposed || dec == null) return false;
-		var r = ffmpeg.avcodec_send_packet(dec, p);
-		return r >= 0 || r == ffmpeg.AVERROR(ffmpeg.EAGAIN);
+	/// <summary>送一个包，返回原始返回码；EAGAIN 表示要先收帧再送，不能当作已接收。</summary>
+	public int Send(AVPacket* p) {
+		if (disposed || dec == null) return -1;
+		return ffmpeg.avcodec_send_packet(dec, p);
 	}
 
 	public void Drain() {
