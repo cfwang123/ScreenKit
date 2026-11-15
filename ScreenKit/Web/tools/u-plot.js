@@ -572,28 +572,22 @@
 		if (mode === "3") {
 			// 缩放改采样范围本身，不复用倍率：
 			// 采样范围一变，fit3 会把新的投影重新铺满画布，四周就不会越缩越空。
-			zoomspan(factor, ev);
+			zoomspan(factor);
 			kick();
 			return;
 		}
-		var rect = F.rect(canvas);
-		var px = ev.clientX - rect.left;
-		var py = ev.clientY - rect.top;
-		var w = rect.width || 1;
-		var h = rect.height || 1;
 		if (!yonly) {
-			var mx = view.x0 + px / w * (view.x1 - view.x0);
-			var nx0 = mx - (mx - view.x0) * factor;
-			var nx1 = mx + (view.x1 - mx) * factor;
+			// 以世界原点为锚：原点在屏幕上的位置缩放前后不变，不会跟着鼠标漂走。
+			var nx0 = view.x0 * factor;
+			var nx1 = view.x1 * factor;
 			if (nx1 - nx0 >= 1e-6 && nx1 - nx0 <= 1e6) {
 				view.x0 = nx0;
 				view.x1 = nx1;
 			}
 		}
 		if (!xonly) {
-			var my = view.y1 - py / h * (view.y1 - view.y0);
-			var ny0 = my - (my - view.y0) * factor;
-			var ny1 = my + (view.y1 - my) * factor;
+			var ny0 = view.y0 * factor;
+			var ny1 = view.y1 * factor;
 			if (ny1 - ny0 >= 1e-6 && ny1 - ny0 <= 1e6) {
 				view.y0 = ny0;
 				view.y1 = ny1;
@@ -606,7 +600,7 @@
 	// 缩小 -> 倍率变小、采样范围变大：无限延伸的曲面照样铺满，不会缩成中间一小块。
 	// 放大 -> 倍率变大、采样范围变小：球这种有边界的图形会真的放大，而不是原地重新采样。
 	// 视角和适配基准都不动，只改这两项。
-	function zoomspan(k, ev){
+	function zoomspan(k){
 		if (!(k > 0) || !isFinite(k)) return;
 		var xs = cam.xspan * k, ys = cam.yspan * k;
 		if (!(xs > 1e-4) || !(ys > 1e-4) || xs > 1e6 || ys > 1e6) return;
@@ -615,25 +609,10 @@
 		// 否则 zoom 被夹在 0.05 不动、xspan 却继续变大：缩放一路到底再退回来，
 		// xspan 回到原样而 zoom 涨了一大截，倍率对不上，画面就整个炸到画布外。
 		if (!(z >= ZMIN) || z > ZMAX) return;
-		var fx = 0.5, fy = 0.5;
-		if (ev && canvas) {
-			var rect = F.rect(canvas);
-			if (rect.width > 1 && rect.height > 1) {
-				fx = (ev.clientX - rect.left) / rect.width;
-				fy = (ev.clientY - rect.top) / rect.height;
-				if (!(fx >= 0)) fx = 0;
-				if (fx > 1) fx = 1;
-				if (!(fy >= 0)) fy = 0;
-				if (fy > 1) fy = 1;
-			}
-		}
-		// 以鼠标处那个世界点为锚，缩放后它还在原来的屏幕位置。
-		var cx = cam.cx + (fx - 0.5) * 2 * cam.xspan;
-		var cy = cam.cy - (fy - 0.5) * 2 * cam.yspan;
+		// 以世界原点为锚：原点在屏幕上的位置缩放前后不变，
+		// 也就是画面中心始终对着 (0,0,0)，不会跟着鼠标漂走。
 		cam.xspan = xs;
 		cam.yspan = ys;
-		cam.cx = cx - (fx - 0.5) * 2 * xs;
-		cam.cy = cy + (fy - 0.5) * 2 * ys;
 		setzoom(z);
 	}
 
@@ -1003,8 +982,12 @@
 				}
 			}
 		}
-		var du = u1 - u0;
-		var dv = v1 - v0;
+		// 画面中心固定对着坐标原点，所以倍率要按「到原点的最大距离」算，
+		// 也就是把投影范围对称到原点两边再取尺寸。不然圆心不在原点的曲面
+		// （如 x^2+y^2=9 圆心在原点没问题，但心形、碗底偏下的都不对称）
+		// 会按包围盒尺寸算倍率、再以原点居中，结果整体偏出画布。
+		var du = 2 * Math.max(Math.abs(u0), Math.abs(u1));
+		var dv = 2 * Math.max(Math.abs(v0), Math.abs(v1));
 		var s = 0;
 		if (du > 1e-9) s = w * 0.94 / du;
 		if (dv > 1e-9) {
@@ -1015,12 +998,8 @@
 		s *= cam.zoom;
 		if (!(s > 1e-6)) s = 1e-6;
 		if (s > 1e6) s = 1e6;
-		// 直接按投影后的范围居中，不用再走一遍三维投影。
-		var cu = (u0 + u1) / 2;
-		var cv = (v0 + v1) / 2;
-		if (!isFinite(cu)) cu = 0;
-		if (!isFinite(cv)) cv = 0;
-		return { s: s, u: cu, v: cv };
+		// 居中锚点就是原点，这里不再返回包围盒中心。
+		return { s: s, u: 0, v: 0 };
 	}
 
 	// z=f(x,y) 这种带状曲面：内接时上下、左右各贴一点边，但曲面是起伏的，
@@ -1057,8 +1036,13 @@
 		fitscaleRatio = base0 > 1e-9 ? s / (base0 * zoom) : 1;
 		if (!isFinite(fitscaleRatio) || fitscaleRatio < 0.01) fitscaleRatio = 0.01;
 		if (fitscaleRatio > 20) fitscaleRatio = 20;
-		view3.ox = w / 2 - fit.u * s;
-		view3.oy = h / 2 + fit.v * s;
+		// 画面中心对准坐标原点（投影里的 u=0、v=0）。
+		// 不能按 fitrect 量到的包围盒中心去居中：那个中心随可见解点变化，
+		// 一缩放曲面还没变、可见范围先变了，原点就会跟着漂。原点固定在中心，
+		// 放大缩小时才像是围着原点在缩放。平移量 cam.cx / cam.cy 已经在投影里减掉了，
+		// 所以拖动时画面照常跟着走。
+		view3.ox = w / 2;
+		view3.oy = h / 2;
 	}
 
 	function boxone(box, x, y, z){
