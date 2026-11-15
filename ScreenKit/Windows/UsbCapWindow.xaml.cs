@@ -141,8 +141,8 @@ public partial class UsbCapWindow : Window {
 		if (tvdev.SelectedItem is TreeViewItem it && it.Tag is UsbTreeNode n) picked = n;
 		var cap = UsbCaptureService.Instance;
 		showdevdetail();
-		// 选设备就看设备：右下角切到详情页，读描述符就在眼前
-		if (picked != null && tabdetail != null && tabdesc != null) tabdetail.SelectedItem = tabdesc;
+		// 选设备就看设备：右侧栏切到设备信息页
+		if (picked != null && tabside != null && tabprops != null) tabside.SelectedItem = tabprops;
 		if (cap.IsRunning) {
 			lbstatus.Text = "设备选择在下次开始抓包时生效 · " + cap.Status;
 			return;
@@ -157,7 +157,7 @@ public partial class UsbCapWindow : Window {
 		ToolBtnUi.Set(bdesc, ToolBtnUi.Read, "读取描述符");
 		ToolBtnUi.Set(bdesccopy, ToolBtnUi.Copy, "复制");
 		bdesc.ToolTip = "只读设备的描述符：设备、配置、接口、端点和字符串。不重置设备";
-		bdesccopy.ToolTip = "复制右侧的描述符文本";
+		bdesccopy.ToolTip = "复制下面的描述符文本";
 		showdevdetail();
 	}
 
@@ -166,17 +166,17 @@ public partial class UsbCapWindow : Window {
 		return id.Length > 0 && devmap.TryGetValue(id, out var dev) ? dev : null;
 	}
 
-	/// <summary>把系统信息里 USB 页的参数字段搬到树的下方；换设备就清掉上次的描述符。</summary>
+	/// <summary>把系统信息里 USB 页的参数字段搬到右侧栏的设备信息页；换设备就清掉上次的描述符。</summary>
 	void showdevdetail() {
 		descgen++;
 		var dev = pickeddev();
 		var rows = new List<UsbPair>();
 		if (picked == null) {
-			lbdevtitle.Text = "设备详情";
+			lbdevtitle.Text = "设备信息";
 			lbdevstat.Text = "选择设备后显示";
 		}
 		else if (dev != null) {
-			lbdevtitle.Text = string.IsNullOrWhiteSpace(dev.Name) ? "设备详情" : dev.Name;
+			lbdevtitle.Text = string.IsNullOrWhiteSpace(dev.Name) ? "设备信息" : dev.Name;
 			rows = new List<UsbPair>(dev.Props ?? new List<UsbPair>());
 			var bits = new List<string>();
 			if (!string.IsNullOrWhiteSpace(dev.VidPid)) bits.Add(dev.VidPid);
@@ -185,7 +185,7 @@ public partial class UsbCapWindow : Window {
 		}
 		else {
 			// 树的节点不一定都能在枚举里找到同名实例：至少给出手上有的信息
-			lbdevtitle.Text = string.IsNullOrWhiteSpace(picked.Name) ? "设备详情" : picked.Name;
+			lbdevtitle.Text = string.IsNullOrWhiteSpace(picked.Name) ? "设备信息" : picked.Name;
 			if (!string.IsNullOrWhiteSpace(picked.VidPid))
 				rows.Add(new UsbPair { Name = "VID:PID", Value = picked.VidPid });
 			if (picked.Address >= 0)
@@ -220,7 +220,7 @@ public partial class UsbCapWindow : Window {
 		setdescbusy(true);
 		edesc.Text = "";
 		lbdescstat.Text = "正在读取…";
-		if (tabdetail != null && tabdesc != null) tabdetail.SelectedItem = tabdesc;
+		if (tabside != null && tabdesc != null) tabside.SelectedItem = tabdesc;
 		Task.Run(() => {
 			UsbDescDev row = null;
 			string err = null;
