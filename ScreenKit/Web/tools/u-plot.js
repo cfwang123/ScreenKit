@@ -44,15 +44,50 @@
 	var cam = { cx: 0, cy: 0, xspan: 4, yspan: 4, yaw: -0.6, pitch: 0.65, zoom: 1 };
 	var HOME = { yaw: -0.6, pitch: 0.65 };
 	var YSPAN = 4;
+	// 隐式曲面的格宽倍数。球、双曲面这类每一列都要单独扫 z 求根，网格再密就看不清面了，
+	// 所以格宽取显式曲面的两倍，也就是密度减半。
+	var IMPDENS = 2;
+	// 网格行列数下限。缩到很小时曲面在屏幕上只剩一两百像素，按固定格宽算出来的行列数
+	// 会掉到十几根，网格稀疏到看不出形状，所以给个保底数量。
+	var MINROWS = 40;
+	var MINNX = 40;
 	var view3 = { s: 1, ox: 0, oy: 0 };
 	var canvas = null;
 	var watch = null;
 	var drag = null;
 	// 拖动中先画粗样本，松手后再画细的。缓存键要看这个，否则松手后还会用拖动时那张图。
 	var dragging = false;
+	// 滚轮连续缩放时先按低精度出图，停手后再补一张细的，滚轮才不会排队卡住。
+	var live = false;
+	var liveid = 0;
+	var livetimer = 0;
+	function quick(){ return dragging || live; }
+	// 一帧只画一次：滚轮事件比屏幕刷新快，逐条 paint 会越积越多。
+	function kick(){
+		live = true;
+		if (!liveid) liveid = F.raf(function(){ liveid = 0; paint(); });
+		// 走工具页的全局心跳，不用自己的 setTimeout：离开工具时框架会把这些挂起的任务一起清掉，
+		// 否则停手补画会落在已经销毁的画布上。
+		if (livetimer) SK.cancelafter(livetimer);
+		livetimer = SK.after(settle, 160);
+	}
+	function settle(){
+		livetimer = 0;
+		if (!live) return;
+		live = false;
+		paint();
+	}
 	// 上一次定稿时曲面占的范围，拖动时接着用，免得一拖就退回整片范围、线突然变稀。
 	var imparea = null;
 	var impzr = null;
+	// 适配倍率 / 基准倍率，fit3 里更新。隐式曲面用它估屏幕上的实际大小。
+	var fitscaleRatio = 1;
+	// 适配倍率（zoom=1 时的值）。只在复位、换公式、改尺寸时重算，
+	// 转视角、平移时沿用同一个倍率，画面就不会自己忽大忽小。
+	var fitbase = 0;
+	var reffit = true;
+	// fit3 刚刷新了 fitbase：网格行数得按新倍率再算一遍，否则行数还停在旧倍率上。
+	var refitAgain = false;
 	var ARITY = {
 		sin: 1, cos: 1, tan: 1, asin: 1, acos: 1, atan: 1, atan2: 2,
 		sqrt: 1, abs: 1, ln: 1, log: 1, log10: 1, log2: 1, exp: 1,
@@ -66,7 +101,8 @@
 		hideCopy: true,
 		hideOut: true,
 		body: body,
-		open: open
+		open: open,
+		dispose: dispose
 	});
 
 	function tt(key, fb){
@@ -130,7 +166,19 @@
 		if (watch) watch.disconnect();
 		if (window.ResizeObserver && canvas.parentElement) {
 			watch = new ResizeObserver(function(){
-				if (mode === "3") cam.xspan = cam.yspan * stageaspect();
+				if (mode === "3") {
+					var aspect = stageaspect();
+					// 换尺寸后 yaw、pitch 都跟着变，采样宽度要按新的重算，否则左右还是空。
+					cam.pitch = pitchfor(aspect);
+					cam.yaw = yawfor(aspect, cam.pitch);
+					// 缩放关系是 xspan*zoom = spanfor、yspan*zoom = YSPAN。
+					// 这里只改 xspan、不按同一个 zoom 改 yspan，两个方向就会差出十几倍，
+					// 曲面被压扁、格子跟着变形，看上去就是「密度不对 / 整片空白」。
+					var z = cam.zoom > 1e-9 ? cam.zoom : 1;
+					cam.xspan = spanfor(aspect, cam.yaw, cam.pitch) / z;
+					cam.yspan = YSPAN / z;
+					reffit = true;
+				}
 				paint();
 			});
 			watch.observe(canvas.parentElement);
@@ -141,6 +189,29 @@
 		reparse();
 		F.raf(paint);
 	}
+
+	// 离开工具时框架会把面板 DOM 清掉，这里把还挂在外面的东西一并收掉：
+	// 尺寸监听的宿主节点已经随面板移除，不停下来会继续对着脱落的画布重绘；
+	// 挂起的补画任务由框架统一清，这里只需要把本地句柄复位。
+	function dispose(){
+		if (watch) {
+			watch.disconnect();
+			watch = null;
+		}
+		if (liveid) {
+			cancelAnimationFrame(liveid);
+			liveid = 0;
+		}
+		livetimer = 0;
+		live = false;
+		dragging = false;
+		drag = null;
+		plate = null;
+		plateKey = "";
+		hover = null;
+		canvas = null;
+	}
+
 
 	function styleBtn(id, icon, key, fb){
 		return F.CreateDOM(null, { x: "button", type: "button", "data-style": id,
@@ -262,15 +333,57 @@
 		return r > 4 ? 4 : r;
 	}
 
+	// 画布越宽，视角越往正前方收。
+	// 对 z=f(x,y) 这种带状曲面，yaw 只让屏幕上的带子倾斜——倾斜的斜带子盖不住矩形画布的四角，
+	// 一头翘起来那块就永远空着。立体感由 pitch 提供就够了，所以宽画布上把 yaw 收到几乎正对。
+	// 屏幕上看到的倾斜量约为 tan(yaw)*sin(pitch)，这里直接给它设个上限。
+	function yawfor(aspect, pitch){
+		var yaw = Math.atan(Math.tan(HOME.yaw) * Math.min(1, 0.55 / Math.max(0.001, aspect)));
+		var sp = Math.abs(Math.sin(pitch === undefined ? HOME.pitch : pitch));
+		if (sp < 0.08) sp = 0.08;
+		var lim = Math.atan(0.045 / sp);
+		if (Math.abs(yaw) > lim) yaw = yaw < 0 ? -lim : lim;
+		return yaw;
+	}
+
+	// 画布越宽，视角越抬高。
+	// 俯角越大，采样矩形投到屏幕上越接近画布的矩形，四角才填得满；
+	// 俯角小时采样矩形被压成一条斜带，四周必然大块空白。
+	function pitchfor(aspect){
+		var p = HOME.pitch + 0.42 * (Math.max(1, aspect) - 1);
+		if (p > 1.15) p = 1.15;
+		return p;
+	}
+
+	// 按画布宽高比反解采样半宽：把取样矩形投到屏幕上，让它的宽高比等于画布宽高比。
+	// 这样曲面才会真的铺满，而不是上下满了、左右各空一大块。
+	function spanfor(aspect, yaw, pitch){
+		var Y = YSPAN;
+		var c = Math.abs(Math.cos(yaw));
+		var s = Math.abs(Math.sin(yaw));
+		var sp = Math.abs(Math.sin(pitch === undefined ? HOME.pitch : pitch));
+		var den = c - aspect * s * sp;
+		var x;
+		if (den > 0.02) x = Y * (aspect * c * sp - s) / den;
+		else x = Y * aspect;
+		if (!(x > Y * 0.5)) x = Y * 0.5;
+		if (x > Y * 12) x = Y * 12;
+		return x;
+	}
+
 	function resetview(){
 		if (mode === "3") {
+			var aspect = stageaspect();
+			var pitch = pitchfor(aspect);
+			var yaw = yawfor(aspect, pitch);
 			cam.cx = 0;
 			cam.cy = 0;
 			cam.yspan = YSPAN;
-			cam.xspan = YSPAN * stageaspect();
+			cam.yaw = yaw;
+			cam.xspan = spanfor(aspect, yaw, pitch);
 			cam.zoom = 1;
-			cam.yaw = HOME.yaw;
-			cam.pitch = HOME.pitch;
+			cam.pitch = pitch;
+			reffit = true;
 			return;
 		}
 		var stage = canvas && canvas.parentElement;
@@ -289,6 +402,8 @@
 		implicit = false;
 		imparea = null;
 		impzr = null;
+		// 换公式要按新曲面重新适配一次倍率。
+		reffit = true;
 		try {
 			var norm = normalize(src);
 			var zpre = /^\s*z\s*=/i.test(src);
@@ -350,6 +465,11 @@
 			pctx.clearRect(0, 0, w, h);
 			pctx.fillStyle = "#fafaf9";
 			pctx.fillRect(0, 0, w, h);
+			// 屏幕裁剪框，(0,0)-(w,h) 是画布可见区
+			clipbox.x0 = 0;
+			clipbox.y0 = 0;
+			clipbox.x1 = w;
+			clipbox.y1 = h;
 			if (mode === "3") draw3(pctx, w, h);
 			else draw2(pctx, w, h);
 			plateKey = key;
@@ -368,8 +488,8 @@
 		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
 		if (mode === "3")
-			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom + (dragging ? "|d" : "");
-		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1 + (dragging ? "|d" : "");
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom + (quick() ? "|d" : "");
+		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1 + (quick() ? "|d" : "");
 	}
 
 	function down(ev){
@@ -430,7 +550,7 @@
 			view.y0 = drag.y0 + dy * my;
 			view.y1 = drag.y1 + dy * my;
 		}
-		paint();
+		kick();
 	}
 
 	function up(){
@@ -450,9 +570,10 @@
 		var xonly = ev.ctrlKey && !ev.shiftKey;
 		var yonly = ev.shiftKey && !ev.ctrlKey;
 		if (mode === "3") {
-			// 缩小只把画面缩小，采样范围和网格线数都不变，格子密度才保持不变。
-			setzoom(cam.zoom / factor);
-			paint();
+			// 缩放改采样范围本身，不复用倍率：
+			// 采样范围一变，fit3 会把新的投影重新铺满画布，四周就不会越缩越空。
+			zoomspan(factor, ev);
+			kick();
 			return;
 		}
 		var rect = F.rect(canvas);
@@ -478,13 +599,52 @@
 				view.y1 = ny1;
 			}
 		}
-		paint();
+		kick();
 	}
+
+	// 三维缩放：倍率和采样范围一起按同一比例变。
+	// 缩小 -> 倍率变小、采样范围变大：无限延伸的曲面照样铺满，不会缩成中间一小块。
+	// 放大 -> 倍率变大、采样范围变小：球这种有边界的图形会真的放大，而不是原地重新采样。
+	// 视角和适配基准都不动，只改这两项。
+	function zoomspan(k, ev){
+		if (!(k > 0) || !isFinite(k)) return;
+		var xs = cam.xspan * k, ys = cam.yspan * k;
+		if (!(xs > 1e-4) || !(ys > 1e-4) || xs > 1e6 || ys > 1e6) return;
+		var z = cam.zoom / k;
+		// 上下限判断必须在改 cam 之前做，而且要和 setzoom 的夹取范围一致。
+		// 否则 zoom 被夹在 0.05 不动、xspan 却继续变大：缩放一路到底再退回来，
+		// xspan 回到原样而 zoom 涨了一大截，倍率对不上，画面就整个炸到画布外。
+		if (!(z >= ZMIN) || z > ZMAX) return;
+		var fx = 0.5, fy = 0.5;
+		if (ev && canvas) {
+			var rect = F.rect(canvas);
+			if (rect.width > 1 && rect.height > 1) {
+				fx = (ev.clientX - rect.left) / rect.width;
+				fy = (ev.clientY - rect.top) / rect.height;
+				if (!(fx >= 0)) fx = 0;
+				if (fx > 1) fx = 1;
+				if (!(fy >= 0)) fy = 0;
+				if (fy > 1) fy = 1;
+			}
+		}
+		// 以鼠标处那个世界点为锚，缩放后它还在原来的屏幕位置。
+		var cx = cam.cx + (fx - 0.5) * 2 * cam.xspan;
+		var cy = cam.cy - (fy - 0.5) * 2 * cam.yspan;
+		cam.xspan = xs;
+		cam.yspan = ys;
+		cam.cx = cx - (fx - 0.5) * 2 * xs;
+		cam.cy = cy + (fy - 0.5) * 2 * ys;
+		setzoom(z);
+	}
+
+	// 缩放上下限。zoomspan 和 setzoom 必须用同一对值，
+	// 一处放行、一处夹取，就会让 xspan 与 zoom 失去同步。
+	var ZMIN = 0.05, ZMAX = 20;
 
 	function setzoom(v){
 		if (!isFinite(v) || !(v > 0)) return;
-		if (v < 0.05) v = 0.05;
-		if (v > 20) v = 20;
+		if (v < ZMIN) v = ZMIN;
+		if (v > ZMAX) v = ZMAX;
 		cam.zoom = v;
 	}
 
@@ -794,22 +954,111 @@
 		ctx.lineTo(X(b.x), Y(b.y));
 	}
 
-	// 一个世界单位在屏幕上占多少像素。缩放只改这个比例，采样范围和网格线数不变，
-	// 格子在屏幕上的间距才保持不变。换视角只转不缩放。
-	function viewscale(w, h){
+	// 一个世界单位在屏幕上占多少像素（不含缩放倍率）。缩放只改倍率，采样范围不变。
+	function viewbase(w, h){
 		var span = Math.max(0.001, Math.max(cam.xspan, cam.yspan));
-		var s = Math.min(w, h) * 0.92 / (span * 2) * cam.zoom;
+		var s = Math.min(w, h) * 0.92 / (span * 2);
 		return s > 0 && isFinite(s) ? s : 1;
 	}
 
-	function fit3(w, h, box, list, cyaw, syaw, cp, sp){
-		var s = viewscale(w, h);
+	function viewscale(w, h){
+		return viewbase(w, h) * cam.zoom;
+	}
+
+	// 按曲面的实际投影范围定倍率，两个方向都铺到画布边缘。
+	// 以前按采样范围的最小边定倍率，画布是宽的，x、y 方向就都留出大片空白。
+	// 有真实解点时直接量点（球面比包围盒小一圈，量点才贴边），没有时才退回包围盒。
+	// 返回 { s: 倍率, u: 水平中心, v: 竖直中心 }。
+	function fitrect(w, h, box, list, cyaw, syaw, cp, sp){
+		var u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+		var i, X, Y, Z, u, v;
+		if (list && list.length) {
+			for (i = 0; i < list.length; i++) {
+				if (list[i].ok === false) continue;
+				u = list[i].ux;
+				v = list[i].uz;
+				if (!isFinite(u) || !isFinite(v)) continue;
+				if (u < u0) u0 = u;
+				if (u > u1) u1 = u;
+				if (v < v0) v0 = v;
+				if (v > v1) v1 = v;
+			}
+		}
+		if (!isFinite(u0) && box && isFinite(box.x0) && isFinite(box.y0) && isFinite(box.z0)) {
+			var xs = [box.x0, box.x1], ys = [box.y0, box.y1], zs = [box.z0, box.z1];
+			var j, k;
+			for (i = 0; i < 2; i++) {
+				for (j = 0; j < 2; j++) {
+					for (k = 0; k < 2; k++) {
+						X = xs[i];
+						Y = ys[j];
+						Z = zs[k];
+						u = X * cyaw - Y * syaw;
+						v = (X * syaw + Y * cyaw) * sp + Z * cp;
+						if (u < u0) u0 = u;
+						if (u > u1) u1 = u;
+						if (v < v0) v0 = v;
+						if (v > v1) v1 = v;
+					}
+				}
+			}
+		}
+		var du = u1 - u0;
+		var dv = v1 - v0;
+		var s = 0;
+		if (du > 1e-9) s = w * 0.94 / du;
+		if (dv > 1e-9) {
+			var sv = h * 0.94 / dv;
+			if (!(s > 0) || sv < s) s = sv;
+		}
+		if (!(s > 0) || !isFinite(s)) s = viewbase(w, h);
+		s *= cam.zoom;
+		if (!(s > 1e-6)) s = 1e-6;
+		if (s > 1e6) s = 1e6;
+		// 直接按投影后的范围居中，不用再走一遍三维投影。
+		var cu = (u0 + u1) / 2;
+		var cv = (v0 + v1) / 2;
+		if (!isFinite(cu)) cu = 0;
+		if (!isFinite(cv)) cv = 0;
+		return { s: s, u: cu, v: cv };
+	}
+
+	// z=f(x,y) 这种带状曲面：内接时上下、左右各贴一点边，但曲面是起伏的，
+	// 四角处凹进去，看起来就是四块空。让它稍微溢出画布、由 clip 切掉，四角才填得住。
+	// 但起伏很陡的曲面（如 x^2-y^2）本来纵向就顶到边，再放大就把尖峰切平了，所以按陡峭程度决定放多少。
+	// 隐式闭曲面（球、心形）不能裁，裁了就缺一块。
+	function bandover(lo, hi){
+		var span = Math.max(1e-6, Math.abs(hi - lo));
+		var flat = span / Math.max(1e-6, cam.yspan * 2);
+		if (flat > 0.55) return 1;
+		return flat > 0.3 ? 1.05 : 1.10;
+	}
+
+	function fit3(w, h, box, list, cyaw, syaw, cp, sp, over){
+		var fit = fitrect(w, h, box, list, cyaw, syaw, cp, sp);
+		// 只有复位、换公式、改尺寸时才重算基准倍率。
+		// 转视角时 fitrect 量到的投影范围一直在变，跟着重算画面就会自己忽大忽小。
+		var zoom = cam.zoom > 1e-9 ? cam.zoom : 1;
+		var base0 = viewbase(w, h);
+		if (reffit || !(fitbase > 0)) {
+			var raw = fit.s * (over || 1) / zoom;
+			// fitrect 量的是「世界单位 → 像素」的绝对比例，不含 cam.xspan，
+			// 所以它除以 zoom 就是与缩放无关的基准倍率，直接取用。
+			// 只有量不到解点、退回按采样范围估的退化值时才不可信（那会随 xspan 一起变），
+			// 这种时候保留原基准，别把基准写坏——基准此后只在复位、换公式、改尺寸时才重算。
+			if (!isFinite(raw) || !(raw > 1e-6)) raw = fitbase > 0 ? fitbase : base0;
+			if (!(fitbase > 0) || raw !== fitbase) refitAgain = true;
+			fitbase = raw;
+			reffit = false;
+		}
+		var s = fitbase * zoom;
 		view3.s = s;
-		var cx = isFinite(box.x0) ? (box.x0 + box.x1) / 2 : 0;
-		var cy = isFinite(box.y0) ? (box.y0 + box.y1) / 2 : 0;
-		var cz = isFinite(box.z0) ? (box.z0 + box.z1) / 2 : 0;
-		view3.ox = w / 2 - (cx * cyaw - cy * syaw) * s;
-		view3.oy = h / 2 + ((cx * syaw + cy * cyaw) * sp + cz * cp) * s;
+		// 记下适配倍率与基准倍率的比值，隐式曲面据此估自己在屏幕上占多大，网格线才疏密合适。
+		fitscaleRatio = base0 > 1e-9 ? s / (base0 * zoom) : 1;
+		if (!isFinite(fitscaleRatio) || fitscaleRatio < 0.01) fitscaleRatio = 0.01;
+		if (fitscaleRatio > 20) fitscaleRatio = 20;
+		view3.ox = w / 2 - fit.u * s;
+		view3.oy = h / 2 + fit.v * s;
 	}
 
 	function boxone(box, x, y, z){
@@ -843,15 +1092,50 @@
 		return p;
 	}
 
+	// 世界坐标里 x、y 各走一个单位，在屏幕上是多长。
+	// 投影把 x、y 压扁、斜切，两者的屏幕长度并不相等；不补这个，转视角时格子就会一边稀一边密。
+	function projaxis(){
+		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
+		var sp = Math.sin(cam.pitch);
+		var ax = Math.sqrt(cyaw * cyaw + syaw * syaw * sp * sp);
+		var ay = Math.sqrt(syaw * syaw + cyaw * cyaw * sp * sp);
+		if (!(ax > 1e-6)) ax = 1e-6;
+		if (!(ay > 1e-6)) ay = 1e-6;
+		return { ax: ax, ay: ay };
+	}
+
 	// 网格线数固定，不跟着缩放增减，屏幕上的格子密度才不变。
-	// 网格列数按采样平面的宽高比来取，格子才接近正方形。
-	function gridcount(rows, xs, ys){
+	// 列数按 x 方向在屏幕上的实际宽度独立算，和行数用同一个像素格宽，格子才方正。
+	function gridcount(rows, xs, ys, cell){
+		var ax = projaxis();
 		if (!(xs > 0)) xs = cam.xspan;
 		if (!(ys > 0)) ys = cam.yspan;
-		var nx = Math.round(rows * xs / ys);
-		if (!(nx >= 2)) nx = 2;
-		if (nx > rows * 4) nx = rows * 4;
+		if (!(cell > 0)) cell = gridcell();
+		var nx = Math.round((xs * 2 * ax.ax) * view3safes() / cell);
+		if (!(nx >= MINNX)) nx = MINNX;
+		if (nx > rows * 8) nx = rows * 8;
 		return nx;
+	}
+
+	function gridcell(){
+		return style === "dots" ? 5 : style === "fill" ? 9 : 7;
+	}
+
+	function view3safes(){
+		return view3.s > 0 ? view3.s : 1;
+	}
+
+	// 显式曲面的网格行数：按 y 方向在屏幕上的实际高度除以固定像素格宽。
+	// 用上一帧的 view3.s 先估一个，fit3 出新倍率后若差得多就按新倍率重画一次。
+	function surfrows(w, h){
+		var ax = projaxis();
+		var s = view3safes();
+		var rows = Math.round((cam.yspan * 2 * ax.ay) * s / gridcell());
+		// 快速档只压 z 扫描和预算，网格线数保持不动：一改行数拖动时面貌似换了个粗糙模型，
+		// 松手再变密，观感比稍慢一点更差。
+		if (!(rows >= MINROWS)) rows = MINROWS;
+		if (rows > 140) rows = 140;
+		return rows;
 	}
 
 	function draw3(ctx, w, h){
@@ -859,8 +1143,20 @@
 			draw3implicit(ctx, w, h);
 			return;
 		}
-		// 网格线和点阵要多画些才看得出曲面起伏；曲面和等高线用少一点，渐变就够细了。
-		var ny = style === "dots" ? 34 : style === "grid" ? 30 : 24;
+		// 行数用上一帧的倍率估，换公式、改尺寸时倍率会变，按新倍率重画一次就对齐了。
+		var pass = 0;
+		while (true) {
+			refitAgain = false;
+			draw3band(ctx, w, h);
+			if (!refitAgain || pass++ >= 1) return;
+		}
+	}
+
+	function draw3band(ctx, w, h){
+		// 网格线数按投影到屏幕上的大小来定，屏幕上的格子像素间距才恒定：
+		// 放大就多画几条、缩小就少画几条，转视角时格子也不会一边挤一边松。
+		// 曲面和等高线用少一点，渐变就够细了。
+		var ny = surfrows(w, h);
 		var nx = gridcount(ny);
 		var gw = nx + 1, gh = ny + 1;
 		var zraw = new Array(gw * gh);
@@ -917,7 +1213,7 @@
 				if (ok) boxone(box, X, Y, Z);
 			}
 		}
-		fit3(w, h, box, pts, cyaw, syaw, cp, sp);
+		fit3(w, h, box, pts, cyaw, syaw, cp, sp, bandover(lo, hi));
 		for (i = 0; i < pts.length; i++) {
 			pts[i].x = view3.ox + pts[i].ux * view3.s;
 			pts[i].y = view3.oy - pts[i].uz * view3.s;
@@ -929,9 +1225,25 @@
 		if (style === "grid") drawGrid(ctx, pts, nx, ny, gw);
 		else if (style === "dots") drawDots(ctx, pts);
 		else if (style === "level") drawLevels(ctx, pts, zraw, nx, ny, gw, lo, hi);
-		else drawFill(ctx, pts, nx, ny, gw);
+		else drawFill(ctx, pts, nx, ny, gw, zraw);
 		drawaxes(ctx, cyaw, syaw, cp, sp, zmid, zfit, lo, hi, box);
 		ctx.restore();
+	}
+
+	// 缩放后整片范围变了，上次的细扫范围要和它对一下：取交集，
+	// 交完还剩下上次范围的大半就接着用。
+	// 阈值要跟「上次的范围」比，不能跟整片比：缩得很小时曲面只占整片百分之几，
+	// 拿整片当分母就会一贯判定太小、退回整片，拖动时格子立刻变稀。
+	function keeparea(pre, full){
+		if (!pre) return full;
+		var a = {
+			x0: Math.max(pre.x0, full.x0), x1: Math.min(pre.x1, full.x1),
+			y0: Math.max(pre.y0, full.y0), y1: Math.min(pre.y1, full.y1)
+		};
+		if (!(a.x1 > a.x0) || !(a.y1 > a.y0)) return full;
+		if (!((a.x1 - a.x0) > (pre.x1 - pre.x0) * 0.5)) return full;
+		if (!((a.y1 - a.y0) > (pre.y1 - pre.y0) * 0.5)) return full;
+		return a;
 	}
 
 	// 隐式曲面的整片采样范围。z 一律按 y 的采样范围取，不跟着缩放变。
@@ -942,20 +1254,45 @@
 		};
 	}
 
+	// 沿 z 扫描的半宽。锚在初始范围上，不跟着 xy 缩放一起收：
+	// 一收就只在球中间扫一小段，上下两层解被切断，球面会裂成两片月牙。
+	function zspan(){
+		return Math.max(YSPAN, cam.yspan);
+	}
+
+	// 单帧求值量预算。隐式曲面每个格子都要沿 z 扫一遍再看二分，
+	// 高倍缩放下格子数跟着屏幕像素走，不设上限一次缩放就要几千万次求值。
+	var scanbudget = 0;
+
 	// 在 area 范围内按 x、y 网格竖着扫一遍 F(x,y,z)=0 的零点，每一列得到若干个 z 解。
 	// za、zb 只决定沿 z 扫多长；颜色深浅仍按整片 z 范围算，换视角时颜色不会跳。
 	function impscan(area, rows, zsteps, za, zb){
 		var n = Math.max(2, Math.round(rows));
 		var m = Math.max(4, Math.round(zsteps));
-		var nx = gridcount(n, area.x1 - area.x0, area.y1 - area.y0);
+		// 列数和行数一样用加倍的格宽，隐式曲面整体密度才是显式的一半。
+		var cell = impcell();
+		var nx = gridcount(n, area.x1 - area.x0, area.y1 - area.y0, cell);
+		// 超预算时只降沿 z 的扫描步数，行列数一律不动：
+		// 行数一砍网格线就稀了，缩小或拖动时会稀成几根，形状都看不出来。
+		// z 步数也留个下限：压太低每列解出的环就少了，纵向同样会稀。
+		if (scanbudget > 0) {
+			var cost = (nx + 1) * (n + 1) * m;
+			if (cost > scanbudget) {
+				var zmin = quick() ? 18 : 30;
+				m = Math.max(zmin, Math.floor(scanbudget / ((nx + 1) * (n + 1))));
+				if (m > zsteps) m = Math.round(zsteps);
+			}
+		}
 		var cw = nx + 1;
 		var cols = new Array(cw * (n + 1));
 		var box = newbox();
 		var all = [];
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
-		var z0 = -cam.yspan, z1 = cam.yspan;
-		if (za === undefined || !(zb > za)) {
+		var zs = zspan(), z0 = -zs, z1 = zs;
+		// 传进来的 z 范围是上一帧留下的，那时 xy 采样范围可能比现在大得多（缩过又放大）。
+		// 不夹回当前范围，同样的 z 步数会被摊到大出好几倍的区间上，每列解出的环就变少。
+		if (za === undefined || !(zb > za) || za < z0 || zb > z1) {
 			za = z0;
 			zb = z1;
 		}
@@ -1052,23 +1389,40 @@
 
 	// 网格线数按曲面在屏幕上的大小来定：画得大就多画几条，画得小就少画几条，
 	// 屏幕上的格子大约就是一个固定像素宽，不会稀得只剩几根，也不会密成一块色块。
+	// 用 view3.s——它已经含了适配倍率和缩放，转视角、滚轮缩放后格子像素间距都基本不变。
+	// 隐式曲面每一列都要单独扫 z 求根，格子再密就看不清面了，格宽用显式的两倍。
+	function impcell(){
+		return gridcell() * IMPDENS;
+	}
+
 	function improws(w, h, area){
-		var px = Math.max(area.x1 - area.x0, area.y1 - area.y0) * viewscale(w, h);
-		var cell = style === "dots" ? 5 : style === "fill" ? 9 : 7;
-		var rows = Math.round(px / cell);
-		if (dragging) rows = Math.round(rows * 0.7);
-		if (!(rows >= 12)) rows = 12;
-		if (rows > 72) rows = 72;
+		var ax = projaxis();
+		var ux = (area.x1 - area.x0) * ax.ax;
+		var uy = (area.y1 - area.y0) * ax.ay;
+		var px = Math.max(ux, uy) * view3safes();
+		if (!(px > 0)) px = Math.max(w, h);
+		var rows = Math.round(px / impcell());
+		// 同上：快速档不动行数，只靠 z 步数和预算省时间
+		// 上限也跟着格宽走：宽屏上 px 有 1400 多，固定 140 会顶到上限，
+		// 格宽加倍了行数却降不下来。
+		var cap = Math.round(280 / IMPDENS);
+		if (!(rows >= MINROWS)) rows = MINROWS;
+		if (rows > cap) rows = cap;
 		return rows;
 	}
 
 	// 沿 z 扫的范围也收一下：曲面在 z 上一般也只占一段，少扫一截，同样的点数就细一倍。
 	function fitz(pre, full){
-		var z0 = -cam.yspan, z1 = cam.yspan;
+		var zs = zspan(), z0 = -zs, z1 = zs;
 		if (!pre.all.length || !isFinite(pre.box.z0)) return [z0, z1];
 		var span = z1 - z0;
-		var pad = span / Math.max(1, pre.ny) * 2;
-		if (pad < span * 0.06) pad = span * 0.06;
+		// 补白按曲面实际占的 z 跨度算，不能按整片 z 跨度算：
+		// 缩得很小时 span 有上百，拿它当基准补出来的白比曲面本身还大，
+		// 收窄等于没做，同样的步数摊在大区间上，每列解出的环就少。
+		var ext = pre.box.z1 - pre.box.z0;
+		var pad = ext * 0.5;
+		if (!(pad > 0)) pad = span * 0.02;
+		if (pad > span * 0.06) pad = span * 0.06;
 		var a = pre.box.z0 - pad, b = pre.box.z1 + pad;
 		if (a < z0) a = z0;
 		if (b > z1) b = z1;
@@ -1078,7 +1432,7 @@
 
 	// 解贴到沿 z 扫的两端，说明 z 的范围取小了，得退回整片 z 重扫。
 	function zedge(res){
-		var z0 = -cam.yspan, z1 = cam.yspan;
+		var zs = zspan(), z0 = -zs, z1 = zs;
 		var dz = (res.zb - res.za) / Math.max(1, res.m) * 1.5;
 		var low = res.za > z0 + 1e-9, high = res.zb < z1 - 1e-9;
 		var i, p;
@@ -1093,16 +1447,38 @@
 	// 三维隐式方程 F(x,y,z)=0：按 x、y 网格沿 z 扫过零点，得到曲面点；
 	// 再按样式画成填充面、网格线、点阵或水平等高线。和显式曲面一样按投影范围铺满画布。
 	function draw3implicit(ctx, w, h){
+		// 行数用上一帧的倍率估，倍率刷新后重画一次就对齐了。
+		var pass = 0;
+		while (true) {
+			refitAgain = false;
+			draw3impband(ctx, w, h);
+			if (!refitAgain || pass++ >= 1) return;
+		}
+	}
+
+	function draw3impband(ctx, w, h){
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var full = fullarea();
-		var zsteps = dragging ? 26 : 44;
+		// 交互中只压 z 方向的扫描步数，网格行列数保持定稿时的密度：
+		// 行数一减半，拖动时看起来就像换了个粗糙的模型，松手再变密，观感比稍慢还差。
+		var zsteps = quick() ? 26 : 44;
 		var res, area;
-		if (dragging) {
-			// 拖动时沿用上次定稿的范围，不然一拖就退回整片范围，线会突然变稀。
-			var keep = imparea && impzr && drag && cam.cx === drag.cx && cam.cy === drag.cy;
-			area = keep ? imparea : full;
-			res = impscan(area, improws(w, h, area), zsteps, keep ? impzr[0] : 0, keep ? impzr[1] : 0);
+		// 预算要跟着行数走，压太狠会把格宽撑大、行数又被降回去，等于白设下限。
+		scanbudget = quick() ? 1500000 : 2200000;
+		if (quick()) {
+			// 沿用上次定稿的范围（和整片范围取交集），不然一拖就退回整片范围、线突然变稀。
+			area = keeparea(imparea, full);
+			var zr0 = 0, zr1 = 0;
+			if (impzr && area !== full) {
+				// z 范围也要夹回当前范围：缩过又放大时旧范围比现在大好几倍，
+				// 同样的 z 步数摊到大区间上，每列解出的环就变少、线明显变稀。
+				var zlim = zspan();
+				zr0 = impzr[0] < -zlim ? -zlim : impzr[0];
+				zr1 = impzr[1] > zlim ? zlim : impzr[1];
+				if (!(zr1 > zr0)) zr0 = zr1 = 0;
+			}
+			res = impscan(area, improws(w, h, area), zsteps, zr0, zr1);
 		}
 		else {
 			// 先用粗网格扫一遍看曲面实际占多大，再只在这一块上按屏幕大小细扫。
@@ -1111,17 +1487,23 @@
 			var zr = fitz(pre, full);
 			res = impscan(area, improws(w, h, area), zsteps, zr[0], zr[1]);
 			if (!res.all.length || (area !== full && areaedge(res, full)) || zedge(res)) {
+				// 退回整片范围重扫时 z 也要收窄：不收窄就按 ±zspan 扫，
+				// 区间大出好几倍、步数却没变，每列解出的环会明显变少。
 				area = full;
-				res = impscan(area, improws(w, h, area), zsteps);
+				res = impscan(area, improws(w, h, area), zsteps, zr[0], zr[1]);
 			}
 			imparea = res.all.length ? area : null;
 			impzr = res.all.length ? [res.za, res.zb] : null;
 		}
 		var cols = res.cols, nx = res.nx, ny = res.ny, cw = res.cw, box = res.box;
-		var z0 = -cam.yspan, z1 = cam.yspan;
+		var zs = zspan(), z0 = -zs, z1 = zs;
 		var i, k, row, gap;
 		fit3(w, h, box, res.all, cyaw, syaw, cp, sp);
+		// 合并阈值的本意是「同一位置上的两层解」，所以按屏幕像素算，并给个上限。
+		// 不加上限的话，高倍放大时这里会算出十几像素，把整列相邻的点全并成一个，
+		// 网格就整片消失（缩回去又好了，看起来像是只在放大时坏的）。
 		gap = (res.area.y1 - res.area.y0) * view3.s / ny;
+		if (!(gap < 2.5)) gap = 2.5;
 		for (i = 0; i < cols.length; i++) {
 			row = cols[i];
 			for (k = 0; k < row.length; k++) {
@@ -1189,6 +1571,9 @@
 				for (r = 0; r < list.length; r++) pts.push(list[r]);
 			}
 		}
+		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
+		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+		impsurfnormal(pts, cyaw, syaw, cp, sp);
 		var lower = [], upper = [], k, arr;
 		for (i = 0; i < pts.length; i++) (pts[i].z < 0 ? lower : upper).push(pts[i]);
 		lower.sort(function(a, b){ return b.d - a.d; });
@@ -1196,12 +1581,39 @@
 		for (k = 0; k < 2; k++) {
 			arr = k ? upper : lower;
 			for (i = 0; i < arr.length; i++) {
-				ctx.fillStyle = zcolor(arr[i].t);
+				var n = arr[i].n;
+				ctx.fillStyle = n ? shadecolor(arr[i].t, n.nr, n.nu, n.nd) : zcolor(arr[i].t);
 				ctx.beginPath();
 				ctx.arc(arr[i].x, arr[i].y, rad, 0, 6.2832);
 				ctx.fill();
 			}
 		}
+	}
+
+	// 隐式曲面的法线走解析式：F 的梯度就是法线方向，比差分稳，球的轮廓处也不会乱。
+	function impsurfnormal(pts, cyaw, syaw, cp, sp){
+		var i, p, g, len, c3;
+		for (i = 0; i < pts.length; i++) {
+			p = pts[i];
+			g = grad(p.gx, p.gy, p.z);
+			if (!g) continue;
+			len = Math.sqrt(g[0] * g[0] + g[1] * g[1] + g[2] * g[2]);
+			if (!(len > 1e-9)) continue;
+			c3 = tocam(g[0] / len, g[1] / len, g[2] / len, cyaw, syaw, cp, sp);
+			// 朝外：背向镜头的一面（nd<0）才是正面
+			if (c3.nd > 0) { c3.nr = -c3.nr; c3.nu = -c3.nu; c3.nd = -c3.nd; }
+			p.n = c3;
+		}
+	}
+
+	// 数值梯度，供隐式曲面求法线用。
+	function grad(x, y, z){
+		var h = 1e-4;
+		var fx = ev(fn, x + h, y, z) - ev(fn, x - h, y, z);
+		var fy = ev(fn, x, y + h, z) - ev(fn, x, y - h, z);
+		var fz = ev(fn, x, y, z + h) - ev(fn, x, y, z - h);
+		if (!isFinite(fx) || !isFinite(fy) || !isFinite(fz)) return null;
+		return [fx, fy, fz];
 	}
 
 	function imptri(tris, pts, a, b, c, lim){
@@ -1211,39 +1623,89 @@
 		tris.push({ p0: p0, p1: p1, p2: p2, d: (p0.d + p1.d + p2.d) / 3 });
 	}
 
-	function impgrid(ctx, cols, nx, ny, cw, gap){
-		var segs = [];
-		var i, j, r, a, cnt;
-		function add(p, q){
-			segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: (p.t + q.t) / 2 });
-		}
-		function link(p, q){
-			cnt = Math.min(p.length, q.length);
-			for (r = 0; r < cnt; r++) add(p[r], q[r]);
-		}
+	// 线段缓冲：每个字段一条平行数组。隐式曲面一帧要产上万条线段，
+	// 每条塞一个 {p,q,d,t} 对象，光分配和回收（GC）就占掉一成多时间。
+	// 画布外的线段直接丢掉：clip 之后它们本来就看不见，却还要参与排序和描边。
+	var clipbox = { x0: -1e9, y0: -1e9, x1: 1e9, y1: 1e9 };
+
+	function segbuf(){
+		return { x1: [], y1: [], x2: [], y2: [], t: [], d: [] };
+	}
+
+	function segadd(b, p, q, t, d){
+		var m = 8;
+		if (p.x < clipbox.x0 - m && q.x < clipbox.x0 - m) return;
+		if (p.x > clipbox.x1 + m && q.x > clipbox.x1 + m) return;
+		if (p.y < clipbox.y0 - m && q.y < clipbox.y0 - m) return;
+		if (p.y > clipbox.y1 + m && q.y > clipbox.y1 + m) return;
+		b.x1.push(p.x);
+		b.y1.push(p.y);
+		b.x2.push(q.x);
+		b.y2.push(q.y);
+		b.t.push(t);
+		b.d.push(d);
+	}
+
+	function impgrid(ctx, cols, nx, ny, cw){
+		var b = segbuf();
+		var i, j, r, a, q, cnt;
 		for (j = 0; j <= ny; j++) {
 			for (i = 0; i <= nx; i++) {
 				a = cols[j * cw + i];
-				if (i < nx) link(a, cols[j * cw + i + 1]);
-				if (j < ny) link(a, cols[(j + 1) * cw + i]);
+				if (i < nx) {
+					q = cols[j * cw + i + 1];
+					cnt = Math.min(a.length, q.length);
+					for (r = 0; r < cnt; r++) segadd(b, a[r], q[r], (a[r].t + q[r].t) / 2, (a[r].d + q[r].d) / 2);
+				}
+				if (j < ny) {
+					q = cols[(j + 1) * cw + i];
+					cnt = Math.min(a.length, q.length);
+					for (r = 0; r < cnt; r++) segadd(b, a[r], q[r], (a[r].t + q[r].t) / 2, (a[r].d + q[r].d) / 2);
+				}
 			}
 		}
-		segs.sort(function(u, v){ return v.d - u.d; });
-		ctx.lineWidth = 1.4;
+		drawsegs(ctx, b, 1.4);
+	}
+
+	// 按深度排好序的线段逐条 stroke 太贵：每次 beginPath/stroke 都有固定开销。
+	// 颜色相同的相邻段合并成一条路径，一次画完；同色段之间本来就没有遮挡关系。
+	function strokeSeq(ctx, segs, width){
+		var b = segbuf();
+		var i;
+		for (i = 0; i < segs.length; i++)
+			segadd(b, segs[i].p, segs[i].q, segs[i].t, segs[i].d);
+		drawsegs(ctx, b, width);
+	}
+
+	function drawsegs(ctx, b, width){
+		var n = b.d.length;
+		if (!n) return;
+		var idx = new Array(n);
+		var i, c, cur = "", open = false;
+		for (i = 0; i < n; i++) idx[i] = i;
+		idx.sort(function(u, v){ return b.d[v] - b.d[u]; });
+		ctx.lineWidth = width;
 		ctx.lineJoin = "round";
 		ctx.lineCap = "round";
-		for (i = 0; i < segs.length; i++) {
-			ctx.strokeStyle = zcolor(segs[i].t);
-			ctx.beginPath();
-			ctx.moveTo(segs[i].p.x, segs[i].p.y);
-			ctx.lineTo(segs[i].q.x, segs[i].q.y);
-			ctx.stroke();
+		for (i = 0; i < n; i++) {
+			var k = idx[i];
+			c = zcolor(b.t[k]);
+			if (c !== cur) {
+				if (open) ctx.stroke();
+				ctx.strokeStyle = c;
+				ctx.beginPath();
+				cur = c;
+				open = true;
+			}
+			ctx.moveTo(b.x1[k], b.y1[k]);
+			ctx.lineTo(b.x2[k], b.y2[k]);
 		}
+		if (open) ctx.stroke();
 	}
 
 	// 两层曲面相切处的交界线（z=0 平面上的 F=0），补上网格中间的缝。
 	function implevelzero(ctx, cyaw, syaw, cp, sp, area, rows){
-		var gy = dragging ? 30 : Math.max(44, Math.round(rows * 1.3));
+		var gy = quick() ? 30 : Math.max(44, Math.round(rows * 1.3));
 		var gx = gridcount(gy, area.x1 - area.x0, area.y1 - area.y0);
 		var gw = gx + 1;
 		var vals = new Float64Array(gw * (gy + 1));
@@ -1322,9 +1784,11 @@
 	}
 
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
+	// 这一样式只有一圈圈的线，不会糊成面，所以不跟着 IMPDENS 减密：
+	// 层数给足，圈与圈之间才不会稀到看不出曲面形状。
 	function implevels(ctx, z0, z1, cyaw, syaw, cp, sp, area, rows){
-		var levels = dragging ? 6 : 12;
-		var gy = dragging ? 30 : Math.max(44, Math.round(rows * 1.1));
+		var levels = quick() ? 10 : 20;
+		var gy = quick() ? 30 : Math.max(44, Math.round(rows * 1.6));
 		var gx = gridcount(gy, area.x1 - area.x0, area.y1 - area.y0);
 		var segs = [];
 		function proj(x, y, z){
@@ -1392,7 +1856,7 @@
 		}
 	}
 
-	function drawFill(ctx, pts, nx, ny, gw){
+	function drawFill(ctx, pts, nx, ny, gw, zraw){
 		var tris = [];
 		var i, j, a, b, c, d, p0, p1, p2;
 		for (j = 0; j < ny; j++) {
@@ -1406,18 +1870,94 @@
 			}
 		}
 		tris.sort(function(u, v){ return v.d - u.d; });
+		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
+		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+		var nc = surfnormal(pts, zraw, nx, ny, gw, cyaw, syaw, cp, sp);
 		for (i = 0; i < tris.length; i++) {
 			p0 = pts[tris[i].a];
 			p1 = pts[tris[i].b];
 			p2 = pts[tris[i].c];
+			// 三个顶点的法线取平均，小三角面之间才不会一块块跳色。
+			var na = nc[tris[i].a], nb = nc[tris[i].b], ncc = nc[tris[i].c];
+			var nr = (na.nr + nb.nr + ncc.nr) / 3;
+			var nu = (na.nu + nb.nu + ncc.nu) / 3;
+			var nd = (na.nd + nb.nd + ncc.nd) / 3;
+			var nlen = Math.sqrt(nr * nr + nu * nu + nd * nd) || 1;
 			ctx.beginPath();
 			ctx.moveTo(p0.x, p0.y);
 			ctx.lineTo(p1.x, p1.y);
 			ctx.lineTo(p2.x, p2.y);
 			ctx.closePath();
-			ctx.fillStyle = zcolor((p0.t + p1.t + p2.t) / 3);
+			ctx.fillStyle = shadecolor((p0.t + p1.t + p2.t) / 3, nr / nlen, nu / nlen, nd / nlen);
 			ctx.fill();
 		}
+	}
+
+	// 每个顶点的表面法线：沿 x、y 两个方向做中心差分求切向，叉乘得到法线。
+	// 落在采样边上的点只有单侧差分，曲面边缘的高光才不会被砍掉半条。
+	function surfnormal(pts, zraw, nx, ny, gw, cyaw, syaw, cp, sp){
+		var out = new Array(pts.length);
+		var i, j, a, hl, hr, hd, hu, dx, dy, x0, x1, y0, y1, nx1, ny1, nz1, len;
+		var stepx = cam.xspan * 2 / Math.max(1, nx);
+		var stepy = cam.yspan * 2 / Math.max(1, ny);
+		for (j = 0; j <= ny; j++) {
+			for (i = 0; i <= nx; i++) {
+				a = j * gw + i;
+				if (!pts[a].ok) continue;
+				// 两个方向的差分步长，边上的点退回单侧
+				hl = i > 0 && pts[a - 1].ok ? zraw[a - 1] : NaN;
+				hr = i < nx && pts[a + 1].ok ? zraw[a + 1] : NaN;
+				hd = j > 0 && pts[a - gw].ok ? zraw[a - gw] : NaN;
+				hu = j < ny && pts[a + gw].ok ? zraw[a + gw] : NaN;
+				if (isFinite(hl) && isFinite(hr)) {
+					dx = 2 * stepx;
+					x0 = hr - hl;
+				}
+				else if (isFinite(hr)) {
+					dx = stepx;
+					x0 = hr - zraw[a];
+				}
+				else if (isFinite(hl)) {
+					dx = stepx;
+					x0 = zraw[a] - hl;
+				}
+				else {
+					dx = 0;
+					x0 = 0;
+				}
+				if (isFinite(hd) && isFinite(hu)) {
+					dy = 2 * stepy;
+					y0 = hu - hd;
+				}
+				else if (isFinite(hu)) {
+					dy = stepy;
+					y0 = hu - zraw[a];
+				}
+				else if (isFinite(hd)) {
+					dy = stepy;
+					y0 = zraw[a] - hd;
+				}
+				else {
+					dy = 0;
+					y0 = 0;
+				}
+				// 切向 (dx,0,x0)、(0,dy,y0)，叉乘得法线，再归一化
+				if (!(dx > 1e-9)) { nx1 = 1; ny1 = 0; nz1 = 0; }
+				else if (!(dy > 1e-9)) { nx1 = 0; ny1 = 1; nz1 = 0; }
+				else {
+					nx1 = -x0 * dy;
+					ny1 = -y0 * dx;
+					nz1 = dx * dy;
+				}
+				len = Math.sqrt(nx1 * nx1 + ny1 * ny1 + nz1 * nz1);
+				if (!(len > 1e-9)) { nx1 = 0; ny1 = 0; nz1 = 1; len = 1; }
+				var c3 = tocam(nx1 / len, ny1 / len, nz1 / len, cyaw, syaw, cp, sp);
+				// 保证朝上（z 分量正向），否则背面的三角会全黑
+				if (c3.nu < 0) { c3.nr = -c3.nr; c3.nu = -c3.nu; c3.nd = -c3.nd; }
+				out[a] = c3;
+			}
+		}
+		return out;
 	}
 
 	function drawGrid(ctx, pts, nx, ny, gw){
@@ -1448,7 +1988,8 @@
 	}
 
 	function drawLevels(ctx, pts, zraw, nx, ny, gw, lo, hi){
-		var bands = 8;
+		// 等高线只有线、不会糊成面，层数给足；8 层在起伏大的曲面上稀得看不出形状。
+		var bands = quick() ? 10 : 16;
 		var segs = [];
 		var k, level, i, j, a, z00, z10, z11, z01, p00, p10, p11, p01, e0, e1, e2, e3, hit;
 		var span = hi - lo;
@@ -1586,7 +2127,7 @@
 		ctx.fillText(name, b.x + 4, b.y);
 	}
 
-	function zcolor(t){
+	function zrgb(t){
 		if (t < 0) t = 0;
 		if (t > 1) t = 1;
 		var r, g, b;
@@ -1602,7 +2143,70 @@
 			g = 239 - v * 140;
 			b = 146 - v * 110;
 		}
+		return [r, g, b];
+	}
+
+	// 颜色按 256 级缓存：每帧要拼上万个 rgb 字符串，光拼接就占掉可观的时间。
+	var ZCACHE = new Array(257);
+
+	function zcolor(t){
+		var i = Math.round(t * 256);
+		if (!(i >= 0)) i = 0;
+		else if (i > 256) i = 256;
+		var s = ZCACHE[i];
+		if (s) return s;
+		var c = zrgb(i / 256);
+		s = "rgb(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + ")";
+		ZCACHE[i] = s;
+		return s;
+	}
+
+	// 相机空间里指向光源的方向。金属靠窄高光出效果，光从左上前方打过来。
+	var LIGHT = (function(){
+		var lx = -0.45, ly = 0.55, lz = -0.70;
+		var len = Math.sqrt(lx * lx + ly * ly + lz * lz) || 1;
+		lx /= len;
+		ly /= len;
+		lz /= len;
+		// 半角向量：视线固定为 (0,0,-1)，H = normalize(L + V)
+		var hx = lx, hy = ly, hz = lz - 1;
+		var hlen = Math.sqrt(hx * hx + hy * hy + hz * hz) || 1;
+		return { lx: lx, ly: ly, lz: lz, hx: hx / hlen, hy: hy / hlen, hz: hz / hlen };
+	})();
+
+	// 金属着色。法线用相机空间分量给出：(nr, nu, nd)，nu 朝上、nd 朝里（背向镜头为正）。
+	// 漫反射压低，主体靠环境渐变，再加一道收窄的白高光；轮廓光只提亮本色，不能掺白，
+	// 否则陡坡会被冲成一圈灰的。
+	function shadecolor(t, nr, nu, nd){
+		var base = zrgb(t);
+		var diff = nr * LIGHT.lx + nu * LIGHT.ly + nd * LIGHT.lz;
+		if (!(diff > 0)) diff = 0;
+		var spec = nr * LIGHT.hx + nu * LIGHT.hy + nd * LIGHT.hz;
+		spec = spec > 0 ? Math.pow(spec, 40) : 0;
+		var up = nu > 0 ? nu : 0;
+		var face = nd < 0 ? -nd : 0;
+		var rim = 1 - face;
+		rim = rim * rim * rim;
+		// 环境：上方偏亮、下方压暗，模拟一张顶光的反射贴图
+		var env = 0.34 + 0.50 * up;
+		var k = 0.14 + 0.62 * diff;
+		var lit = k + env * 0.60 + rim * 0.16;
+		var r = base[0] * lit + 255 * spec * 0.80;
+		var g = base[1] * lit + 255 * spec * 0.84;
+		var b = base[2] * lit + 255 * spec * 0.92;
+		r = r > 255 ? 255 : r < 0 ? 0 : r;
+		g = g > 255 ? 255 : g < 0 ? 0 : g;
+		b = b > 255 ? 255 : b < 0 ? 0 : b;
 		return "rgb(" + Math.round(r) + "," + Math.round(g) + "," + Math.round(b) + ")";
+	}
+
+	// 把世界法线转到相机空间：(nr, nu, nd)
+	function tocam(nx, ny, nz, cyaw, syaw, cp, sp){
+		return {
+			nr: nx * cyaw - ny * syaw,
+			nu: nx * syaw * sp + ny * cyaw * sp + nz * cp,
+			nd: nx * syaw * cp + ny * cyaw * cp - nz * sp
+		};
 	}
 
 	function nicestep(span){
@@ -1628,6 +2232,7 @@
 		var i = 0;
 		var tree = relation();
 		if (i !== s.length) throw new Error("公式里有无法识别的部分");
+		jit(tree);
 		return tree;
 		function relation(){
 			var left = expr();
@@ -1782,8 +2387,65 @@
 		return s;
 	}
 
+	// 公式求值占九成以上时间。把语法树拼成一段 JS 表达式交给 new Function，
+	// 一次求值就是一次直接调用，省掉递归解释几十层的判断和闭包调用。
+	var FUNSRC = {
+		sin: "Math.sin", cos: "Math.cos", tan: "Math.tan", asin: "Math.asin", acos: "Math.acos",
+		atan: "Math.atan", atan2: "Math.atan2", sqrt: "Math.sqrt", abs: "Math.abs", ln: "Math.log",
+		exp: "Math.exp", pow: "Math.pow", min: "Math.min", max: "Math.max", hypot: "Math.hypot",
+		floor: "Math.floor", ceil: "Math.ceil", round: "Math.round", sign: "Math.sign",
+		log: "log10", log10: "log10", log2: "log2"
+	};
+
+	function jit(node){
+		if (!node) return null;
+		var src;
+		try {
+			src = gensrc(node);
+			node.j = new Function("x", "y", "z", "var v=" + src + ";return v===Infinity||v===-Infinity?NaN:v;");
+		}
+		catch (ex) {
+			node.j = null; //编译不了就退回逐节点解释
+		}
+		return node.j;
+	}
+
+	function gensrc(node){
+		var i, out, a, b, n;
+		if (node.t === "n") {
+			n = node.v;
+			if (n < 0) return "(" + n + ")";
+			return String(n);
+		}
+		if (node.t === "v") return node.i === 2 ? "z" : node.i === 1 ? "y" : "x";
+		if (node.t === "u") return "(-" + gensrc(node.a) + ")";
+		if (node.t === "eq") return "(" + gensrc(node.a) + "-" + gensrc(node.b) + ")";
+		if (node.t === "b") {
+			a = gensrc(node.a);
+			b = gensrc(node.b);
+			if (node.op === "^") {
+				//整数次幂展开成乘法，Math.pow 在热循环里贵一个数量级
+				var k = node.b.t === "n" ? node.b.v : NaN;
+				if (k === 2) return "(" + a + "*" + a + ")";
+				if (k === 3) return "(" + a + "*" + a + "*" + a + ")";
+				if (k === 4) return "((" + a + "*" + a + ")*(" + a + "*" + a + "))";
+				return "Math.pow(" + a + "," + b + ")";
+			}
+			return "(" + a + node.op + b + ")";
+		}
+		out = FUNSRC[node.name];
+		if (!out) return "(0/0)";
+		if (node.name === "log2") return "(Math.log(" + gensrc(node.args[0]) + ")/Math.LN2)";
+		if (node.name === "log" || node.name === "log10") return "(Math.log(" + gensrc(node.args[0]) + ")/Math.LN10)";
+		var list = [];
+		for (i = 0; i < node.args.length; i++) list.push(gensrc(node.args[i]));
+		return out + "(" + list.join(",") + ")";
+	}
+
 	function ev(node, x, y, z){
 		if (!node) return NaN;
+		//编译过的公式直接走原生函数，递归解释一层要走几十次判断
+		if (node.j) return node.j(x, y, z);
 		if (node.t === "n") return node.v;
 		if (node.t === "v") return node.i === 2 ? z : node.i ? y : x;
 		if (node.t === "u") return -ev(node.a, x, y, z);
@@ -1859,6 +2521,45 @@
 	function isletter(c){ return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z"); }
 	function isdigit(c){ return c >= "0" && c <= "9"; }
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
