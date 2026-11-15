@@ -20,10 +20,19 @@ sealed class VideoFrame {
 unsafe sealed class MediaSession : IDisposable {
 	public const int VIDEOQUEUE = 96;
 	public const int AUDIOQUEUE = 64;
+	/// <summary>
+	/// 视频包队列的"饥饿线"。音频队列满时会暂停读包（音频是主时钟），
+	/// 但视频队列低于这条线时不能停：解封装一停，画面就没有新包，看起来就是卡住。
+	/// </summary>
+	const int VIDEOMIN = 24;
+	/// <summary>为喂视频，音频包最多能超出 AUDIOQUEUE 多少。防止交织异常时无限增长。</summary>
+	const int AUDIOOVER = 64;
 	/// <summary>已解码未显示的帧上限；太小会在慢机器上丢帧，太大延迟高。</summary>
 	public const int FRAMEBUF = 8;
-	/// <summary>音频缓冲高于此值时解码线程休息，让时钟不被写爆。</summary>
-	const int AUDIOTAILMS = 350;
+	/// <summary>丢弃线上的余量：落到目标点前 30ms 的内容留着，别把正好那帧丢掉。</summary>
+	const int DROPSLACKMS = 30;
+	/// <summary>丢弃线最多等这么久；某一路迟迟不来越过，也必须恢复出画面。</summary>
+	const int DROPTIMEOUTMS = 2000;
 
 	readonly object lockq = new();
 	readonly Queue<AVPacketRef> vpackets = new();
@@ -41,6 +50,22 @@ unsafe sealed class MediaSession : IDisposable {
 	readonly object locks = new();
 	double seektarget;
 
+	/// <summary>
+	/// seek 落点之前的"丢弃线"（毫秒，int.MinValue = 没有线）。
+	/// av_seek_frame 只会落到前一个关键帧（本片 5 秒一个），从那儿到目标点之间的
+	/// 画面和声音都是过时的：全丢。视频照样解码，只是不拷进帧队列——参考链不能断。
+	/// 两路各记各的，谁先越过谁先撤线。
+	/// </summary>
+	volatile int seekvms = int.MinValue;
+	volatile int seekams = int.MinValue;
+	/// <summary>丢弃线的建立时刻（TickCount），某一路一直不来时用来兜底解冻。</summary>
+	volatile int droptick;
+	/// <summary>seek 后因落在目标点之前而被扔掉的帧数，诊断用。</summary>
+	int seekdrop;
+	/// <summary>视频队列持续满时进入丢包模式，只留关键帧重建参考链。</summary>
+	bool skipvideo;
+	int fullsince;
+
 	Thread thdemux, thvideo, thaudio;
 	volatile bool stop;
 	volatile bool paused;
@@ -50,7 +75,6 @@ unsafe sealed class MediaSession : IDisposable {
 	volatile bool pendingseek;
 	volatile int seekgen;
 	volatile bool disposed;
-
 	VideoFrame latest;
 	long frameseq;
 	double lastsent;
@@ -88,6 +112,14 @@ unsafe sealed class MediaSession : IDisposable {
 	}
 	/// <summary>连续丢帧计数，UI 可据此提示性能不足。</summary>
 	public int DropCount => dropcount;
+	/// <summary>这次 seek 因落在目标点之前被扔掉的帧数，诊断用。</summary>
+	public int SeekDropCount => seekdrop;
+	/// <summary>seek 落点之前的内容是否还在丢弃中，诊断用。</summary>
+	public bool SeekPending => seekvms != int.MinValue || seekams != int.MinValue;
+	/// <summary>音频缓冲积压毫秒，诊断用。</summary>
+	public int QueuedAudioMs => audio?.QueuedMs ?? 0;
+	/// <summary>音频时钟本身的读数，诊断用。</summary>
+	public double AudioPosSec => audio?.PositionSec ?? -1;
 
 	public event Action<string> Failed;
 
@@ -99,7 +131,7 @@ unsafe sealed class MediaSession : IDisposable {
 		demux = new MediaDemuxer(path);
 		if (demux.HasVideo) vdec = new VideoDecoder(demux.VideoPar, demux.Rotation, demux.VideoTimeBase);
 		if (demux.HasAudio) {
-			adec = new AudioDecoder(demux.AudioPar);
+			adec = new AudioDecoder(demux.AudioPar, demux.AudioTimeBase);
 			audio = new AudioOut();
 			audio.Volume = lastvolume;
 		}
@@ -116,6 +148,10 @@ unsafe sealed class MediaSession : IDisposable {
 		seektarget = 0;
 		seekgen = 0;
 		dropcount = 0;
+		seekvms = seekams = int.MinValue;
+		seekdrop = 0;
+		skipvideo = false;
+		fullsince = 0;
 		lock (lockframe) { latest = null; frames.Clear(); frameseq = 0; }
 		startthreads();
 	}
@@ -141,8 +177,6 @@ unsafe sealed class MediaSession : IDisposable {
 	/// <summary>默默读包并按流放进对应队列。seek 也只在这个线程里做：AVFormatContext 不能多线程同时用。</summary>
 	void demuxloop() {
 		var spin = 0;
-		var skipvideo = false;
-		var fullsince = 0;
 		try {
 			while (!stop) {
 				int gen;
@@ -150,11 +184,14 @@ unsafe sealed class MediaSession : IDisposable {
 					if (pendingseek) applyseek();
 					gen = seekgen;
 				}
-				// 只对音频做背压：音频是主时钟，缺包会冻结进度
+				// 音频背压：音频是主时钟，缺包会冻结进度，所以队列满了先等音频线程消费。
+				// 但不能把视频一起饿死——视频包见底时继续读，否则解封装一停画面就没包可解。
 				if (audiofull()) {
-					sleep(4);
-					spin++;
-					continue;
+					if (!starving() || audiocount() >= AUDIOQUEUE + AUDIOOVER) {
+						sleep(4);
+						spin++;
+						continue;
+					}
 				}
 				spin = 0;
 				var r = demux.ReadPacket(out var p);
@@ -219,19 +256,37 @@ unsafe sealed class MediaSession : IDisposable {
 			while (apackets.Count > 0) apackets.Dequeue().Dispose();
 		}
 		eofdemux = eofvideo = eofaudio = false;
+		// 丢包模式是上一次卡顿的残留状态，不重置就会一路丢到下一个关键帧（本片 5 秒一个）
+		skipvideo = false;
+		fullsince = 0;
 		demux.Seek(t);
-		seekgen++;
 		vresync = true;
 		aresync = true;
+		seekvms = seekams = (int)(t * 1000) - DROPSLACKMS;
+		seekdrop = 0;
+		droptick = Environment.TickCount;
 		lock (lockq) Monitor.PulseAll(lockq);
 	}
 
+	int videocount() {
+		lock (lockq) return vpackets.Count;
+	}
+
+	int audiocount() {
+		lock (lockq) return apackets.Count;
+	}
+
 	bool videofull() {
-		lock (lockq) return vdec != null && vpackets.Count >= VIDEOQUEUE;
+		return vdec != null && videocount() >= VIDEOQUEUE;
+	}
+
+	/// <summary>视频包见底：这时候再为了音频停下来，画面就没包可解了。</summary>
+	bool starving() {
+		return vdec != null && videocount() < VIDEOMIN;
 	}
 
 	bool audiofull() {
-		lock (lockq) return adec != null && apackets.Count >= AUDIOQUEUE;
+		return adec != null && audiocount() >= AUDIOQUEUE;
 	}
 
 	void videoloop() {
@@ -255,7 +310,8 @@ unsafe sealed class MediaSession : IDisposable {
 						if (!eofvideo) {
 							vdec.Drain();
 							eofvideo = true;
-							while (!stop && vdec.Receive(out var tail)) publish(tail);
+							// 收尾帧跟着当时的代次走，seek 之后就别再塞进去
+							while (!stop && vdec.Receive(out var tail)) publish(tail, seekgen);
 						}
 					}
 					sleep(spin++ < 200 ? 2 : 8);
@@ -275,7 +331,7 @@ unsafe sealed class MediaSession : IDisposable {
 					}
 				}
 				using (item) {
-					send(item.Ptr);
+					send(item.Ptr, item.Gen);
 				}
 			}
 		}
@@ -288,10 +344,10 @@ unsafe sealed class MediaSession : IDisposable {
 	}
 
 	/// <summary>send/receive 必须交替：返回 EAGAIN 说明要先收帧，硬送会被丢掉，参考帧一断就花屏。</summary>
-	void send(AVPacket* p) {
+	void send(AVPacket* p, int gen) {
 		while (!stop) {
 			var r = vdec.Send(p);
-			while (!stop && vdec.Receive(out var pts)) publish(pts);
+			while (!stop && vdec.Receive(out var pts)) publish(pts, gen);
 			if (r != ffmpeg.AVERROR(ffmpeg.EAGAIN)) return;
 		}
 	}
@@ -318,7 +374,7 @@ unsafe sealed class MediaSession : IDisposable {
 							while (!stop) {
 								var pcm = adec.Receive();
 								if (pcm == null) break;
-								if (!paused) audio.Push(pcm);
+								pushaudio(pcm, seekgen);
 							}
 						}
 					}
@@ -337,7 +393,7 @@ unsafe sealed class MediaSession : IDisposable {
 					}
 				}
 				using (item) {
-					sendaudio(item.Ptr);
+					sendaudio(item.Ptr, item.Gen);
 				}
 			}
 		}
@@ -349,20 +405,51 @@ unsafe sealed class MediaSession : IDisposable {
 		}
 	}
 
-	void sendaudio(AVPacket* p) {
+	void sendaudio(AVPacket* p, int gen) {
 		while (!stop) {
 			var r = adec.Send(p);
 			while (!stop) {
 				var pcm = adec.Receive();
 				if (pcm == null) break;
-				if (!paused) audio.Push(pcm);
+				pushaudio(pcm, gen);
 			}
 			if (r != ffmpeg.AVERROR(ffmpeg.EAGAIN)) return;
 		}
 	}
 
-	void publish(double pts) {
+	/// <summary>
+	/// 送 PCM 进声卡。seek 之后 av_seek_frame 落在关键帧，它到目标点之间的声音是过时的，
+	/// 直接丢掉：否则时钟一边往上走，耳朵里还是 5 秒前的台词，跟画面字幕全对不上。
+	/// 往回跳时旧包的时间戳已经越过丢弃线，只能靠代次分辨，同样必须丢。
+	/// </summary>
+	void pushaudio(byte[] pcm, int gen) {
+		if (pcm == null || pcm.Length == 0) return;
+		if (gen != seekgen) return;
+		var line = seekams;
+		if (line != int.MinValue) {
+			var pts = adec.LastPts;
+			if (!double.IsNaN(pts) && (int)(pts * 1000) < line) {
+				// 某一路一直越不过线时兜底解冻，别让声音永久哑掉
+				if (unchecked(Environment.TickCount - droptick) <= DROPTIMEOUTMS) return;
+				seekams = int.MinValue;
+			}
+			else seekams = int.MinValue;
+		}
+		if (!paused) audio.Push(pcm);
+	}
+
+	void publish(double pts, int gen) {
 		if (vdec.Buffer == null) return;
+		// 解码到入队的这段里刚好 seek 了：这帧属于旧位置，扔（解码本身不能跳，参考链要留）
+		if (gen != seekgen) { seekdrop++; return; }
+		// 关键帧到目标点之间的画面：照解（参考链不能断），但不往帧队列里塞
+		var line = seekvms;
+		if (line != int.MinValue) {
+			// 没有 pts 的流没法按时间挡，只能信代次（旧包已经在取包时就被丢了）
+			var over = double.IsNaN(pts) || unchecked(Environment.TickCount - droptick) > DROPTIMEOUTMS;
+			if (over || (int)(pts * 1000) >= line) seekvms = int.MinValue;
+			else { seekdrop++; return; }
+		}
 		var f = new VideoFrame {
 			Bgra = (byte[])vdec.Buffer.Clone(),
 			Width = vdec.Width,
@@ -370,10 +457,14 @@ unsafe sealed class MediaSession : IDisposable {
 			Stride = vdec.Stride,
 			Pts = pts,
 		};
-		// 帧队列满就等 UI 消费，否则一路狂解把内存吃光
+		// 帧队列满就等 UI 消费，否则一路狂解把内存吃光。等的时候也要盯着代次和丢弃线：
+		// 这一帧的队列满了、UI 又不肯消费旧位置的帧时，得靠这两个条件把它放出来，否则解码线程就卡死。
 		var waited = 0;
 		while (!stop) {
 			lock (lockframe) {
+				if (gen != seekgen) return;
+				var l = seekvms;
+				if (l != int.MinValue && !double.IsNaN(pts) && (int)(pts * 1000) < l) { seekdrop++; return; }
 				if (frames.Count < FRAMEBUF) {
 					frames.Enqueue(f);
 					latest = f;
@@ -466,12 +557,19 @@ unsafe sealed class MediaSession : IDisposable {
 		if (demux == null || disposed) return;
 		if (sec < 0) sec = 0;
 		if (DurationSec > 0 && sec > DurationSec) sec = DurationSec;
+		// 丢弃线先竖起来：解码线程可能正握着一帧旧位置的画面，等它克隆完再清队列就晚了
+		seekvms = seekams = (int)(sec * 1000) - DROPSLACKMS;
+		seekdrop = 0;
+		droptick = Environment.TickCount;
 		lock (lockframe) { latest = null; frames.Clear(); }
 		audio?.Rebase(sec);
 		clock.Rebase(sec);
 		lastsent = sec - 0.001;
 		dropcount = 0;
 		lock (locks) {
+			// 代次立刻加一：解码线程手里那一帧（可能是旧位置的）从此对不上号，直接扔。
+			// 等解封装线程换完流位置再加就晚了——往回跳时旧帧时间戳比新位置还大，光靠丢弃线挡不住。
+			seekgen++;
 			seektarget = sec;
 			pendingseek = true;
 		}

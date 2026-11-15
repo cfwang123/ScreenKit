@@ -273,13 +273,15 @@ public partial class App : System.Windows.Application {
 						System.Globalization.CultureInfo.InvariantCulture, out var sdy)) {
 					sb.AppendLine("subdy: " + pw.NudgeSubtitle(sdy));
 				}
-				// --player-seek <秒>：自测用，模拟点进度条跳到指定秒
+				// --player-seek <秒[,秒…]>：自测用，模拟点进度条跳到指定秒（可连跳多次）
 				var seekArg = Array.IndexOf(args, "--player-seek");
-				if (seekArg >= 0 && seekArg + 1 < args.Length
-					&& double.TryParse(args[seekArg + 1], System.Globalization.NumberStyles.Float,
-						System.Globalization.CultureInfo.InvariantCulture, out var sk)) {
-					sb.AppendLine("seek: " + pw.SeekBySlider(sk));
-					await System.Threading.Tasks.Task.Delay(2500);
+				if (seekArg >= 0 && seekArg + 1 < args.Length) {
+					foreach (var part in args[seekArg + 1].Split(',')) {
+						if (!double.TryParse(part, System.Globalization.NumberStyles.Float,
+							System.Globalization.CultureInfo.InvariantCulture, out var sk)) continue;
+						sb.AppendLine("seek: " + pw.SeekBySlider(sk));
+						await System.Threading.Tasks.Task.Delay(2000);
+					}
 				}
 				var baseName = Path.Combine(Path.GetDirectoryName(shotPath) ?? ".", Path.GetFileNameWithoutExtension(shotPath));
 				// --player-word <词>：点一个生词，验证会弹出词典窗口

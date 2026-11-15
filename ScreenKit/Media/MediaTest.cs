@@ -83,6 +83,99 @@ static class MediaTest {
 		return bad == 0 ? 0 : 1;
 	}
 
+	// ==================== --test-seek ====================
+	/// <summary>seek 之后逐 tick 观察时钟、队列和上屏帧，用来定位画面卡住/音画不同步。</summary>
+	public static int SeekTest(string file, double sec) {
+		o("=== seek 同步 --test-seek ===");
+		if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) {
+			e("FAIL 文件不存在: " + file);
+			return 1;
+		}
+		MediaSession s = null;
+		try {
+			s = new MediaSession();
+			s.Open(file);
+			s.Play();
+			var warm = Environment.TickCount + 1500;
+			while (Environment.TickCount < warm) {
+				s.TakeDue();
+				System.Threading.Thread.Sleep(10);
+			}
+			if (sec < 0) sec = s.DurationSec / 2;
+			o($"seek 前 pos={s.PositionSec:0.###} audio={s.AudioPosSec:0.###} head={fmtpts(s.HeadPts)} qf={s.QueuedFrames}");
+			s.Seek(sec);
+			o($"已请求 seek -> {sec:0.###}s（容器时长 {s.DurationSec:0.###}s）");
+			var bad = 0;
+			var t0 = Environment.TickCount;
+			var shown = 0;
+			var shownfirst = double.NaN;
+			var skew = 0.0;
+			while (Environment.TickCount - t0 < 3000) {
+				var f = s.TakeDue();
+				if (f != null) {
+					if (shown == 0) shownfirst = f.Pts;
+					shown++;
+					// 上屏帧与时钟差多少：这就是观众感觉到的音画错位
+					var d = Math.Abs(f.Pts - s.PositionSec);
+					if (d > skew) skew = d;
+				}
+				var pos = s.PositionSec;
+				var ms = Environment.TickCount - t0;
+				if (ms % 100 < 20) {
+					o($"t={ms,4}ms pos={pos,9:0.###} audio={s.AudioPosSec,9:0.###} qf={s.QueuedFrames} qv={s.QueuedVideo} qa={s.QueuedAudio} head={fmtpts(s.HeadPts)} drops={s.DropCount} sd={s.SeekDropCount} pend={(s.SeekPending ? 1 : 0)} show={(f != null ? f.Pts.ToString("0.###") : "-")}");
+				}
+				System.Threading.Thread.Sleep(10);
+			}
+			o($"3 秒内上屏 {shown} 帧，首帧 pts={shownfirst:0.###}，最终 pos={s.PositionSec:0.###}，最大错位 {skew:0.###}s");
+			if (shown < 20) { e($"FAIL 3 秒只上屏 {shown} 帧，画面卡住"); bad++; }
+			if (double.IsNaN(shownfirst) || Math.Abs(shownfirst - sec) > 1.0) {
+				e($"FAIL 首帧 pts={shownfirst:0.###} 离目标 {sec:0.###} 太远（应落在目标点附近）");
+				bad++;
+			}
+			if (skew > 0.4) { e($"FAIL 画面与时钟错位 {skew:0.###}s"); bad++; }
+			// 再跳一次：连跳之后画面和时钟都得继续走
+			var sec2 = sec + 300;
+			if (sec2 > s.DurationSec - 5) sec2 = sec - 300;
+			s.Seek(sec2);
+			var t1 = Environment.TickCount;
+			var shown2 = 0;
+			var first2 = double.NaN;
+			var pos2 = s.PositionSec;
+			while (Environment.TickCount - t1 < 2000) {
+				var f = s.TakeDue();
+				if (f != null) { if (shown2 == 0) first2 = f.Pts; shown2++; }
+				System.Threading.Thread.Sleep(10);
+			}
+			o($"第二次 seek -> {sec2:0.###}：2 秒内上屏 {shown2} 帧，首帧 pts={first2:0.###}，pos {pos2:0.###} -> {s.PositionSec:0.###}");
+			if (shown2 < 15) { e($"FAIL 第二次 seek 后只上屏 {shown2} 帧"); bad++; }
+			if (double.IsNaN(first2) || Math.Abs(first2 - sec2) > 1.0) { e($"FAIL 第二次 seek 首帧 pts={first2:0.###} 离目标太远"); bad++; }
+			if (s.PositionSec - pos2 < 1.0) { e($"FAIL 第二次 seek 后时钟没走（{pos2:0.###} -> {s.PositionSec:0.###}）"); bad++; }
+			// 暂停再继续：暂停时不该再推进时钟，恢复后要能接着走
+			var pausedpos = s.PositionSec;
+			s.Pause();
+			System.Threading.Thread.Sleep(500);
+			var still = s.PositionSec;
+			s.Play();
+			System.Threading.Thread.Sleep(700);
+			o($"暂停 {pausedpos:0.###} -> {still:0.###}，恢复后 {s.PositionSec:0.###}");
+			if (Math.Abs(still - pausedpos) > 0.05) { e("FAIL 暂停后时钟还在走"); bad++; }
+			if (s.PositionSec - still < 0.3) { e("FAIL 恢复播放后时钟没走"); bad++; }
+			if (bad > 0) return 1;
+			o("=== OK：seek 同步 ===");
+			return 0;
+		}
+		catch (Exception ex) {
+			e("FAIL 异常: " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { s?.Close(); } catch { }
+			try { s?.Dispose(); } catch { }
+		}
+	}
+
+	static string fmtpts(double? v) => v is double d ? d.ToString("0.###") : "none";
+
 	// ==================== --test-subtitle ====================
 	public static int Subtitle(string file) {
 		o("=== 字幕解析 --test-subtitle ===");

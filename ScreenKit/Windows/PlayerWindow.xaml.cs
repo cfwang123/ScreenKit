@@ -1632,6 +1632,8 @@ public partial class PlayerWindow : Window {
 			$"pbar={pbar.Visibility} phead={phead.Visibility} words={words.Count}/{allwords.Count} cues={cues.Count}/{allcues.Count} " +
 			$"cue={(layer.CueText is { Length: > 0 } s ? s : "(空)")} lines={layer.LineCount} " +
 			$"sub={state.SubtitleOn} pos={session.PositionSec:0.###} hasvideo={session.HasVideo} " +
+			$"qframe={session.QueuedFrames} head={(session.HeadPts is double hp ? hp.ToString("0.###") : "none")} " +
+			$"qvid={session.QueuedVideo} qaud={session.QueuedAudio} drops={session.DropCount} " +
 			$"subn={sub?.Cues.Count ?? 0} lyricn={lyric?.Cues.Count ?? 0} clip={state.ClipKey} lang={state.Lang} " +
 			$"query={state.StudyQuery} cur={allcues.FirstOrDefault(c => c.IsCurrent)?.No ?? "-"} " +
 			$"subbottom={layer.BottomMargin:0.#}";

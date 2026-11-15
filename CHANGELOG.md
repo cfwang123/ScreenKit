@@ -94,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - TTS: SAPI voice list now filters by language for Japanese, Korean and other languages
 - Media player: clicking the seek bar now jumps immediately, and seeking no longer leaves garbled frames after resuming playback
 - Media player: word clips no longer play a blast of noise (sample-frame alignment, send/receive loop, edge fades)
+- Fix picture freeze and A/V desync after seeking in the player
 
 ### 中文
 
@@ -139,6 +140,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤
 - 播放器：点进度条轨道可直接跳转；跳转后继续播放不再花屏
 - 媒体播放器：点「原声」不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）
+- 修复播放器拖动进度条跳转后画面卡住、声音字幕不同步
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

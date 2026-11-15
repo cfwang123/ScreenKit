@@ -16,8 +16,14 @@ unsafe sealed class AudioDecoder : IDisposable {
 
 	public int SampleRate => OUTRATE;
 	public int Channels => OUTCH;
+	/// <summary>最近一帧的起始时间（秒，按流转时基换算），seek 后据此丢掉目标点之前的声音。</summary>
+	public double LastPts { get; private set; } = double.NaN;
+	readonly AVRational timebase;
 
-	public AudioDecoder(AVCodecParameters* par) {
+	public AudioDecoder(AVCodecParameters* par) : this(par, new AVRational { num = 1, den = 1 }) { }
+
+	public AudioDecoder(AVCodecParameters* par, AVRational tb) {
+		timebase = tb.num > 0 && tb.den > 0 ? tb : new AVRational { num = 1, den = 1 };
 		if (!FfmpegLoader.TryInit(out var err))
 			throw new InvalidOperationException(err ?? "FFmpeg 未就绪");
 		if (par == null) throw new InvalidOperationException("缺少音频流参数");
@@ -56,6 +62,10 @@ unsafe sealed class AudioDecoder : IDisposable {
 		if (r < 0) return null;
 		var nb = frame->nb_samples;
 		if (nb <= 0) return null;
+		// 记下这帧的起始时间：seek 之后要靠它把落在目标点之前的声音丢掉
+		var best = ffmpeg.av_frame_get_best_effort_timestamp(frame);
+		if (best == ffmpeg.AV_NOPTS_VALUE) best = frame->pts;
+		LastPts = best == ffmpeg.AV_NOPTS_VALUE ? double.NaN : best * ffmpeg.av_q2d(timebase);
 		if (!swrready) {
 			if (!initswr()) return null;
 			swrready = true;
