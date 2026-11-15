@@ -273,9 +273,20 @@ public partial class App : System.Windows.Application {
 					await System.Threading.Tasks.Task.Delay(1500);
 					sb.AppendLine(pw.ShotTo($"{baseName}_{i}.png"));
 				}
+				// --player-click stage：在画面区点一下，验证播放/暂停切换
 				// --player-click 行,字：点字幕里的字，验证取词与释义
 				var clickArg = Array.IndexOf(args, "--player-click");
 				if (clickArg >= 0 && clickArg + 1 < args.Length) {
+					if (args[clickArg + 1].Equals("stage", StringComparison.OrdinalIgnoreCase)) {
+						sb.AppendLine("stage: " + pw.ClickStage());
+						await System.Threading.Tasks.Task.Delay(600);
+						sb.AppendLine("stage2: " + pw.ClickStage());
+						await System.Threading.Tasks.Task.Delay(300);
+						sb.AppendLine(pw.ShotTo($"{baseName}_click.png"));
+						File.WriteAllText(txt, sb.ToString());
+						Shutdown(0);
+						return;
+					}
 					var parts = args[clickArg + 1].Split(',');
 					var li = parts.Length > 0 && int.TryParse(parts[0], out var l0) ? l0 : 0;
 					var ci = parts.Length > 1 && int.TryParse(parts[1], out var c0) ? c0 : 0;

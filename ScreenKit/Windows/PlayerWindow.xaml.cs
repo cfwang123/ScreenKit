@@ -127,7 +127,11 @@ public partial class PlayerWindow : Window {
 	double lastpos = -1;
 	bool seeking;
 	bool dragging;
+	bool dragsub;
+	bool subnudge;
 	Point dragfrom;
+	Point subfrom;
+	double subbottom0;
 	double dragl, dragt;
 	WindowState prevstate;
 	bool fullscreen;
@@ -227,6 +231,7 @@ public partial class PlayerWindow : Window {
 		o.PlayVolume = state.Volume;
 		o.PlayMode = state.Mode == PlayerForm.Fullscreen ? "fullscreen" : "normal";
 		o.PlaySubOn = state.SubtitleOn;
+		o.PlaySubBottom = (int)Math.Round(Math.Max(0, layer.BottomMargin));
 		o.PlayListMode = state.Repeat switch {
 			PlayMode.Shuffle => "shuffle",
 			PlayMode.RepeatOne => "repeatone",
@@ -1291,41 +1296,90 @@ public partial class PlayerWindow : Window {
 		if (now - lastclick < 400) clickcount++;
 		else clickcount = 1;
 		lastclick = now;
-		dragging = true;
 		dragfrom = e.GetPosition(this);
+		// 在字幕文字上按下：这次拖动改字幕上下位置，不动窗口
+		subfrom = e.GetPosition(ptext);
+		if (layer.HitTest(subfrom, out _, out _)) {
+			dragsub = true;
+			dragging = false;
+			subbottom0 = layer.BottomMargin;
+			return;
+		}
+		dragsub = false;
+		dragging = true;
 		dragl = Left;
 		dragt = Top;
 		e.Handled = false;
 	}
 
 	void stagemove(object sender, MouseEventArgs e) {
-		if (!dragging || e.LeftButton != MouseButtonState.Pressed) { dragging = false; return; }
+		if (e.LeftButton != MouseButtonState.Pressed) { dragging = false; dragsub = false; return; }
+		if (dragsub) {
+			var dy = e.GetPosition(ptext).Y - subfrom.Y;
+			if (Math.Abs(dy) < 3) return;
+			setsubbottom(subbottom0 - dy / layer.Scale);
+			return;
+		}
+		if (!dragging) return;
 		if (fullscreen) return;
 		var p = e.GetPosition(this);
 		var dx = p.X - dragfrom.X;
-		var dy = p.Y - dragfrom.Y;
-		if (Math.Abs(dx) < 4 && Math.Abs(dy) < 4) return;
+		var dy2 = p.Y - dragfrom.Y;
+		if (Math.Abs(dx) < 4 && Math.Abs(dy2) < 4) return;
 		try {
 			Left = dragl + dx;
-			Top = dragt + dy;
+			Top = dragt + dy2;
 		}
 		catch { }
+	}
+
+	/// <summary>改字幕底部留白并重排位置，只在纵向移动，水平仍居中。</summary>
+	void setsubbottom(double v) {
+		if (double.IsNaN(v)) return;
+		var h = layer.ViewHeight;
+		var max = Math.Min(400, Math.Max(0, h * 0.75));
+		if (v < 0) v = 0;
+		if (v > max) v = max;
+		layer.BottomMargin = v;
+		layer.reposition();
+		subnudge = true;
 	}
 
 	void stageup(object sender, MouseButtonEventArgs e) {
 		var moved = false;
 		var p = e.GetPosition(this);
 		if (Math.Abs(p.X - dragfrom.X) >= 4 || Math.Abs(p.Y - dragfrom.Y) >= 4) moved = true;
+		if (dragsub) {
+			dragsub = false;
+			if (subnudge) {
+				subnudge = false;
+				if (opt != null) opt.PlaySubBottom = (int)Math.Round(Math.Max(0, layer.BottomMargin));
+				hud($"字幕位置 底部留白 {(int)Math.Round(layer.BottomMargin)}");
+				clickcount = 0;
+				return;
+			}
+			// 按在字幕上但没拖动：当普通单击处理
+		}
 		dragging = false;
 		if (moved) return;
 		var pt = e.GetPosition(ptext);
 		if (trypickword(pt)) { clickcount = 0; return; }
+		// 画面区单击即播放/暂停。双击会先走两次单击（状态一来一回不变），再切全屏，
+		// 所以这里不做延时判定，点击响应是即时的。
+		stageclick();
 		if (clickcount >= 2) {
 			clickcount = 0;
 			togglefull();
 			return;
 		}
 		clickcount = 0;
+	}
+
+	/// <summary>画面区单击：播放 / 暂停。没打开文件时不响应，避免空白舞台乱弹打开对话框。</summary>
+	void stageclick() {
+		if (list.Current == null) return;
+		toggleplay();
+		hud(state.Paused ? "已暂停" : "播放中");
 	}
 
 	void stagewheel(object sender, MouseWheelEventArgs e) {
@@ -1463,6 +1517,14 @@ public partial class PlayerWindow : Window {
 	internal void SetTab(SideTab t) {
 		state.Tab = t;
 		render();
+	}
+
+	/// <summary>自测用：模拟在画面区点一下，回传点击前后的播放状态。</summary>
+	public string ClickStage() {
+		var before = state.Paused;
+		stageclick();
+		render();
+		return $"paused {before}->{state.Paused} hasfile={list.Current != null} icon={bplay.Content}";
 	}
 
 	/// <summary>自测用：把整个窗口渲染成 PNG，并回传界面上关键状态。</summary>
