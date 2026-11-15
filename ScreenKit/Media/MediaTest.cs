@@ -308,6 +308,71 @@ static class MediaTest {
 		return bad == 0 ? 0 : 1;
 	}
 
+	// ==================== --test-player-clip ====================
+	/// <summary>旁路片段发音：抽出来的 PCM 时长对得上，且不会动到主播放器。</summary>
+	public static int ClipTest(string file, double start, double end) {
+		o("=== 片段发音 --test-player-clip ===");
+		if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) { e("FAIL 文件不存在: " + file); return 1; }
+		if (start < 0) start = 1.0;
+		if (end <= start) end = start + 0.8;
+		o($"片段 [{start:0.###},{end:0.###}] 长 {end - start:0.###}s");
+		var bad = 0;
+		MediaSession s = null;
+		try {
+			s = new MediaSession();
+			s.Open(file);
+			if (!s.HasAudio) {
+				e("FAIL 文件没有音轨，该文件应走 TTS 发音");
+				return 1;
+			}
+			// 先让主播放器跑起来，再暂停，作为「片段不动主时钟」的基准
+			s.Play();
+			var until = Environment.TickCount + 3000;
+			while (Environment.TickCount < until && s.PositionSec < Math.Min(1.2, s.DurationSec / 3)) System.Threading.Thread.Sleep(20);
+			s.Pause();
+			var pos0 = s.PositionSec;
+			o($"暂停在主位置 {pos0:0.###}s");
+
+			var msgs = new StringBuilder();
+			using var cp = new MediaClipPlayer();
+			cp.Failed += m => msgs.AppendLine(m);
+			var pcm = cp.Extract(file, start, end);
+			if (pcm == null) {
+				e("FAIL 片段抽取失败: " + msgs.ToString().Trim());
+				return 1;
+			}
+			var sec = pcm.Length / (double)MediaClipPlayer.BYTERATE;
+			var want = (end - start) + 0.16;   // 前后各 80ms 气口
+			o($"抽出 PCM {pcm.Length} 字节 = {sec:0.###}s（期望约 {want:0.###}s）");
+			if (sec < want * 0.5 || sec > want * 1.6) { e($"FAIL 片段时长偏离：{sec:0.###}s"); bad++; }
+
+			var nz = 0;
+			var total = pcm.Length / 2;
+			for (var i = 0; i < pcm.Length - 1; i += 2 * 97) {
+				short v = (short)(pcm[i] | (pcm[i + 1] << 8));
+				if (v != 0) nz++;
+			}
+			var sampled = Math.Max(1, (pcm.Length / 2 + 96) / 97);
+			o($"非零样本 {nz}/{sampled}（{nz * 100.0 / sampled:0.#}%）  总样本 {total}");
+			if (nz * 10 < sampled) { e("FAIL 片段几乎全静音"); bad++; }
+
+			var pos1 = s.PositionSec;
+			o($"片段后主位置 {pos1:0.###}s（暂停中应不变）");
+			if (Math.Abs(pos1 - pos0) > 1e-6) { e("FAIL 片段播放动了主播放器位置"); bad++; }
+			if (!s.IsPaused) { e("FAIL 片段播放把主播放器唤醒了"); bad++; }
+		}
+		catch (Exception ex) {
+			e("FAIL 异常: " + ex.Message);
+			bad++;
+		}
+		finally {
+			try { s?.Close(); } catch { }
+			try { s?.Dispose(); } catch { }
+		}
+		o(bad == 0 ? "=== OK：片段发音 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
 	static string clip(string s, int n) {
 		if (string.IsNullOrEmpty(s)) return "";
 		s = s.Replace("\n", "⏎");

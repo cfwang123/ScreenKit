@@ -233,23 +233,24 @@ public partial class App : System.Windows.Application {
 				if (pw0 != null && !string.IsNullOrWhiteSpace(playPath)) pw0.PlaySingle(playPath);
 			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 		}
-		// --form large|small|bar|fullscreen|translucent：启动后直接切到指定形态
+		// --form normal|fullscreen：启动后直接切到指定形态
 		var formIdx = Array.IndexOf(args, "--form");
 		if (playIdx >= 0 && formIdx >= 0 && formIdx + 1 < args.Length) {
 			var formName = args[formIdx + 1].ToLowerInvariant();
 			win.Dispatcher.BeginInvoke(new Action(() => {
 				var pw1 = Application.Current.Windows.OfType<PlayerWindow>().FirstOrDefault();
 				if (pw1 == null) return;
-				pw1.SetForm(formName == "fullscreen" ? PlayerForm.Fullscreen : PlayerForm.Large);
+				pw1.SetForm(formName == "fullscreen" ? PlayerForm.Fullscreen : PlayerForm.Normal);
 			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 		}
-		// --player-shot <png> [毫秒] [seek秒] [目标形态]：自测用，渲染窗口成 PNG 后退出
+		// --player-shot <png> [毫秒] [seek秒] [目标形态] [右栏页签 list|study|subtitle]：自测用，渲染窗口成 PNG 后退出
 		if (playIdx >= 0 && shotIdx >= 0 && shotIdx + 1 < args.Length) {
 			var shotPath = args[shotIdx + 1];
 			var delay = shotIdx + 2 < args.Length && int.TryParse(args[shotIdx + 2], out var d0) ? d0 : 4000;
 			var seekTo = shotIdx + 3 < args.Length && double.TryParse(args[shotIdx + 3],
 				System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s0) ? s0 : -1;
 			var formArg = shotIdx + 4 < args.Length ? args[shotIdx + 4] : "";
+			var tabArg = shotIdx + 5 < args.Length ? args[shotIdx + 5].ToLowerInvariant() : "";
 			win.Dispatcher.BeginInvoke(new Action(async () => {
 				var log = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
 				Directory.CreateDirectory(log);
@@ -261,7 +262,9 @@ public partial class App : System.Windows.Application {
 				if (pw == null) { File.WriteAllText(txt, "NO_PLAYER_WINDOW"); Shutdown(0); return; }
 				if (seekTo >= 0) pw.SeekTo(seekTo);
 				if (formArg.Length > 0)
-					pw.SetForm(formArg.ToLowerInvariant() == "fullscreen" ? PlayerForm.Fullscreen : PlayerForm.Large);
+					pw.SetForm(formArg.ToLowerInvariant() == "fullscreen" ? PlayerForm.Fullscreen : PlayerForm.Normal);
+				if (tabArg.Length > 0)
+					pw.SetTab(tabArg == "list" ? SideTab.List : tabArg == "subtitle" ? SideTab.Subtitle : SideTab.Study);
 				await System.Threading.Tasks.Task.Delay(delay);
 				var baseName = Path.Combine(Path.GetDirectoryName(shotPath) ?? ".", Path.GetFileNameWithoutExtension(shotPath));
 				sb.AppendLine(pw.ShotTo(shotPath));

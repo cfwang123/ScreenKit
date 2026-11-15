@@ -361,29 +361,19 @@ public sealed class OcrOptions {
 	public bool ModChat = false;
 	public bool ModFace = true;
 	public bool ModDict = true;
-	/// <summary>媒体播放器窗口形态：large / small / bar / fullscreen / translucent。</summary>
-	public string PlayMode = "large";
+	/// <summary>媒体播放器形态：normal（窗口）/ fullscreen（全屏播放页）。</summary>
+	public string PlayMode = "normal";
 	public double PlayVolume = 0.8;
 	public bool PlaySubOn = true;
-	public bool PlaySubAutoLoad = true;
 	public string PlaySubFont = "Microsoft YaHei UI";
 	public int PlaySubSize = 32;
-	public string PlaySubColor = "#FFFFFFFF";
 	public string PlaySubOutline = "#CC000000";
 	public int PlaySubBottom = 48;
-	public int PlaySubDelay;
-	public int PlayLyricLines = 1;
-	public bool PlaySubKaraoke = false;
-	public bool PlayLyricKaraoke = true;
 	public string PlayKaraMode = "sweep";
 	public string PlayKaraSung = "#FFFFD84D";
 	public string PlayKaraUnsung = "#B0FFFFFF";
 	public int PlayKaraFeather;
-	public bool PlayDictAuto = true;
-	public bool PlayDictPopup = true;
-	public bool PlayDictPause;
 	public string PlayListMode = "sequential";
-	public bool PlayResume = true;
 	/// <summary>HTTP 各模块。关闭后该路径返回未启用。总开关 HttpEnabled 优先。</summary>
 	public bool HttpOcr = true;
 	public bool HttpTts = true;

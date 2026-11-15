@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - USB capture: the device tree keeps the left column, while the device information and the descriptor reader become two tabs in a right sidebar; the packet list, the protocol tree and the hex view stay in the middle.
 - Media player: the window is now a large window plus fullscreen only, with a collapsible right sidebar that lists the words of the current subtitle line, the playlist and the dictionary results.
 - Media player: the window now follows the app's light theme (system title bar with normal window buttons), and opening it no longer restores the previous playback position.
+- Player window rebuilt around three side tabs (playlist / study / subtitles); every word of the current line gets its own row with gloss, video clip or TTS pronunciation, and a subtitle browser that can play or jump to any line
 
 #### Fixed
 
@@ -105,6 +106,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - USB 抓包：设备树独占左栏，设备信息与设备描述符合并为右侧栏的两个页签，报文列表、协议详情与十六进制留在中间。
 - 媒体播放器：窗口精简为大窗口与全屏两种，右侧栏把当前句单词、播放列表、词典释义分成三页并可收起。
 - 媒体播放器：窗口改用应用的浅色主题（系统标题栏，带最小/最大/关闭），打开时不再恢复上次的播放位置。
+- 播放器按「列表 / 学习 / 字幕」三页重做：当前句每个词一行并带释义，可按词截取原声或 TTS 朗读，字幕页可逐条播声或跳转
 
 #### 修复
 

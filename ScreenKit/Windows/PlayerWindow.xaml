@@ -1,9 +1,9 @@
-<Window x:Class="ScreenKit.PlayerWindow"
+﻿<Window x:Class="ScreenKit.PlayerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="媒体播放器"
         Width="1280" Height="720"
-        MinWidth="720" MinHeight="420"
+        MinWidth="760" MinHeight="440"
         ResizeMode="CanResize"
         Background="{StaticResource BgApp}"
         WindowStartupLocation="CenterScreen"
@@ -17,6 +17,7 @@
 			<Setter Property="Height" Value="18"/>
 			<Setter Property="VerticalAlignment" Value="Center"/>
 		</Style>
+
 		<!-- 右栏页签 -->
 		<Style x:Key="tabItem" TargetType="TabItem">
 			<Setter Property="Foreground" Value="#4B5563"/>
@@ -42,44 +43,157 @@
 				</Setter.Value>
 			</Setter>
 		</Style>
-		<!-- 单词小片 -->
-		<Style x:Key="chip" TargetType="Button">
-			<Setter Property="Background" Value="#EEF2FF"/>
-			<Setter Property="Foreground" Value="#312E81"/>
-			<Setter Property="BorderThickness" Value="0"/>
-			<Setter Property="Padding" Value="9,4"/>
-			<Setter Property="Margin" Value="0,0,6,6"/>
-			<Setter Property="FontSize" Value="14"/>
+
+		<!-- 双态按钮：置顶 / 侧栏 / 字幕 / 静音 / 模式 -->
+		<Style x:Key="togBtn" TargetType="ToggleButton">
+			<Setter Property="Background" Value="{StaticResource BgToolBtn}"/>
+			<Setter Property="BorderBrush" Value="#D5DEE8"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Foreground" Value="{StaticResource TextPrimary}"/>
+			<Setter Property="Padding" Value="10,5"/>
+			<Setter Property="Margin" Value="0,0,6,0"/>
+			<Setter Property="FontSize" Value="12.5"/>
 			<Setter Property="Cursor" Value="Hand"/>
 			<Setter Property="Template">
 				<Setter.Value>
-					<ControlTemplate TargetType="Button">
-						<Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6"
-						        Padding="{TemplateBinding Padding}">
+					<ControlTemplate TargetType="ToggleButton">
+						<Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+						        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
 							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#E0E7FF"/>
+								<Setter TargetName="bd" Property="Background" Value="#DCE6F0"/>
 							</Trigger>
-							<Trigger Property="IsPressed" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#C7D2FE"/>
+							<Trigger Property="IsChecked" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoft}"/>
+								<Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+								<Setter Property="Foreground" Value="#1D4ED8"/>
+								<Setter Property="FontWeight" Value="SemiBold"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
 		</Style>
-		<!-- 列表行 -->
-		<Style x:Key="listItem" TargetType="ListBoxItem">
-			<Setter Property="Foreground" Value="#1A202C"/>
-			<Setter Property="Padding" Value="8,5"/>
+
+		<!-- 语种筛选 -->
+		<Style x:Key="langBtn" TargetType="ToggleButton">
+			<Setter Property="Padding" Value="6,2"/>
+			<Setter Property="Margin" Value="2,0,0,0"/>
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Foreground" Value="#6B7280"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="ToggleButton">
+						<Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E5E7EB"/>
+							</Trigger>
+							<Trigger Property="IsChecked" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E0E7FF"/>
+								<Setter Property="Foreground" Value="#3730A3"/>
+								<Setter Property="FontWeight" Value="SemiBold"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<!-- 生词行尾的小按钮 -->
+		<Style x:Key="wordBtn" TargetType="Button">
+			<Setter Property="Padding" Value="6,2"/>
+			<Setter Property="Margin" Value="0,0,4,0"/>
+			<Setter Property="FontSize" Value="10.5"/>
+			<Setter Property="Background" Value="#FFFFFF"/>
+			<Setter Property="BorderBrush" Value="#D5DEE8"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Foreground" Value="#5C6570"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+						        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#F3F6FA"/>
+								<Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+							</Trigger>
+							<Trigger Property="IsPressed" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E7EEF8"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<!-- 生词行 -->
+		<Style x:Key="wordItem" TargetType="ListBoxItem">
+			<Setter Property="Padding" Value="6,4"/>
+			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
 			<Setter Property="Cursor" Value="Hand"/>
 			<Setter Property="Template">
 				<Setter.Value>
 					<ControlTemplate TargetType="ListBoxItem">
-						<Border x:Name="bd" Background="Transparent" CornerRadius="4"
-						        Padding="{TemplateBinding Padding}">
+						<Border x:Name="bd" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="4">
+							<ContentPresenter/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
+							</Trigger>
+							<Trigger Property="IsSelected" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#E0E7FF"/>
+							</Trigger>
+							<DataTrigger Binding="{Binding IsSounding}" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#FEF3C7"/>
+							</DataTrigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<!-- 生词行内容：词头 Auto 自适应（上限半行）+ 释义占满剩余 + 行尾原声/TTS -->
+		<DataTemplate x:Key="wordTemplate">
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="Auto" MaxWidth="150"/>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold" Foreground="#1F2329"
+				           TextTrimming="CharacterEllipsis" Margin="0,0,8,0" VerticalAlignment="Center"/>
+				<TextBlock Grid.Column="1" Text="{Binding Gloss}" FontSize="12.5" Foreground="#4B5563"
+				           TextTrimming="CharacterEllipsis" Margin="0,0,6,0" VerticalAlignment="Center"/>
+				<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+					<Button Style="{StaticResource wordBtn}" Content="原声" Tag="{Binding Word}" Click="wordclipclick"
+					        ToolTip="播放视频里这一个词的声音（不打断播放）"/>
+					<Button Style="{StaticResource wordBtn}" Content="TTS" Tag="{Binding Word}" Click="wordttsclick"
+					        ToolTip="用 TTS 合成发音"/>
+				</StackPanel>
+			</Grid>
+		</DataTemplate>
+
+		<!-- 字幕条行 -->
+		<Style x:Key="cueItem" TargetType="ListBoxItem">
+			<Setter Property="Padding" Value="6,4"/>
+			<Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="ListBoxItem">
+						<Border x:Name="bd" Background="Transparent" Padding="{TemplateBinding Padding}" CornerRadius="4">
 							<ContentPresenter/>
 						</Border>
 						<ControlTemplate.Triggers>
@@ -87,8 +201,66 @@
 								<Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
 							</Trigger>
 							<Trigger Property="IsSelected" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#C7D2FE"/>
-								<Setter Property="Foreground" Value="#1E1B4B"/>
+								<Setter TargetName="bd" Property="Background" Value="#E0E7FF"/>
+							</Trigger>
+							<DataTrigger Binding="{Binding IsCurrent}" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#EEF2FF"/>
+								<Setter Property="FontWeight" Value="SemiBold"/>
+							</DataTrigger>
+							<DataTrigger Binding="{Binding IsSounding}" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#FEF3C7"/>
+							</DataTrigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<DataTemplate x:Key="cueTemplate">
+			<Grid>
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="24"/>
+					<ColumnDefinition Width="46"/>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+				<TextBlock Text="{Binding No}" FontSize="10.5" Foreground="#9AA1AC" FontFamily="Consolas"
+				           VerticalAlignment="Center" TextAlignment="Right" Margin="0,0,6,0"/>
+				<TextBlock Grid.Column="1" Text="{Binding TimeText}" FontSize="10.5" Foreground="#6F7784"
+				           FontFamily="Consolas" VerticalAlignment="Center"/>
+				<TextBlock Grid.Column="2" Text="{Binding Text}" FontSize="12.5" Foreground="#1F2329"
+				           TextWrapping="Wrap" VerticalAlignment="Center" Margin="2,0,6,0"/>
+				<StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+					<Button Style="{StaticResource wordBtn}" Content="声" Tag="{Binding Index}" Click="cueclipclick"
+					        ToolTip="播放这一条的原始声音（不打断播放）"/>
+					<Button Style="{StaticResource wordBtn}" Content="跳" Tag="{Binding Index}" Click="cuejumpclick"
+					        ToolTip="把播放位置跳到这一条"/>
+				</StackPanel>
+			</Grid>
+		</DataTemplate>
+
+		<!-- 播放模式菜单里的单选项 -->
+		<Style x:Key="modeRadio" TargetType="RadioButton">
+			<Setter Property="Padding" Value="8,5"/>
+			<Setter Property="FontSize" Value="12.5"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="RadioButton">
+						<Border x:Name="bd" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
+							<DockPanel>
+								<TextBlock x:Name="mk" DockPanel.Dock="Right" Text="✓" Foreground="{StaticResource Accent}"
+								           FontWeight="Bold" VerticalAlignment="Center" Visibility="Collapsed"/>
+								<ContentPresenter VerticalAlignment="Center"/>
+							</DockPanel>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+							</Trigger>
+							<Trigger Property="IsChecked" Value="True">
+								<Setter TargetName="mk" Property="Visibility" Value="Visible"/>
+								<Setter Property="FontWeight" Value="SemiBold"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
@@ -109,107 +281,123 @@
 			<ColumnDefinition x:Name="colSide" Width="320" MinWidth="240" MaxWidth="560"/>
 		</Grid.ColumnDefinitions>
 
-		<!-- 工具条：最小化/最大化/关闭用系统标题栏，这里只放功能按钮 -->
+		<!-- A 顶栏 -->
 		<Border x:Name="phead" Grid.Row="0" Grid.ColumnSpan="3" Background="{StaticResource BgPanel}"
 		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,6">
-			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-				<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Content="打开" ToolTip="打开文件或目录"/>
-				<Button x:Name="btop" Style="{StaticResource ToolBtn}" Content="置顶" ToolTip="窗口固定在最前"/>
-				<Button x:Name="bfull" Style="{StaticResource ToolBtn}" Content="全屏" ToolTip="全屏 (F)"/>
-				<Button x:Name="bside" Style="{StaticResource ToolBtn}" Content="收起侧栏" ToolTip="显示或收起右侧栏 (H)"/>
-			</StackPanel>
+			<DockPanel>
+				<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+					<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Content="打开" ToolTip="打开文件或目录"
+					        AutomationProperties.AutomationId="player.open"/>
+					<ToggleButton x:Name="btop" Style="{StaticResource togBtn}" Content="置顶" ToolTip="窗口固定在最前"
+					              AutomationProperties.AutomationId="player.top"/>
+					<ToggleButton x:Name="bside" Style="{StaticResource togBtn}" Content="侧栏" ToolTip="展开或收起右侧栏 (H)"
+					              AutomationProperties.AutomationId="player.side"/>
+					<Button x:Name="bfull" Style="{StaticResource ToolBtn}" Content="全屏" ToolTip="全屏 (F)"
+					        AutomationProperties.AutomationId="player.full"/>
+				</StackPanel>
+				<TextBlock x:Name="lbtitle" Text="媒体播放器" Foreground="{StaticResource TextMuted}" FontSize="12.5"
+				           VerticalAlignment="Center" Margin="4,0,8,0" TextTrimming="CharacterEllipsis"/>
+			</DockPanel>
 		</Border>
 
-		<!-- 画面与字幕 -->
+		<!-- B 舞台（字幕层不随面板隐藏） -->
 		<Grid Grid.Row="1" Grid.Column="0" x:Name="pstage" Background="#FFEDF1F6"
-		      MouseLeftButtonDown="stagedown" MouseLeftButtonUp="stageup" MouseMove="stagemove">
+		      MouseLeftButtonDown="stagedown" MouseLeftButtonUp="stageup" MouseMove="stagemove" MouseWheel="stagewheel">
 			<Image x:Name="imgvideo" Stretch="Uniform" SnapsToDevicePixels="True"
 			       RenderOptions.BitmapScalingMode="HighQuality"/>
-			<Grid x:Name="ptext" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-			      IsHitTestVisible="False"/>
-			<TextBlock x:Name="lbempty" Text="把音视频文件拖到这里" Foreground="#94A3B8"
-			           FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"
-			           IsHitTestVisible="False"/>
+			<Grid x:Name="ptext" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False"/>
+			<TextBlock x:Name="lbempty" Text="把音视频文件拖到这里" Foreground="#94A3B8" FontSize="16"
+			           HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
 			<Border x:Name="phud" Background="#CC1E293B" CornerRadius="6" Padding="10,5"
 			        HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,12,0,0"
 			        Visibility="Collapsed" IsHitTestVisible="False">
 				<TextBlock x:Name="lbhud" Foreground="White" FontSize="12"/>
 			</Border>
+			<Border x:Name="fsHint" Background="#801E293B" CornerRadius="12" Padding="10,4"
+			        HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,12,0,0"
+			        Visibility="Collapsed" IsHitTestVisible="False">
+				<TextBlock Text="全屏 · 鼠标静置 2.5s 收起控制条 · Esc / F 退出" Foreground="#E2E8F0" FontSize="11"/>
+			</Border>
 		</Grid>
 
-		<!-- 底部控制条 -->
+		<!-- C 控制条 -->
 		<Border Grid.Row="2" Grid.Column="0" x:Name="pbar" Background="{StaticResource BgPanel}"
 		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0" Padding="10,2,10,6">
 			<Grid>
 				<Grid.RowDefinitions>
-					<RowDefinition Height="16"/>
+					<RowDefinition Height="18"/>
 					<RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
-				<Slider x:Name="sseek" Grid.Row="0" Style="{StaticResource flatSlider}" Minimum="0" Maximum="1"
-				        IsMoveToPointEnabled="True" Thumb.DragStarted="seekstart"
-				        Thumb.DragCompleted="seekdone" ValueChanged="seekchanged"/>
-				<Grid Grid.Row="1" Margin="0,4,0,0">
-					<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-						<Button x:Name="bplay" Style="{StaticResource PrimaryBtn}" Content="▶" FontSize="14" Padding="12,4" ToolTip="播放/暂停 (空格)"/>
-						<Button x:Name="bprev" Style="{StaticResource ToolBtn}" Content="⏮" ToolTip="上一个 (P)"/>
-						<Button x:Name="bnext" Style="{StaticResource ToolBtn}" Content="⏭" ToolTip="下一个 (N)"/>
-						<TextBlock x:Name="lbtime" Text="00:00 / 00:00" Foreground="#4B5563" FontSize="12"
-						           VerticalAlignment="Center" Margin="10,0,0,0"/>
-						<Button x:Name="bloop" Style="{StaticResource ToolBtn}" Content="顺序" ToolTip="播放模式：顺序 / 随机 / 单曲循环 / 列表循环" Margin="10,0,0,0"/>
-						<Button x:Name="bsub" Style="{StaticResource ToolBtn}" Content="字幕" ToolTip="字幕/歌词开关 (S)"/>
-						<Button x:Name="bsubopen" Style="{StaticResource ToolBtn}" Content="字幕文件" ToolTip="手动选择字幕或歌词文件"/>
-					</StackPanel>
-					<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-						<Button x:Name="bmute" Style="{StaticResource ToolBtn}" Content="🔊" ToolTip="静音 (M)"/>
-						<Slider x:Name="svol" Style="{StaticResource flatSlider}" Width="100" Minimum="0"
-						        Maximum="1" Value="0.8" Margin="4,0,6,0"/>
-					</StackPanel>
+				<Grid Grid.Row="0">
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="*"/>
+						<ColumnDefinition Width="Auto"/>
+					</Grid.ColumnDefinitions>
+					<Slider x:Name="sseek" Style="{StaticResource flatSlider}" Minimum="0" Maximum="1"
+					        IsMoveToPointEnabled="True" Thumb.DragStarted="seekstart"
+					        Thumb.DragCompleted="seekdone" ValueChanged="seekchanged"
+					        AutomationProperties.AutomationId="player.seek"/>
+					<TextBlock Grid.Column="1" x:Name="lbtime" Text="00:00 / 00:00" Foreground="#4B5563" FontSize="11.5"
+					           FontFamily="Consolas" VerticalAlignment="Center" Margin="10,0,0,0"/>
 				</Grid>
+				<DockPanel Grid.Row="1" Margin="0,4,0,0" LastChildFill="True">
+
+					<!-- 音量组：先占右侧，窗窄时其余控件换行 -->
+					<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0,0,0">
+						<ToggleButton x:Name="bmute" Style="{StaticResource togBtn}" Content="静音" ToolTip="静音 (M)"/>
+						<Slider x:Name="svol" Style="{StaticResource flatSlider}" Width="86" Minimum="0" Maximum="1"
+						        Value="0.8" Margin="0,0,4,0"/>
+						<TextBlock x:Name="lbvol" Text="80%" Foreground="#6F7784" FontSize="11" FontFamily="Consolas"
+						           VerticalAlignment="Center" MinWidth="34"/>
+					</StackPanel>
+
+					<!-- 传输 / 模式 / 字幕：放不下就换行，不压住音量 -->
+					<WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+						<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+							<Button x:Name="bplay" Style="{StaticResource PrimaryBtn}" Content="▶" FontSize="14" Padding="12,4"
+							        ToolTip="播放/暂停 (空格)" AutomationProperties.AutomationId="player.play"/>
+							<Button x:Name="bprev" Style="{StaticResource ToolBtn}" Content="⏮" ToolTip="上一个 (P)"/>
+							<Button x:Name="bnext" Style="{StaticResource ToolBtn}" Content="⏭" ToolTip="下一个 (N)"/>
+						</StackPanel>
+						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+							<ToggleButton x:Name="bmode" Style="{StaticResource togBtn}" Content="模式" ToolTip="播放模式（四选一）"
+							              Checked="modetoggle" Unchecked="modetoggle" AutomationProperties.AutomationId="player.mode"/>
+							<Popup x:Name="popmode" PlacementTarget="{Binding ElementName=bmode}" Placement="Top"
+							       StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+								<Border Background="#FFFFFF" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+								        CornerRadius="8" Padding="5" Margin="0,0,0,4" MinWidth="150">
+									<Border.Effect>
+										<DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.18" Direction="270"/>
+									</Border.Effect>
+									<StackPanel>
+										<RadioButton x:Name="rbseq" GroupName="playmode" Style="{StaticResource modeRadio}" Content="顺序播放"/>
+										<RadioButton x:Name="rbshuf" GroupName="playmode" Style="{StaticResource modeRadio}" Content="随机播放"/>
+										<RadioButton x:Name="rbone" GroupName="playmode" Style="{StaticResource modeRadio}" Content="单曲循环"/>
+										<RadioButton x:Name="rball" GroupName="playmode" Style="{StaticResource modeRadio}" Content="列表循环"/>
+									</StackPanel>
+								</Border>
+							</Popup>
+							<ToggleButton x:Name="bsub" Style="{StaticResource togBtn}" Content="字幕" ToolTip="字幕开关 (S)"
+							              AutomationProperties.AutomationId="player.sub"/>
+							<Button x:Name="bsubopen" Style="{StaticResource ToolBtn}" Content="字幕文件" ToolTip="手动选择字幕或歌词文件"/>
+						</StackPanel>
+					</WrapPanel>
+				</DockPanel>
 			</Grid>
 		</Border>
 
 		<GridSplitter Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" x:Name="spside" Width="6"
 		              HorizontalAlignment="Stretch" Background="Transparent"/>
 
-		<!-- 右侧栏：当前句单词 / 播放列表 / 词典 -->
+		<!-- D 侧栏：列表 / 学习 / 字幕 -->
 		<Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="2" x:Name="pside"
 		        Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,0,0,0">
 			<TabControl x:Name="tabside" BorderThickness="0" Background="Transparent"
 			            ItemContainerStyle="{StaticResource tabItem}">
-				<TabItem x:Name="tabwords" Header="单词">
-					<DockPanel>
-						<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="10,6">
-							<DockPanel>
-								<TextBlock x:Name="lbwordcount" DockPanel.Dock="Right" FontSize="11"
-								           Foreground="#4F46E5" VerticalAlignment="Center"/>
-								<TextBlock Text="当前句单词" FontSize="12" Foreground="#312E81" VerticalAlignment="Center"/>
-							</DockPanel>
-						</Border>
-						<ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10,8,10,8">
-							<StackPanel>
-								<TextBlock x:Name="lbwordhint" Text="拖入视频和字幕后，这里只列当前这句里的词"
-								           Foreground="#718096" FontSize="12" TextWrapping="Wrap"/>
-								<ItemsControl x:Name="icwords" Margin="0,8,0,0">
-									<ItemsControl.ItemsPanel>
-										<ItemsPanelTemplate>
-											<WrapPanel/>
-										</ItemsPanelTemplate>
-									</ItemsControl.ItemsPanel>
-									<ItemsControl.ItemTemplate>
-										<DataTemplate>
-											<Button Style="{StaticResource chip}" Content="{Binding Word}"
-											        Tag="{Binding Word}" ToolTip="{Binding Preview}"
-											        Click="wordclick"/>
-										</DataTemplate>
-									</ItemsControl.ItemTemplate>
-								</ItemsControl>
-							</StackPanel>
-						</ScrollViewer>
-					</DockPanel>
-				</TabItem>
+
 				<TabItem x:Name="tablist" Header="列表">
 					<DockPanel>
-						<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="10,6">
+						<Border DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="8,6">
 							<WrapPanel Orientation="Horizontal">
 								<Button x:Name="baddfile" Style="{StaticResource ToolBtnSm}" Content="添加文件"/>
 								<Button x:Name="badddir" Style="{StaticResource ToolBtnSm}" Content="添加目录"/>
@@ -219,12 +407,38 @@
 								           VerticalAlignment="Center" Margin="6,0,0,0"/>
 							</WrapPanel>
 						</Border>
+						<TextBlock x:Name="lbmode" DockPanel.Dock="Bottom" Text="播放模式：顺序播放" Foreground="#6F7784"
+						           FontSize="11" Margin="12,0,12,8"/>
 						<ListBox x:Name="lblist" Background="Transparent" BorderThickness="0"
-						         Margin="6,4,6,8" ItemContainerStyle="{StaticResource listItem}"
-						         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+						         Margin="6,4,6,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 						         VirtualizingStackPanel.IsVirtualizing="True"
 						         VirtualizingStackPanel.VirtualizationMode="Recycling"
 						         MouseDoubleClick="listdouble">
+							<ListBox.ItemContainerStyle>
+								<Style TargetType="ListBoxItem">
+									<Setter Property="Padding" Value="8,5"/>
+									<Setter Property="Cursor" Value="Hand"/>
+									<Setter Property="Foreground" Value="#1A202C"/>
+									<Setter Property="Template">
+										<Setter.Value>
+											<ControlTemplate TargetType="ListBoxItem">
+												<Border x:Name="bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+													<ContentPresenter/>
+												</Border>
+												<ControlTemplate.Triggers>
+													<Trigger Property="IsMouseOver" Value="True">
+														<Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
+													</Trigger>
+													<Trigger Property="IsSelected" Value="True">
+														<Setter TargetName="bd" Property="Background" Value="#C7D2FE"/>
+														<Setter Property="Foreground" Value="#1E1B4B"/>
+													</Trigger>
+												</ControlTemplate.Triggers>
+											</ControlTemplate>
+										</Setter.Value>
+									</Setter>
+								</Style>
+							</ListBox.ItemContainerStyle>
 							<ListBox.ItemTemplate>
 								<DataTemplate>
 									<Grid>
@@ -232,40 +446,80 @@
 											<ColumnDefinition Width="*"/>
 											<ColumnDefinition Width="Auto"/>
 										</Grid.ColumnDefinitions>
-										<TextBlock Grid.Column="0" Text="{Binding Display}" TextTrimming="CharacterEllipsis"
-										           FontSize="12"/>
-										<TextBlock Grid.Column="1" Text="{Binding DurText}" Foreground="#718096"
-										           FontSize="11" Margin="8,0,0,0"/>
+										<TextBlock Grid.Column="0" Text="{Binding Display}" TextTrimming="CharacterEllipsis" FontSize="12"/>
+										<TextBlock Grid.Column="1" Text="{Binding DurText}" Foreground="#718096" FontSize="11" Margin="8,0,0,0"/>
 									</Grid>
 								</DataTemplate>
 							</ListBox.ItemTemplate>
 						</ListBox>
 					</DockPanel>
 				</TabItem>
-				<TabItem x:Name="tabdict" Header="词典">
+
+				<TabItem x:Name="tabstudy" Header="学习">
 					<DockPanel>
-						<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="10,6">
+						<Border DockPanel.Dock="Top" Background="{StaticResource AccentSoft}" Padding="10,7">
 							<StackPanel>
-								<TextBox x:Name="edictq" FontSize="15" Padding="6,4" Background="White"
-								         Foreground="#1A202C" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
-								         TextChanged="dictqchanged" ToolTip="查词：点字幕里的字会带过来"/>
-								<TextBlock x:Name="lbouthint" Text="点字幕或单词里的词，这里显示释义"
-								           Foreground="#4F46E5" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap"/>
+								<TextBlock Text="当前句" FontSize="11" FontWeight="SemiBold" Foreground="#312E81"/>
+								<TextBlock x:Name="lbcurcue" TextWrapping="Wrap" FontSize="13.5" Foreground="#1F2329"
+								           Margin="0,4,0,0" LineHeight="21"/>
 							</StackPanel>
 						</Border>
-						<ListBox x:Name="dictlist" Background="Transparent" BorderThickness="0"
-						         Margin="6,4,6,8" ItemContainerStyle="{StaticResource listItem}"
-						         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-							<ListBox.ItemTemplate>
-								<DataTemplate>
-									<StackPanel>
-										<TextBlock Text="{Binding Title}" FontSize="14" Foreground="#1A202C" TextWrapping="Wrap"/>
-										<TextBlock Text="{Binding Preview}" FontSize="11" Foreground="#718096"
-										           TextWrapping="Wrap" Margin="0,2,0,0"/>
-									</StackPanel>
-								</DataTemplate>
-							</ListBox.ItemTemplate>
-						</ListBox>
+						<Border DockPanel.Dock="Top" Padding="10,6" BorderThickness="0,1,0,1" BorderBrush="{StaticResource BorderSoft}">
+							<DockPanel>
+								<TextBlock x:Name="lbwordtitle" Text="本句生词" FontSize="11.5" FontWeight="SemiBold"
+								           Foreground="#312E81" VerticalAlignment="Center"/>
+								<TextBlock x:Name="lbwordcount" DockPanel.Dock="Right" FontSize="11" Foreground="#4F46E5"
+								           VerticalAlignment="Center" Margin="8,0,0,0"/>
+								<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+									<ToggleButton x:Name="langall" Content="全部" Style="{StaticResource langBtn}" IsChecked="True" Tag="All" Click="langclick"/>
+									<ToggleButton x:Name="langzh" Content="中" Style="{StaticResource langBtn}" Tag="Zh" Click="langclick"/>
+									<ToggleButton x:Name="langja" Content="日" Style="{StaticResource langBtn}" Tag="Ja" Click="langclick"/>
+									<ToggleButton x:Name="langko" Content="韩" Style="{StaticResource langBtn}" Tag="Ko" Click="langclick"/>
+									<ToggleButton x:Name="langen" Content="英" Style="{StaticResource langBtn}" Tag="En" Click="langclick"/>
+								</StackPanel>
+							</DockPanel>
+						</Border>
+						<Border DockPanel.Dock="Bottom" Padding="8" BorderThickness="0,1,0,0" BorderBrush="{StaticResource BorderSoft}">
+							<DockPanel>
+								<Button x:Name="bcopy" DockPanel.Dock="Right" Content="复制" Style="{StaticResource ToolBtnSm}"
+								        ToolTip="复制当前选中词" Margin="6,0,0,0"/>
+								<TextBlock x:Name="lbwordmeta" DockPanel.Dock="Right" FontSize="10.5" Foreground="#94A3B8"
+								           VerticalAlignment="Center" Margin="6,0,0,0"/>
+								<TextBox x:Name="edictq" FontSize="12" Padding="5,3" BorderBrush="{StaticResource BorderSoft}"
+								         BorderThickness="1" ToolTip="查句外的词" TextChanged="dictqchanged"/>
+							</DockPanel>
+						</Border>
+						<Grid>
+							<ListBox x:Name="lcwords" Background="Transparent" BorderThickness="0" Margin="4,2,4,4"
+							         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+							         ItemContainerStyle="{StaticResource wordItem}" ItemTemplate="{StaticResource wordTemplate}"
+							         SelectionChanged="wordselected"/>
+							<TextBlock x:Name="lbwordhint" Text="换到有字幕的位置，这里会列出本句所有生词和释义"
+							           Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="14,14"
+							           IsHitTestVisible="False"/>
+						</Grid>
+					</DockPanel>
+				</TabItem>
+
+				<TabItem x:Name="tabsubtitle" Header="字幕">
+					<DockPanel>
+						<Border DockPanel.Dock="Top" Padding="8" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSoft}">
+							<DockPanel>
+								<TextBlock x:Name="lbsubcount" DockPanel.Dock="Right" FontSize="10.5" Foreground="#94A3B8"
+								           VerticalAlignment="Center" Margin="6,0,0,0"/>
+								<TextBox x:Name="esubq" FontSize="12" Padding="5,3" BorderBrush="{StaticResource BorderSoft}"
+								         BorderThickness="1" ToolTip="搜索字幕文本" TextChanged="subqchanged"/>
+							</DockPanel>
+						</Border>
+						<Grid>
+							<ListBox x:Name="lbcues" Background="Transparent" BorderThickness="0" Margin="4,2,4,4"
+							         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+							         ItemContainerStyle="{StaticResource cueItem}" ItemTemplate="{StaticResource cueTemplate}"
+							         SelectionChanged="cueselected"/>
+							<TextBlock x:Name="lbcuetip" Text="没有字幕。把字幕文件放到视频旁边，或用「字幕文件」手动加载"
+							           Foreground="#94A3B8" FontSize="12" TextWrapping="Wrap" Margin="14,14"
+							           IsHitTestVisible="False"/>
+						</Grid>
 					</DockPanel>
 				</TabItem>
 			</TabControl>
