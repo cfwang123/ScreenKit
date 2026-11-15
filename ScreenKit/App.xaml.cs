@@ -240,13 +240,7 @@ public partial class App : System.Windows.Application {
 			win.Dispatcher.BeginInvoke(new Action(() => {
 				var pw1 = Application.Current.Windows.OfType<PlayerWindow>().FirstOrDefault();
 				if (pw1 == null) return;
-				pw1.SetForm(formName switch {
-					"small" => PlayerForm.Small,
-					"bar" => PlayerForm.Bar,
-					"fullscreen" => PlayerForm.Fullscreen,
-					"translucent" => PlayerForm.Translucent,
-					_ => PlayerForm.Large,
-				});
+				pw1.SetForm(formName == "fullscreen" ? PlayerForm.Fullscreen : PlayerForm.Large);
 			}), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
 		}
 		// --player-shot <png> [毫秒] [seek秒] [目标形态]：自测用，渲染窗口成 PNG 后退出
@@ -266,13 +260,8 @@ public partial class App : System.Windows.Application {
 				var pw = Application.Current.Windows.OfType<PlayerWindow>().FirstOrDefault();
 				if (pw == null) { File.WriteAllText(txt, "NO_PLAYER_WINDOW"); Shutdown(0); return; }
 				if (seekTo >= 0) pw.SeekTo(seekTo);
-				if (formArg.Length > 0) pw.SetForm(formArg.ToLowerInvariant() switch {
-					"small" => PlayerForm.Small,
-					"bar" => PlayerForm.Bar,
-					"fullscreen" => PlayerForm.Fullscreen,
-					"translucent" => PlayerForm.Translucent,
-					_ => PlayerForm.Large,
-				});
+				if (formArg.Length > 0)
+					pw.SetForm(formArg.ToLowerInvariant() == "fullscreen" ? PlayerForm.Fullscreen : PlayerForm.Large);
 				await System.Threading.Tasks.Task.Delay(delay);
 				var baseName = Path.Combine(Path.GetDirectoryName(shotPath) ?? ".", Path.GetFileNameWithoutExtension(shotPath));
 				sb.AppendLine(pw.ShotTo(shotPath));

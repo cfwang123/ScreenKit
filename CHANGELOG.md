@@ -70,6 +70,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Drive all web tools from one shared 16ms timer instead of per-tool setInterval/setTimeout, so timers stop and pending work is dropped when leaving a tool
 - JSON viewer: a collapsed small array or object now shows its items inline on one line, and long ones show the first few items plus an ellipsis instead of a bare bracket placeholder
 - USB capture: the device tree keeps the left column, while the device information and the descriptor reader become two tabs in a right sidebar; the packet list, the protocol tree and the hex view stay in the middle.
+- Media player: the window is now a large window plus fullscreen only, with a collapsible right sidebar that lists the words of the current subtitle line, the playlist and the dictionary results.
 
 #### Fixed
 
@@ -101,6 +102,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具改为共用一个 16ms 全局定时器，工具不再自建 setInterval/setTimeout，离开工具时定时器停止、挂起任务作废
 - JSON 查看器：收起的小数组、小对象直接在同一行显示内容，项多时显示前几项加省略号，不再只显示占位括号
 - USB 抓包：设备树独占左栏，设备信息与设备描述符合并为右侧栏的两个页签，报文列表、协议详情与十六进制留在中间。
+- 媒体播放器：窗口精简为大窗口与全屏两种，右侧栏把当前句单词、播放列表、词典释义分成三页并可收起。
 
 #### 修复
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -13,9 +14,15 @@ using System.Windows.Threading;
 
 namespace ScreenKit;
 
-public enum PlayerForm { Large, Small, Bar, Fullscreen, Translucent }
+public enum PlayerForm { Large, Fullscreen }
 
-/// <summary>媒体播放窗口：一个窗口五种形态，音视频共用一条会话。</summary>
+/// <summary>右栏「单词」里的一项：当前句命中的词和它的释义摘要。</summary>
+sealed class WordItem {
+	public string Word { get; set; } = "";
+	public string Preview { get; set; } = "";
+}
+
+/// <summary>媒体播放窗口：大窗口为主，可切全屏；音视频共用一条会话。</summary>
 public partial class PlayerWindow : Window {
 	// ==================== 状态 ====================
 	#region
@@ -40,6 +47,10 @@ public partial class PlayerWindow : Window {
 	bool fullscreen;
 	int lastclick = 0;
 	int clickcount;
+	bool sideopen = true;
+	string lastcue = "";
+	readonly ObservableCollection<WordItem> words = new();
+	readonly ObservableCollection<DictRow> dicthits = new();
 
 	DispatcherTimer timer;
 	double paused_at;
@@ -53,6 +64,8 @@ public partial class PlayerWindow : Window {
 		InitializeComponent();
 		this.opt = opt;
 		layer = new TimedTextLayer(ptext);
+		icwords.ItemsSource = words;
+		dictlist.ItemsSource = dicthits;
 		wire();
 		list.Changed += () => updatelist();
 		list.ItemRequested += (item, tr) => playitem(item);
@@ -104,13 +117,7 @@ public partial class PlayerWindow : Window {
 		var o = opt;
 		if (o == null) return;
 		o.PlayVolume = svol.Value;
-		o.PlayMode = form switch {
-			PlayerForm.Small => "small",
-			PlayerForm.Bar => "bar",
-			PlayerForm.Fullscreen => "fullscreen",
-			PlayerForm.Translucent => "translucent",
-			_ => "large",
-		};
+		o.PlayMode = form == PlayerForm.Fullscreen ? "fullscreen" : "large";
 		o.PlayListMode = list.Mode switch {
 			PlayMode.Shuffle => "shuffle",
 			PlayMode.RepeatOne => "repeatone",
@@ -119,13 +126,8 @@ public partial class PlayerWindow : Window {
 		};
 	}
 
-	static PlayerForm parseform(string s) => (s ?? "").Trim().ToLowerInvariant() switch {
-		"small" => PlayerForm.Small,
-		"bar" => PlayerForm.Bar,
-		"fullscreen" => PlayerForm.Fullscreen,
-		"translucent" => PlayerForm.Translucent,
-		_ => PlayerForm.Large,
-	};
+	static PlayerForm parseform(string s) =>
+		string.Equals((s ?? "").Trim(), "fullscreen", StringComparison.OrdinalIgnoreCase) ? PlayerForm.Fullscreen : PlayerForm.Large;
 	#endregion
 
 	// ==================== 事件绑定 ====================
@@ -134,11 +136,12 @@ public partial class PlayerWindow : Window {
 		bplay.Click += (_, _) => toggleplay();
 		bprev.Click += (_, _) => playprev();
 		bnext.Click += (_, _) => playnext(true);
-		bmode.Click += (_, _) => cycleform();
+		bfull.Click += (_, _) => setfull(!fullscreen);
+		bside.Click += (_, _) => setside(!sideopen);
 		btop.Click += (_, _) => togglepin();
 		bmin.Click += (_, _) => WindowState = WindowState.Minimized;
 		bclose.Click += (_, _) => Close();
-		bfile.Click += (_, _) => openfile();
+		bopen.Click += (_, _) => openfile();
 		bsub.Click += (_, _) => togglesub();
 		bsubopen.Click += (_, _) => opensub();
 		bmute.Click += (_, _) => togglemute();
@@ -273,7 +276,6 @@ public partial class PlayerWindow : Window {
 			lbhead.Text = item.Display;
 			Title = item.Display + " - 媒体播放器";
 			lbempty.Visibility = Visibility.Collapsed;
-			autoform(item.Kind);
 			autotext(item.Path);
 			session.Play();
 			bplay.Content = "⏸";
@@ -498,45 +500,115 @@ public partial class PlayerWindow : Window {
 		var source = sub?.At(pos) != null ? sub : lyric;
 		if (cue == null) {
 			layer.SetCue(null, 0);
+			if (lastcue.Length > 0) {
+				lastcue = "";
+				refreshwords("");
+			}
 			return;
 		}
 		var p = layer.Karaoke ? Karaoke.Progress(cue, pos, source?.OffsetSec ?? 0) : 1.0;
 		layer.SetCue(cue, p);
+		// 换句才重排单词，别每次进度跳动都查一遍词典
+		if (!string.Equals(cue.Text, lastcue, StringComparison.Ordinal)) {
+			lastcue = cue.Text;
+			refreshwords(cue.Text);
+		}
 	}
 	#endregion
 
 	// ==================== 查词 ====================
 	#region
 	void dictqchanged(object sender, TextChangedEventArgs e) {
-		var q = edictq.Text.Trim();
-		if (q.Length == 0) { lbout.Text = ""; return; }
-		lookup(q);
+		lookup(edictq.Text.Trim());
 	}
 
 	void lookup(string q) {
-		if (!DictDb.Ready) {
-			if (!DictDb.Init(DictWeb.DbPath)) {
-				lbouthint.Text = "词典未安装，请到「安装功能」下载 dict3.bin";
-				lbout.Text = "";
-				return;
-			}
+		q = (q ?? "").Trim();
+		dicthits.Clear();
+		if (q.Length == 0) {
+			lbouthint.Text = "点字幕或单词里的词，这里显示释义";
+			return;
+		}
+		if (!DictDb.Ready && !DictDb.Init(DictWeb.DbPath)) {
+			lbouthint.Text = "词典未安装，请到「安装功能」下载 dict3.bin";
+			return;
 		}
 		var dict = guessdict(q);
 		// 显示用 Search（带释义）；SearchBrief 只有词头，不能拿来展示
-		var hits = DictDb.Search(q, dict, 20);
+		var hits = DictDb.Search(q, dict, 30);
 		if (hits == null || hits.Count == 0) {
 			lbouthint.Text = "没有找到「" + q + "」";
-			lbout.Text = "";
 			return;
 		}
 		lbouthint.Text = $"{q} · {hits.Count} 条";
-		var sb = new System.Text.StringBuilder();
 		foreach (var h in hits) {
-			var head = h.Kanji.Length > 0 && h.Kanji != h.Headword ? $"{h.Headword}（{h.Kanji}）" : h.Headword;
-			sb.Append(head).Append("  ") .AppendLine(h.Preview);
+			dicthits.Add(new DictRow {
+				Id = h.Id,
+				Word = q,
+				Title = h.Kanji.Length > 0 && h.Kanji != h.Headword ? $"{h.Headword}（{h.Kanji}）" : h.Headword,
+				Preview = h.Preview,
+			});
 		}
-		lbout.Text = sb.ToString();
 	}
+
+	/// <summary>当前这句字幕拆词：CJK 走词典最长匹配，拉丁按整词查，命中才列出来。</summary>
+	void refreshwords(string text) {
+		words.Clear();
+		lbwordcount.Text = "";
+		if (string.IsNullOrWhiteSpace(text)) {
+			lbwordhint.Visibility = Visibility.Visible;
+			lbwordhint.Text = "这一句没有字幕";
+			return;
+		}
+		if (!DictDb.Ready && !DictDb.Init(DictWeb.DbPath)) {
+			lbwordhint.Visibility = Visibility.Visible;
+			lbwordhint.Text = "词典未安装，请到「安装功能」下载 dict3.bin";
+			return;
+		}
+		var seen = new HashSet<string>(StringComparer.Ordinal);
+		var i = 0;
+		while (i < text.Length && words.Count < 60) {
+			var cls = WordPick.ClassOf(text[i]);
+			if (cls == WordPick.CharClass.Latin) {
+				var s = i;
+				while (i < text.Length && WordPick.ClassOf(text[i]) == WordPick.CharClass.Latin) i++;
+				addword(text.Substring(s, i - s), seen);
+				continue;
+			}
+			if (cls != WordPick.CharClass.Han && cls != WordPick.CharClass.Kana && cls != WordPick.CharClass.Hangul) {
+				i++;
+				continue;
+			}
+			var dict = guessdict(text.Substring(i, 1));
+			var best = WordPick.Longest(text, i, w => DictDb.SearchBrief(w, dict, 1) is { Count: > 0 }, 6);
+			if (best.Length > 0) {
+				addword(best, seen);
+				i += best.Length;
+			}
+			else i++;
+		}
+		lbwordhint.Visibility = words.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+		if (words.Count == 0) lbwordhint.Text = "这句里没有查到词";
+		lbwordcount.Text = words.Count > 0 ? $"{words.Count} 词" : "";
+	}
+
+	/// <summary>查一次词头，把释义摘要带给单词小片；同一个词只留一个。</summary>
+	void addword(string word, HashSet<string> seen) {
+		if (word.Length == 0 || !seen.Add(word)) return;
+		var brief = DictDb.SearchBrief(word, guessdict(word), 1);
+		var prev = brief != null && brief.Count > 0 ? brief[0].Preview : "";
+		words.Add(new WordItem { Word = word, Preview = prev ?? "" });
+	}
+
+	/// <summary>点单词小片：填进词典页并切过去。</summary>
+	void wordclick(object sender, RoutedEventArgs e) {
+		if (sender is not FrameworkElement fe || fe.Tag is not string w || w.Length == 0) return;
+		tabside.SelectedItem = tabdict;
+		setside(true);
+		if (string.Equals(edictq.Text, w, StringComparison.Ordinal)) lookup(w);
+		else edictq.Text = w;
+	}
+
 
 	static string guessdict(string q) {
 		if (q.Length == 0) return "";
@@ -566,19 +638,19 @@ public partial class PlayerWindow : Window {
 		// CJK 走词典最长匹配：整窗内长优先，点「书」在「图书馆里」出「图书馆」
 		if (WordPick.ClassOf(line[ci]) is WordPick.CharClass.Han or WordPick.CharClass.Kana or WordPick.CharClass.Hangul) {
 			if (!DictDb.Ready && !DictDb.Init(DictWeb.DbPath)) {
-				edictq.Text = raw;
 				lbouthint.Text = "词典未安装，请到「安装功能」下载 dict3.bin";
-				lbout.Text = "";
-				showpanel(true);
+				tabside.SelectedItem = tabdict;
+				setside(true);
 				return;
 			}
 			var dict = guessdict(line.Substring(ci, 1));
 			var best = WordPick.Longest(line, ci, w => DictDb.SearchBrief(w, dict, 1) is { Count: > 0 }, 6);
 			if (best.Length > 0) word = best;
 		}
-		edictq.Text = word;
-		lookup(word);
-		showpanel(true);
+		tabside.SelectedItem = tabdict;
+		setside(true);
+		if (string.Equals(edictq.Text, word, StringComparison.Ordinal)) lookup(word);
+		else edictq.Text = word;
 	}
 	#endregion
 
@@ -625,29 +697,9 @@ public partial class PlayerWindow : Window {
 
 	// ==================== 窗口形态 ====================
 	#region
-	void autoform(MediaKind kind) {
-		if (form == PlayerForm.Fullscreen) return;
-		// 用户手动切过形态就尊重用户选择，不再自动跳（只在首次播放时定一次）
-		if (formtouched) return;
-		applyform(kind == MediaKind.Audio ? PlayerForm.Bar : PlayerForm.Large, true);
-	}
 
-	void cycleform() {
-		form = form switch {
-			PlayerForm.Large => PlayerForm.Small,
-			PlayerForm.Small => PlayerForm.Bar,
-			PlayerForm.Bar => PlayerForm.Fullscreen,
-			PlayerForm.Fullscreen => PlayerForm.Translucent,
-			_ => PlayerForm.Large,
-		};
-		applyform(form, true);
-		formtouched = true;
-	}
 
-	public void SetForm(PlayerForm f) {
-		applyform(f, true);
-		formtouched = true;
-	}
+	public void SetForm(PlayerForm f) => applyform(f, true);
 
 	/// <summary>自测用：模拟点击字幕第 lineIdx 行第 charIdx 个字，返回取到的词和释义摘要。</summary>
 	public string ClickChar(int lineIdx, int charIdx) {
@@ -664,7 +716,9 @@ public partial class PlayerWindow : Window {
 		var before = edictq.Text;
 		pickword(pt);
 		var got = edictq.Text;
-		var outText = (lbout.Text ?? "").Replace("\n", " ");
+		var outText = dicthits.Count > 0
+			? (dicthits[0].Title + " " + dicthits[0].Preview).Replace("\n", " ")
+			: lbouthint.Text ?? "";
 		if (outText.Length > 70) outText = outText.Substring(0, 70) + "…";
 		return $"行{lineIdx}字{charIdx}='{line[charIdx]}' 之前='{before}' 取词='{got}' 释义='{outText}'";
 	}
@@ -678,144 +732,88 @@ public partial class PlayerWindow : Window {
 		updateclock(session.PositionSec);
 	}
 
-	bool formtouched;
 
 	/// <summary>离开 bar/small 前记住的窗口尺寸，切回大窗口时还原。</summary>
 	bool hassavedrect;
 	double savedw, savedh, savedl, savedt;
 
-	void saverect() {
-		if (hassavedrect) return;
-		if (WindowState != WindowState.Normal) return;
-		if (ActualWidth < 500 || ActualHeight < 300) return;
-		savedw = Width;
-		savedh = Height;
-		savedl = Left;
-		savedt = Top;
-		hassavedrect = true;
-	}
 
-	void restorerect() {
-		if (!hassavedrect) {
-			// 没有可还原的尺寸：用默认大窗口尺寸，别让上一次的小条尺寸留下来
-			try {
-				Width = 1280;
-				Height = 720;
-			}
-			catch { }
-			return;
-		}
-		try {
-			Width = savedw;
-			Height = savedh;
-			Left = savedl;
-			Top = savedt;
-		}
-		catch { }
-	}
 
+	/// <summary>只有大窗口与全屏两种形态：全屏藏标题栏和侧栏，控制条随鼠标收起。</summary>
 	void applyform(PlayerForm f, bool animate) {
-		var prev = form;
-		form = f;
 		_ = animate;
-		// 离开大窗口前先记住尺寸（音频条、小窗、半透明都不是可用尺寸）
-		if (prev == PlayerForm.Large) saverect();
-		// 先退出全屏，再还原尺寸：全屏时 WindowState/WindowStyle 会盖掉尺寸赋值
-		if (fullscreen) {
+		form = f;
+		var full = f == PlayerForm.Fullscreen;
+		if (full) {
+			if (!fullscreen) {
+				prevstate = WindowState;
+				if (WindowState == WindowState.Normal) {
+					savedw = Width;
+					savedh = Height;
+					savedl = Left;
+					savedt = Top;
+					hassavedrect = true;
+				}
+			}
+			fullscreen = true;
+			WindowStyle = WindowStyle.None;
+			ResizeMode = ResizeMode.NoResize;
+			WindowState = WindowState.Normal;
+			var (l, t, w, h) = ScreenDpi.VirtualScreenPixels();
+			ScreenDpi.PinWindowToPhysical(this, l, t, w, h);
+			Topmost = true;
+			rowHead.Height = new GridLength(0);
+			phead.Visibility = Visibility.Collapsed;
+			pside.Visibility = Visibility.Collapsed;
+			spside.Visibility = Visibility.Collapsed;
+			colSide.Width = new GridLength(0);
+			autohide = true;
+			showpanel(false);
+			bfull.Content = "退出全屏";
+		}
+		else {
 			fullscreen = false;
 			WindowStyle = WindowStyle.None;
-			ResizeMode = ResizeMode.CanResize;
+			ResizeMode = ResizeMode.CanResizeWithGrip;
 			WindowState = WindowState.Normal;
+			if (hassavedrect) {
+				try {
+					Left = savedl;
+					Top = savedt;
+					Width = savedw;
+					Height = savedh;
+				}
+				catch { }
+			}
+			if (prevstate == WindowState.Maximized) WindowState = WindowState.Maximized;
 			Topmost = topmost;
-			ppanel.Visibility = Visibility.Visible;
-			rowList.Height = new GridLength(220);
-			imgvideo.Stretch = Stretch.Uniform;
-		}
-		// 回到大窗口/全屏/半透明都先还原到上次的大窗口尺寸
-		if (f != PlayerForm.Bar && f != PlayerForm.Small) restorerect();
-		// AllowsTransparency 只能在 Show 之前改；窗口已显示后改会抛异常。
-		// 需要半透明时重建窗口（见 rebuildastranslucent）。
-		var wanttransparent = f == PlayerForm.Translucent;
-		if (wanttransparent != AllowsTransparency && !IsLoaded)
-			AllowsTransparency = wanttransparent;
-		if (!AllowsTransparency) Background = new SolidColorBrush(Color.FromRgb(0x0B, 0x0E, 0x11));
-		else Background = new SolidColorBrush(Color.FromArgb(0x40, 0x0B, 0x0E, 0x11));
-		Opacity = 1;
-		rowHead.Height = new GridLength(28);
-		rowBar.Height = new GridLength(72);
-		rowList.Height = new GridLength(0);
-		ppanel.Visibility = Visibility.Collapsed;
-		autohide = false;
-		showpanel(true);
-		bmode.Content = "大窗口";
-
-		switch (f) {
-			case PlayerForm.Large:
-				rowList.Height = new GridLength(220);
-				ppanel.Visibility = Visibility.Visible;
-				bmode.Content = "大窗口";
-				break;
-			case PlayerForm.Small:
-				rowHead.Height = new GridLength(0);
-				rowBar.Height = new GridLength(0);
-				autohide = true;
-				showpanel(false);
-				bmode.Content = "小窗";
-				break;
-			case PlayerForm.Bar:
-				rowHead.Height = new GridLength(0);
-				// 条高要装下「进度+按钮」72 和至少一行歌词，太矮歌词会被裁
-				Height = 126;
-				Width = 460;
-				MinWidth = 360;
-				MinHeight = 118;
-				autohide = false;
-				showpanel(true);
-				bmode.Content = "音频条";
-				break;
-			case PlayerForm.Fullscreen:
-				fullscreento();
-				bmode.Content = "全屏";
-				break;
-			case PlayerForm.Translucent:
-				// 已显示的窗口不能改 AllowsTransparency；用窗口级 Opacity 会让 WPF 走图层合成，
-				// 字幕 Canvas 的子元素定位会错乱（实测跑到左上角）。
-				// 所以这里做「半透明-lite」：紧凑置顶小窗 + 深色底，等真要透明时再重建窗口。
-				Background = new SolidColorBrush(Color.FromRgb(0x0B, 0x0E, 0x11));
-				Topmost = true;
-				rowHead.Height = new GridLength(0);
-				if (WindowState != WindowState.Normal) WindowState = WindowState.Normal;
-				Width = 900;
-				Height = 520;
-				Left = (SystemParameters.PrimaryScreenWidth - Width) / 2;
-				Top = 80;
-				autohide = true;
-				bmode.Content = "半透明";
-				break;
+			rowHead.Height = new GridLength(30);
+			phead.Visibility = Visibility.Visible;
+			autohide = false;
+			showpanel(true);
+			setside(sideopen);
+			bfull.Content = "全屏";
 		}
 		layer.relayout();
-		// 尺寸刚改过，ActualWidth/Height 要等一轮布局才更新；这里再补一次排版，
-		// 否则字幕会按旧高度定位，跑到窗口外面去
+		// 尺寸刚改过，ActualWidth/Height 要等一轮布局才更新；补一次排版，否则字幕按旧高度定位
 		Dispatcher.BeginInvoke(new Action(() => {
 			layer.relayout();
 			if (session.HasVideo) drawframe();
-		}), System.Windows.Threading.DispatcherPriority.Loaded);
+		}), DispatcherPriority.Loaded);
 	}
 
-	void fullscreento() {
-		prevstate = WindowState;
-		WindowStyle = WindowStyle.None;
-		ResizeMode = ResizeMode.NoResize;
-		WindowState = WindowState.Normal;
-		var (l, t, w, h) = ScreenDpi.VirtualScreenPixels();
-		ScreenDpi.PinWindowToPhysical(this, l, t, w, h);
-		Topmost = true;
-		fullscreen = true;
-		rowHead.Height = new GridLength(0);
-		rowBar.Height = new GridLength(72);
-		autohide = true;
-		showpanel(false);
+	void setfull(bool on) => applyform(on ? PlayerForm.Fullscreen : PlayerForm.Large, true);
+
+	/// <summary>右侧栏显隐；全屏时强制收起，退出全屏按 sideopen 还原。</summary>
+	void setside(bool open) {
+		sideopen = open;
+		var show = open && !fullscreen;
+		pside.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+		spside.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+		colSide.Width = new GridLength(show ? 320 : 0);
+		bside.Content = open ? "收起侧栏" : "侧栏";
 	}
+
 
 	bool topmost;
 	void togglepin() {
@@ -826,22 +824,22 @@ public partial class PlayerWindow : Window {
 	}
 
 	/// <summary>面板显隐；fullscreen/small 下靠鼠标活动自动收起。</summary>
+	/// <summary>只有全屏才自动收起控制条。</summary>
 	void showpanel(bool show) {
-		if (form == PlayerForm.Large || form == PlayerForm.Bar) {
+		if (!fullscreen) {
 			pbar.Visibility = Visibility.Visible;
+			Cursor = Cursors.Arrow;
 			return;
 		}
 		pbar.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-		if (form == PlayerForm.Fullscreen) phead.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-		if (form == PlayerForm.Small || form == PlayerForm.Translucent) phead.Visibility = Visibility.Visible;
-		if (form == PlayerForm.Fullscreen) Cursor = show ? Cursors.Arrow : Cursors.None;
+		Cursor = show ? Cursors.Arrow : Cursors.None;
 	}
 
 	void checkhide() {
 		if (!autohide || !mousein) return;
 		if (Environment.TickCount - lastmove < 2500) return;
 		// 鼠标还在控制条上就别收
-		if (pbar.IsMouseOver || phead.IsMouseOver) return;
+		if (pbar.IsMouseOver) return;
 		showpanel(false);
 	}
 	#endregion
@@ -849,7 +847,11 @@ public partial class PlayerWindow : Window {
 	// ==================== 鼠标与键盘 ====================
 	#region
 	void headdown(object sender, MouseButtonEventArgs e) {
-		if (e.ClickCount == 2) { cycleform(); return; }
+		if (e.ClickCount == 2) {
+			if (fullscreen) return;
+			WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+			return;
+		}
 		if (fullscreen) return;
 		try { DragMove(); } catch { }
 	}
@@ -888,13 +890,10 @@ public partial class PlayerWindow : Window {
 		if (moved) return;
 		if (clickcount >= 2) {
 			clickcount = 0;
-			if (form == PlayerForm.Bar) applyform(PlayerForm.Large, true);
-			else if (fullscreen) applyform(PlayerForm.Large, true);
-			else fullscreento();
+			setfull(!fullscreen);
 			return;
 		}
 		// 单击：字幕区点词
-		if (form == PlayerForm.Bar) return;
 		var pt = e.GetPosition(ptext);
 		pickword(pt);
 	}
@@ -924,17 +923,12 @@ public partial class PlayerWindow : Window {
 			case Key.Down: { var v = Math.Max(0.0, svol.Value - 0.05); svol.Value = v; e.Handled = true; break; }
 			case Key.Escape:
 				if (fullscreen) applyform(PlayerForm.Large, true);
-				else if (form != PlayerForm.Large) applyform(PlayerForm.Large, true);
 				else Close();
 				e.Handled = true;
 				break;
-			case Key.F:
-				if (fullscreen) applyform(PlayerForm.Large, true);
-				else fullscreento();
-				e.Handled = true;
-				break;
+			case Key.F: setfull(!fullscreen); e.Handled = true; break;
 			case Key.S: togglesub(); e.Handled = true; break;
-			case Key.L: cycleform(); e.Handled = true; break;
+			case Key.H: setside(!sideopen); e.Handled = true; break;
 			case Key.N: playnext(true); e.Handled = true; break;
 			case Key.P: playprev(); e.Handled = true; break;
 			case Key.M: togglemute(); e.Handled = true; break;
@@ -989,8 +983,8 @@ public partial class PlayerWindow : Window {
 		var w = (int)Math.Round(ActualWidth * scale);
 		var h = (int)Math.Round(ActualHeight * scale);
 		var info = $"form={form} size={ActualWidth:0}x{ActualHeight:0} dpi={scale:0.##} " +
-			$"rowBar={rowBar.ActualHeight:0} rowHead={rowHead.ActualHeight:0} " +
-			$"pbar={pbar.Visibility} phead={phead.Visibility} panel={ppanel.Visibility} " +
+			$"rowHead={rowHead.ActualHeight:0} side={(sideopen ? "on" : "off")} tabs={(tabside.SelectedItem as TabItem)?.Header} " +
+			$"pbar={pbar.Visibility} phead={phead.Visibility} words={words.Count} hits={dicthits.Count} " +
 			$"cue={(layer.CueText is { Length: > 0 } s ? s : "(空)")} lines={layer.LineCount} " +
 			$"kara={layer.Karaoke} pos={session.PositionSec:0.###} hasvideo={session.HasVideo} " +
 			$"sub={sub?.Path ?? "(无)"} subn={sub?.Cues.Count ?? 0} lyric={lyric?.Path ?? "(无)"} " +
