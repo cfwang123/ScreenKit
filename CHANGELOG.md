@@ -73,6 +73,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: the window is now a large window plus fullscreen only, with a collapsible right sidebar that lists the words of the current subtitle line, the playlist and the dictionary results.
 - Media player: the window now follows the app's light theme (system title bar with normal window buttons), and opening it no longer restores the previous playback position.
 - Player window rebuilt around three side tabs (playlist / study / subtitles); every word of the current line gets its own row with gloss, video clip or TTS pronunciation, and a subtitle browser that can play or jump to any line
+- Plot tool: zooming keeps the coordinate origin at the canvas center
+- Drag onto the player area clears the playlist and plays that file; drag onto the list appends to the end
 
 #### Fixed
 
@@ -83,6 +85,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Fix the 8bit composer stopping after the first beat: the playback step function was scoped inside the play handler, so the shared timer could not reach it
 - Report errors thrown by web tool timers to the console instead of hiding them; add ?dbg=1 to turn the reporting on
 - JSON viewer: expanded nodes can now be collapsed again
+- Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge
 
 ### 中文
 
@@ -107,6 +110,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 媒体播放器：窗口精简为大窗口与全屏两种，右侧栏把当前句单词、播放列表、词典释义分成三页并可收起。
 - 媒体播放器：窗口改用应用的浅色主题（系统标题栏，带最小/最大/关闭），打开时不再恢复上次的播放位置。
 - 播放器按「列表 / 学习 / 字幕」三页重做：当前句每个词一行并带释义，可按词截取原声或 TTS 朗读，字幕页可逐条播声或跳转
+- 函数图像：缩放时坐标原点保持在画面中心
+- 拖到播放区时清空播放列表并播放该文件；拖到列表区改为追加到末尾
 
 #### 修复
 
@@ -117,6 +122,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 修复 8bit 编曲只播第一个节拍：推进函数原先定义在播放处理函数内部，共用定时器取不到它
 - web 工具定时器里抛出的错误不再静默吞掉，可控地打到控制台；地址加 ?dbg=1 打开
 - JSON 查看器：展开的节点现在可以正常收起了
+- 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

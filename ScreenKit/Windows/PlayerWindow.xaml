@@ -1,4 +1,4 @@
-﻿<Window x:Class="ScreenKit.PlayerWindow"
+<Window x:Class="ScreenKit.PlayerWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="媒体播放器"
@@ -306,7 +306,7 @@
 			<Image x:Name="imgvideo" Stretch="Uniform" SnapsToDevicePixels="True"
 			       RenderOptions.BitmapScalingMode="HighQuality"/>
 			<Grid x:Name="ptext" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False"/>
-			<TextBlock x:Name="lbempty" Text="把音视频文件拖到这里" Foreground="#94A3B8" FontSize="16"
+			<TextBlock x:Name="lbempty" Text="把音视频文件拖到这里（清空列表并播放）" Foreground="#94A3B8" FontSize="16"
 			           HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
 			<Border x:Name="phud" Background="#CC1E293B" CornerRadius="6" Padding="10,5"
 			        HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,12,0,0"

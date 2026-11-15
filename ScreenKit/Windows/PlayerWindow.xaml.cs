@@ -172,6 +172,12 @@ public partial class PlayerWindow : Window {
 		AllowDrop = true;
 		Drop += ondrop;
 		DragOver += ondragover;
+		pstage.AllowDrop = true;
+		pstage.Drop += stagedrop;
+		pstage.DragOver += ondragover;
+		tablist.AllowDrop = true;
+		tablist.Drop += listdrop;
+		tablist.DragOver += ondragover;
 		PreviewKeyDown += onkey;
 		Loaded += (_, _) => {
 			loadopts();
@@ -595,30 +601,64 @@ public partial class PlayerWindow : Window {
 		e.Handled = true;
 	}
 
-	void ondrop(object sender, DragEventArgs e) {
-		if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return;
-		if (e.Data.GetData(DataFormats.FileDrop) is not string[] paths || paths.Length == 0) return;
-		var replace = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
-		if (replace) list.Clear();
-		var n = 0;
-		var first = "";
-		foreach (var p in paths) {
-			if (Directory.Exists(p)) n += list.AddDirectory(p);
-			else if (MediaFormat.IsMedia(p)) {
-				if (first.Length == 0) first = p;
-				n += list.AddFiles(new[] { p });
-			}
-		}
+	// 播放区：清空列表，只留这一个并播放
+	void stagedrop(object sender, DragEventArgs e) {
+		if (dropfiles(e) is not string[] paths) return;
+		e.Handled = true;
+		var media = firstmedia(paths);
+		if (media.Length == 0) { hud("不是可播放的音视频文件"); return; }
+		list.Clear();
+		addall(media);
+		updatelist();
+		if (list.Items.Count == 0) { hud("不是可播放的音视频文件"); return; }
+		list.Select(0);
+		playitem(list.Current);
+	}
+
+	// 列表区：追加到末尾
+	void listdrop(object sender, DragEventArgs e) {
+		if (dropfiles(e) is not string[] paths) return;
+		e.Handled = true;
+		var n = addall(paths);
 		updatelist();
 		hud($"已加入 {n} 项");
-		if (list.Current == null) {
-			if (first.Length > 0) OpenFile(first);
-			else if (list.Items.Count > 0) {
-				list.Select(0);
-				playitem(list.Current);
-			}
+	}
+
+	void ondrop(object sender, DragEventArgs e) {
+		if (dropfiles(e) is not string[] paths) return;
+		var replace = (Keyboard.Modifiers & ModifierKeys.Shift) != 0;
+		if (replace) list.Clear();
+		var n = addall(paths);
+		updatelist();
+		hud($"已加入 {n} 项");
+		if (list.Current == null && list.Items.Count > 0) {
+			list.Select(0);
+			playitem(list.Current);
 		}
 		e.Handled = true;
+	}
+
+	string[] dropfiles(DragEventArgs e) {
+		if (!e.Data.GetDataPresent(DataFormats.FileDrop)) return null;
+		return e.Data.GetData(DataFormats.FileDrop) as string[];
+	}
+
+	int addall(string[] paths) {
+		var n = 0;
+		foreach (var p in paths) {
+			if (Directory.Exists(p)) n += list.AddDirectory(p);
+			else if (MediaFormat.IsMedia(p)) n += list.AddFiles(new[] { p });
+		}
+		return n;
+	}
+
+	// 目录和媒体文件照收，其它过滤掉
+	string[] firstmedia(string[] paths) {
+		var keep = new List<string>();
+		foreach (var p in paths) {
+			if (Directory.Exists(p) || MediaFormat.IsMedia(p)) keep.Add(p);
+		}
+		return keep.ToArray();
 	}
 	#endregion
 
