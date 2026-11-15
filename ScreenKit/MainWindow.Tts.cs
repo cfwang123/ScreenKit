@@ -1012,14 +1012,16 @@ public partial class MainWindow {
 
 	static bool sapivoicematches(System.Speech.Synthesis.VoiceInfo v, string wantLang, string wantGender) {
 		if (!string.IsNullOrEmpty(wantLang)) {
-			var cul = (v.Culture?.TwoLetterISOLanguageName ?? v.Culture?.Name ?? "").ToLowerInvariant();
+			var cul = v.Culture?.Name ?? v.Culture?.TwoLetterISOLanguageName ?? "";
 			var name = v.Name ?? "";
 			var ok = wantLang == TtsLang.Zh
-				? cul.StartsWith("zh") || Compat.Contains(name, "Chinese", StringComparison.OrdinalIgnoreCase)
+				? cul.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
+					|| Compat.Contains(name, "Chinese", StringComparison.OrdinalIgnoreCase)
 					|| Compat.Contains(name, "中文", StringComparison.Ordinal)
 				: wantLang == TtsLang.En
-					? cul.StartsWith("en") || Compat.Contains(name, "English", StringComparison.OrdinalIgnoreCase)
-					: true;
+					? cul.StartsWith("en", StringComparison.OrdinalIgnoreCase)
+						|| Compat.Contains(name, "English", StringComparison.OrdinalIgnoreCase)
+					: TtsLang.Match(SapiVoiceItem.LangOf(cul), wantLang) || TtsLang.Match(cul, wantLang);
 			if (!ok) return false;
 		}
 		if (!string.IsNullOrEmpty(wantGender)) {

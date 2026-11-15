@@ -112,18 +112,10 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 				try {
 					if (p->stream_index != demux.AudioIndex) continue;
 					var pts = p->pts == NOPTS ? est : p->pts * tb;
-					// send 返回 EAGAIN 表示解码器还塞着帧，必须先收再送；直接跳过会丢帧，声音就会断成一片。
+					// send 返回 EAGAIN 只表示解码器里还压着帧，包并没有被收下：
+					// 先收空再重送同一包。原来直接 continue 会连包带帧一起丢掉，声音就断成一片。
 					var r = adec.Send(p);
 					while (!stop) {
-						var pcm = adec.Receive();
-						if (pcm == null) break;
-						got += append(ms, pcm, pts, a, b);
-						pts += pcm.Length / (double)BYTERATE;
-						est = pts;
-					}
-					if (r == ffmpeg.AVERROR(ffmpeg.EAGAIN)) {
-						// 已收空，重送这一包；再失败就认了，宁可少一帧也别把 ptS 算错。
-						adec.Send(p);
 						while (!stop) {
 							var pcm = adec.Receive();
 							if (pcm == null) break;
@@ -131,6 +123,8 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 							pts += pcm.Length / (double)BYTERATE;
 							est = pts;
 						}
+						if (r != ffmpeg.AVERROR(ffmpeg.EAGAIN)) break;
+						r = adec.Send(p);
 					}
 					if (pts > b + 1.0) break;
 				}
