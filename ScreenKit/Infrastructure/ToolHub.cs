@@ -57,6 +57,7 @@ static class ToolHub {
 		new() { Id = "w-imgconv", Cat = "image", Kind = "act", Open = "imgconv", NameKey = "menu.imgconv", TipKey = "menu.imgconv.tip", Glyph = "\uEB9F" },
 		new() { Id = "w-charart", Cat = "image", Kind = "act", Open = "charart", NameKey = "menu.charart", TipKey = "menu.charart.tip", Glyph = "\uE8D2" },
 		new() { Id = "w-pixel", Cat = "image", Kind = "act", Open = "pixel", NameKey = "menu.pixel", TipKey = "menu.pixel.tip", Glyph = "\uE91B" },
+		new() { Id = "w-player", Cat = "image", Kind = "act", Open = "player", NameKey = "menu.player", TipKey = "menu.player.tip", Glyph = "\uE768" },
 		new() { Id = "w-vidconv", Cat = "image", Kind = "act", Open = "vidconv", NameKey = "menu.vidconv", TipKey = "menu.vidconv.tip", Glyph = "\uE714" },
 		new() { Id = "w-vidgif", Cat = "image", Kind = "act", Open = "vidgif", NameKey = "menu.vidgif", TipKey = "menu.vidgif.tip", Glyph = "\uE714" },
 		new() { Id = "w-qrmake", Cat = "image", Kind = "act", Open = "qrmake", NameKey = "menu.qrmake", TipKey = "menu.qrmake.tip", Glyph = "\uED14" },
