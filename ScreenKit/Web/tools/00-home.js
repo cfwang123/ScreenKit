@@ -1132,7 +1132,7 @@
 						x:"button",
 						"type":"button",
 						"data-cat":"speech",
-						"data-title":"语音",
+						"data-title":"音视频",
 						"data-kt":"web.cat.speech",
 						c:[
 						{x:"i.fa-solid.fa-volume-high"},
