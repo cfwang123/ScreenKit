@@ -157,6 +157,9 @@ public partial class PlayerWindow : Window {
 
 	DispatcherTimer timer;
 
+	/// <summary>点词弹出的词典窗口，复用同一个，重复点只换词。</summary>
+	DictHostWindow dictwin;
+
 	internal Playlist Playlist => list;
 	#endregion
 
@@ -882,6 +885,26 @@ public partial class PlayerWindow : Window {
 		if (sel != null) lcwords.ScrollIntoView(sel);
 	}
 
+	/// <summary>弹出词典窗口查这个词。重复点同一个词不重开，只把已有窗口提到前面。</summary>
+	void opendict(string word) {
+		if (string.IsNullOrEmpty(word)) return;
+		try {
+			if (dictwin != null) {
+				try { dictwin.Activate(); } catch { }
+				dictwin.SearchText(word);
+				return;
+			}
+			dictwin = new DictHostWindow(word, () => opt, null);
+			dictwin.Owner = this;
+			dictwin.Closed += (_, _) => dictwin = null;
+			dictwin.Show();
+			dictwin.Activate();
+		}
+		catch (Exception ex) {
+			hud("打开词典失败: " + ex.Message);
+		}
+	}
+
 	void updwordmeta() {
 		lbwordcount.Text = words.Count + " 条";
 		lbwordhint.Visibility = words.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -1065,8 +1088,14 @@ public partial class PlayerWindow : Window {
 		render();
 	}
 
+	/// <summary>列表选中是 render() 里给的回写，这种选中不能弹词典，只有用户点才算。</summary>
+	bool syncsel;
+
 	void wordselected(object sender, SelectionChangedEventArgs e) {
-		if (lcwords.SelectedItem is StudyWordRow r) selectword(r.Word);
+		if (syncsel) return;
+		if (lcwords.SelectedItem is not StudyWordRow r) return;
+		selectword(r.Word);
+		opendict(r.Word);
 	}
 
 	void cueselected(object sender, SelectionChangedEventArgs e) {

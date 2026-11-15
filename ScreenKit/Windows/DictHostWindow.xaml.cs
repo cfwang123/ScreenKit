@@ -28,4 +28,11 @@ public partial class DictHostWindow : Window {
 	}
 
 	internal int HitCount => host.HitCount;
+
+	/// <summary>换一个词再查。复用同一个窗口时用它，不必重开新窗。</summary>
+	public void SearchText(string query, long id = 0) {
+		if (string.IsNullOrWhiteSpace(query)) return;
+		Title = Loc.T("dict.win", query);
+		host.SearchText(query, id);
+	}
 }
