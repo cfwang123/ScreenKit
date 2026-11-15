@@ -286,7 +286,8 @@ public partial class App : System.Windows.Application {
 				var wordArg = Array.IndexOf(args, "--player-word");
 				if (wordArg >= 0 && wordArg + 1 < args.Length) {
 					sb.AppendLine("word: " + pw.ClickWord(args[wordArg + 1]));
-					await System.Threading.Tasks.Task.Delay(800);
+					await System.Threading.Tasks.Task.Delay(1500);
+					sb.AppendLine("dict: " + pw.DictState());
 					sb.AppendLine(pw.ShotTo($"{baseName}_dict.png"));
 				}
 				sb.AppendLine(pw.ShotTo(shotPath));

@@ -1599,6 +1599,11 @@ public partial class PlayerWindow : Window {
 		return $"word='{word}' dictopen={open} reused={reused} title='{title}' query='{state.StudyQuery}'";
 	}
 
+	/// <summary>自测用：词典窗口此刻的结果数（搜索是异步排队的，得等一会儿再读）。</summary>
+	public string DictState() => dictwin == null
+		? "dict=null"
+		: $"dictopen={dictwin.IsVisible} hits={dictwin.HitCount} title='{dictwin.Title}'";
+
 	/// <summary>自测用：把字幕整体上下移动 dy 像素（正数向上），走与拖动同一条路径，返回移动后的底部留白。</summary>
 	public string NudgeSubtitle(double dy) {
 		var y0 = layer.BottomMargin;
