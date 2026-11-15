@@ -6,7 +6,7 @@
 	var q = "";
 	var INL_ALL = 6; //折叠时最多内联几项
 	var INL_HEAD = 4; //超过时只留前几项
-	var INL_LEN = 110; //内联摘要的最大长度
+	var INL_LEN = 80; //内联摘要的最大长度
 	var INL_STR = 24; //内联字符串最多保留的字符数
 
 	SK.regutil("u-json", {
@@ -686,34 +686,36 @@
 
 	function inlplan(node){
 		var n = node.ch.length;
-		var take = n <= INL_ALL ? n : INL_HEAD;
+		var max = n <= INL_ALL ? n : INL_HEAD;
 		var len = 0;
-		var i, j, p;
-		for (i = 0; i < take; i++) {
-			p = inlpieces(node.ch[i]);
-			for (j = 0; j < p.length; j++) len += p[j].t.length;
-			len += 2;
+		var i, j, p, cur;
+		for (i = 0; i < max; i++) {
+			p = inlpieces(node.ch[i], false);
+			cur = 2;
+			for (j = 0; j < p.length; j++) cur += p[j].t.length;
+			if (i && len + cur > INL_LEN) break;
+			len += cur;
 		}
-		if (len > INL_LEN) return null;
-		return { n: take, cut: n > take };
+		if (!i) return null;
+		return { n: i, cut: n > i };
 	}
 
-	function inlpieces(c){
+	function inlpieces(c, cut){
 		var out = [];
 		if (c.t === "elem") { out.push({ t: "<" + c.k + ">", c: "jv-tag" }); return out; }
 		if (c.k !== null && c.k !== undefined && typeof c.k !== "number") {
 			out.push({ t: String(c.k) + ": ", c: "jv-k" });
 		}
-		out.push(inlval(c));
+		out.push(inlval(c, cut));
 		return out;
 	}
 
-	function inlval(c){
+	function inlval(c, cut){
 		var s;
 		if (c.ch && c.ch.length) return { t: (c.t === "array") ? "[…]" : "{…}", c: "jv-p" };
 		if (c.t === "string" || c.t === "attr" || c.t === "text") {
 			s = JSON.stringify(String(c.v));
-			if (s.length > INL_STR) s = s.substring(0, INL_STR) + "…";
+			if (cut !== false && s.length > INL_STR) s = s.substring(0, INL_STR) + "…";
 			return { t: s, c: "jv-s" };
 		}
 		if (c.t === "number") return { t: String(c.v), c: "jv-n" };
