@@ -68,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Use distinct button colors for connection state: green to connect, red to disconnect, and a highlighted send button in the HTTP debug window
 - Free the tool panel DOM and leftover globals when leaving a web tool, so each entry rebuilds a fresh DOM and memory is released
 - Drive all web tools from one shared 16ms timer instead of per-tool setInterval/setTimeout, so timers stop and pending work is dropped when leaving a tool
+- JSON viewer: a collapsed small array or object now shows its items inline on one line, and long ones show the first few items plus an ellipsis instead of a bare bracket placeholder
 
 #### Fixed
 
@@ -97,6 +98,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 连接状态改用醒目配色：连接为绿色、断开为红色，HTTP 调试的发送按钮改强调色
 - web 工具离开时清空面板 DOM 与残留全局引用，再次进入时重新生成
 - web 工具改为共用一个 16ms 全局定时器，工具不再自建 setInterval/setTimeout，离开工具时定时器停止、挂起任务作废
+- JSON 查看器：收起的小数组、小对象直接在同一行显示内容，项多时显示前几项加省略号，不再只显示占位括号
 
 #### 修复
 

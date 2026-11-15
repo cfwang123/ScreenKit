@@ -4,6 +4,10 @@
 	var timer = 0;
 	var cap = 0;
 	var q = "";
+	var INL_ALL = 6; //折叠时最多内联几项
+	var INL_HEAD = 4; //超过时只留前几项
+	var INL_LEN = 110; //内联摘要的最大长度
+	var INL_STR = 24; //内联字符串最多保留的字符数
 
 	SK.regutil("u-json", {
 		title: "JSON / XML / YAML 查看器",
@@ -531,6 +535,7 @@
 		node.built = true;
 		node.kids.classList.remove("hide");
 		node.tgl.textContent = "▼";
+		inlfill(node, false);
 	}
 
 	function paintfilter(tree){
@@ -541,6 +546,7 @@
 			node.built = true;
 			node.kids.classList.remove("hide");
 			node.tgl.textContent = "▼";
+			inlfill(node, false);
 			var i;
 			for (i = 0; i < node.ch.length; i++) walk(node.ch[i], depth + 1, node.kids);
 		}
@@ -613,16 +619,26 @@
 	function valuepart(node, row, cont){
 		var el;
 		if (cont) {
+			var inl;
 			el = F.el("span");
 			el.className = "jv-p";
-			if (node.t === "array") el.textContent = "[…]";
-			else if (node.t === "object") el.textContent = "{…}";
-			else el.textContent = "…";
+			if (node.t === "array") el.textContent = "[";
+			else if (node.t === "object") el.textContent = "{";
+			row.appendChild(el);
+			inl = F.el("span");
+			inl.className = "jv-inl";
+			row.appendChild(inl);
+			el = F.el("span");
+			el.className = "jv-p";
+			if (node.t === "array") el.textContent = "]";
+			else if (node.t === "object") el.textContent = "}";
 			row.appendChild(el);
 			var cnt = F.el("span");
 			cnt.className = "jv-cnt";
 			cnt.textContent = String(node.ch.length);
 			row.appendChild(cnt);
+			node.inl = inl;
+			inlfill(node, true);
 			return;
 		}
 		var text, cls;
@@ -647,16 +663,77 @@
 		node.sel = el;
 	}
 
+	//折叠时把子项摘要铺在同一行，展开后只留省略号
+	function inlfill(node, folded){
+		var box = node.inl;
+		if (!box) return;
+		box.textContent = "";
+		var plan = folded ? inlplan(node) : null;
+		if (!plan) { box.textContent = "…"; return; }
+		var i, j, p, sp;
+		for (i = 0; i < plan.n; i++) {
+			if (i) box.appendChild(document.createTextNode(", "));
+			p = inlpieces(node.ch[i]);
+			for (j = 0; j < p.length; j++) {
+				sp = F.el("span");
+				sp.className = p[j].c;
+				sp.textContent = p[j].t;
+				box.appendChild(sp);
+			}
+		}
+		if (plan.cut) box.appendChild(document.createTextNode(", …"));
+	}
+
+	function inlplan(node){
+		var n = node.ch.length;
+		var take = n <= INL_ALL ? n : INL_HEAD;
+		var len = 0;
+		var i, j, p;
+		for (i = 0; i < take; i++) {
+			p = inlpieces(node.ch[i]);
+			for (j = 0; j < p.length; j++) len += p[j].t.length;
+			len += 2;
+		}
+		if (len > INL_LEN) return null;
+		return { n: take, cut: n > take };
+	}
+
+	function inlpieces(c){
+		var out = [];
+		if (c.t === "elem") { out.push({ t: "<" + c.k + ">", c: "jv-tag" }); return out; }
+		if (c.k !== null && c.k !== undefined && typeof c.k !== "number") {
+			out.push({ t: String(c.k) + ": ", c: "jv-k" });
+		}
+		out.push(inlval(c));
+		return out;
+	}
+
+	function inlval(c){
+		var s;
+		if (c.ch && c.ch.length) return { t: (c.t === "array") ? "[…]" : "{…}", c: "jv-p" };
+		if (c.t === "string" || c.t === "attr" || c.t === "text") {
+			s = JSON.stringify(String(c.v));
+			if (s.length > INL_STR) s = s.substring(0, INL_STR) + "…";
+			return { t: s, c: "jv-s" };
+		}
+		if (c.t === "number") return { t: String(c.v), c: "jv-n" };
+		if (c.t === "bool") return { t: c.v ? "true" : "false", c: "jv-l" };
+		if (c.t === "null") return { t: "null", c: "jv-z" };
+		return { t: String(c.v), c: "jv-s" };
+	}
+
 	function toggle(node){
 		if (!node.ch || !node.ch.length) return;
 		if (!node.built) { buildkids(node); node.built = true; }
 		if (node.kids.classList.contains("hide")) {
 			node.kids.classList.remove("hide");
 			node.tgl.textContent = "▼";
+			inlfill(node, false);
 		}
 		else {
 			node.kids.classList.add("hide");
 			node.tgl.textContent = "▶";
+			inlfill(node, true);
 		}
 	}
 
@@ -670,6 +747,7 @@
 		if (!node.built) { buildkids(node); node.built = true; }
 		node.kids.classList.remove("hide");
 		node.tgl.textContent = "▼";
+		inlfill(node, false);
 		var i;
 		for (i = 0; i < node.ch.length; i++) expanddeep(node.ch[i]);
 	}
