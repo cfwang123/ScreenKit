@@ -201,6 +201,7 @@ public partial class PlayerWindow : Window {
 		};
 		Closing += (_, _) => {
 			saveopts();
+			try { dictwin?.Close(); } catch { }
 			try { clip.Dispose(); } catch { }
 			try { ttsplayer?.Stop(); } catch { }
 			try { session.Close(); } catch { }
@@ -881,7 +882,11 @@ public partial class PlayerWindow : Window {
 			? state.ClipKey.Substring(state.ClipKey.IndexOf(':') + 1) : "";
 		foreach (var r in words) r.IsSounding = clipword.Length > 0 && r.Word == clipword;
 		var sel = words.FirstOrDefault(x => x.Word == state.StudyQuery);
-		if (!ReferenceEquals(lcwords.SelectedItem, sel)) lcwords.SelectedItem = sel;
+		if (!ReferenceEquals(lcwords.SelectedItem, sel)) {
+			syncsel = true;
+			try { lcwords.SelectedItem = sel; }
+			finally { syncsel = false; }
+		}
 		if (sel != null) lcwords.ScrollIntoView(sel);
 	}
 
@@ -989,11 +994,14 @@ public partial class PlayerWindow : Window {
 	#region
 	void selectword(string word) {
 		if (string.IsNullOrEmpty(word)) return;
-		if (state.StudyQuery == word) return;
-		state.StudyQuery = word;
-		state.Tab = SideTab.Study;
-		if (state.Mode == PlayerForm.Normal && !state.SideOpen) state.SideOpen = true;
-		render();
+		if (state.StudyQuery != word) {
+			state.StudyQuery = word;
+			state.Tab = SideTab.Study;
+			if (state.Mode == PlayerForm.Normal && !state.SideOpen) state.SideOpen = true;
+			render();
+		}
+		// 选中词的同时把词典窗口叫出来，用户点一下就能看到完整释义。
+		opendict(word);
 	}
 
 	/// <summary>按坐标命中字幕里的词；命中返回 true（只选词，不触发新的词典查询）。</summary>
@@ -1095,7 +1103,6 @@ public partial class PlayerWindow : Window {
 		if (syncsel) return;
 		if (lcwords.SelectedItem is not StudyWordRow r) return;
 		selectword(r.Word);
-		opendict(r.Word);
 	}
 
 	void cueselected(object sender, SelectionChangedEventArgs e) {
