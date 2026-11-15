@@ -86,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Report errors thrown by web tool timers to the console instead of hiding them; add ?dbg=1 to turn the reporting on
 - JSON viewer: expanded nodes can now be collapsed again
 - Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge
+- 3D function plotter: filled surface no longer renders as a dot cloud
 
 ### 中文
 
@@ -123,6 +124,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - web 工具定时器里抛出的错误不再静默吞掉，可控地打到控制台；地址加 ?dbg=1 打开
 - JSON 查看器：展开的节点现在可以正常收起了
 - 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白
+- 三维函数图像：曲面填充不再变成一片点阵
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

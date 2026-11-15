@@ -1481,12 +1481,17 @@
 		}
 		var cols = res.cols, nx = res.nx, ny = res.ny, cw = res.cw, box = res.box;
 		var zs = zspan(), z0 = -zs, z1 = zs;
-		var i, k, row, gap;
+		var i, k, row, gap, pxcell;
 		fit3(w, h, box, res.all, cyaw, syaw, cp, sp);
+		// 屏幕上一格的像素高度：合并阈值和实心圆盘半径各用各的，
+		// 以前两者共用 gap，gap 被夹到 2.5 之后圆盘半径也跟着卡在 4 像素，
+		// 格距有十几像素，曲面就散成一颗颗点。
+		pxcell = (res.area.y1 - res.area.y0) * view3.s / ny;
+		if (!(pxcell > 0)) pxcell = 1;
 		// 合并阈值的本意是「同一位置上的两层解」，所以按屏幕像素算，并给个上限。
 		// 不加上限的话，高倍放大时这里会算出十几像素，把整列相邻的点全并成一个，
 		// 网格就整片消失（缩回去又好了，看起来像是只在放大时坏的）。
-		gap = (res.area.y1 - res.area.y0) * view3.s / ny;
+		gap = pxcell;
 		if (!(gap < 2.5)) gap = 2.5;
 		for (i = 0; i < cols.length; i++) {
 			row = cols[i];
@@ -1519,7 +1524,7 @@
 		}
 		else if (style === "dots") impdots(ctx, cols, nx, ny, cw, gap);
 		else if (style === "level") implevels(ctx, z0, z1, cyaw, syaw, cp, sp, res.area, ny);
-		else impfill(ctx, cols, nx, ny, cw, gap);
+		else impfill(ctx, cols, nx, ny, cw, pxcell);
 		// z 轴只画到曲面顶端，免得轴尖和标签被画布切掉。
 		drawaxes(ctx, cyaw, syaw, cp, sp, 0, 1, z0, box.z1 > 0 ? Math.min(z1, box.z1) : z1, box);
 		ctx.restore();
@@ -1546,13 +1551,52 @@
 	}
 
 	// 所有解点按深度排序后画成实心圆盘，叠起来就是曲面，不会把锥面连成柱面。
+	// 半径按每个点到上下左右邻居的实际屏幕距离算：整片共用一个格距，
+	// 投影后疏密差得远的地方（球的上下缘、陡坡）就盖不住，曲面会散成一颗颗点。
 	function impfill(ctx, cols, nx, ny, cw, gap){
 		var pts = [];
-		var i, j, r, rad = Math.max(2.4, gap * 1.6);
+		var i, j, r, base = Math.min(24, Math.max(2.4, gap * 0.8));
+		var list, q, p, dx, dy, d;
 		for (j = 0; j <= ny; j++) {
 			for (i = 0; i <= nx; i++) {
-				var list = cols[j * cw + i];
-				for (r = 0; r < list.length; r++) pts.push(list[r]);
+				list = cols[j * cw + i];
+				for (r = 0; r < list.length; r++) {
+					p = list[r];
+					p.rad = 0;
+					//同序号的解在相邻列、行里就是同一个点平移一格
+					q = i < nx ? cols[j * cw + i + 1] : null;
+					if (q && q.length === list.length && q[r] !== p) {
+						dx = q[r].x - p.x;
+						dy = q[r].y - p.y;
+						d = dx * dx + dy * dy;
+						if (d > p.rad) p.rad = d;
+					}
+					q = j < ny ? cols[(j + 1) * cw + i] : null;
+					if (q && q.length === list.length && q[r] !== p) {
+						dx = q[r].x - p.x;
+						dy = q[r].y - p.y;
+						d = dx * dx + dy * dy;
+						if (d > p.rad) p.rad = d;
+					}
+					//球的上下缘一列只有两三个解、相邻列点数还不同，得看列内上下邻居
+					q = list[r - 1];
+					if (q) {
+						dx = q.x - p.x;
+						dy = q.y - p.y;
+						d = dx * dx + dy * dy;
+						if (d > p.rad) p.rad = d;
+					}
+					q = list[r + 1];
+					if (q) {
+						dx = q.x - p.x;
+						dy = q.y - p.y;
+						d = dx * dx + dy * dy;
+						if (d > p.rad) p.rad = d;
+					}
+					//半径取邻居距离的 0.85 倍，相邻圆盘互相压边才不留缝
+					p.rad = p.rad > 0 ? Math.min(24, Math.sqrt(p.rad) * 0.85) : base;
+					pts.push(p);
+				}
 			}
 		}
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
@@ -1568,7 +1612,7 @@
 				var n = arr[i].n;
 				ctx.fillStyle = n ? shadecolor(arr[i].t, n.nr, n.nu, n.nd) : zcolor(arr[i].t);
 				ctx.beginPath();
-				ctx.arc(arr[i].x, arr[i].y, rad, 0, 6.2832);
+				ctx.arc(arr[i].x, arr[i].y, arr[i].rad, 0, 6.2832);
 				ctx.fill();
 			}
 		}
