@@ -184,8 +184,9 @@ sealed class TimedTextLayer {
 	}
 
 	void place(double totalh, double fs, double availh, double scale) {
-		// 底部留白也不能超过容器高度的一半，否则矮窗里整行被顶出去
-		var margin = Math.Min(BottomMargin * scale, availh * 0.34);
+		// 底部留白最多把整段字顶到容器顶端，不能反过来把字挤出画面
+		var cap = Math.Max(0, availh - totalh - 2);
+		var margin = Math.Min(BottomMargin * scale, cap);
 		var y = availh - margin - totalh;
 		if (y < 2) y = 2;
 		foreach (var l in lines) {

@@ -1528,12 +1528,11 @@ public partial class PlayerWindow : Window {
 		return $"paused {before}->{state.Paused} hasfile={list.Current != null} icon={bplay.Content}";
 	}
 
-	/// <summary>自测用：把字幕整体上下移动 dy 像素（正数向上），返回移动后的底部留白。</summary>
+	/// <summary>自测用：把字幕整体上下移动 dy 像素（正数向上），走与拖动同一条路径，返回移动后的底部留白。</summary>
 	public string NudgeSubtitle(double dy) {
-		subbottom0 = layer.BottomMargin;
 		var y0 = layer.BottomMargin;
-		layer.BottomMargin = Math.Max(0, y0 + dy);
-		layer.reposition();
+		setsubbottom(y0 + dy);
+		subnudge = false;
 		return $"bottom {y0:0.#} -> {layer.BottomMargin:0.#} scale={layer.Scale:0.##} viewh={layer.ViewHeight:0.#}";
 	}
 
