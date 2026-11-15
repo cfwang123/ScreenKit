@@ -37,11 +37,18 @@ unsafe sealed class MediaSession : IDisposable {
 	AudioOut audio;
 	readonly MediaClock clock = new();
 
+	/// <summary>seek 互斥：demux 线程读包、解码线程冲缓冲都要等这次 seek 收尾。</summary>
+	readonly object locks = new();
+	double seektarget;
+
 	Thread thdemux, thvideo, thaudio;
 	volatile bool stop;
 	volatile bool paused;
 	volatile bool eofdemux, eofvideo, eofaudio;
 	volatile bool vresync;
+	volatile bool aresync;
+	volatile bool pendingseek;
+	volatile int seekgen;
 	volatile bool disposed;
 
 	VideoFrame latest;
@@ -104,6 +111,10 @@ unsafe sealed class MediaSession : IDisposable {
 		stop = false;
 		paused = false;
 		vresync = false;
+		aresync = false;
+		pendingseek = false;
+		seektarget = 0;
+		seekgen = 0;
 		dropcount = 0;
 		lock (lockframe) { latest = null; frames.Clear(); frameseq = 0; }
 		startthreads();
@@ -127,13 +138,18 @@ unsafe sealed class MediaSession : IDisposable {
 		}
 	}
 
-	/// <summary>默默读包并按流放进对应队列。视频队列满先等，实在等不到才跳到下一个关键帧，绝不中途丢包破坏参考帧。</summary>
+	/// <summary>默默读包并按流放进对应队列。seek 也只在这个线程里做：AVFormatContext 不能多线程同时用。</summary>
 	void demuxloop() {
 		var spin = 0;
 		var skipvideo = false;
 		var fullsince = 0;
 		try {
 			while (!stop) {
+				int gen;
+				lock (locks) {
+					if (pendingseek) applyseek();
+					gen = seekgen;
+				}
 				// 只对音频做背压：音频是主时钟，缺包会冻结进度
 				if (audiofull()) {
 					sleep(4);
@@ -142,7 +158,12 @@ unsafe sealed class MediaSession : IDisposable {
 				}
 				spin = 0;
 				var r = demux.ReadPacket(out var p);
-				if (!r) { eofdemux = true; break; }
+				if (!r) {
+					// 不退出线程：seek 回来还要接着读
+					eofdemux = true;
+					sleep(8);
+					continue;
+				}
 				var isvideo = p->stream_index == demux.VideoIndex;
 				if (isvideo) {
 					if (videofull()) {
@@ -171,6 +192,8 @@ unsafe sealed class MediaSession : IDisposable {
 				var copy = AVPacketRef.Clone(p);
 				ffmpeg.av_packet_unref(p);
 				if (copy == null) continue;
+				// 带上读包时的代次，seek 之后解码线程据此丢掉旧包
+				copy.Gen = gen;
 				lock (lockq) {
 					if (isvideo) vpackets.Enqueue(copy);
 					else apackets.Enqueue(copy);
@@ -187,6 +210,22 @@ unsafe sealed class MediaSession : IDisposable {
 		}
 	}
 
+	/// <summary>在解封装线程里落地一次 seek：清队列、换流位置，并让两个解码线程各自冲缓冲。</summary>
+	void applyseek() {
+		pendingseek = false;
+		var t = seektarget;
+		lock (lockq) {
+			while (vpackets.Count > 0) vpackets.Dequeue().Dispose();
+			while (apackets.Count > 0) apackets.Dequeue().Dispose();
+		}
+		eofdemux = eofvideo = eofaudio = false;
+		demux.Seek(t);
+		seekgen++;
+		vresync = true;
+		aresync = true;
+		lock (lockq) Monitor.PulseAll(lockq);
+	}
+
 	bool videofull() {
 		lock (lockq) return vdec != null && vpackets.Count >= VIDEOQUEUE;
 	}
@@ -201,21 +240,39 @@ unsafe sealed class MediaSession : IDisposable {
 			while (!stop) {
 				AVPacketRef item = null;
 				lock (lockq) {
-					if (vpackets.Count > 0) item = vpackets.Dequeue();
-					else Monitor.PulseAll(lockq);
+					while (vpackets.Count > 0) {
+						var it = vpackets.Dequeue();
+						// seek 之前读出来的包一律丢掉，否则拿旧关键帧的 P/B 帧喂新位置必花屏
+						if (it.Gen != seekgen) { it.Dispose(); continue; }
+						item = it;
+						break;
+					}
+					if (item == null) Monitor.PulseAll(lockq);
 				}
 				if (item == null) {
-					if (eofdemux) {
-						if (!eofvideo) { vdec.Drain(); eofvideo = true; }
-						if (drainvideo()) break;
+					// 到结尾且队列空了：把解码器里剩下的帧吐完，然后歇着等 seek
+					if (eofdemux && vpackets.Count == 0) {
+						if (!eofvideo) {
+							vdec.Drain();
+							eofvideo = true;
+							while (!stop && vdec.Receive(out var tail)) publish(tail);
+						}
 					}
 					sleep(spin++ < 200 ? 2 : 8);
 					continue;
 				}
 				spin = 0;
-				if (vresync) {
-					vresync = false;
-					vdec.Flush();
+				// 取包到送包之间可能刚好发生 seek：旧代次的包喂新位置会解出坏帧
+				if (item.Gen != seekgen) {
+					item.Dispose();
+					continue;
+				}
+				// 冲缓冲必须在解封装线程改完流位置之后做
+				lock (locks) {
+					if (vresync) {
+						vresync = false;
+						vdec.Flush();
+					}
 				}
 				using (item) {
 					send(item.Ptr);
@@ -239,30 +296,46 @@ unsafe sealed class MediaSession : IDisposable {
 		}
 	}
 
-	bool drainvideo() {
-		while (!stop && vdec.Receive(out var pts)) publish(pts);
-		return true;
-	}
-
 	void audioloop() {
 		var spin = 0;
 		try {
 			while (!stop) {
 				AVPacketRef item = null;
 				lock (lockq) {
-					if (apackets.Count > 0) item = apackets.Dequeue();
-					else Monitor.PulseAll(lockq);
+					while (apackets.Count > 0) {
+						var it = apackets.Dequeue();
+						if (it.Gen != seekgen) { it.Dispose(); continue; }
+						item = it;
+						break;
+					}
+					if (item == null) Monitor.PulseAll(lockq);
 				}
 				if (item == null) {
-					if (eofdemux) {
-						if (!eofaudio) { adec.Drain(); eofaudio = true; }
-						while (!stop && drainaudio()) { }
-						break;
+					if (eofdemux && apackets.Count == 0) {
+						if (!eofaudio) {
+							adec.Drain();
+							eofaudio = true;
+							while (!stop) {
+								var pcm = adec.Receive();
+								if (pcm == null) break;
+								if (!paused) audio.Push(pcm);
+							}
+						}
 					}
 					sleep(spin++ < 200 ? 2 : 8);
 					continue;
 				}
 				spin = 0;
+				if (item.Gen != seekgen) {
+					item.Dispose();
+					continue;
+				}
+				lock (locks) {
+					if (aresync) {
+						aresync = false;
+						adec.Flush();
+					}
+				}
 				using (item) {
 					sendaudio(item.Ptr);
 				}
@@ -286,17 +359,6 @@ unsafe sealed class MediaSession : IDisposable {
 			}
 			if (r != ffmpeg.AVERROR(ffmpeg.EAGAIN)) return;
 		}
-	}
-
-	bool drainaudio() {
-		var got = false;
-		while (!stop) {
-			var pcm = adec.Receive();
-			if (pcm == null) break;
-			got = true;
-			if (!paused) audio.Push(pcm);
-		}
-		return got;
 	}
 
 	void publish(double pts) {
@@ -396,22 +458,24 @@ unsafe sealed class MediaSession : IDisposable {
 
 	public double PositionSec => clock.NowSec;
 
+	/// <summary>
+	/// 跳到指定秒。真正的换流位置交给解封装线程做（AVFormatContext 不允许多线程同时操作），
+	/// 这里只登记目标并清状态，以免在 UI 线程和读包线程之间抢同一个 context。
+	/// </summary>
 	public void Seek(double sec) {
 		if (demux == null || disposed) return;
-		var target = demux.Seek(sec);
-		lock (lockq) {
-			while (vpackets.Count > 0) vpackets.Dequeue().Dispose();
-			while (apackets.Count > 0) apackets.Dequeue().Dispose();
-		}
-		vdec?.Flush();
-		adec?.Flush();
-		audio?.Rebase(target);
-		clock.Rebase(target);
-		eofdemux = eofvideo = eofaudio = false;
-		vresync = false;
-		lastsent = target - 0.001;
-		dropcount = 0;
+		if (sec < 0) sec = 0;
+		if (DurationSec > 0 && sec > DurationSec) sec = DurationSec;
 		lock (lockframe) { latest = null; frames.Clear(); }
+		audio?.Rebase(sec);
+		clock.Rebase(sec);
+		lastsent = sec - 0.001;
+		dropcount = 0;
+		lock (locks) {
+			seektarget = sec;
+			pendingseek = true;
+		}
+		lock (lockq) Monitor.PulseAll(lockq);
 	}
 
 	public void SetVolume(float v) {
@@ -467,6 +531,8 @@ unsafe sealed class MediaSession : IDisposable {
 /// <summary>包引用计数自己的拷贝，队列跨线程时用它保命。</summary>
 unsafe sealed class AVPacketRef : IDisposable {
 	public AVPacket* Ptr;
+	/// <summary>读这个包时的 seek 代次；解码线程只认当前代次，旧包直接丢。</summary>
+	public int Gen;
 	bool disposed;
 
 	public static AVPacketRef Clone(AVPacket* src) {

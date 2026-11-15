@@ -126,6 +126,9 @@ public partial class PlayerWindow : Window {
 	long lastseq = -1;
 	double lastpos = -1;
 	bool seeking;
+	int seeklock;
+	double lastseekto = -1;
+	int lastseektick;
 	bool dragging;
 	bool dragsub;
 	bool subnudge;
@@ -460,7 +463,9 @@ public partial class PlayerWindow : Window {
 			autotext(item.Path);
 			session.Play();
 			state.Paused = false;
-			sseek.Value = 0;
+			seeklock++;
+			try { sseek.Value = 0; }
+			finally { seeklock--; }
 			if (item.DurationSec <= 0 && session.DurationSec > 0) {
 				item.DurationSec = session.DurationSec;
 				list.RaiseChanged();
@@ -1186,7 +1191,9 @@ public partial class PlayerWindow : Window {
 		lbtime.Text = loaded ? $"{fmt(pos)} / {(dur > 0 ? fmt(dur) : "--:--")}" : "00:00 / 00:00";
 		if (!seeking && dur > 0) {
 			var v = pos / dur;
-			sseek.Value = v < 0 ? 0 : v > 1 ? 1 : v;
+			seeklock++;
+			try { sseek.Value = v < 0 ? 0 : v > 1 ? 1 : v; }
+			finally { seeklock--; }
 		}
 	}
 
@@ -1205,18 +1212,33 @@ public partial class PlayerWindow : Window {
 
 	void seekdone(object sender, RoutedEventArgs e) {
 		seeking = false;
-		var dur = session.DurationSec;
-		if (dur <= 0) return;
-		session.Seek(sseek.Value * dur);
-		lastpos = -1;
-		stopclip();
+		commitseek();
 	}
 
 	void seekchanged(object sender, RoutedEventArgs e) {
-		if (!seeking) return;
+		// 程序自己刷进度不触发跳转
+		if (seeklock > 0) return;
 		var dur = session.DurationSec;
 		if (dur <= 0) return;
 		lbtime.Text = $"{fmt(sseek.Value * dur)} / {fmt(dur)}";
+		// 点轨道（IsMoveToPointEnabled）只改 Value、不一定会走拖拽完成，这里直接跳
+		if (!seeking) commitseek();
+	}
+
+	void commitseek() {
+		if (seeklock > 0) return;
+		var dur = session.DurationSec;
+		if (dur <= 0) return;
+		var target = sseek.Value * dur;
+		// 点轨道会同时触发 ValueChanged 和拖拽完成，同一目标短时间去重，避免连跳两次闪一下
+		var now = Environment.TickCount;
+		if (Math.Abs(target - lastseekto) < 0.05 && unchecked(now - lastseektick) < 400) return;
+		lastseekto = target;
+		lastseektick = now;
+		session.Seek(target);
+		lastseq = -1;
+		lastpos = -1;
+		stopclip();
 	}
 	#endregion
 
@@ -1534,6 +1556,15 @@ public partial class PlayerWindow : Window {
 		setsubbottom(y0 + dy);
 		subnudge = false;
 		return $"bottom {y0:0.#} -> {layer.BottomMargin:0.#} scale={layer.Scale:0.##} viewh={layer.ViewHeight:0.#}";
+	}
+
+	/// <summary>自测用：模拟点进度条轨道把滑块挪到 sec 秒，走的是 ValueChanged 那条路。</summary>
+	public string SeekBySlider(double sec) {
+		var dur = session.DurationSec;
+		if (dur <= 0) return "没有时长";
+		var before = session.PositionSec;
+		sseek.Value = Math.Max(0, Math.Min(1, sec / dur));
+		return $"slider {before:0.##} -> {session.PositionSec:0.##}（目标 {sec:0.##}）";
 	}
 
 	/// <summary>自测用：把整个窗口渲染成 PNG，并回传界面上关键状态。</summary>

@@ -273,6 +273,14 @@ public partial class App : System.Windows.Application {
 						System.Globalization.CultureInfo.InvariantCulture, out var sdy)) {
 					sb.AppendLine("subdy: " + pw.NudgeSubtitle(sdy));
 				}
+				// --player-seek <秒>：自测用，模拟点进度条跳到指定秒
+				var seekArg = Array.IndexOf(args, "--player-seek");
+				if (seekArg >= 0 && seekArg + 1 < args.Length
+					&& double.TryParse(args[seekArg + 1], System.Globalization.NumberStyles.Float,
+						System.Globalization.CultureInfo.InvariantCulture, out var sk)) {
+					sb.AppendLine("seek: " + pw.SeekBySlider(sk));
+					await System.Threading.Tasks.Task.Delay(2500);
+				}
 				var baseName = Path.Combine(Path.GetDirectoryName(shotPath) ?? ".", Path.GetFileNameWithoutExtension(shotPath));
 				sb.AppendLine(pw.ShotTo(shotPath));
 				// 再连拍两张，方便看蒙版推进

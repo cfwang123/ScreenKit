@@ -90,6 +90,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge
 - 3D function plotter: filled surface no longer renders as a dot cloud
 - Media player: stop dropping video packets when the queue is full, which broke the H.264 reference chain and caused garbled frames
+- TTS: SAPI voice list now filters by language for Japanese, Korean and other languages
+- Media player: clicking the seek bar now jumps immediately, and seeking no longer leaves garbled frames after resuming playback
 
 ### 中文
 
@@ -131,6 +133,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白
 - 三维函数图像：曲面填充不再变成一片点阵
 - 播放器：队列满时不再丢视频包（会破坏 H.264 参考帧导致花屏），改为背压等待、必要时跳到下一个关键帧重建
+- 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤
+- 播放器：点进度条轨道可直接跳转；跳转后继续播放不再花屏
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 
