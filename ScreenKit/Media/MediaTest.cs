@@ -345,6 +345,14 @@ static class MediaTest {
 			var want = (end - start) + 0.16;   // 前后各 80ms 气口
 			o($"抽出 PCM {pcm.Length} 字节 = {sec:0.###}s（期望约 {want:0.###}s）");
 			if (sec < want * 0.5 || sec > want * 1.6) { e($"FAIL 片段时长偏离：{sec:0.###}s"); bad++; }
+			// 长度必须是采样帧（S16 立体声 4 字节）的整数倍。
+			// 不是的话左右声道会错位，播出来就是一声爆响，不是原声。
+			if (pcm.Length % 4 != 0) { e($"FAIL 长度没对齐采样帧：{pcm.Length} % 4 = {pcm.Length % 4}"); bad++; }
+			// 首尾必须是淡入淡出的静音，直接切在波形半山腰会有「啪」的一声。
+			var first = (short)(pcm[0] | (pcm[1] << 8));
+			var last = (short)(pcm[pcm.Length - 2] | (pcm[pcm.Length - 1] << 8));
+			o($"首样本 {first}  末样本 {last}");
+			if (Math.Abs(first) > 2000 || Math.Abs(last) > 2000) { e($"FAIL 片段首尾没有淡出：{first}/{last}"); bad++; }
 
 			var nz = 0;
 			var total = pcm.Length / 2;
