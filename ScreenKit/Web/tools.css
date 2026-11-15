@@ -1538,6 +1538,7 @@ html[data-emjfont] .emjgrid .emjcell .emjg {
 	font: 13px/1.6 Consolas, "Cascadia Mono", "Microsoft YaHei UI", monospace;
 	user-select: text; -webkit-user-select: text;
 }
+.jv-kids.hide { display: none; }
 .jv-row { display: flex; align-items: flex-start; gap: 4px; white-space: pre-wrap; word-break: break-all; }
 .jv-row:hover { background: #f7f7f8; }
 .jv-tgl {
