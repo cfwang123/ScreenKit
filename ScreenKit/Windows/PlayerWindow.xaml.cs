@@ -64,7 +64,6 @@ public partial class PlayerWindow : Window {
 		InitializeComponent();
 		this.opt = opt;
 		layer = new TimedTextLayer(ptext);
-		SourceInitialized += (_, _) => darktitle();
 		icwords.ItemsSource = words;
 		dictlist.ItemsSource = dicthits;
 		wire();
@@ -81,6 +80,10 @@ public partial class PlayerWindow : Window {
 			loadopts();
 			list.Load();
 			updatelist();
+			// 启动只还原列表，不接着上次的位置播；时间与进度先归零
+			lbtime.Text = "00:00 / 00:00";
+			sseek.Value = 0;
+			bplay.Content = "▶";
 			starttimer();
 			applyform(form, false);
 		};
@@ -92,20 +95,6 @@ public partial class PlayerWindow : Window {
 	}
 
 	readonly OcrOptions opt;
-
-	/// <summary>系统标题栏跟着暗色走（Win10 1809 起支持，旧系统直接忽略）。</summary>
-	void darktitle() {
-		try {
-			var h = new WindowInteropHelper(this).Handle;
-			var v = 1;
-			if (DwmSetWindowAttribute(h, 20, ref v, sizeof(int)) != 0)
-				DwmSetWindowAttribute(h, 19, ref v, sizeof(int));
-		}
-		catch { }
-	}
-
-	[DllImport("dwmapi.dll")]
-	static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
 	void loadopts() {
 		var o = opt;
@@ -669,8 +658,9 @@ public partial class PlayerWindow : Window {
 	// ==================== 时钟与进度 ====================
 	#region
 	void updateclock(double pos) {
-		var dur = session.DurationSec > 0 ? session.DurationSec : list.Current?.DurationSec ?? 0;
-		lbtime.Text = $"{fmt(pos)} / {(dur > 0 ? fmt(dur) : "--:--")}";
+		var loaded = session.HasVideo || session.HasAudio;
+		var dur = session.DurationSec > 0 ? session.DurationSec : loaded ? list.Current?.DurationSec ?? 0 : 0;
+		lbtime.Text = loaded ? $"{fmt(pos)} / {(dur > 0 ? fmt(dur) : "--:--")}" : "00:00 / 00:00";
 		if (!seeking && dur > 0) {
 			var v = pos / dur;
 			sseek.Value = v < 0 ? 0 : v > 1 ? 1 : v;
@@ -799,7 +789,7 @@ public partial class PlayerWindow : Window {
 			}
 			if (prevstate == WindowState.Maximized) WindowState = WindowState.Maximized;
 			Topmost = topmost;
-			rowHead.Height = new GridLength(30);
+			rowHead.Height = new GridLength(1, GridUnitType.Auto);
 			phead.Visibility = Visibility.Visible;
 			autohide = false;
 			showpanel(true);

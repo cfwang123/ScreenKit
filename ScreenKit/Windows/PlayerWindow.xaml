@@ -5,7 +5,7 @@
         Width="1280" Height="720"
         MinWidth="720" MinHeight="420"
         ResizeMode="CanResize"
-        Background="#FF0B0E11"
+        Background="{StaticResource BgApp}"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="True"
         AllowDrop="True"
@@ -13,54 +13,29 @@
         UseLayoutRounding="True"
         AutomationProperties.AutomationId="player.window">
 	<Window.Resources>
-		<Style x:Key="tbBtn" TargetType="Button">
-			<Setter Property="Background" Value="#22FFFFFF"/>
-			<Setter Property="Foreground" Value="#FFE8EDF0"/>
-			<Setter Property="BorderThickness" Value="0"/>
-			<Setter Property="Padding" Value="10,4"/>
-			<Setter Property="Margin" Value="2,0"/>
-			<Setter Property="Cursor" Value="Hand"/>
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="Button">
-						<Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4"
-						        Padding="{TemplateBinding Padding}">
-							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-						</Border>
-						<ControlTemplate.Triggers>
-							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#44FFFFFF"/>
-							</Trigger>
-							<Trigger Property="IsPressed" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#66FFFFFF"/>
-							</Trigger>
-						</ControlTemplate.Triggers>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
 		<Style x:Key="flatSlider" TargetType="Slider">
 			<Setter Property="Height" Value="18"/>
 			<Setter Property="VerticalAlignment" Value="Center"/>
 		</Style>
 		<!-- 右栏页签 -->
-		<Style x:Key="darkTab" TargetType="TabItem">
-			<Setter Property="Foreground" Value="#FF8FA0A8"/>
+		<Style x:Key="tabItem" TargetType="TabItem">
+			<Setter Property="Foreground" Value="#4B5563"/>
 			<Setter Property="FontSize" Value="13"/>
 			<Setter Property="Cursor" Value="Hand"/>
 			<Setter Property="Template">
 				<Setter.Value>
 					<ControlTemplate TargetType="TabItem">
-						<Border x:Name="bd" Background="Transparent" CornerRadius="4" Padding="12,5" Margin="2,6,0,0">
+						<Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="12,5" Margin="2,6,0,0">
 							<ContentPresenter ContentSource="Header" HorizontalAlignment="Center"/>
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#FF171D23"/>
+								<Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
 							</Trigger>
 							<Trigger Property="IsSelected" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#FF1B2229"/>
-								<Setter Property="Foreground" Value="#FFE8EDF0"/>
+								<Setter TargetName="bd" Property="Background" Value="#EEF2FF"/>
+								<Setter Property="Foreground" Value="#312E81"/>
+								<Setter Property="FontWeight" Value="SemiBold"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
@@ -69,8 +44,8 @@
 		</Style>
 		<!-- 单词小片 -->
 		<Style x:Key="chip" TargetType="Button">
-			<Setter Property="Background" Value="#FF1B2229"/>
-			<Setter Property="Foreground" Value="#FFDCE4E9"/>
+			<Setter Property="Background" Value="#EEF2FF"/>
+			<Setter Property="Foreground" Value="#312E81"/>
 			<Setter Property="BorderThickness" Value="0"/>
 			<Setter Property="Padding" Value="9,4"/>
 			<Setter Property="Margin" Value="0,0,6,6"/>
@@ -85,10 +60,10 @@
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#FF26323C"/>
+								<Setter TargetName="bd" Property="Background" Value="#E0E7FF"/>
 							</Trigger>
 							<Trigger Property="IsPressed" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#FF33424E"/>
+								<Setter TargetName="bd" Property="Background" Value="#C7D2FE"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
@@ -96,8 +71,8 @@
 			</Setter>
 		</Style>
 		<!-- 列表行 -->
-		<Style x:Key="darkItem" TargetType="ListBoxItem">
-			<Setter Property="Foreground" Value="#FFDCE4E9"/>
+		<Style x:Key="listItem" TargetType="ListBoxItem">
+			<Setter Property="Foreground" Value="#1A202C"/>
 			<Setter Property="Padding" Value="8,5"/>
 			<Setter Property="Cursor" Value="Hand"/>
 			<Setter Property="Template">
@@ -109,10 +84,11 @@
 						</Border>
 						<ControlTemplate.Triggers>
 							<Trigger Property="IsMouseOver" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#FF1B2229"/>
+								<Setter TargetName="bd" Property="Background" Value="#F1F5F9"/>
 							</Trigger>
 							<Trigger Property="IsSelected" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#FF26323C"/>
+								<Setter TargetName="bd" Property="Background" Value="#C7D2FE"/>
+								<Setter Property="Foreground" Value="#1E1B4B"/>
 							</Trigger>
 						</ControlTemplate.Triggers>
 					</ControlTemplate>
@@ -121,9 +97,9 @@
 		</Style>
 	</Window.Resources>
 
-	<Grid x:Name="proot" Background="#FF0B0E11">
+	<Grid x:Name="proot" Background="{StaticResource BgApp}">
 		<Grid.RowDefinitions>
-			<RowDefinition x:Name="rowHead" Height="30"/>
+			<RowDefinition x:Name="rowHead" Height="Auto"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
@@ -133,30 +109,28 @@
 			<ColumnDefinition x:Name="colSide" Width="320" MinWidth="240" MaxWidth="560"/>
 		</Grid.ColumnDefinitions>
 
-		<!-- 标题栏 -->
 		<!-- 工具条：最小化/最大化/关闭用系统标题栏，这里只放功能按钮 -->
-		<Border x:Name="phead" Grid.Row="0" Grid.ColumnSpan="3" Background="#FF15191D">
-			<Grid>
-				<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,6,0">
-					<Button x:Name="bopen" Style="{StaticResource tbBtn}" Content="打开" ToolTip="打开文件或目录"/>
-					<Button x:Name="btop" Style="{StaticResource tbBtn}" Content="置顶" ToolTip="窗口固定在最前"/>
-					<Button x:Name="bfull" Style="{StaticResource tbBtn}" Content="全屏" ToolTip="全屏 (F)"/>
-					<Button x:Name="bside" Style="{StaticResource tbBtn}" Content="侧栏" ToolTip="显示或收起右侧栏 (H)"/>
-				</StackPanel>
-			</Grid>
+		<Border x:Name="phead" Grid.Row="0" Grid.ColumnSpan="3" Background="{StaticResource BgPanel}"
+		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,6">
+			<StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+				<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Content="打开" ToolTip="打开文件或目录"/>
+				<Button x:Name="btop" Style="{StaticResource ToolBtn}" Content="置顶" ToolTip="窗口固定在最前"/>
+				<Button x:Name="bfull" Style="{StaticResource ToolBtn}" Content="全屏" ToolTip="全屏 (F)"/>
+				<Button x:Name="bside" Style="{StaticResource ToolBtn}" Content="收起侧栏" ToolTip="显示或收起右侧栏 (H)"/>
+			</StackPanel>
 		</Border>
 
 		<!-- 画面与字幕 -->
-		<Grid Grid.Row="1" Grid.Column="0" x:Name="pstage" Background="#FF000000"
+		<Grid Grid.Row="1" Grid.Column="0" x:Name="pstage" Background="#FFEDF1F6"
 		      MouseLeftButtonDown="stagedown" MouseLeftButtonUp="stageup" MouseMove="stagemove">
 			<Image x:Name="imgvideo" Stretch="Uniform" SnapsToDevicePixels="True"
 			       RenderOptions.BitmapScalingMode="HighQuality"/>
 			<Grid x:Name="ptext" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
 			      IsHitTestVisible="False"/>
-			<TextBlock x:Name="lbempty" Text="把音视频文件拖到这里" Foreground="#FF56636B"
+			<TextBlock x:Name="lbempty" Text="把音视频文件拖到这里" Foreground="#94A3B8"
 			           FontSize="16" HorizontalAlignment="Center" VerticalAlignment="Center"
 			           IsHitTestVisible="False"/>
-			<Border x:Name="phud" Background="#99000000" CornerRadius="6" Padding="10,5"
+			<Border x:Name="phud" Background="#CC1E293B" CornerRadius="6" Padding="10,5"
 			        HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,12,0,0"
 			        Visibility="Collapsed" IsHitTestVisible="False">
 				<TextBlock x:Name="lbhud" Foreground="White" FontSize="12"/>
@@ -164,7 +138,8 @@
 		</Grid>
 
 		<!-- 底部控制条 -->
-		<Border Grid.Row="2" Grid.Column="0" x:Name="pbar" Background="#FF15191D" Padding="10,2,10,6">
+		<Border Grid.Row="2" Grid.Column="0" x:Name="pbar" Background="{StaticResource BgPanel}"
+		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,1,0,0" Padding="10,2,10,6">
 			<Grid>
 				<Grid.RowDefinitions>
 					<RowDefinition Height="16"/>
@@ -175,17 +150,17 @@
 				        Thumb.DragCompleted="seekdone" ValueChanged="seekchanged"/>
 				<Grid Grid.Row="1" Margin="0,4,0,0">
 					<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-						<Button x:Name="bplay" Style="{StaticResource tbBtn}" Content="▶" FontSize="14" Padding="12,4" ToolTip="播放/暂停 (空格)"/>
-						<Button x:Name="bprev" Style="{StaticResource tbBtn}" Content="⏮" ToolTip="上一个 (P)"/>
-						<Button x:Name="bnext" Style="{StaticResource tbBtn}" Content="⏭" ToolTip="下一个 (N)"/>
-						<TextBlock x:Name="lbtime" Text="00:00 / 00:00" Foreground="#FFB9C6CE" FontSize="12"
+						<Button x:Name="bplay" Style="{StaticResource PrimaryBtn}" Content="▶" FontSize="14" Padding="12,4" ToolTip="播放/暂停 (空格)"/>
+						<Button x:Name="bprev" Style="{StaticResource ToolBtn}" Content="⏮" ToolTip="上一个 (P)"/>
+						<Button x:Name="bnext" Style="{StaticResource ToolBtn}" Content="⏭" ToolTip="下一个 (N)"/>
+						<TextBlock x:Name="lbtime" Text="00:00 / 00:00" Foreground="#4B5563" FontSize="12"
 						           VerticalAlignment="Center" Margin="10,0,0,0"/>
-						<Button x:Name="bloop" Style="{StaticResource tbBtn}" Content="顺序" ToolTip="播放模式：顺序 / 随机 / 单曲循环 / 列表循环" Margin="10,0,0,0"/>
-						<Button x:Name="bsub" Style="{StaticResource tbBtn}" Content="字幕" ToolTip="字幕/歌词开关 (S)"/>
-						<Button x:Name="bsubopen" Style="{StaticResource tbBtn}" Content="字幕文件" ToolTip="手动选择字幕或歌词文件"/>
+						<Button x:Name="bloop" Style="{StaticResource ToolBtn}" Content="顺序" ToolTip="播放模式：顺序 / 随机 / 单曲循环 / 列表循环" Margin="10,0,0,0"/>
+						<Button x:Name="bsub" Style="{StaticResource ToolBtn}" Content="字幕" ToolTip="字幕/歌词开关 (S)"/>
+						<Button x:Name="bsubopen" Style="{StaticResource ToolBtn}" Content="字幕文件" ToolTip="手动选择字幕或歌词文件"/>
 					</StackPanel>
 					<StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-						<Button x:Name="bmute" Style="{StaticResource tbBtn}" Content="🔊" ToolTip="静音 (M)"/>
+						<Button x:Name="bmute" Style="{StaticResource ToolBtn}" Content="🔊" ToolTip="静音 (M)"/>
 						<Slider x:Name="svol" Style="{StaticResource flatSlider}" Width="100" Minimum="0"
 						        Maximum="1" Value="0.8" Margin="4,0,6,0"/>
 					</StackPanel>
@@ -198,22 +173,22 @@
 
 		<!-- 右侧栏：当前句单词 / 播放列表 / 词典 -->
 		<Border Grid.Row="1" Grid.RowSpan="2" Grid.Column="2" x:Name="pside"
-		        Background="#FF11151A" BorderBrush="#FF1F262C" BorderThickness="1,0,0,0">
+		        Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1,0,0,0">
 			<TabControl x:Name="tabside" BorderThickness="0" Background="Transparent"
-			            ItemContainerStyle="{StaticResource darkTab}">
+			            ItemContainerStyle="{StaticResource tabItem}">
 				<TabItem x:Name="tabwords" Header="单词">
 					<DockPanel>
-						<Border DockPanel.Dock="Top" Background="#FF15191D" Padding="10,6">
+						<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="10,6">
 							<DockPanel>
 								<TextBlock x:Name="lbwordcount" DockPanel.Dock="Right" FontSize="11"
-								           Foreground="#FF7E9098" VerticalAlignment="Center"/>
-								<TextBlock Text="当前句单词" FontSize="12" Foreground="#FF9AA9B2" VerticalAlignment="Center"/>
+								           Foreground="#4F46E5" VerticalAlignment="Center"/>
+								<TextBlock Text="当前句单词" FontSize="12" Foreground="#312E81" VerticalAlignment="Center"/>
 							</DockPanel>
 						</Border>
 						<ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10,8,10,8">
 							<StackPanel>
 								<TextBlock x:Name="lbwordhint" Text="拖入视频和字幕后，这里只列当前这句里的词"
-								           Foreground="#FF7E9098" FontSize="12" TextWrapping="Wrap"/>
+								           Foreground="#718096" FontSize="12" TextWrapping="Wrap"/>
 								<ItemsControl x:Name="icwords" Margin="0,8,0,0">
 									<ItemsControl.ItemsPanel>
 										<ItemsPanelTemplate>
@@ -234,18 +209,18 @@
 				</TabItem>
 				<TabItem x:Name="tablist" Header="列表">
 					<DockPanel>
-						<Border DockPanel.Dock="Top" Background="#FF15191D" Padding="10,6">
+						<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="10,6">
 							<WrapPanel Orientation="Horizontal">
-								<Button x:Name="baddfile" Style="{StaticResource tbBtn}" Content="添加文件"/>
-								<Button x:Name="badddir" Style="{StaticResource tbBtn}" Content="添加目录"/>
-								<Button x:Name="bclearlist" Style="{StaticResource tbBtn}" Content="清空"/>
-								<Button x:Name="bdropmiss" Style="{StaticResource tbBtn}" Content="清理失效"/>
-								<TextBlock x:Name="lblistcount" Text="0 项" Foreground="#FF7E9098" FontSize="12"
+								<Button x:Name="baddfile" Style="{StaticResource ToolBtnSm}" Content="添加文件"/>
+								<Button x:Name="badddir" Style="{StaticResource ToolBtnSm}" Content="添加目录"/>
+								<Button x:Name="bclearlist" Style="{StaticResource ToolBtnSm}" Content="清空"/>
+								<Button x:Name="bdropmiss" Style="{StaticResource ToolBtnSm}" Content="清理失效"/>
+								<TextBlock x:Name="lblistcount" Text="0 项" Foreground="#4F46E5" FontSize="12"
 								           VerticalAlignment="Center" Margin="6,0,0,0"/>
 							</WrapPanel>
 						</Border>
 						<ListBox x:Name="lblist" Background="Transparent" BorderThickness="0"
-						         Margin="6,4,6,8" ItemContainerStyle="{StaticResource darkItem}"
+						         Margin="6,4,6,8" ItemContainerStyle="{StaticResource listItem}"
 						         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
 						         VirtualizingStackPanel.IsVirtualizing="True"
 						         VirtualizingStackPanel.VirtualizationMode="Recycling"
@@ -259,7 +234,7 @@
 										</Grid.ColumnDefinitions>
 										<TextBlock Grid.Column="0" Text="{Binding Display}" TextTrimming="CharacterEllipsis"
 										           FontSize="12"/>
-										<TextBlock Grid.Column="1" Text="{Binding DurText}" Foreground="#FF7E9098"
+										<TextBlock Grid.Column="1" Text="{Binding DurText}" Foreground="#718096"
 										           FontSize="11" Margin="8,0,0,0"/>
 									</Grid>
 								</DataTemplate>
@@ -269,23 +244,23 @@
 				</TabItem>
 				<TabItem x:Name="tabdict" Header="词典">
 					<DockPanel>
-						<Border DockPanel.Dock="Top" Background="#FF15191D" Padding="10,6">
+						<Border DockPanel.Dock="Top" Background="#EEF2FF" Padding="10,6">
 							<StackPanel>
-								<TextBox x:Name="edictq" FontSize="15" Padding="6,4" Background="#FF1B2229"
-								         Foreground="#FFE8EDF0" BorderThickness="0" TextChanged="dictqchanged"
-								         ToolTip="查词：点字幕里的字会带过来"/>
+								<TextBox x:Name="edictq" FontSize="15" Padding="6,4" Background="White"
+								         Foreground="#1A202C" BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+								         TextChanged="dictqchanged" ToolTip="查词：点字幕里的字会带过来"/>
 								<TextBlock x:Name="lbouthint" Text="点字幕或单词里的词，这里显示释义"
-								           Foreground="#FF7E9098" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap"/>
+								           Foreground="#4F46E5" FontSize="11" Margin="0,5,0,0" TextWrapping="Wrap"/>
 							</StackPanel>
 						</Border>
 						<ListBox x:Name="dictlist" Background="Transparent" BorderThickness="0"
-						         Margin="6,4,6,8" ItemContainerStyle="{StaticResource darkItem}"
+						         Margin="6,4,6,8" ItemContainerStyle="{StaticResource listItem}"
 						         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 							<ListBox.ItemTemplate>
 								<DataTemplate>
 									<StackPanel>
-										<TextBlock Text="{Binding Title}" FontSize="14" Foreground="#FFE8EDF0" TextWrapping="Wrap"/>
-										<TextBlock Text="{Binding Preview}" FontSize="11" Foreground="#FF9AA9B2"
+										<TextBlock Text="{Binding Title}" FontSize="14" Foreground="#1A202C" TextWrapping="Wrap"/>
+										<TextBlock Text="{Binding Preview}" FontSize="11" Foreground="#718096"
 										           TextWrapping="Wrap" Margin="0,2,0,0"/>
 									</StackPanel>
 								</DataTemplate>
