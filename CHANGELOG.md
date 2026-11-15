@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: play video and audio in one window with subtitles, lyrics, karaoke-style progress mask, click-to-look-up words, playlists (sequential/shuffle/repeat-one/repeat-all), and five window forms (large/small/audio bar/fullscreen/translucent).
 - Media player: click the video area to start or pause playback
 - Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved
+- Media player: clicking a word in the study list opens the dictionary window for it
 
 #### Changed
 
@@ -92,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: stop dropping video packets when the queue is full, which broke the H.264 reference chain and caused garbled frames
 - TTS: SAPI voice list now filters by language for Japanese, Korean and other languages
 - Media player: clicking the seek bar now jumps immediately, and seeking no longer leaves garbled frames after resuming playback
+- Media player: word clips no longer play a blast of noise (sample-frame alignment, send/receive loop, edge fades)
 
 ### 中文
 
@@ -104,6 +106,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、点词查词、播放列表（顺序/随机/单曲循环/列表循环），以及大窗口、小窗、音频条、全屏、半透明五种形态。
 - 媒体播放器：在视频画面区单击即可播放或暂停
 - 播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住
+- 媒体播放器：在学习列表点一个词会弹出词典窗口查这个词
 
 #### 变更
 
@@ -135,6 +138,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 播放器：队列满时不再丢视频包（会破坏 H.264 参考帧导致花屏），改为背压等待、必要时跳到下一个关键帧重建
 - 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤
 - 播放器：点进度条轨道可直接跳转；跳转后继续播放不再花屏
+- 媒体播放器：点「原声」不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

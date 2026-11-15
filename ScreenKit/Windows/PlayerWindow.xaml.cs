@@ -899,7 +899,7 @@ public partial class PlayerWindow : Window {
 				dictwin.SearchText(word);
 				return;
 			}
-			dictwin = new DictHostWindow(word, () => opt, null);
+			dictwin = new DictHostWindow(word, () => opt, _ => { });
 			dictwin.Owner = this;
 			dictwin.Closed += (_, _) => dictwin = null;
 			dictwin.Show();
@@ -1584,6 +1584,19 @@ public partial class PlayerWindow : Window {
 		stageclick();
 		render();
 		return $"paused {before}->{state.Paused} hasfile={list.Current != null} icon={bplay.Content}";
+	}
+
+	/// <summary>自测用：点一个生词，回传词典窗口是否弹出、查的是哪个词。</summary>
+	public string ClickWord(string word) {
+		selectword(word);
+		var open = dictwin != null && dictwin.IsVisible;
+		var title = dictwin?.Title ?? "";
+		// 复用同一窗口：再点一次另一个词，应当还是同一个窗口对象
+		var first = dictwin;
+		selectword(word + "x");
+		var reused = ReferenceEquals(first, dictwin);
+		selectword(word);
+		return $"word='{word}' dictopen={open} reused={reused} title='{title}' query='{state.StudyQuery}'";
 	}
 
 	/// <summary>自测用：把字幕整体上下移动 dy 像素（正数向上），走与拖动同一条路径，返回移动后的底部留白。</summary>

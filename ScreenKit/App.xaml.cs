@@ -282,6 +282,13 @@ public partial class App : System.Windows.Application {
 					await System.Threading.Tasks.Task.Delay(2500);
 				}
 				var baseName = Path.Combine(Path.GetDirectoryName(shotPath) ?? ".", Path.GetFileNameWithoutExtension(shotPath));
+				// --player-word <词>：点一个生词，验证会弹出词典窗口
+				var wordArg = Array.IndexOf(args, "--player-word");
+				if (wordArg >= 0 && wordArg + 1 < args.Length) {
+					sb.AppendLine("word: " + pw.ClickWord(args[wordArg + 1]));
+					await System.Threading.Tasks.Task.Delay(800);
+					sb.AppendLine(pw.ShotTo($"{baseName}_dict.png"));
+				}
 				sb.AppendLine(pw.ShotTo(shotPath));
 				// 再连拍两张，方便看蒙版推进
 				for (var i = 1; i <= 2; i++) {
