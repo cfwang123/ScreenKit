@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: click the video area to start or pause playback
 - Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved
 - Media player: clicking a word in the study list opens the dictionary window for it
+- Media player: added a stop button beside play (also X). It rewinds to the start and pauses, so pressing play begins the file again. The play / stop / previous / next icons are now vector paths instead of font symbols.
 
 #### Changed
 
@@ -108,6 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 媒体播放器：在视频画面区单击即可播放或暂停
 - 播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住
 - 媒体播放器：在学习列表点一个词会弹出词典窗口查这个词
+- 媒体播放器：播放键旁增加停止按钮（也可按 X），停止后回到开头并暂停，再按播放从头开始；播放、停止、上一个、下一个的图标改为矢量路径绘制，不再使用字体符号。
 
 #### 变更
 

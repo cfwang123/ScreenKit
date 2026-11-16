@@ -195,7 +195,8 @@ public partial class PlayerWindow : Window {
 			updatelist();
 			lbtime.Text = "00:00 / 00:00";
 			sseek.Value = 0;
-			bplay.Content = "▶";
+			bplay.ToolTip = "播放 (空格)";
+			syncplayicon(true);
 			starttimer();
 			applyform(state.Mode);
 		};
@@ -255,6 +256,7 @@ public partial class PlayerWindow : Window {
 		bplay.Click += (_, _) => toggleplay();
 		bprev.Click += (_, _) => playprev();
 		bnext.Click += (_, _) => playnext(true);
+		bstop.Click += (_, _) => stop();
 		bfull.Click += (_, _) => togglefull();
 		bside.Click += (_, _) => toggleside();
 		btop.Click += (_, _) => togglepin();
@@ -386,8 +388,9 @@ public partial class PlayerWindow : Window {
 		pbar.Visibility = bars ? Visibility.Visible : Visibility.Collapsed;
 		Cursor = full && !bars ? Cursors.None : Cursors.Arrow;
 
-		bplay.Content = s.Paused ? "▶" : "⏸";
 		bplay.ToolTip = s.Paused ? "播放 (空格)" : "暂停 (空格)";
+		syncplayicon(s.Paused);
+		bstop.IsEnabled = list.Current != null;
 		bsub.IsChecked = s.SubtitleOn;
 		btop.IsChecked = s.Topmost;
 		bmute.IsChecked = s.Muted;
@@ -489,6 +492,27 @@ public partial class PlayerWindow : Window {
 		if (state.Paused) stopclip();
 		state.LastActivityTick = Environment.TickCount;
 		render();
+	}
+
+	// 暂停中显示三角，播放中显示两条竖线
+	void syncplayicon(bool paused) {
+		icoplay.Data = (Geometry)FindResource(paused ? "icoPlay" : "icoPause");
+		icoplay.Width = icoplay.Height = paused ? 13 : 12;
+	}
+
+	/// <summary>停止：回到开头并暂停，画面停在首帧；再点播放从头开始。</summary>
+	void stop() {
+		if (list.Current == null) { hud("还没有播放文件"); return; }
+		stopclip();
+		session.Seek(0);
+		session.Pause();
+		state.Paused = true;
+		lastpos = -1;
+		lastseq = -1;
+		updateclock(0);
+		updatetext(0);
+		render();
+		hud("已停止");
 	}
 
 	void playnext(bool byuser) {
@@ -1474,6 +1498,7 @@ public partial class PlayerWindow : Window {
 			case Key.N: playnext(true); e.Handled = true; break;
 			case Key.P: playprev(); e.Handled = true; break;
 			case Key.M: togglemute(); e.Handled = true; break;
+			case Key.X: stop(); e.Handled = true; break;
 			case Key.D1: settab(SideTab.List); e.Handled = true; break;
 			case Key.D2: settab(SideTab.Study); e.Handled = true; break;
 			case Key.D3: settab(SideTab.Subtitle); e.Handled = true; break;
@@ -1583,7 +1608,16 @@ public partial class PlayerWindow : Window {
 		var before = state.Paused;
 		stageclick();
 		render();
-		return $"paused {before}->{state.Paused} hasfile={list.Current != null} icon={bplay.Content}";
+		return $"paused {before}->{state.Paused} hasfile={list.Current != null} pos={session.PositionSec:0.##}";
+	}
+
+	/// <summary>自测用：点停止再点播放，回传停止后的位置与恢复播放的状态。</summary>
+	public string ClickStopAndPlay() {
+		var before = session.PositionSec;
+		stop();
+		var afterStop = $"pos={session.PositionSec:0.##} paused={state.Paused}";
+		toggleplay();
+		return $"before={before:0.##} stop[{afterStop}] play[paused={state.Paused} pos={session.PositionSec:0.##}]";
 	}
 
 	/// <summary>自测用：点一个生词，回传词典窗口是否弹出、查的是哪个词。</summary>

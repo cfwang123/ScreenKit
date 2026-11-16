@@ -302,6 +302,17 @@ public partial class App : System.Windows.Application {
 				// --player-click 行,字：点字幕里的字，验证取词与释义
 				var clickArg = Array.IndexOf(args, "--player-click");
 				if (clickArg >= 0 && clickArg + 1 < args.Length) {
+					if (args[clickArg + 1].Equals("stop", StringComparison.OrdinalIgnoreCase)) {
+						await System.Threading.Tasks.Task.Delay(1200);
+						sb.AppendLine("stop: " + pw.ClickStopAndPlay());
+						await System.Threading.Tasks.Task.Delay(1200);
+						sb.AppendLine("stop2: " + pw.ClickStage());
+						await System.Threading.Tasks.Task.Delay(300);
+						sb.AppendLine(pw.ShotTo($"{baseName}_stop.png"));
+						File.WriteAllText(txt, sb.ToString());
+						Shutdown(0);
+						return;
+					}
 					if (args[clickArg + 1].Equals("stage", StringComparison.OrdinalIgnoreCase)) {
 						sb.AppendLine("stage: " + pw.ClickStage());
 						await System.Threading.Tasks.Task.Delay(600);

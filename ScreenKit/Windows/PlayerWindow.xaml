@@ -13,6 +13,13 @@
         UseLayoutRounding="True"
         AutomationProperties.AutomationId="player.window">
 	<Window.Resources>
+		<!-- 播放控制图标：矢量路径，按当前前景色填充，不用字体符号 -->
+		<Geometry x:Key="icoPlay">M3,1.5 L13.5,8 L3,14.5 Z</Geometry>
+		<Geometry x:Key="icoPause">M3.5,1.5 L7,1.5 L7,14.5 L3.5,14.5 Z M9,1.5 L12.5,1.5 L12.5,14.5 L9,14.5 Z</Geometry>
+		<Geometry x:Key="icoStop">M3.5,3.5 L12.5,3.5 L12.5,12.5 L3.5,12.5 Z</Geometry>
+		<Geometry x:Key="icoPrev">M3,2 L5,2 L5,14 L3,14 Z M13.5,2 L5.8,8 L13.5,14 Z</Geometry>
+		<Geometry x:Key="icoNext">M11,2 L13,2 L13,14 L11,14 Z M2.5,2 L10.2,8 L2.5,14 Z</Geometry>
+
 		<Style x:Key="flatSlider" TargetType="Slider">
 			<Setter Property="Height" Value="18"/>
 			<Setter Property="VerticalAlignment" Value="Center"/>
@@ -42,6 +49,22 @@
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
+		</Style>
+
+		<!-- 播放控制图标按钮：定宽定高，图标用矢量路径 -->
+		<Style x:Key="icoBtn" TargetType="Button" BasedOn="{StaticResource ToolBtn}">
+			<Setter Property="Width" Value="34"/>
+			<Setter Property="Height" Value="28"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Margin" Value="0,0,3,0"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
+		</Style>
+		<Style x:Key="icoPrimaryBtn" TargetType="Button" BasedOn="{StaticResource PrimaryBtn}">
+			<Setter Property="Width" Value="40"/>
+			<Setter Property="Height" Value="28"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Margin" Value="0,0,3,0"/>
+			<Setter Property="VerticalAlignment" Value="Center"/>
 		</Style>
 
 		<!-- 双态按钮：置顶 / 侧栏 / 字幕 / 静音 / 模式 -->
@@ -354,10 +377,26 @@
 					<!-- 传输 / 模式 / 字幕：放不下就换行，不压住音量 -->
 					<WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
 						<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-							<Button x:Name="bplay" Style="{StaticResource PrimaryBtn}" Content="▶" FontSize="14" Padding="12,4"
-							        ToolTip="播放/暂停 (空格)" AutomationProperties.AutomationId="player.play"/>
-							<Button x:Name="bprev" Style="{StaticResource ToolBtn}" Content="⏮" ToolTip="上一个 (P)"/>
-							<Button x:Name="bnext" Style="{StaticResource ToolBtn}" Content="⏭" ToolTip="下一个 (N)"/>
+							<Button x:Name="bplay" Style="{StaticResource icoPrimaryBtn}"
+							        ToolTip="播放/暂停 (空格)" AutomationProperties.AutomationId="player.play">
+								<Path x:Name="icoplay" Data="{StaticResource icoPlay}" Fill="White"
+								      Stretch="Uniform" Width="13" Height="13"/>
+							</Button>
+							<Button x:Name="bstop" Style="{StaticResource icoBtn}" ToolTip="停止（回到开头）(X)"
+							        AutomationProperties.AutomationId="player.stop">
+								<Path x:Name="icostop" Data="{StaticResource icoStop}" Fill="#3F4A57"
+								      Stretch="Uniform" Width="12" Height="12"/>
+							</Button>
+							<Button x:Name="bprev" Style="{StaticResource icoBtn}" ToolTip="上一个 (P)"
+							        AutomationProperties.AutomationId="player.prev">
+								<Path x:Name="icoprev" Data="{StaticResource icoPrev}" Fill="#3F4A57"
+								      Stretch="Uniform" Width="13" Height="13"/>
+							</Button>
+							<Button x:Name="bnext" Style="{StaticResource icoBtn}" ToolTip="下一个 (N)"
+							        AutomationProperties.AutomationId="player.next">
+								<Path x:Name="iconext" Data="{StaticResource icoNext}" Fill="#3F4A57"
+								      Stretch="Uniform" Width="13" Height="13"/>
+							</Button>
 						</StackPanel>
 						<StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
 							<ToggleButton x:Name="bmode" Style="{StaticResource togBtn}" Content="模式" ToolTip="播放模式（四选一）"
