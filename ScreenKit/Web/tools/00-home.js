@@ -233,7 +233,7 @@
 						x:"button",
 						"type":"button",
 						"data-tool":"u-cam",
-						"data-cat":"image",
+						"data-cat":"speech",
 						"data-name":"相机 拍照 扫码 摄像头",
 						"title":"用摄像头拍照或扫码",
 						c:[
@@ -246,7 +246,7 @@
 						x:"button",
 						"type":"button",
 						"data-tool":"u-rtsp",
-						"data-cat":"image",
+						"data-cat":"speech",
 						"data-name":"rtsp 视频 监控 直播 播放",
 						"title":"填写 RTSP 地址，在网页里播放 H.264",
 						c:[

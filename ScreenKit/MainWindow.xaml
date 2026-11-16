@@ -174,6 +174,24 @@
 					<MenuItem x:Name="mnmidi" Header="MIDI 合成器(_M)…"
 					          AutomationProperties.AutomationId="menu.midisynth"
 					          ToolTip="弹琴，打开、编辑并保存 MIDI 文件"/>
+					<MenuItem x:Name="mnplayer" Header="媒体播放器(_P)…"
+					          AutomationProperties.AutomationId="menu.player"
+					          ToolTip="播放音视频，支持字幕歌词、点词查词、播放列表和多种窗口形态"/>
+					<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
+					          AutomationProperties.AutomationId="menu.vidconv"
+					          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>
+					<MenuItem x:Name="mnvidgif" Header="视频转 GIF(_G)…"
+					          AutomationProperties.AutomationId="menu.vidgif"
+					          ToolTip="预览视频，选取起止时间，按帧率和调色板生成 GIF"/>
+					<MenuItem x:Name="mncam" Header="相机(_1)…"
+					          AutomationProperties.AutomationId="menu.cam"
+					          ToolTip="用摄像头拍照、录像，或扫描二维码和条码"/>
+					<MenuItem x:Name="mnrtspsrv" Header="RTSP 测试服务器…"
+					          AutomationProperties.AutomationId="menu.rtspsrv"
+					          ToolTip="弹跳画面推成 H.264，本机开一个 RTSP 端口"/>
+					<MenuItem x:Name="mncast" Header="投屏(_S)"
+					          AutomationProperties.AutomationId="menu.cast"
+					          ToolTip="手机投屏（WiFi / USB / ADB）"/>
 				</MenuItem>
 				<MenuItem x:Name="mncattime" Header="历法(_L)"
 				          AutomationProperties.AutomationId="menu.cat.time">
@@ -195,30 +213,12 @@
 					<MenuItem x:Name="mnpixel" Header="像素画(_D)…"
 					          AutomationProperties.AutomationId="menu.pixel"
 					          ToolTip="选定宽高后用大格作画，旁边按真实像素预览"/>
-					<MenuItem x:Name="mnplayer" Header="媒体播放器(_P)…"
-					          AutomationProperties.AutomationId="menu.player"
-					          ToolTip="播放音视频，支持字幕歌词、点词查词、播放列表和多种窗口形态"/>
-					<MenuItem x:Name="mnvidconv" Header="视频批量转换(_V)…"
-					          AutomationProperties.AutomationId="menu.vidconv"
-					          ToolTip="批量转换视频格式，可设 CRF 和较短边"/>
-					<MenuItem x:Name="mnvidgif" Header="视频转 GIF(_G)…"
-					          AutomationProperties.AutomationId="menu.vidgif"
-					          ToolTip="预览视频，选取起止时间，按帧率和调色板生成 GIF"/>
 					<MenuItem x:Name="mnqrmake" Header="二维码 / 条码生成(_Q)…"
 					          AutomationProperties.AutomationId="menu.qrmake"
 					          ToolTip="生成二维码或条码，图下显示原文"/>
-					<MenuItem x:Name="mncam" Header="相机(_1)…"
-					          AutomationProperties.AutomationId="menu.cam"
-					          ToolTip="用摄像头拍照、录像，或扫描二维码和条码"/>
-					<MenuItem x:Name="mnrtspsrv" Header="RTSP 测试服务器…"
-					          AutomationProperties.AutomationId="menu.rtspsrv"
-					          ToolTip="弹跳画面推成 H.264，本机开一个 RTSP 端口"/>
 					<MenuItem x:Name="mnglyphmod" Header="字符点阵提取(_E)…"
 					          AutomationProperties.AutomationId="menu.glyphmod"
 					          ToolTip="把字符画成点阵，导出 C 代码"/>
-					<MenuItem x:Name="mncast" Header="投屏(_S)"
-					          AutomationProperties.AutomationId="menu.cast"
-					          ToolTip="手机投屏（WiFi / USB / ADB）"/>
 				</MenuItem>
 				<MenuItem x:Name="mninfo" Header="信息查询(_I)"
 				          AutomationProperties.AutomationId="menu.info"
