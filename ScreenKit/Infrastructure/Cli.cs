@@ -60,11 +60,11 @@ static class Cli {
 				or "--test-lang"
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
-				or "--test-media" or "--test-subtitle" or "--test-subtitle-hit" or "--test-karaoke" or "--test-playlist" or "--test-natsort" or "--test-player-clip"
+				or "--test-media" or "--test-seek" or "--test-subtitle" or "--test-subtitle-hit" or "--test-karaoke" or "--test-playlist" or "--test-natsort" or "--test-player-clip"
 				or "--test-hash" or "--test-codestat" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
-				or "--test-wintop" or "--test-sql" or "--test-sqlexport" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt" or "--test-wsdbg"
+				or "--test-wintop" or "--test-sql" or "--test-sqlexport" or "--test-sqlconv" or "--sqlconv" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt" or "--test-wsdbg"
 				or "--fc-copy" or "--fc-cut" or "--fc-delete" or "--fc-paths"
 				or "--fc-symlink" or "--fc-hardlink" or "--fc-size" or "--fc-settings"
 				or "--fc-paste" or "--fc-clear" or "--fc-register" or "--fc-unregister"
@@ -338,6 +338,12 @@ static class Cli {
 					var mf = i + 1 < args.Length ? args[i + 1] : "";
 					return MediaTest.Media(mf);
 				}
+				case "--test-seek": {
+					MediaTest.Attach(Out, Err);
+					var kf = i + 1 < args.Length ? args[i + 1] : "";
+					var kt = i + 2 < args.Length && double.TryParse(args[i + 2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var kd) ? kd : -1;
+					return MediaTest.SeekTest(kf, kt);
+				}
 				case "--test-subtitle": {
 					MediaTest.Attach(Out, Err);
 					var sf = i + 1 < args.Length ? args[i + 1] : "";
@@ -454,6 +460,10 @@ static class Cli {
 					return testsql();
 				case "--test-sqlexport":
 					return testsqlexport(args, i);
+				case "--test-sqlconv":
+					return testsqlconv();
+				case "--sqlconv":
+					return sqlconvfile(args, i);
 				case "--test-autokey":
 					return testautokey();
 				case "--test-fastcopy":
@@ -7854,6 +7864,218 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			try { File.Delete(db); } catch { }
 		}
 		Out(bad == 0 ? "=== OK：数据库查询 ===" : $"=== FAIL bad={bad} ===");
+		return bad == 0 ? 0 : 1;
+	}
+
+	/// <summary>--sqlconv &lt;源.sql&gt; &lt;目标引擎&gt; [输出.sql] [目标版本]：按文件跑一次方言转换，便于核对真实脚本。</summary>
+	static int sqlconvfile(string[] args, int i) {
+		if (i + 2 >= args.Length) {
+			Err("用法：--sqlconv <源.sql> <sqlite|mysql|mssql|oracle|postgres> [输出.sql] [版本如 16.0]");
+			return 2;
+		}
+		var src = args[i + 1];
+		var eng = args[i + 2].ToLowerInvariant();
+		var dst = eng switch {
+			"mysql" => SqlEngine.Mysql,
+			"mssql" => SqlEngine.Mssql,
+			"oracle" => SqlEngine.Oracle,
+			"postgres" or "pg" => SqlEngine.Postgres,
+			_ => SqlEngine.Sqlite,
+		};
+		var outp = i + 3 < args.Length && !args[i + 3].StartsWith("-", StringComparison.Ordinal) ? args[i + 3] : null;
+		Version ver = null;
+		if (i + 4 < args.Length && Version.TryParse(args[i + 4], out var v)) ver = v;
+		if (!File.Exists(src)) {
+			Err("找不到文件 " + src);
+			return 1;
+		}
+		var text = SqlScript.ReadText(src);
+		var det = SqlScript.Detect(text);
+		Out($"识别：{det.Summary}");
+		foreach (var r in det.Reasons) Out("  - " + r);
+		var res = SqlScript.Convert(text, new SqlConvertOptions {
+			Source = det.Engine, SourceVersion = det.Version,
+			Target = dst, TargetVersion = ver ?? SqlEngines.Default(dst),
+		});
+		if (res.Error.Length > 0) {
+			Err("FAIL: " + res.Error);
+			return 1;
+		}
+		Out($"目标：{SqlEngines.Label(dst, ver ?? SqlEngines.Default(dst))}  表 {res.Tables}  行 {res.Rows}  索引 {res.Indexes}  保留 {res.Kept}");
+		if (outp != null) {
+			SqlScript.WriteText(outp, res.Text);
+			Out("已写 " + outp);
+		}
+		else Out(res.Text);
+		return 0;
+	}
+
+	/// <summary>方言转换：识别、重新建表、改写字面量，再核对目标脚本里的关键行。</summary>
+	static int testsqlconv() {
+		Out("=== SQL 方言转换 --test-sqlconv ===");
+		var bad = 0;
+		const string my = "CREATE TABLE `users` (\n" +
+			"  `id` int NOT NULL AUTO_INCREMENT,\n" +
+			"  `name` varchar(50) NOT NULL COMMENT 'name',\n" +
+			"  `created` datetime DEFAULT CURRENT_TIMESTAMP,\n" +
+			"  `note` text,\n" +
+			"  PRIMARY KEY (`id`),\n" +
+			"  UNIQUE KEY `uk_name` (`name`)\n" +
+			") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n" +
+			"INSERT INTO `users` (`id`, `name`, `note`) VALUES (1, 'a\\'b', NULL),(2, '中文', 'x');\n";
+		var det = SqlScript.Detect(my);
+		if (det.Engine != SqlEngine.Mysql) {
+			Err("FAIL: 识别 MySQL 失败 -> " + det.Engine);
+			bad++;
+		}
+		var toPg = SqlScript.Convert(my, new SqlConvertOptions {
+			Source = det.Engine, SourceVersion = det.Version,
+			Target = SqlEngine.Postgres, TargetVersion = new Version(16, 0),
+		});
+		if (toPg.Error.Length > 0) {
+			Err("FAIL: 转 PostgreSQL " + toPg.Error);
+			bad++;
+		}
+		else {
+			var t = toPg.Text;
+			if (t.IndexOf("CREATE TABLE \"users\"", StringComparison.Ordinal) < 0) {
+				Err("FAIL: PostgreSQL 表名没加双引号");
+				bad++;
+			}
+			if (t.IndexOf("integer", StringComparison.Ordinal) < 0 || t.IndexOf("GENERATED BY DEFAULT AS IDENTITY", StringComparison.Ordinal) < 0) {
+				Err("FAIL: PostgreSQL 自增列改写");
+				bad++;
+			}
+			// MySQL 反斜杠转义要还原成一个单引号
+			if (t.IndexOf("'a''b'", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 字符串转义未还原");
+				bad++;
+			}
+			if (t.IndexOf("INSERT INTO \"users\"", StringComparison.Ordinal) < 0) {
+				Err("FAIL: INSERT 未改写");
+				bad++;
+			}
+			if (toPg.Tables != 1 || toPg.Rows != 2 || toPg.Indexes != 1) {
+				Err($"FAIL: 统计 tables={toPg.Tables} rows={toPg.Rows} idx={toPg.Indexes}");
+				bad++;
+			}
+		}
+
+		const string ms = "SET NOCOUNT ON;\nCREATE TABLE [dbo].[Item] (\n" +
+			"  [Id] INT IDENTITY(1,1) NOT NULL PRIMARY KEY,\n" +
+			"  [Title] NVARCHAR(80) NULL,\n" +
+			"  [Price] DECIMAL(18,2) NULL,\n" +
+			"  [Created] DATETIME2(3) NULL,\n" +
+			");\n" +
+			"INSERT INTO [dbo].[Item] ([Id],[Title],[Price]) VALUES (1,N'商品A',12.50),(2,N'B',NULL);\n";
+		var d2 = SqlScript.Detect(ms);
+		if (d2.Engine != SqlEngine.Mssql) {
+			Err("FAIL: 识别 SQL Server 失败 -> " + d2.Engine);
+			bad++;
+		}
+		var toSQLite = SqlScript.Convert(ms, new SqlConvertOptions {
+			Source = d2.Engine, SourceVersion = d2.Version,
+			Target = SqlEngine.Sqlite, TargetVersion = new Version(3, 45),
+		});
+		if (toSQLite.Error.Length > 0) {
+			Err("FAIL: 转 SQLite " + toSQLite.Error);
+			bad++;
+		}
+		else {
+			var t = toSQLite.Text;
+			if (t.IndexOf("AUTOINCREMENT", StringComparison.Ordinal) < 0) {
+				Err("FAIL: SQLite 自增");
+				bad++;
+			}
+			// 表名带 schema 前缀要拆掉，否则 SQLite 里建到了不存在的库
+			if (t.IndexOf("[dbo]", StringComparison.Ordinal) >= 0 || t.IndexOf("\"Item\"", StringComparison.Ordinal) < 0) {
+				Err("FAIL: schema 前缀未去掉");
+				bad++;
+			}
+			// 源里的 N'' 前缀要去掉，输出统一是普通单引号字面量
+			if (t.IndexOf("'商品A'", StringComparison.Ordinal) < 0 || t.IndexOf("N'商品A'", StringComparison.Ordinal) >= 0) {
+				Err("FAIL: N'' 前缀未处理");
+				bad++;
+			}
+			if (t.IndexOf("N'B'", StringComparison.Ordinal) >= 0 || t.IndexOf("'B'", StringComparison.Ordinal) < 0) {
+				Err("FAIL: 仍输出 N 前缀");
+				bad++;
+			}
+		}
+
+		// 落到真实 SQLite 库再读回来，确认脚本本身能执行
+		var db = Path.Combine(Path.GetTempPath(), "sk-sqlconv-" + Environment.TickCount + ".db");
+		try {
+			using (var cn = SqlTool.Connect(SqlTool.Sqlite, SqlTool.SqliteConn(db), out var err)) {
+				if (cn == null) {
+					Err("FAIL: 打不开临时库 " + err);
+					bad++;
+				}
+				else {
+					var sw = toSQLite.Text;
+					// PRAGMA 与多条 INSERT 都是合法的 SQLite 语句，这里只跑建表与数据部分
+					var run = SqlTool.Run(cn, sw, 10);
+					if (run.Error.Length > 0) {
+						Err("FAIL: 执行转换后的脚本 " + run.Error);
+						bad++;
+					}
+					else {
+						var cnt = SqlTool.Run(cn, "SELECT COUNT(*) FROM \"Item\"", 1);
+						if (cnt.Error.Length > 0 || cnt.Rows.Count == 0 || cnt.Rows[0][0] != "2") {
+							Err($"FAIL: 导入行数 {cnt.Error} {(cnt.Rows.Count > 0 ? cnt.Rows[0][0] : "-")}");
+							bad++;
+						}
+					}
+				}
+			}
+		}
+		finally {
+			try { File.Delete(db); } catch { }
+		}
+
+		// Oracle 目标：DATE 字面量要走 TO_DATE，标识符按大写
+		var toOra = SqlScript.Convert(ms, new SqlConvertOptions {
+			Source = SqlEngine.Mssql, SourceVersion = new Version(13, 0),
+			Target = SqlEngine.Oracle, TargetVersion = new Version(19, 0),
+		});
+		if (toOra.Error.Length == 0) {
+			if (toOra.Text.IndexOf("VARCHAR2(80)", StringComparison.Ordinal) < 0) {
+				Err("FAIL: Oracle 文本类型");
+				bad++;
+			}
+			if (toOra.Text.IndexOf("NUMBER(18,2)", StringComparison.Ordinal) < 0) {
+				Err("FAIL: Oracle 数值类型");
+				bad++;
+			}
+			if (toOra.Text.IndexOf("GENERATED BY DEFAULT AS IDENTITY", StringComparison.Ordinal) < 0) {
+				Err("FAIL: Oracle 12c 自增");
+				bad++;
+			}
+		}
+		else {
+			Err("FAIL: 转 Oracle " + toOra.Error);
+			bad++;
+		}
+
+		// 目标 SQL Server 时也不写 N 前缀：中文照原样用普通单引号
+		var toMs = SqlScript.Convert(my, new SqlConvertOptions {
+			Source = SqlEngine.Mysql, SourceVersion = new Version(8, 0),
+			Target = SqlEngine.Mssql, TargetVersion = new Version(16, 0),
+		});
+		if (toMs.Error.Length > 0) {
+			Err("FAIL: 转 SQL Server " + toMs.Error);
+			bad++;
+		}
+		else if (toMs.Text.IndexOf("N'", StringComparison.Ordinal) >= 0) {
+			Err("FAIL: SQL Server 输出仍带 N 前缀");
+			bad++;
+		}
+		else if (toMs.Text.IndexOf("'中文'", StringComparison.Ordinal) < 0) {
+			Err("FAIL: SQL Server 中文未按普通单引号输出");
+			bad++;
+		}
+
+		Out(bad == 0 ? "=== OK：SQL 方言转换 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
 	}
 

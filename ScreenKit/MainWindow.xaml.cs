@@ -128,6 +128,7 @@ public partial class MainWindow : Window {
 	JpYomiWindow jpYomiWin;
 	WinTopWindow winTopWin;
 	SqlWindow sqlWin;
+	SqlConvWindow sqlConvWin;
 	AutoKeyWindow autoKeyWin;
 	FastCopyWindow fastCopyWin;
 	GlyphModWindow glyphModWin;
@@ -1941,6 +1942,7 @@ public partial class MainWindow : Window {
 		mnjpyomi.Click += (_, _) => openjpyomi();
 		mnwintop.Click += (_, _) => openwintop();
 		mnsql.Click += (_, _) => opensql();
+		mnsqlconv.Click += (_, _) => opensqlconv();
 		mnautokey.Click += (_, _) => openautokey();
 		mnfastcopy.Click += (_, _) => openfastcopy();
 		mnglyphmod.Click += (_, _) => openglyphmod();
@@ -2167,6 +2169,8 @@ public partial class MainWindow : Window {
 			mnwintop.ToolTip = Loc.T("menu.wintop.tip");
 			mnsql.Header = Loc.T("menu.sql");
 			mnsql.ToolTip = Loc.T("menu.sql.tip");
+			mnsqlconv.Header = Loc.T("menu.sqlconv");
+			mnsqlconv.ToolTip = Loc.T("menu.sqlconv.tip");
 			mnautokey.Header = Loc.T("menu.autokey");
 			mnautokey.ToolTip = Loc.T("menu.autokey.tip");
 			mnfastcopy.Header = Loc.T("menu.fastcopy");
@@ -5001,6 +5005,9 @@ public partial class MainWindow : Window {
 	void opensql() =>
 		opentoolwin(ref sqlWin, () => new SqlWindow(), "menu.sql");
 
+	void opensqlconv() =>
+		opentoolwin(ref sqlConvWin, () => new SqlConvWindow(), "menu.sqlconv");
+
 	void openautokey() {
 		opentoolwin(ref autoKeyWin, () => new AutoKeyWindow(opt, autokeytoggle, registerhotkey), "menu.autokey");
 		var err = bindautokeyhotkey();
@@ -5189,6 +5196,7 @@ public partial class MainWindow : Window {
 				else if (ReferenceEquals(jpYomiWin, w)) jpYomiWin = null;
 				else if (ReferenceEquals(winTopWin, w)) winTopWin = null;
 				else if (ReferenceEquals(sqlWin, w)) sqlWin = null;
+				else if (ReferenceEquals(sqlConvWin, w)) sqlConvWin = null;
 				else if (ReferenceEquals(autoKeyWin, w)) {
 					autoKeyWin = null;
 					autokeystop();
@@ -6118,6 +6126,7 @@ public partial class MainWindow : Window {
 		else if (id == "tls") opentls();
 		else if (id == "ftp") openftp();
 		else if (id == "sql") opensql();
+		else if (id == "sqlconv") opensqlconv();
 		else if (id == "files") openhttpfiles(false);
 		else if (id == "rename") openrename();
 		else if (id == "fastcopy") openfastcopy();

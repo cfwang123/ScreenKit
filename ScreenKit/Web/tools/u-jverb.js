@@ -60,6 +60,7 @@
 		["cm", "知る", "しる", "1", "", "", "知道", "know"],
 		["cm", "作る", "つくる", "1", "", "", "做", "make"],
 		["cm", "取る", "とる", "1", "", "", "取", "take"],
+		["cm", "撮る", "とる", "1", "", "", "拍", "shoot (photo)"],
 		["cm", "乗る", "のる", "1", "", "", "乘", "ride"],
 		["cm", "座る", "すわる", "1", "", "", "坐", "sit"],
 		["cm", "終わる", "おわる", "1", "", "", "结束", "end"],
@@ -103,6 +104,16 @@
 		["cm", "呼ぶ", "よぶ", "1", "", "", "叫", "call"],
 		["cm", "使う", "つかう", "1", "", "", "用", "use"],
 		["cm", "見せる", "みせる", "2", "", "", "给看", "show"],
+		["cm", "ご飯を食べる", "ごはんをたべる", "2", "", "", "吃饭 · 带动词宾语", "eat a meal · with object"],
+		["cm", "水を飲む", "みずをのむ", "1", "", "", "喝水 · 带动词宾语", "drink water · with object"],
+		["cm", "本を読む", "ほんをよむ", "1", "", "", "读书 · 带动词宾语", "read a book · with object"],
+		["cm", "手紙を書く", "てがみをかく", "1", "", "", "写信 · 带动词宾语", "write a letter · with object"],
+		["cm", "音楽を聞く", "おんがくをきく", "1", "", "", "听音乐 · 带动词宾语", "listen to music · with object"],
+		["cm", "映画を見る", "えいがをみる", "2", "", "", "看电影 · 带动词宾语", "watch a film · with object"],
+		["cm", "写真を撮る", "しゃしんをとる", "1", "", "", "拍照 · 带动词宾语", "take a photo · with object"],
+		["cm", "日本語を勉強する", "にほんごをべんきょうする", "3", "", "suru", "学日语 · 带动词宾语", "study Japanese · with object"],
+		["cm", "部屋を掃除する", "へやをそうじする", "3", "", "suru", "打扫房间 · 带动词宾语", "clean a room · with object"],
+		["cm", "宿題をする", "しゅくだいをする", "3", "", "suru", "做作业 · 带动词宾语", "do homework · with object"],
 		["ai", "高い", "たかい", "ai", "", "", "高", "high"],
 		["ai", "安い", "やすい", "ai", "", "", "便宜", "cheap"],
 		["ai", "いい", "いい", "ai", "", "", "好 · 否定＝よくない", "good · nai=yokunai"],
@@ -292,7 +303,8 @@
 		var n = ++gen;
 		var box = page.doms.jvIn;
 		var sel = page.doms.jvSel;
-		var word = norm(box ? box.value : "");
+		var full = String(box ? box.value : "").replace(/\s+/g, "");
+		var word = norm(coreword(full));
 		var pick = sel ? sel.value : "auto";
 		if (!word) {
 			ui.paint("", "", []);
@@ -364,7 +376,7 @@
 				return;
 			}
 			var t1 = ui.now();
-			conjreq({ lang: "ja", q: word, kind: use.kind, flag: use.flag, sub: use.sub, ui: langcode() }, function(d){
+			conjreq({ lang: "ja", q: full, kind: use.kind, flag: use.flag, sub: use.sub, ui: langcode() }, function(d){
 				var tcalc = ui.now() - t1;
 				if (!d) {
 					ui.paint("", "", []);
@@ -545,7 +557,7 @@
 	// 关西的「ない」。一段で词干只有一拍时（見・寝・出）用「やへん」：見やへん、寝やへん。
 
 	function guess(word){
-		word = norm(word);
+		word = norm(coreword(word));
 		if (!word) return null;
 		var pre = findpre(word);
 		if (pre) return { kind: pre[3], flag: pre[4] || "", sub: pre[5] || "" };
@@ -564,7 +576,7 @@
 	}
 
 	function findpre(word){
-		word = norm(word);
+		word = norm(coreword(word));
 		if (!word) return null;
 		var h = hira(word);
 		var i, p, n = 0, one = null;
@@ -623,6 +635,14 @@
 	function isAru(word){
 		word = norm(word);
 		return word === "有る" || word === "在る" || hira(word).slice(-2) === "ある";
+	}
+
+	// 「ご飯を食べる」先把宾语拆出来，后面查词、判断、变形都只用动词。
+	function coreword(word){
+		var s = String(word || "").replace(/\s+/g, "");
+		var i = s.indexOf("を");
+		if (i <= 0 || i >= s.length - 1) return s;
+		return s.slice(i + 1);
 	}
 
 	function norm(s){

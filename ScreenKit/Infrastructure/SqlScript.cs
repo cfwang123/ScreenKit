@@ -782,14 +782,8 @@ static class SqlScript {
 		}
 		else sb.Append(s.Replace("'", "''"));
 		sb.Append('\'');
-		var text = sb.ToString();
-		if (d == SqlEngine.Mssql && haswide(s)) return "N" + text;
-		return text;
-	}
-
-	static bool haswide(string s) {
-		foreach (var ch in s) if (ch > 0x7F) return true;
-		return false;
+		// 默认不写 N 前缀：目标列是 nvarchar 时 SQL Server 自己会转，写了反而在其它工具里不好认
+		return sb.ToString();
 	}
 
 	static string bytesof(string hex, SqlEngine d, Version ver) {
