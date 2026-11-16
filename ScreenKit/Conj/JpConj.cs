@@ -251,7 +251,8 @@ static class JpConj {
 
 	/// <summary>入口，对应 JS 的 build(word, kind, flag, sub, lang)。</summary>
 	public static ConjResult Build(string word, string kind, string flag, string sub, string uiLang) {
-		word = norm(word);
+		var ob = splitobj(word);
+		word = norm(ob.core);
 		kind = kind ?? "";
 		flag = flag ?? "";
 		sub = sub ?? "";
@@ -273,7 +274,32 @@ static class JpConj {
 		if (pk.tail != null) rows.AddRange(pk.tail);
 		// 方言统一排在整张表的最后：N5~N0 句型在前，方言在后。
 		dialectlast(L, rows);
-		return new ConjResult { Ok = true, Head = word, Name = name, Rows = rows };
+		// 「ご飯を食べる」这种带宾语的写法：整张表都补上宾语。
+		if (ob.prefix.Length > 0) {
+			foreach (var r in rows) r.V = withobj(ob.prefix, r.V);
+		}
+		return new ConjResult { Ok = true, Head = ob.prefix + word, Name = name, Rows = rows };
+	}
+
+	/// <summary>拆出「宾语＋を」。没有宾语时 prefix 为空、core 是原词。</summary>
+	static (string prefix, string core) splitobj(string s) {
+		var t = new StringBuilder();
+		foreach (var c in s ?? "") if (!char.IsWhiteSpace(c)) t.Append(c);
+		var all = t.ToString();
+		var at = all.IndexOf('を');
+		if (at <= 0 || at >= all.Length - 1) return ("", all);
+		return (all.Substring(0, at + 1), all.Substring(at + 1));
+	}
+
+	// 一条可能并列多个说法（用「、」分隔），每个都补上宾语。
+	static string withobj(string prefix, string value) {
+		if (string.IsNullOrEmpty(value)) return value;
+		var parts = value.Split('、');
+		for (var i = 0; i < parts.Length; i++) {
+			if (parts[i].Length == 0) continue;
+			if (!parts[i].StartsWith(prefix, StringComparison.Ordinal)) parts[i] = prefix + parts[i];
+		}
+		return string.Join("、", parts);
 	}
 
 	static void dialectlast(JpConjLabels L, List<ConjRow> rows) {
@@ -288,7 +314,7 @@ static class JpConj {
 
 	/// <summary>按词尾猜词性，对应 JS 的 guess()；猜不出返回 null。</summary>
 	public static JpConjKind Guess(string word) {
-		word = norm(word);
+		word = norm(splitobj(word).core);
 		if (word.Length == 0) return null;
 		var pre = findpre(word);
 		if (pre != null) return new JpConjKind { Kind = pre[3], Flag = pre[4], Sub = pre[5] };

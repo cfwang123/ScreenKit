@@ -80,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Player window rebuilt around three side tabs (playlist / study / subtitles); every word of the current line gets its own row with gloss, video clip or TTS pronunciation, and a subtitle browser that can play or jump to any line
 - Plot tool: zooming keeps the coordinate origin at the canvas center
 - Drag onto the player area clears the playlist and plays that file; drag onto the list appends to the end
+- Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
 
 #### Fixed
 
@@ -129,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 播放器按「列表 / 学习 / 字幕」三页重做：当前句每个词一行并带释义，可按词截取原声或 TTS 朗读，字幕页可逐条播声或跳转
 - 函数图像：缩放时坐标原点保持在画面中心
 - 拖到播放区时清空播放列表并播放该文件；拖到列表区改为追加到末尾
+- 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
 
 #### 修复
 

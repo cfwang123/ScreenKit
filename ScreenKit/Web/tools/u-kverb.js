@@ -72,6 +72,16 @@
 		["v", "모으다", "收集 · ㅡ", "ㅡ", "gather · ㅡ"],
 		["v", "가시다", "去 · 敬语", "높임", "go · honorific"],
 		["v", "계시다", "在 · 敬语", "높임", "stay · honorific"],
+		["v", "밥을 먹다", "吃饭 · 带宾语", "", "eat a meal · with object"],
+		["v", "물을 마시다", "喝水 · 带宾语", "", "drink water · with object"],
+		["v", "책을 읽다", "读书 · 带宾语", "", "read a book · with object"],
+		["v", "편지를 쓰다", "写信 · 带宾语", "ㅡ", "write a letter · with object"],
+		["v", "영화를 보다", "看电影 · 带宾语", "", "watch a film · with object"],
+		["v", "음악을 듣다", "听音乐 · 带宾语", "ㄷ", "listen to music · with object"],
+		["v", "한국어를 배우다", "学韩语 · 带宾语", "", "learn Korean · with object"],
+		["v", "친구를 만나다", "见朋友 · 带宾语", "", "meet a friend · with object"],
+		["v", "사진을 찍다", "拍照 · 带宾语", "", "take a photo · with object"],
+		["v", "방을 청소하다", "打扫房间 · 带宾语", "하다", "clean a room · with object"],
 		["a", "좋다", "好", "", "good"],
 		["a", "많다", "多", "", "many"],
 		["a", "크다", "大", "", "big"],
@@ -284,7 +294,8 @@
 		var n = ++gen;
 		var box = page.doms.kvIn;
 		var sel = page.doms.kvSel;
-		var word = norm(box ? box.value : "");
+		var full = String(box ? box.value : "").replace(/\s+/g, "");
+		var word = coreword(full);
 		var force = sel ? sel.value : "auto";
 		if (!word) {
 			ui.paint("", "", []);
@@ -297,7 +308,7 @@
 			var tdict = hits ? ui.now() - t0 : -1;
 			var miss = hits && !hits.length ? tx("web.kverb.miss", "词典里没有这个词，已按词尾判断。") : "";
 			var t1 = ui.now();
-			conjreq({ lang: "ko", q: word, type: force, ui: langcode() }, function(d){
+			conjreq({ lang: "ko", q: full, type: force, ui: langcode() }, function(d){
 				if (n !== gen) return;
 				var tcalc = ui.now() - t1;
 				if (!d) {
@@ -455,6 +466,14 @@
 		var i = s.search(/\s/);
 		if (i >= 0) s = s.slice(0, i);
 		return s.replace(/[.?。．!！,，]+$/g, "");
+	}
+
+	// 「밥을 먹다」先把宾语拆出来，查词、判断、变形都只用谓语。
+	function coreword(s){
+		s = String(s || "").replace(/\s+/g, "");
+		var i = s.search(/[을를]/);
+		if (i <= 0 || i >= s.length - 1) return s;
+		return s.slice(i + 1);
 	}
 
 		// 旧实现：计算已移到 C# 端（/api/conj），保留仅供对照，勿再调用。

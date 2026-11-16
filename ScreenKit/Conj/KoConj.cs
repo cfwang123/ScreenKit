@@ -612,9 +612,42 @@ static class KoConj {
 		var lang = string.IsNullOrEmpty(uiLang) ? "zh" : uiLang;
 		var li = lang.StartsWith("zh", StringComparison.OrdinalIgnoreCase) ? 0
 			: lang.StartsWith("ko", StringComparison.OrdinalIgnoreCase) ? 1 : 2;
-		word = norm(word);
+		var ob = splitobj(word);
+		word = norm(ob.prefix.Length > 0 ? ob.core : word);
 		if (string.IsNullOrEmpty(force)) force = "auto";
 		if (word.Length == 0) return new ConjResult { Ok = true, Rows = new List<ConjRow>() };
+		var r = buildcore(word, force, li);
+		// 「밥을 먹다」这类带宾语的写法：整张表都补上宾语。
+		if (r != null && r.Ok && ob.prefix.Length > 0) {
+			foreach (var one in r.Rows) one.V = withobj(ob.prefix, one.V);
+			r.Head = ob.prefix + r.Head;
+		}
+		return r;
+	}
+
+	/// <summary>拆出「宾语＋을/를」。没有宾语时 prefix 为空、core 是原词。</summary>
+	private static (string prefix, string core) splitobj(string s) {
+		var t = new StringBuilder();
+		foreach (var c in s ?? "") if (!char.IsWhiteSpace(c)) t.Append(c);
+		var all = t.ToString();
+		var at = all.IndexOfAny(new[] { '을', '를' });
+		if (at <= 0 || at >= all.Length - 1) return ("", all);
+		// 韩语宾语和谓语之间要留空格。
+		return (all.Substring(0, at + 1) + " ", all.Substring(at + 1));
+	}
+
+	// 一条可能并列多个说法（用 " / " 分隔），每个都补上宾语。
+	private static string withobj(string prefix, string value) {
+		if (string.IsNullOrEmpty(value)) return value;
+		var parts = value.Split(new[] { " / " }, StringSplitOptions.None);
+		for (var i = 0; i < parts.Length; i++) {
+			if (parts[i].Length == 0) continue;
+			if (!parts[i].StartsWith(prefix, StringComparison.Ordinal)) parts[i] = prefix + parts[i];
+		}
+		return string.Join(" / ", parts);
+	}
+
+	private static ConjResult buildcore(string word, string force, int li) {
 		var all = decall(word);
 		// 名词类型：词本身按 이다 变化；已经写成 …이다 的也认
 		if (force == "n") {
