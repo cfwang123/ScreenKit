@@ -15,6 +15,18 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 	const double PAD = 0.08;
 	/// <summary>太短的片段补到这个长度。</summary>
 	const double MINLEN = 0.12;
+	/// <summary>
+	/// 去掉前后空白之后，有声段两端各再延长这么多秒。
+	/// 字幕时间轴常比声音早到或晚走，直接按它切会带上半句静音。
+	/// </summary>
+	const double LEAD = 0.5;
+	/// <summary>为了找到有声段边界，在片段之外多解这么多（够延长用还有余量）。</summary>
+	const double SEARCH = LEAD + 0.25;
+	/// <summary>低于「峰值 × 这个比例」且低于 <see cref="GATEMIN"/> 的采样算静音。</summary>
+	const double GATERATIO = 0.03;
+	const int GATEMIN = 150;
+	/// <summary>峰值不到这个值就当整段没声音，不做裁剪（纯静音字幕按原区间）。</summary>
+	const int PEAKMIN = 200;
 	const long NOPTS = long.MinValue;
 	public const int BYTERATE = AudioDecoder.OUTRATE * AudioDecoder.OUTCH * 2;
 	/// <summary>一个采样帧的字节数（S16 立体声 = 4）。裁剪起点必须落在它的整数倍上。</summary>
@@ -52,7 +64,7 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 		span(start, end, out var a, out var b);
 		lock (sync) {
 			stop = false;
-			th = new Thread(() => run(path, a, b)) { IsBackground = true, Name = "media-clip" };
+			th = new Thread(() => run(path, a, b, start, end)) { IsBackground = true, Name = "media-clip" };
 			th.Start();
 		}
 	}
@@ -61,7 +73,9 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 	public byte[] Extract(string path, double start, double end) {
 		if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) { fail("文件不存在"); return null; }
 		span(start, end, out var a, out var b);
-		return grab(path, a, b);
+		var raw = grab(path, a, b);
+		if (raw == null) return null;
+		return trim(raw, a);
 	}
 
 	public void Stop() {
@@ -77,18 +91,73 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 		if (t != null) { try { if (t.IsAlive) t.Join(400); } catch { } }
 	}
 
-	/// <summary>把 [start,end] 换算成带气口的采样区间。</summary>
+	/// <summary>把 [start,end] 换算成带气口的采样区间；两侧多留出裁剪与延长要用的余量。</summary>
 	static void span(double start, double end, out double a, out double b) {
 		if (start < 0) start = 0;
 		if (end <= start) end = start + MINLEN;
-		a = Math.Max(0, start - PAD);
-		b = Math.Max(a + MINLEN, end + PAD);
+		a = Math.Max(0, start - PAD - SEARCH);
+		b = Math.Max(a + MINLEN, end + PAD + SEARCH);
 	}
 
-	void run(string path, double a, double b) {
+	void run(string path, double a, double b, double start, double end) {
 		var data = grab(path, a, b);
 		if (data == null || stop) return;
+		data = trim(data, a);
+		if (data == null || stop) return;
 		playout(data);
+	}
+
+	/// <summary>
+	/// 去掉前后空白，再从有声段两端各延长 <see cref="LEAD"/> 秒。
+	/// 字幕时间轴与真实发音往往差半拍（句首留白、句尾拖音），按它原样切会带一串静音。
+	/// 整段都静音（峰值太低）就按原区间返回，不做裁剪。
+	/// </summary>
+	byte[] trim(byte[] pcm, double a) {
+		if (pcm == null || pcm.Length < BLOCK) return pcm;
+		var frames = pcm.Length / BLOCK;
+		// 逐帧峰值
+		var peaks = new int[frames];
+		var peak = 0;
+		for (var i = 0; i < frames; i++) {
+			var o = i * BLOCK;
+			var v = 0;
+			for (var c = 0; c < AudioDecoder.OUTCH; c++) {
+				var s = (short)(pcm[o + c * 2] | (pcm[o + c * 2 + 1] << 8));
+				var n = s < 0 ? -s : s;
+				if (n > v) v = n;
+			}
+			peaks[i] = v;
+			if (v > peak) peak = v;
+		}
+		if (peak < PEAKMIN) return pcm;
+		var gate = Math.Max(GATEMIN, (int)(peak * GATERATIO));
+		var first = -1;
+		var last = -1;
+		for (var i = 0; i < frames; i++) {
+			if (peaks[i] < gate) continue;
+			if (first < 0) first = i;
+			last = i;
+		}
+		if (first < 0) return pcm;
+		// 有声段换算回绝对秒，再各延长 LEAD。起点不能早于真正解出来的数据。
+		var sec0 = a + first / (double)AudioDecoder.OUTRATE;
+		var sec1 = a + (last + 1) / (double)AudioDecoder.OUTRATE;
+		var dataend = a + pcm.Length / (double)BYTERATE;
+		var lo = Math.Max(a, sec0 - LEAD);
+		var hi = Math.Min(dataend, sec1 + LEAD);
+		if (hi <= lo) return pcm;
+		var off = (int)Math.Round((lo - a) * BYTERATE);
+		var len = (int)Math.Round((hi - lo) * BYTERATE);
+		off -= off % BLOCK;
+		len -= len % BLOCK;
+		if (off < 0) { len += off; off = 0; }
+		if (off >= pcm.Length) return pcm;
+		if (off + len > pcm.Length) len = pcm.Length - off;
+		if (len <= 0) return pcm;
+		var cut2 = new byte[len];
+		Buffer.BlockCopy(pcm, off, cut2, 0, len);
+		// 新的首尾是直接切出来的波形中点，必须重新淡入淡出，否则会有「啪」的一声
+		return fade(cut2, FADEFRAMES);
 	}
 
 	/// <summary>解码 [a,b] 的音频，返回交叠裁剪后的 PCM。</summary>
@@ -254,3 +323,4 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 		Failed = null;
 	}
 }
+

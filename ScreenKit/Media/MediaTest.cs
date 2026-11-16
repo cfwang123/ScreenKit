@@ -437,9 +437,10 @@ static class MediaTest {
 				return 1;
 			}
 			var sec = pcm.Length / (double)MediaClipPlayer.BYTERATE;
-			var want = (end - start) + 0.16;   // 前后各 80ms 气口
-			o($"抽出 PCM {pcm.Length} 字节 = {sec:0.###}s（期望约 {want:0.###}s）");
-			if (sec < want * 0.5 || sec > want * 1.6) { e($"FAIL 片段时长偏离：{sec:0.###}s"); bad++; }
+			// 片段会先去掉前后空白，再从有声段两端各延长 0.5s，所以长度不再严格等于区间长度
+			var want = (end - start) + 1.0;
+			o($"抽出 PCM {pcm.Length} 字节 = {sec:0.###}s（去掉空白后约 {want:0.###}s 以内）");
+			if (sec < 0.12 || sec > want + 0.6) { e($"FAIL 片段时长偏离：{sec:0.###}s"); bad++; }
 			// 长度必须是采样帧（S16 立体声 4 字节）的整数倍。
 			// 不是的话左右声道会错位，播出来就是一声爆响，不是原声。
 			if (pcm.Length % 4 != 0) { e($"FAIL 长度没对齐采样帧：{pcm.Length} % 4 = {pcm.Length % 4}"); bad++; }

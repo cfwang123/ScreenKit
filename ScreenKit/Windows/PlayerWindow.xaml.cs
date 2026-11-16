@@ -1012,8 +1012,8 @@ public partial class PlayerWindow : Window {
 	}
 
 	/// <summary>
-	/// 查一个词的释义摘要。标题保留原文写法（大小写/活用形），
-	/// 释义只认精确或长度相近的词条，避免 "makes" 被前缀匹配成 "makeshift"。
+	/// 查一个词的释义摘要。返回的标题是词典里的词头：能精确命中就是原词，
+	/// 活用形剥回原形后命中就用原形（부부세요 → 부부），列表与词典窗口都按它查。
 	/// 韩语/日语词头常写成「혹시, 或是」这种多个写法，必须逐个写法比对，不能拿整串去比。
 	/// </summary>
 	static (string title, string gloss) lookup(string word, string dict) {
@@ -1028,21 +1028,24 @@ public partial class PlayerWindow : Window {
 			foreach (var h in hits) {
 				if (headforms(h).Any(f => string.Equals(f, word, StringComparison.OrdinalIgnoreCase))) { pick = h; break; }
 			}
-		if (pick == null)
-			foreach (var h in hits) {
-				if (headforms(h).Any(f => f.Length > word.Length && f.Length <= word.Length + 3
-					&& f.StartsWith(word, StringComparison.OrdinalIgnoreCase))) { pick = h; break; }
-			}
-		if (pick == null) return hittitle(word, dict) ?? (word, "未收录");
-		if (!string.IsNullOrEmpty(pick.Preview)) return (word, pick.Preview);
-		return (word, string.IsNullOrEmpty(pick.Reading) ? "" : "/" + pick.Reading + "/");
+		if (pick != null) return (word, previewof(pick));
+		// 精确没命中才剥活用形；剥出来的原形才是词典里有的词头
+		var (lemma, gloss) = hittitle(word, dict) ?? ("", null);
+		if (lemma == null || lemma.Length == 0) return (word, "未收录");
+		return (lemma, gloss ?? "");
+	}
+
+	static string previewof(DictHit h) {
+		if (!string.IsNullOrEmpty(h.Preview)) return h.Preview;
+		return string.IsNullOrEmpty(h.Reading) ? "" : "/" + h.Reading + "/";
 	}
 
 	/// <summary>
-	/// 活用形（좋은 / 있은 / 갑니다）在词典里没有键，要剥回原形再查一次。
+	/// 活用形（부부세요 / 좋은 / 있은 / 갑니다）在词典里没有键，要剥回原形再查一次。
 	/// 剥错的候选查不到就丢掉，所以按 KoStem 给的顺序一个个试。
+	/// 返回词典里真正存在的词头（原形）与释义。
 	/// </summary>
-	static (string title, string gloss)? hittitle(string word, string dict) {
+	static (string lemma, string gloss)? hittitle(string word, string dict) {
 		if (dict != "ko" && dict != "ja") return null;
 		var cands = new List<string>();
 		foreach (var c in KoStem.Candidates(word)) {
@@ -1054,12 +1057,15 @@ public partial class PlayerWindow : Window {
 			if (string.Equals(cand, word, StringComparison.Ordinal)) continue;
 			var hits = DictDb.Search(cand, dict, 8);
 			if (hits == null || hits.Count == 0) continue;
+			DictHit pick = null;
 			foreach (var h in hits) {
 				var forms = headforms(h);
 				if (!forms.Any(f => string.Equals(f, cand, StringComparison.OrdinalIgnoreCase))) continue;
-				if (!string.IsNullOrEmpty(h.Preview)) return (word, h.Preview);
-				if (!string.IsNullOrEmpty(h.Reading)) return (word, "/" + h.Reading + "/");
+				// 同形词条有多条（부부¹ 汽笛声 / 부부, 夫婦 夫妻）：优先带汉字表记的那条，它通常是实际词义
+				if (pick == null) pick = h;
+				else if (pick.Kanji.Length == 0 && h.Kanji.Length > 0) pick = h;
 			}
+			if (pick != null) return (cand, previewof(pick));
 		}
 		return null;
 	}
@@ -1362,7 +1368,16 @@ public partial class PlayerWindow : Window {
 		if (lcwords.SelectedItem is not StudyWordRow r) return;
 		// 点学习列表里的一项才弹词典；点字幕只选词
 		selectword(r.Word);
-		opendict(r.Word);
+		// 活用形在词典里没有词条，要用原形去查（부부세요 → 부부），否则词典窗口自己会显示未收录
+		opendict(dictquery(r));
+	}
+
+	/// <summary>查词典该用的词：能还原到原形就用原形，否则用原文。</summary>
+	static string dictquery(StudyWordRow r) {
+		if (r == null) return "";
+		var t = (r.Title ?? "").Trim();
+		if (t.Length == 0 || t == "未收录") return r.Word;
+		return t;
 	}
 
 	void cueselected(object sender, SelectionChangedEventArgs e) {
