@@ -56,49 +56,44 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Emoji lookup has a font picker: the grid and the large preview can be rendered with any installed font, remembered separately from the Unicode chart font.
 - Database query: export a table, the current result or the whole database as a SQL script in SQLite / MySQL / SQL Server dialect - pick the target SQL Server version (2005-2022) and newer-only syntax is downgraded automatically (datetime2/date/time to datetime, no DROP TABLE IF EXISTS, no multi-row INSERT) - or as xlsx / csv / html.
+- Database tools: a new SQL dialect conversion window. Drop a .sql file and it detects the engine and version (the source engine can also be set by hand), then converts it to SQLite / MySQL / SQL Server / Oracle / PostgreSQL and saves a new .sql file. Tables, indexes, INSERT literals, identity and generated columns, comments and defaults are rewritten for the target dialect; statements it cannot rewrite are kept as-is and counted. The same conversion is available from the command line with --sqlconv.
 - WebSocket debugger: a client that connects to ws:// or wss:// with subprotocol, Origin and extra headers, sends text, binary or ping frames and logs every frame plus the raw handshake; and a server that runs on this machine, echoes incoming messages on demand, and pushes to one or all connected clients.
 - JSON/XML/YAML viewer in the web tools: paste or drop a file and it turns into a collapsible tree like the browser console, with a filter box that keeps matching nodes and highlights the hit, expand/collapse all, and auto format detection for JSON, XML, and YAML.
-- Media player: play video and audio in one window with subtitles, lyrics, karaoke-style progress mask, click-to-look-up words, playlists (sequential/shuffle/repeat-one/repeat-all), and five window forms (large/small/audio bar/fullscreen/translucent).
-- Media player: click the video area to start or pause playback
-- Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved
-- Media player: clicking a word in the study list opens the dictionary window for it
+- Media player: play video and audio in one window with subtitles, lyrics, karaoke-style progress mask, click-to-look-up words, and a playlist that plays sequentially, shuffled or on repeat (one or all). It follows the app's light theme, and the right sidebar splits the words of the current line, the playlist and the subtitle browser into three collapsible tabs.
+- Media player: the study tab gives every word of the current line its own row with a gloss and a button that plays the video clip or the TTS reading; the subtitle tab can play or jump to any line.
+- Media player: click the video area to play or pause; drag a file onto the video area to replace the playlist and play it, or onto the list to append it.
+- Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved.
+- Media player: clicking a word in the study list opens the dictionary window for it.
 - Media player: added a stop button beside play (also X). It rewinds to the start and pauses, so pressing play begins the file again. The play / stop / previous / next icons are now vector paths instead of font symbols.
-- Database tools: new SQL dialect conversion window. Drop a .sql file to detect its engine and version (source engine can also be set by hand), then convert to SQLite / MySQL / SQL Server / Oracle / PostgreSQL and save a new .sql. Tables, indexes, INSERT literals, identity and generated columns, comments and defaults are rewritten for the target dialect; unsupported statements are kept as-is and counted. CLI: --sqlconv and --test-sqlconv.
 
 #### Changed
 
 - Dictionary pronunciation now defaults to Microsoft Edge online voices; languages that were never configured no longer borrow the English row or fall back to SAPI, so web tool and web dictionary pronunciation for every language uses that language's Edge voice.
 - The font picker in Emoji lookup lists only fonts that actually contain emoji glyphs; the Unicode chart still lists every installed font.
 - Database query export now writes plain unquoted identifiers and single-quoted strings instead of [bracketed] names and N'...' literals; only names with spaces, non-ASCII characters or reserved words get quoted.
-- Use distinct button colors for connection state: green to connect, red to disconnect, and a highlighted send button in the HTTP debug window
-- Free the tool panel DOM and leftover globals when leaving a web tool, so each entry rebuilds a fresh DOM and memory is released
-- Drive all web tools from one shared 16ms timer instead of per-tool setInterval/setTimeout, so timers stop and pending work is dropped when leaving a tool
-- JSON viewer: a collapsed small array or object now shows its items inline on one line, and long ones show the first few items plus an ellipsis instead of a bare bracket placeholder
+- Use distinct button colors for connection state: green to connect, red to disconnect, and a highlighted send button in the HTTP debug window.
+- Web tools now rebuild a fresh panel DOM on each entry and release it on leave, and drive every tool from one shared 16ms timer instead of per-tool setInterval/setTimeout, so timers stop and pending work is dropped when leaving a tool.
+- JSON viewer: a collapsed small array or object now shows its items inline on one line, and long ones show the first few items plus an ellipsis instead of a bare bracket placeholder.
 - USB capture: the device tree keeps the left column, while the device information and the descriptor reader become two tabs in a right sidebar; the packet list, the protocol tree and the hex view stay in the middle.
-- Media player: the window is now a large window plus fullscreen only, with a collapsible right sidebar that lists the words of the current subtitle line, the playlist and the dictionary results.
-- Media player: the window now follows the app's light theme (system title bar with normal window buttons), and opening it no longer restores the previous playback position.
-- Player window rebuilt around three side tabs (playlist / study / subtitles); every word of the current line gets its own row with gloss, video clip or TTS pronunciation, and a subtitle browser that can play or jump to any line
-- Plot tool: zooming keeps the coordinate origin at the canvas center
-- Drag onto the player area clears the playlist and plays that file; drag onto the list appends to the end
+- Plot tool: zooming keeps the coordinate origin at the canvas center.
+- Media player: opening the window no longer restores the previous playback position.
 - Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
 
 #### Fixed
 
 - Dictionary pronunciation: Edge voices are now picked per language, so each row keeps a voice of its own language instead of an English one.
 - Database query: exporting crashed because progress updates touched UI controls from the export thread; export now runs behind a real progress window (per-table percent, rows written, elapsed time) with a working Cancel button.
-- Fix SQL export: preserve decimal precision, keep milliseconds in datetime, handle IDENTITY_INSERT for SQL Server, degrade over-wide MySQL rows to longtext, and accept host:port for MySQL
-- Fix SQL export between SQLite and other engines: give primary key and index text columns a bounded length so SQL Server accepts them, and support SQLite files as both source and target
-- Fix the 8bit composer stopping after the first beat: the playback step function was scoped inside the play handler, so the shared timer could not reach it
-- Report errors thrown by web tool timers to the console instead of hiding them; add ?dbg=1 to turn the reporting on
-- JSON viewer: expanded nodes can now be collapsed again
-- Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge
-- 3D function plotter: filled surface no longer renders as a dot cloud
-- Media player: stop dropping video packets when the queue is full, which broke the H.264 reference chain and caused garbled frames
-- TTS: SAPI voice list now filters by language for Japanese, Korean and other languages
-- Media player: clicking the seek bar now jumps immediately, and seeking no longer leaves garbled frames after resuming playback
-- Media player: word clips no longer play a blast of noise (sample-frame alignment, send/receive loop, edge fades)
-- Fix picture freeze and A/V desync after seeking in the player
-- Japanese conjugation: words listed in the example table now win over a same-shaped dictionary entry, so いい is conjugated as an i-adjective (よくない) instead of a noun
+- SQL export: decimal precision is preserved and datetime keeps its milliseconds, SQL Server gets IDENTITY_INSERT around identity rows, over-wide MySQL rows degrade to longtext, host:port is accepted for MySQL, primary key and index text columns get a bounded length so SQL Server accepts the script, and a SQLite file works as both source and target.
+- Report errors thrown by web tool timers to the console instead of hiding them; add ?dbg=1 to turn the reporting on.
+- JSON viewer: expanded nodes can now be collapsed again.
+- Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge.
+- 3D function plotter: filled surface no longer renders as a dot cloud.
+- The 8bit composer stopped after the first beat because the playback step function was scoped inside the play handler, where the shared timer could not reach it.
+- Media player: stop dropping video packets when the queue is full, which broke the H.264 reference chain and caused garbled frames.
+- Media player: clicking the seek bar jumps immediately, and seeking no longer leaves garbled frames, a frozen picture or drifting audio and subtitles.
+- Media player: word clips no longer play a blast of noise (sample-frame alignment, send/receive loop, edge fades).
+- TTS: SAPI voice list now filters by language for Japanese, Korean and other languages.
+- Japanese conjugation: words listed in the example table now win over a same-shaped dictionary entry, so いい is conjugated as an i-adjective (よくない) instead of a noun.
 
 ### 中文
 
@@ -106,49 +101,44 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Emoji 查询增加字体选择：格子和右侧大字预览可以用本机任意字体显示，选择单独保存，不影响 Unicode 码表的字体设置。
 - 数据库查询：可把当前表、当前查询结果或整个库导出为 SQL 脚本，支持 SQLite / MySQL / SQL Server 三种方言；SQL Server 可选目标版本（2005~2022），选低版本时自动降级为新版本才有的语法（datetime2/date/time 改 datetime、不用 DROP TABLE IF EXISTS、不合并多行 INSERT），也可导出为 xlsx、csv、html。
+- 数据库工具：新增 SQL 方言转换窗口，拖入 .sql 自动识别引擎与版本（也可手动指定源引擎），选目标引擎和版本后导出新的 .sql；SQLite、MySQL、SQL Server、Oracle、PostgreSQL 互转时重建建表语句、索引、INSERT 字面量、自增与生成列、注释和默认值，认不得的语句原样保留并计数。命令行也能用 --sqlconv 转换。
 - 新增 WebSocket 调试：客户端可连 ws:// 或 wss://，支持子协议、Origin 和自定义请求头，按文本、二进制或 ping 发帧，日志里给出每一帧和握手原文；服务端页能在本机起一个服务，收到的消息可回显，也能推给某个或全部在线客户端。
 - 工具页新增 JSON/XML/YAML 查看器：粘贴或拖入文件后展开成和浏览器控制台一样的折叠树，过滤框只保留命中的节点并高亮，另有全部展开/折叠和 JSON、XML、YAML 的自动识别。
-- 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、点词查词、播放列表（顺序/随机/单曲循环/列表循环），以及大窗口、小窗、音频条、全屏、半透明五种形态。
-- 媒体播放器：在视频画面区单击即可播放或暂停
-- 播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住
-- 媒体播放器：在学习列表点一个词会弹出词典窗口查这个词
+- 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、点词查词，播放列表可按顺序、随机或循环（单曲/列表）播放。窗口跟随应用的浅色主题，右侧栏把当前句单词、播放列表、字幕浏览分成三页并可收起。
+- 媒体播放器：学习页把当前句每个词列成一行，带释义和「原声/TTS」发音按钮；字幕页可逐条播声或跳转。
+- 媒体播放器：在视频画面区单击即可播放或暂停；文件拖到画面区会清空播放列表并播放它，拖到列表区则追加到末尾。
+- 媒体播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住。
+- 媒体播放器：在学习列表点一个词会弹出词典窗口查这个词。
 - 媒体播放器：播放键旁增加停止按钮（也可按 X），停止后回到开头并暂停，再按播放从头开始；播放、停止、上一个、下一个的图标改为矢量路径绘制，不再使用字体符号。
-- 数据库工具：新增 SQL 方言转换窗口，拖入 .sql 自动识别引擎与版本（也可手动指定源引擎），选目标引擎和版本后导出新的 .sql；SQLite、MySQL、SQL Server、Oracle、PostgreSQL 互转时重建建表语句、索引、INSERT 字面量、自增与生成列、注释和默认值，认不得的语句原样保留并计数。
 
 #### 变更
 
 - 词典发音的默认引擎改为 Edge 在线语音；没有配置过的语言不再借英语那一行、也不再用 SAPI，网页工具和网页词典里各语言的发音都用该语言自己的 Edge 发音人。
 - Emoji 查询的字体下拉只列真正带 emoji 字形的字体，Unicode 码表的字体下拉仍是全部本机字体。
 - 数据库查询导出：标识符默认裸写、字符串统一单引号，不再用方括号和 N 前缀；只有含空格、中文或撞关键字的名字才加引号。
-- 连接状态改用醒目配色：连接为绿色、断开为红色，HTTP 调试的发送按钮改强调色
-- web 工具离开时清空面板 DOM 与残留全局引用，再次进入时重新生成
-- web 工具改为共用一个 16ms 全局定时器，工具不再自建 setInterval/setTimeout，离开工具时定时器停止、挂起任务作废
-- JSON 查看器：收起的小数组、小对象直接在同一行显示内容，项多时显示前几项加省略号，不再只显示占位括号
+- 连接状态改用醒目配色：连接为绿色、断开为红色，HTTP 调试的发送按钮改强调色。
+- web 工具每次进入都重新生成面板 DOM、离开时释放，并改为共用一个 16ms 全局定时器，工具不再自建 setInterval/setTimeout，离开工具时定时器停止、挂起任务作废。
+- JSON 查看器：收起的小数组、小对象直接在同一行显示内容，项多时显示前几项加省略号，不再只显示占位括号。
 - USB 抓包：设备树独占左栏，设备信息与设备描述符合并为右侧栏的两个页签，报文列表、协议详情与十六进制留在中间。
-- 媒体播放器：窗口精简为大窗口与全屏两种，右侧栏把当前句单词、播放列表、词典释义分成三页并可收起。
-- 媒体播放器：窗口改用应用的浅色主题（系统标题栏，带最小/最大/关闭），打开时不再恢复上次的播放位置。
-- 播放器按「列表 / 学习 / 字幕」三页重做：当前句每个词一行并带释义，可按词截取原声或 TTS 朗读，字幕页可逐条播声或跳转
-- 函数图像：缩放时坐标原点保持在画面中心
-- 拖到播放区时清空播放列表并播放该文件；拖到列表区改为追加到末尾
+- 函数图像：缩放时坐标原点保持在画面中心。
+- 媒体播放器：打开窗口时不再恢复上次的播放位置。
 - 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
 
 #### 修复
 
 - 词典发音：Edge 发音人按语言各自筛选，俄语等语言不会再配上英语发音人。
 - 数据库查询：导出时进度回调在导出线程上直接改控件导致崩溃；现在导出走独立进度窗口（表序号、百分比、已写行数、已用时），并支持取消。
-- 修复 SQL 导出：保留 decimal 精度与 datetime 毫秒，SQL Server 自增列补 IDENTITY_INSERT，MySQL 超宽表自动降为 longtext，MySQL 主机支持 host:port
-- 修复 SQLite 与其它数据库互导：主键和索引的文本列加上长度上限，否则 SQL Server 建表失败；导出目标支持 SQLite 文件
-- 修复 8bit 编曲只播第一个节拍：推进函数原先定义在播放处理函数内部，共用定时器取不到它
-- web 工具定时器里抛出的错误不再静默吞掉，可控地打到控制台；地址加 ?dbg=1 打开
-- JSON 查看器：展开的节点现在可以正常收起了
-- 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白
-- 三维函数图像：曲面填充不再变成一片点阵
-- 播放器：队列满时不再丢视频包（会破坏 H.264 参考帧导致花屏），改为背压等待、必要时跳到下一个关键帧重建
-- 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤
-- 播放器：点进度条轨道可直接跳转；跳转后继续播放不再花屏
-- 媒体播放器：点「原声」不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）
-- 修复播放器拖动进度条跳转后画面卡住、声音字幕不同步
-- 日语词形变化：示例词表里的词优先于同形的词典词条，いい 现在按い形容词变化（よくない），不再按名词
+- SQL 导出：保留 decimal 精度与 datetime 毫秒，SQL Server 自增列补 IDENTITY_INSERT，MySQL 超宽表自动降为 longtext，MySQL 主机支持 host:port，主键和索引的文本列加上长度上限以免 SQL Server 建表失败，导出目标也支持 SQLite 文件。
+- web 工具定时器里抛出的错误不再静默吞掉，可控地打到控制台；地址加 ?dbg=1 打开。
+- JSON 查看器：展开的节点现在可以正常收起了。
+- 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白。
+- 三维函数图像：曲面填充不再变成一片点阵。
+- 8bit 编曲只播第一个节拍：推进函数原先定义在播放处理函数内部，共用定时器取不到它。
+- 播放器：队列满时不再丢视频包（会破坏 H.264 参考帧导致花屏），改为背压等待、必要时跳到下一个关键帧重建。
+- 播放器：点进度条轨道可直接跳转；跳转后不再花屏、画面卡住或声音字幕不同步。
+- 媒体播放器：点「原声」不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）。
+- 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤。
+- 日语词形变化：示例词表里的词优先于同形的词典词条，いい 现在按い形容词变化（よくない），不再按名词。
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 
