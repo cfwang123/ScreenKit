@@ -325,7 +325,12 @@
 			if (pick === "auto") {
 				var hit = res && res.entry;
 				var from = hit ? poskind(hit.pos) : null;
-				if (from && from.kind) {
+				// 词典里同形的常是别的词（いい＝飯），示例表已写名词性，示例优先。
+				if (pre) {
+					use = { kind: pre[3], flag: pre[4] || "", sub: pre[5] || "" };
+					note = note || tx("web.jverb.frompick", "示例");
+				}
+				else if (from && from.kind) {
 					use = from;
 					if (isIku(word)) use.flag = "iku";
 					if (isAru(word)) use.flag = "arunai";
@@ -336,13 +341,7 @@
 				}
 				else {
 					use = guess(word);
-					if (pre) {
-						if (res && res.state === "ok") {
-							note = hit ? tx("web.jverb.notverb", "词典里这个词不是动词，已按示例。")
-								: tx("web.jverb.miss", "词典里没有这个词，已按示例。");
-						}
-					}
-					else if (res && res.state === "ok") {
+					if (res && res.state === "ok") {
 						note = hit ? tx("web.jverb.notverb", "词典里这个词不是动词，已按词尾判断。")
 							: tx("web.jverb.miss", "词典里没有这个词，已按词尾判断。");
 					}

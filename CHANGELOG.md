@@ -96,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: clicking the seek bar now jumps immediately, and seeking no longer leaves garbled frames after resuming playback
 - Media player: word clips no longer play a blast of noise (sample-frame alignment, send/receive loop, edge fades)
 - Fix picture freeze and A/V desync after seeking in the player
+- Japanese conjugation: words listed in the example table now win over a same-shaped dictionary entry, so いい is conjugated as an i-adjective (よくない) instead of a noun
 
 ### 中文
 
@@ -143,6 +144,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 播放器：点进度条轨道可直接跳转；跳转后继续播放不再花屏
 - 媒体播放器：点「原声」不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）
 - 修复播放器拖动进度条跳转后画面卡住、声音字幕不同步
+- 日语词形变化：示例词表里的词优先于同形的词典词条，いい 现在按い形容词变化（よくない），不再按名词
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 
