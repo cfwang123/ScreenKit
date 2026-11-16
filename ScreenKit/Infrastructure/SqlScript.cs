@@ -506,7 +506,10 @@ static class SqlScript {
 		if (withdrop) sb.Append(dropof(t.Name, dst, ver));
 		sb.Append($"CREATE TABLE {tn} (\r\n");
 		var lines = new List<string>();
+		var notes = new List<string>();
 		var pk = new List<string>();
+		// SQL Server / SQLite 没有 COMMENT 语法，注释退化成行尾的 -- 说明
+		var trail = dst == SqlEngine.Mssql || dst == SqlEngine.Sqlite;
 		var inline = dst == SqlEngine.Sqlite || dst == SqlEngine.Postgres
 			? t.Columns.FindIndex(c => c.Identity && c.PrimaryKey && t.Columns.FindAll(x => x.PrimaryKey).Count == 1)
 			: -1;
@@ -527,17 +530,24 @@ static class SqlScript {
 			if (c.PrimaryKey && i == inline) line += pkinline(dst, c, ver);
 			else if (c.PrimaryKey) pk.Add(qname(dst, c.Name, ver));
 			lines.Add(line);
+			notes.Add(trail ? oneline(c.Comment) : "");
 		}
 		if (pk.Count > 0) {
 			var cols = string.Join(", ", pk.ToArray());
-			if (dst == SqlEngine.Mssql)
-				lines.Add($"  CONSTRAINT {qname(dst, truncate("PK_" + t.Name, 120), ver)} PRIMARY KEY ({cols})");
-			else if (dst == SqlEngine.Oracle && ver != null && ver.Major < 12)
-				lines.Add($"  CONSTRAINT {qname(dst, truncate("PK_" + t.Name, 28), ver)} PRIMARY KEY ({cols})");
-			else lines.Add($"  PRIMARY KEY ({cols})");
+			lines.Add(dst == SqlEngine.Mssql
+				? $"  CONSTRAINT {qname(dst, truncate("PK_" + t.Name, 120), ver)} PRIMARY KEY ({cols})"
+				: dst == SqlEngine.Oracle && ver != null && ver.Major < 12
+					? $"  CONSTRAINT {qname(dst, truncate("PK_" + t.Name, 28), ver)} PRIMARY KEY ({cols})"
+					: $"  PRIMARY KEY ({cols})");
+			notes.Add("");
 		}
-		sb.Append(string.Join(",\r\n", lines.ToArray()));
-		sb.Append("\r\n)");
+		for (var i = 0; i < lines.Count; i++) {
+			sb.Append(lines[i]);
+			if (i < lines.Count - 1) sb.Append(',');
+			if (notes[i].Length > 0) sb.Append(" -- ").Append(notes[i]);
+			sb.Append("\r\n");
+		}
+		sb.Append(")");
 		if (dst == SqlEngine.Mysql) sb.Append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 		if (dst == SqlEngine.Mysql && t.Comment.Length > 0)
 			sb.Append(" COMMENT='" + t.Comment.Replace("'", "''") + "'");
@@ -545,6 +555,25 @@ static class SqlScript {
 		if (t.Comment.Length > 0 || t.Columns.Exists(c => c.Comment.Length > 0))
 			sb.Append(commentof(t, dst, ver));
 		return sb.ToString();
+	}
+
+	/// <summary>行尾注释只能占一行：换行和空白压成空格，免得把后面的 SQL 也注释掉。</summary>
+	static string oneline(string s) {
+		if (string.IsNullOrEmpty(s)) return "";
+		var sb = new StringBuilder(s.Length);
+		var space = false;
+		foreach (var ch in s) {
+			if (ch is '\r' or '\n' or '\t' || char.IsWhiteSpace(ch)) {
+				space = sb.Length > 0;
+				continue;
+			}
+			if (space) {
+				sb.Append(' ');
+				space = false;
+			}
+			sb.Append(ch);
+		}
+		return sb.ToString().Trim();
 	}
 
 	/// <summary>注释：PostgreSQL / Oracle 用 COMMENT ON；MySQL 写在建表语句里，其余方言不支持就丢掉。</summary>
