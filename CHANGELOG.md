@@ -63,6 +63,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved
 - Media player: clicking a word in the study list opens the dictionary window for it
 - Media player: added a stop button beside play (also X). It rewinds to the start and pauses, so pressing play begins the file again. The play / stop / previous / next icons are now vector paths instead of font symbols.
+- Database tools: new SQL dialect conversion window. Drop a .sql file to detect its engine and version (source engine can also be set by hand), then convert to SQLite / MySQL / SQL Server / Oracle / PostgreSQL and save a new .sql. Tables, indexes, INSERT literals, identity and generated columns, comments and defaults are rewritten for the target dialect; unsupported statements are kept as-is and counted. CLI: --sqlconv and --test-sqlconv.
 
 #### Changed
 
@@ -111,6 +112,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住
 - 媒体播放器：在学习列表点一个词会弹出词典窗口查这个词
 - 媒体播放器：播放键旁增加停止按钮（也可按 X），停止后回到开头并暂停，再按播放从头开始；播放、停止、上一个、下一个的图标改为矢量路径绘制，不再使用字体符号。
+- 数据库工具：新增 SQL 方言转换窗口，拖入 .sql 自动识别引擎与版本（也可手动指定源引擎），选目标引擎和版本后导出新的 .sql；SQLite、MySQL、SQL Server、Oracle、PostgreSQL 互转时重建建表语句、索引、INSERT 字面量、自增与生成列、注释和默认值，认不得的语句原样保留并计数。
 
 #### 变更
 

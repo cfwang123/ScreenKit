@@ -170,6 +170,8 @@ sealed class SqlCvIndex {
 	public string Name = "";
 	public bool Unique;
 	public List<string> Columns = new();
+	/// <summary>括号内的原文，用来保留 ASC / DESC 方向。</summary>
+	public string Express = "";
 }
 
 /// <summary>解析出来的一条 INSERT：列名与已经拆好的字面量。</summary>
@@ -287,17 +289,20 @@ static class SqlScript {
 				ver = new Version(14, 0);
 				reasons.Add("STRING_AGG / TRIM 是 2017 起");
 			}
+			else if (low.Contains("drop table if exists")) {
+				ver = new Version(13, 0);
+				reasons.Add("DROP TABLE IF EXISTS 是 2016 起");
+			}
 			else if (low.Contains("iif(") || low.Contains("try_convert(") || low.Contains(" offset ") || low.Contains("fetch next")) {
 				ver = new Version(11, 0);
 				reasons.Add("IIF / OFFSET-FETCH 是 2012 起");
 			}
-			else if (low.Contains("datetime2") || low.Contains("datetimeoffset") || low.Contains("date '")
-				|| low.Contains("drop table if exists")) {
-				ver = new Version(13, 0);
-				reasons.Add("datetime2 / DROP TABLE IF EXISTS 是 2008 起，IF EXISTS 写法按 2016");
+			else if (low.Contains("datetime2") || low.Contains("datetimeoffset") || low.Contains("date '")) {
+				ver = new Version(10, 0);
+				reasons.Add("datetime2 / datetimeoffset 是 2008 起");
 			}
-			if (reasons.Exists(x => x.StartsWith("datetime2", StringComparison.Ordinal))) ver = new Version(13, 0);
-			known = reasons.Exists(x => x.Contains("起") || x.StartsWith("脚本头部", StringComparison.Ordinal));
+			// 有语法特征就说明至少到那个版本；一条特征都没有时按 2016 保守处理
+			known = reasons.Count > 0;
 			if (!known) ver = new Version(13, 0);
 			return ver;
 		}
@@ -393,6 +398,8 @@ static class SqlScript {
 			if (body.Length == 0) continue;
 			var head = keywordof(body);
 			if (head == "drop" && Regex.IsMatch(body, @"^drop\s+table", RegexOptions.IgnoreCase)) continue;
+			// SQL Server 的 IF OBJECT_ID(...) DROP TABLE 也是删表兜底，转换时会重新生成
+			if (head == "if" && Regex.IsMatch(body, @"drop\s+table", RegexOptions.IgnoreCase)) continue;
 			if (head is "set" or "pragma" or "use" or "go" or "begin" or "commit" or "start" or "lock" or "unlock") continue;
 			if (Regex.IsMatch(body, @"^(create|alter)\s+(database|schema|user|login|tablespace)\b", RegexOptions.IgnoreCase)) continue;
 
@@ -406,7 +413,7 @@ static class SqlScript {
 				tables.Add(t);
 				continue;
 			}
-			if (Regex.IsMatch(body, @"^create\s+(unique\s+)?(clustered\s+)?index\b", RegexOptions.IgnoreCase)) {
+			if (Regex.IsMatch(body, @"^create\s+(unique\s+)?(nonclustered\s+|clustered\s+)?index\b", RegexOptions.IgnoreCase)) {
 				var ix = parseindex(body, tables);
 				if (ix == null) others.Add(raw.Trim());
 				continue;
@@ -514,6 +521,9 @@ static class SqlScript {
 			if (c.Identity && !(i == inline && dst == SqlEngine.Sqlite)) line += identityof(dst, c, ver);
 			if (!c.Nullable) line += " NOT NULL";
 			if (c.Unique && !c.PrimaryKey) line += " UNIQUE";
+			// MySQL 的列注释只能写在列上
+			if (dst == SqlEngine.Mysql && c.Comment.Length > 0)
+				line += " COMMENT '" + c.Comment.Replace("'", "''").Replace("\\", "\\\\") + "'";
 			if (c.PrimaryKey && i == inline) line += pkinline(dst, c, ver);
 			else if (c.PrimaryKey) pk.Add(qname(dst, c.Name, ver));
 			lines.Add(line);
@@ -529,6 +539,8 @@ static class SqlScript {
 		sb.Append(string.Join(",\r\n", lines.ToArray()));
 		sb.Append("\r\n)");
 		if (dst == SqlEngine.Mysql) sb.Append(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+		if (dst == SqlEngine.Mysql && t.Comment.Length > 0)
+			sb.Append(" COMMENT='" + t.Comment.Replace("'", "''") + "'");
 		sb.Append(";\r\n");
 		if (t.Comment.Length > 0 || t.Columns.Exists(c => c.Comment.Length > 0))
 			sb.Append(commentof(t, dst, ver));
@@ -633,7 +645,28 @@ static class SqlScript {
 			name = t.Name + "_" + name;
 		name = truncate(name, d == SqlEngine.Oracle ? 28 : 120);
 		var cols = string.Join(", ", ix.Columns.ConvertAll(c => qname(d, c, ver)).ToArray());
+		// 降序索引只有 SQL Server / PostgreSQL 支持，其余方言退回升序
+		var desc = Regex.IsMatch(ix.Express ?? "", @"\bdesc\b", RegexOptions.IgnoreCase);
+		if (desc) {
+			for (var i = 0; i < ix.Columns.Count; i++) {
+				var idx = ix.Columns[i];
+				if (!Regex.IsMatch(ix.Express, Regex.Escape(idx) + @"\s+desc", RegexOptions.IgnoreCase)) continue;
+				if (d == SqlEngine.Mssql || d == SqlEngine.Postgres) {
+					// 直接按原顺序把 DESC 写回去
+					return $"CREATE {(ix.Unique ? "UNIQUE " : "")}INDEX {qname(d, name, ver)} ON {qname(d, t.Name, ver)} ({desccols(ix, d, ver)});\r\n";
+				}
+			}
+		}
 		return $"CREATE {(ix.Unique ? "UNIQUE " : "")}INDEX {qname(d, name, ver)} ON {qname(d, t.Name, ver)} ({cols});\r\n";
+	}
+
+	static string desccols(SqlCvIndex ix, SqlEngine d, Version ver) {
+		var list = new List<string>();
+		foreach (var c in ix.Columns) {
+			var dir = Regex.IsMatch(ix.Express ?? "", Regex.Escape(c) + @"\s+desc", RegexOptions.IgnoreCase) ? " DESC" : "";
+			list.Add(qname(d, c, ver) + dir);
+		}
+		return string.Join(", ", list.ToArray());
 	}
 
 	// ==================== INSERT ====================
@@ -698,7 +731,25 @@ static class SqlScript {
 				return v == "1" ? "TRUE" : "FALSE";
 			return v;
 		}
-		// 函数、CASE、子查询：不能在文本层重写，原样搬
+		// 函数、CASE、子查询：能在文本层安全换掉的常见时间函数处理一下
+		var fn = Regex.Match(v, @"^(getdate|getutcdate|now|sysdate|current_timestamp|newid|uuid|uuid_generate_v4)\s*\(\s*\)$",
+			RegexOptions.IgnoreCase);
+		if (fn.Success) {
+			var name = fn.Groups[1].Value.ToLowerInvariant();
+			switch (name) {
+			case "getdate":
+			case "now":
+			case "sysdate":
+			case "current_timestamp":
+				if (dst == SqlEngine.Mssql) return "GETDATE()";
+				if (dst == SqlEngine.Oracle) return "SYSDATE";
+				return "CURRENT_TIMESTAMP";
+			case "getutcdate":
+				return dst == SqlEngine.Mssql ? "GETUTCDATE()" : dst == SqlEngine.Postgres ? "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')" : "CURRENT_TIMESTAMP";
+			default:
+				return dst == SqlEngine.Mssql ? "NEWID()" : dst == SqlEngine.Mysql ? "(UUID())" : dst == SqlEngine.Postgres ? "gen_random_uuid()" : "SYS_GUID()";
+			}
+		}
 		return v;
 	}
 
@@ -709,6 +760,9 @@ static class SqlScript {
 
 	static string strval(string s, SqlEngine d, SqlCvColumn col, Version ver) {
 		s ??= "";
+		// ISO 的 'T' 分隔只有部分方言认，日期时间列统一写成空格
+		if (col != null && col.Kind is SqlTypeKind.Date or SqlTypeKind.DateTime && s.Length > 10 && s[10] == 'T')
+			s = s.Substring(0, 10) + " " + s.Substring(11);
 		if (d == SqlEngine.Oracle && col != null && col.Kind is SqlTypeKind.Date or SqlTypeKind.DateTime
 			&& Regex.IsMatch(s, @"^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$")) {
 			var hasTime = s.Length > 10;
@@ -1184,6 +1238,8 @@ static class SqlScript {
 		var close = matchparen(body, open);
 		if (close < 0) return null;
 		var inner = body.Substring(open + 1, close - open - 1);
+		// 建表语句尾部可能带表注释：) ENGINE=InnoDB COMMENT='订单'
+		parseTableTail(body.Substring(close + 1), t);
 		foreach (var part in splitargs(inner)) {
 			var item = part.Trim();
 			if (item.Length == 0) continue;
@@ -1201,8 +1257,13 @@ static class SqlScript {
 		return t;
 	}
 
-	static bool istableconstraint(string s) {
-		var k = keywordof(s);
+	/// <summary>建表语句尾部：COMMENT='...' 当表注释，其余（ENGINE / CHARSET）忽略。</summary>
+	static void parseTableTail(string tail, SqlCvTable t) {
+		var m = Regex.Match(tail ?? "", @"comment\s*=?\s*'((?:[^']|'')*)'", RegexOptions.IgnoreCase);
+		if (m.Success) t.Comment = m.Groups[1].Value.Replace("''", "'");
+	}
+
+	static bool istableconstraint(string s) {		var k = keywordof(s);
 		switch (k) {
 		case "constraint":
 		case "primary":
@@ -1250,13 +1311,15 @@ static class SqlScript {
 			j = skipws(body, j);
 			// KEY (a,b)：名字被省略，括号前没有标识符
 			if (body.Length > j && body[j] == '(') n2 = "";
-			var cols = colsinside(body.Substring(j));
+			var inner2 = body.Substring(j);
+			var cols = colsinside(inner2);
 			if (cols.Count == 0) return;
 			if (kw == "primary") return;
 			t.Indexes.Add(new SqlCvIndex {
 				Name = n2.Length > 0 ? n2 : "IX_" + t.Name + "_" + string.Join("_", cols.ToArray()),
 				Unique = unique,
 				Columns = cols,
+				Express = inner2,
 			});
 			return;
 		}
@@ -1332,6 +1395,16 @@ static class SqlScript {
 		c.Size = size;
 		c.Precision = prec;
 		c.Scale = scale;
+		// money / smallmoney 有固定的四位小数
+		var bl = (bare ?? "").ToLowerInvariant();
+		if (bl is "money" && prec == 0) {
+			c.Precision = 19;
+			c.Scale = 4;
+		}
+		else if (bl is "smallmoney" && prec == 0) {
+			c.Precision = 10;
+			c.Scale = 4;
+		}
 		c.Kind = kindof(bare, size, prec, scale);
 		if (bare.Length == 0) c.Kind = SqlTypeKind.Text;
 		var rest = item.Substring(Math.Min(i, item.Length));
@@ -1532,12 +1605,14 @@ static class SqlScript {
 		}
 		var name = readident(body, ref i);
 		if (name.Length == 0) return null;
+		i = skipws(body, i);
 		if (starts(body, i, "on")) i = skipws(body, i + 2);
 		var table = readident(body, ref i);
 		table = lastschema(table);
-		var cols = colsinside(body.Substring(i));
+		var inner3 = body.Substring(i);
+		var cols = colsinside(inner3);
 		if (cols.Count == 0) return null;
-		var ix = new SqlCvIndex { Name = name, Unique = unique, Columns = cols };
+		var ix = new SqlCvIndex { Name = name, Unique = unique, Columns = cols, Express = inner3 };
 		var t = tables.Find(x => same(x.Name, table));
 		if (t != null) t.Indexes.Add(ix);
 		return ix;
