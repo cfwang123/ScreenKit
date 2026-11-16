@@ -78,6 +78,7 @@ static class ToolHub {
 		new() { Id = "w-tls", Cat = "net", Kind = "act", Open = "tls", NameKey = "menu.tls", TipKey = "menu.tls.tip", Glyph = "\uE72E" },
 		new() { Id = "w-ftp", Cat = "net", Kind = "act", Open = "ftp", NameKey = "menu.ftp", TipKey = "menu.ftp.tip", Glyph = "\uE8B7" },
 		new() { Id = "w-sql", Cat = "net", Kind = "act", Open = "sql", NameKey = "menu.sql", TipKey = "menu.sql.tip", Glyph = "\uE8F1" },
+		new() { Id = "w-sqlconv", Cat = "net", Kind = "act", Open = "sqlconv", NameKey = "menu.sqlconv", TipKey = "menu.sqlconv.tip", Glyph = "\uE8AB" },
 		new() { Id = "w-files", Cat = "files", Kind = "act", Open = "files", NameKey = "tray.webfiles", TipKey = "web.files", Glyph = "\uE8B7" },
 		new() { Id = "w-rename", Cat = "files", Kind = "act", Open = "rename", NameKey = "menu.rename", TipKey = "menu.rename.tip", Glyph = "\uE8AC" },
 		new() { Id = "w-fastcopy", Cat = "files", Kind = "act", Open = "fastcopy", NameKey = "menu.fastcopy", TipKey = "menu.fastcopy.tip", Glyph = "\uE8C8" },

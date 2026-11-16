@@ -231,7 +231,7 @@
 				          AutomationProperties.AutomationId="menu.cat.talk"/>
 				<MenuItem x:Name="mnnetgroup" Header="网络工具(_N)"
 				          AutomationProperties.AutomationId="menu.netgroup"
-				          ToolTip="网络工具、HTTP 请求调试、MQTT、TCP/UDP/串口调试、SOAP 接口调试、端口占用和数据库查询">
+				          ToolTip="网络工具、HTTP 请求调试、MQTT、TCP/UDP/串口调试、SOAP 接口调试、端口占用、数据库查询和 SQL 方言转换">
 					<MenuItem x:Name="mnnet" Header="网络工具(_N)…"
 					          AutomationProperties.AutomationId="menu.net"
 					          ToolTip="Ping、域名解析、端口测试、网络唤醒和网络发现"/>
@@ -268,6 +268,9 @@
 					<MenuItem x:Name="mnsql" Header="数据库查询(_D)…"
 					          AutomationProperties.AutomationId="menu.sql"
 					          ToolTip="拖入 SQLite 文件或连 SQL Server，看表、结构和执行 SQL"/>
+					<MenuItem x:Name="mnsqlconv" Header="SQL 方言转换(_C)…"
+					          AutomationProperties.AutomationId="menu.sqlconv"
+					          ToolTip="拖入 .sql 自动识别引擎和版本，换个引擎导出新脚本"/>
 				</MenuItem>
 				<MenuItem x:Name="mncatfile" Header="文件(_F)"
 				          AutomationProperties.AutomationId="menu.cat.file">
