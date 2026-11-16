@@ -1821,14 +1821,96 @@ static class SqlScript {
 		return list;
 	}
 
-	/// <summary>按目标方言写标识符：MySQL 反引号，SQL Server 方括号，其余双引号。</summary>
+	/// <summary>能直接写裸名的标识符：字母或下划线开头，只含字母数字下划线，且不是保留字。</summary>
+	static bool bareok(SqlEngine d, string n) {
+		if (!Regex.IsMatch(n, @"^[A-Za-z_][A-Za-z0-9_]*$")) return false;
+		return !reserved(d, n);
+	}
+
+	/// <summary>各方言的保留字：只有这些才加引号，其余一律裸名，脚本更好读。</summary>
+	static bool reserved(SqlEngine d, string n) {
+		var w = n.ToUpperInvariant();
+		if (CommonReserved.Contains(w)) return true;
+		return d switch {
+			SqlEngine.Mssql => MssqlReserved.Contains(w),
+			SqlEngine.Mysql => MysqlReserved.Contains(w),
+			SqlEngine.Postgres => PgReserved.Contains(w),
+			SqlEngine.Oracle => OracleReserved.Contains(w),
+			_ => false,
+		};
+	}
+
+	static readonly HashSet<string> CommonReserved = new(StringComparer.Ordinal) {
+		"ADD", "ALL", "ALTER", "AND", "ANY", "AS", "ASC", "BETWEEN", "BY", "CASE", "CAST", "CHECK",
+		"COLUMN", "CONSTRAINT", "CREATE", "CURRENT_DATE", "CURRENT_TIME", "CURRENT_TIMESTAMP",
+		"CURRENT_USER", "DEFAULT", "DELETE", "DESC", "DISTINCT", "DROP", "ELSE", "END", "EXCEPT",
+		"EXISTS", "FALSE", "FOR", "FOREIGN", "FROM", "FULL", "GRANT", "GROUP", "HAVING", "IN",
+		"INDEX", "INNER", "INSERT", "INTERSECT", "INTO", "IS", "JOIN", "KEY", "LEFT", "LIKE",
+		"LIMIT", "NATURAL", "NOT", "NULL", "OFFSET", "ON", "OR", "ORDER", "OUTER", "PRIMARY",
+		"REFERENCES", "RIGHT", "SELECT", "SESSION_USER", "SET", "SOME", "TABLE", "THEN", "TO",
+		"TRUE", "UNION", "UNIQUE", "UPDATE", "USER", "USING", "VALUES", "VIEW", "WHEN", "WHERE", "WITH",
+	};
+
+	static readonly HashSet<string> MssqlReserved = new(StringComparer.Ordinal) {
+		"ACTION", "CLOSE", "CLUSTERED", "COALESCE", "COMPUTE", "CONTAINS", "CONTINUE", "CONVERT",
+		"CROSS", "CURRENT", "CURSOR", "DATABASE", "DBCC", "DEALLOCATE", "DECLARE", "DENY", "DISK",
+		"DISTRIBUTED", "DOUBLE", "DUMP", "ERRLVL", "ESCAPE", "EXEC", "EXECUTE", "EXIT", "EXTERNAL",
+		"FETCH", "FILE", "FILLFACTOR", "FUNCTION", "GOTO", "HOLDLOCK", "IDENTITY", "IDENTITY_INSERT",
+		"IF", "IN", "NOCOUNT", "NOCHECK", "NONCLUSTERED", "NULLIF", "OF", "OFF", "OFFSETS", "OPEN",
+		"OPENDATASOURCE", "OPENQUERY", "OPENROWSET", "OPENXML", "OPTION", "OVER", "PERCENT", "PIVOT",
+		"PLAN", "PRECISION", "PRINT", "PROC", "PROCEDURE", "PUBLIC", "RAISERROR", "READ", "READTEXT",
+		"RECONFIGURE", "REPLICATION", "RESTORE", "RESTRICT", "RETURN", "REVERT", "REVOKE", "ROLLBACK",
+		"ROWCOUNT", "ROWGUIDCOL", "RULE", "SAVE", "SCHEMA", "SECURITYAUDIT", "SETUSER", "SHUTDOWN",
+		"STATISTICS", "TABLESAMPLE", "TEXTSIZE", "TOP", "TRAN", "TRANSACTION", "TRIGGER", "TRUNCATE",
+		"TRY_CONVERT", "TSEQUAL", "UNPIVOT", "UPDATETEXT", "USE", "VARYING", "WAITFOR", "WHILE",
+		"WRITETEXT", "LEVEL", "RANGE", "ROWS", "ROW", "FILTER", "SYSTEM", "PASSWORD",
+	};
+
+	static readonly HashSet<string> MysqlReserved = new(StringComparer.Ordinal) {
+		"ACCESSIBLE", "ANALYZE", "BEFORE", "BIGINT", "BINARY", "BLOB", "BOTH", "CALL", "CHANGE",
+		"CHAR", "CHARACTER", "COLLATE", "CONDITION", "DATABASES", "DAY_HOUR", "DEC", "DECIMAL",
+		"DECLARE", "DELAYED", "DESCRIBE", "DETERMINISTIC", "DIV", "DUAL", "EACH", "ELSEIF", "ENCLOSED",
+		"ESCAPED", "EXIT", "EXPLAIN", "FLOAT", "FLUSH", "FORCE", "FULLTEXT", "GENERATED", "HIGH_PRIORITY",
+		"HOUR_MINUTE", "IGNORE", "INFILE", "INOUT", "INSENSITIVE", "INT", "INTEGER", "INTERVAL",
+		"ITERATE", "KEYS", "KILL", "LEADING", "LEAVE", "LINES", "LOAD", "LOCALTIME", "LOCK", "LONG",
+		"LOOP", "LOW_PRIORITY", "MASTER_SSL_VERIFY_SERVER_CERT", "MATCH", "MAXVALUE", "MEDIUMINT",
+		"MODIFIES", "MODIFY", "NO_WRITE_TO_BINLOG", "NUMERIC", "OPTIMIZE", "OPTIONALLY", "OUT", "OUTFILE",
+		"PARTITION", "PROCEDURE", "PURGE", "RANGE", "READS", "READ_WRITE", "REAL", "REGEXP", "RELEASE",
+		"RENAME", "REPEAT", "REPLACE", "REQUIRE", "RESIGNAL", "RESTRICT", "RETURN", "REVOKE", "RLIKE",
+		"SCHEMA", "SCHEMAS", "SENSITIVE", "SEPARATOR", "SHOW", "SIGNAL", "SMALLINT", "SPATIAL",
+		"SPECIFIC", "SQL", "SQLEXCEPTION", "SQLSTATE", "SQLWARNING", "SQL_BIG_RESULT", "SQL_CALC_FOUND_ROWS",
+		"SQL_SMALL_RESULT", "SSL", "STARTING", "STRAIGHT_JOIN", "TERMINATED", "TINYINT", "TRAILING",
+		"TRIGGER", "UNDO", "UNLOCK", "UNSIGNED", "USAGE", "UTC_DATE", "UTC_TIME", "UTC_TIMESTAMP",
+		"VARBINARY", "VARCHAR", "VARCHARACTER", "VARYING", "WHILE", "WRITE", "XOR", "ZEROFILL",
+		"GROUP", "RANK", "SYSTEM", "WINDOW", "LEVEL",
+	};
+
+	static readonly HashSet<string> PgReserved = new(StringComparer.Ordinal) {
+		"ANALYSE", "ANALYZE", "ARRAY", "ASYMMETRIC", "AUTHORIZATION", "BINARY", "BOTH", "COLLATE",
+		"CONCURRENTLY", "CURRENT_CATALOG", "CURRENT_ROLE", "CURRENT_SCHEMA", "DEFERRABLE", "DO", "ELSE",
+		"FREEZE", "ILIKE", "INITIALLY", "ISNULL", "LATERAL", "LEADING", "NOTNULL", "OVERLAPS",
+		"PLACING", "RETURNING", "SIMILAR", "SYMMETRIC", "TABLESAMPLE", "TRAILING", "VARIADIC", "VERBOSE",
+		"WINDOW", "LEVEL", "RANGE", "ROWS", "FILTER", "GROUPS", "CURRENT", "USER", "SESSION_USER",
+	};
+
+	static readonly HashSet<string> OracleReserved = new(StringComparer.Ordinal) {
+		"ACCESS", "AUDIT", "CLUSTER", "COMMENT", "COMPRESS", "CONNECT", "DATE", "DECIMAL", "EXCLUSIVE",
+		"FILE", "FLOAT", "IDENTIFIED", "IMMEDIATE", "INCREMENT", "INITIAL", "INTEGER", "LOCK", "LONG",
+		"MAXEXTENTS", "MINUS", "MODE", "MODIFY", "NOAUDIT", "NOCOMPRESS", "NOWAIT", "NUMBER", "OF",
+		"OFFLINE", "ONLINE", "OPTION", "PCTFREE", "PRIOR", "PUBLIC", "RAW", "RENAME", "RESOURCE",
+		"REVOKE", "ROW", "ROWID", "ROWNUM", "ROWS", "SESSION", "SHARE", "SIZE", "SMALLINT", "START",
+		"SUCCESSFUL", "SYNONYM", "SYSDATE", "TRIGGER", "UID", "VALIDATE", "VARCHAR", "VARCHAR2", "LEVEL",
+	};
+
+	/// <summary>按目标方言写标识符：需要时才加引号，普通名字一律裸写。</summary>
 	static string qname(SqlEngine d, string name, Version ver) {
 		var n = name ?? "";
+		// Oracle 裸名按大写存放，只有特殊字符才加引号，免得把用户的小写名变成区分大小写
 		if (d == SqlEngine.Oracle) {
-			// Oracle 裸名按大写存放，只有特殊字符才加引号，免得把用户的小写名变成区分大小写
-			if (Regex.IsMatch(n, @"^[A-Za-z][A-Za-z0-9_$#]*$")) return n.ToUpperInvariant();
+			if (Regex.IsMatch(n, @"^[A-Za-z][A-Za-z0-9_$#]*$") && !reserved(d, n)) return n.ToUpperInvariant();
 			return "\"" + n.Replace("\"", "\"\"") + "\"";
 		}
+		if (bareok(d, n)) return n;
 		if (d == SqlEngine.Mysql) return "`" + n.Replace("`", "``") + "`";
 		if (d == SqlEngine.Mssql) return "[" + n.Replace("]", "]]") + "]";
 		return "\"" + n.Replace("\"", "\"\"") + "\"";
