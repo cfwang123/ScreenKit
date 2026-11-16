@@ -305,6 +305,15 @@ public partial class App : System.Windows.Application {
 					sb.AppendLine("dict: " + pw.DictState());
 					sb.AppendLine(pw.ShotTo($"{baseName}_dict.png"));
 				}
+				// --player-drag head|stage：验证只有顶栏能拖窗口
+				if (args.Any(a => a == "--player-drag")) {
+					sb.AppendLine("drag head: " + pw.DragWindow(true));
+					sb.AppendLine("drag stage: " + pw.DragWindow(false));
+				}
+				// --player-gloss <词[,词…]>：只查释义摘要，看活用形是否还"未收录"
+				var glossArg = Array.IndexOf(args, "--player-gloss");
+				if (glossArg >= 0 && glossArg + 1 < args.Length)
+					sb.AppendLine("gloss: " + pw.GlossOf(args[glossArg + 1]));
 				sb.AppendLine(pw.ShotTo(shotPath));
 				// 再连拍两张，方便看蒙版推进
 				for (var i = 1; i <= 2; i++) {

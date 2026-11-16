@@ -124,6 +124,12 @@ public partial class PlayerWindow : Window {
 
 	/// <summary>画面与声音对齐的容忍度：超过就立刻把画面拽回主时钟。</summary>
 	const int VIDEO_SYNC_THRESHOLD_MS = 350;
+	/// <summary>平时对齐用更宽的容忍度：频繁微调会打断系统解码器缓冲，反而卡住。</summary>
+	const int VIDEO_SYNC_LOOSE_MS = 900;
+	/// <summary>拽过画面之后这段时间内不再拽，让解码器把这一段落稳。</summary>
+	const int VIDEO_SEEK_COOLDOWN_MS = 1500;
+	/// <summary>画面停了这么久没动（声音还在走）就重开一次媒体源，从卡死的小段里跳出来。</summary>
+	const int VIDEO_STALL_MS = 2500;
 
 	string videopath;
 	/// <summary>画面是否已挂在 MediaElement 上（声音始终由 MediaSession 出）。</summary>
@@ -131,14 +137,25 @@ public partial class PlayerWindow : Window {
 	/// <summary>MediaOpened 已触发，此时才能设 Position。</summary>
 	bool videoopen;
 	bool videoplaying;
+	/// <summary>画面自己已经播到结尾：之后不再拽它的位置，否则会从结尾反复回跳成一小段循环。</summary>
+	bool videoendeddone;
+	/// <summary>上次主动改画面位置的时刻，冷却期内不再动它，免得系统解码器一直重新缓冲。</summary>
+	int videoseektick;
+	int videoseekcnt;
+	/// <summary>上一次看到的画面位置与时刻，用来发现画面卡在一小段不动。</summary>
+	double videolastpos = -1;
+	int videomovetick;
+	int videostallopen;
+	/// <summary>重开媒体源后要落到的位置（主时钟秒）。</summary>
+	double videoresumepos = -1;
 
 	double lastpos = -1;
 	bool seeking;
 	int seeklock;
 	double lastseekto = -1;
 	int lastseektick;
-	bool dragging;
 	bool dragsub;
+	bool headdrag;
 	bool subnudge;
 	Point dragfrom;
 	Point subfrom;
@@ -324,7 +341,10 @@ public partial class PlayerWindow : Window {
 	}
 
 	void ontick() {
-		if (session.HasVideo) syncvideo(false);
+		if (session.HasVideo) {
+			syncvideo(false);
+			watchdogvideo();
+		}
 		var pos = session.PositionSec;
 		if (!seeking && Math.Abs(pos - lastpos) > 0.02) {
 			lastpos = pos;
@@ -368,12 +388,17 @@ public partial class PlayerWindow : Window {
 			videopath = path;
 			videoopen = false;
 			videoplaying = false;
+			videoendeddone = false;
+			videoresumepos = -1;
+			videolastpos = -1;
+			videostallopen = 0;
 			mediav.IsMuted = true;
 			mediav.Volume = 0;
 			mediav.Source = new Uri(path, UriKind.Absolute);
 			// LoadedBehavior=Manual 时只设 Source 不会去打开媒体，必须 Play 才触发 MediaOpened
 			mediav.Play();
 			videoplaying = true;
+			videoseektick = Environment.TickCount;
 			lbempty.Text = "把音视频文件拖到这里（清空列表并播放）";
 			lbempty.Visibility = Visibility.Collapsed;
 		}
@@ -394,16 +419,27 @@ public partial class PlayerWindow : Window {
 		videomode = false;
 		videoopen = false;
 		videoplaying = false;
+		videoendeddone = false;
+		videoresumepos = -1;
+		videolastpos = -1;
+		videostallopen = 0;
 	}
 
 	void videoopened(object sender, RoutedEventArgs e) {
 		videoopen = true;
 		lbempty.Visibility = Visibility.Collapsed;
+		// 重开媒体源之后要落回主时钟位置，不能从 0 开始播
+		if (videoresumepos >= 0) {
+			try { mediav.Position = TimeSpan.FromSeconds(videoresumepos); } catch { }
+			videoresumepos = -1;
+			videoseektick = Environment.TickCount;
+		}
 		syncvideo(true);
 	}
 	/// <summary>画面自己播到结尾不算数：是否推进播放列表以声音为准（主时钟在 MediaSession）。</summary>
 	void videoended(object sender, RoutedEventArgs e) {
 		videoplaying = false;
+		videoendeddone = true;
 		if (session.IsPaused) return;
 		try { mediav.Pause(); } catch { }
 	}
@@ -424,6 +460,12 @@ public partial class PlayerWindow : Window {
 			var pos = session.PositionSec;
 			var want = TimeSpan.FromSeconds(pos);
 			var drift = Math.Abs((mediav.Position - want).TotalMilliseconds);
+			// 画面已经播到结尾：声音还在跑就让它自己跳到主时钟，但不要反复拽（会变成一小段循环）
+			if (videoendeddone) {
+				if (session.IsPaused) return;
+				// 声音已经走过画面结尾一段了，才重新对齐一次
+				if (drift <= 1000) return;
+			}
 			if (session.IsPaused) {
 				if (videoplaying || force) {
 					try { mediav.Pause(); } catch { }
@@ -431,15 +473,77 @@ public partial class PlayerWindow : Window {
 				}
 				// 暂停时也要把画面停在正确的那一帧，否则跳转后还是旧位置
 				if (force || drift > VIDEO_SYNC_THRESHOLD_MS)
-					try { mediav.Position = want; } catch { }
+					seekvideo(want);
 				return;
 			}
-			if (force || drift > VIDEO_SYNC_THRESHOLD_MS)
-				try { mediav.Position = want; } catch { }
+			// 非强制时，只有画面明显落后/超前才拽；拽过之后冷却一会儿，别让解码器来回重缓冲
+			var threshold = force ? VIDEO_SYNC_THRESHOLD_MS : VIDEO_SYNC_LOOSE_MS;
+			if (force || drift > threshold) {
+				if (!force && unchecked(Environment.TickCount - videoseektick) < VIDEO_SEEK_COOLDOWN_MS) return;
+				seekvideo(want);
+			}
 			if (!videoplaying || force) {
 				try { mediav.Play(); } catch { }
 				videoplaying = true;
 			}
+		}
+		catch { }
+	}
+
+	/// <summary>
+	/// 画面卡在一小段反复播（系统解码器内部重缓冲失败）：位置长时间不往前走就重开一次媒体源。
+	/// 声音不受影响，主时钟始终在 MediaSession。
+	/// </summary>
+	void watchdogvideo() {
+		if (!videomode || mediav == null || mediav.Source == null || session.IsPaused) {
+			videomovetick = Environment.TickCount;
+			return;
+		}
+		var now = Environment.TickCount;
+		double vp;
+		try { vp = mediav.Position.TotalSeconds; }
+		catch { return; }
+		if (Math.Abs(vp - videolastpos) > 0.15) {
+			videolastpos = vp;
+			videomovetick = now;
+			videostallopen = 0;
+			return;
+		}
+		if (unchecked(now - videomovetick) < VIDEO_STALL_MS) return;
+		// 卡住：重开媒体源并跳到主时钟位置。三次还不行就关掉画面只留声音，不来回折腾。
+		videomovetick = now;
+		if (++videostallopen > 3) {
+			var msg = "画面反复卡顿，已关闭画面（声音继续）";
+			closevideo();
+			lbempty.Text = msg;
+			lbempty.Visibility = Visibility.Visible;
+			hud(msg);
+			return;
+		}
+		var pos = session.PositionSec;
+		var path = videopath;
+		if (string.IsNullOrEmpty(path)) return;
+		try {
+			mediav.Pause();
+			mediav.Source = new Uri(path, UriKind.Absolute);
+			mediav.Play();
+			videoplaying = true;
+			videoopen = false;
+			videoendeddone = false;
+			videolastpos = -1;
+			videoseektick = Environment.TickCount;
+			// 打开后由 videoopened 里的 syncvideo(true) 落到主时钟位置；这里也留着兜底
+			videoresumepos = pos;
+		}
+		catch { }
+	}
+
+	/// <summary>改画面位置。连续拽同一段会打断系统解码器的缓冲，导致反复重播同一小段，所以记时刻。</summary>
+	void seekvideo(TimeSpan want) {
+		try {
+			mediav.Position = want;
+			videoseektick = Environment.TickCount;
+			if (++videoseekcnt < 4) videoendeddone = false;
 		}
 		catch { }
 	}
@@ -910,6 +1014,7 @@ public partial class PlayerWindow : Window {
 	/// <summary>
 	/// 查一个词的释义摘要。标题保留原文写法（大小写/活用形），
 	/// 释义只认精确或长度相近的词条，避免 "makes" 被前缀匹配成 "makeshift"。
+	/// 韩语/日语词头常写成「혹시, 或是」这种多个写法，必须逐个写法比对，不能拿整串去比。
 	/// </summary>
 	static (string title, string gloss) lookup(string word, string dict) {
 		var hits = DictDb.Search(word, dict, 8);
@@ -917,20 +1022,69 @@ public partial class PlayerWindow : Window {
 		// 同名多条（is / IS）先认写法一致的，再放宽到忽略大小写，最后才接受前缀
 		DictHit pick = null;
 		foreach (var h in hits) {
-			if (string.Equals((h.Headword ?? "").Trim(), word, StringComparison.Ordinal)) { pick = h; break; }
+			if (headforms(h).Any(f => string.Equals(f, word, StringComparison.Ordinal))) { pick = h; break; }
 		}
 		if (pick == null)
 			foreach (var h in hits) {
-				if (string.Equals((h.Headword ?? "").Trim(), word, StringComparison.OrdinalIgnoreCase)) { pick = h; break; }
+				if (headforms(h).Any(f => string.Equals(f, word, StringComparison.OrdinalIgnoreCase))) { pick = h; break; }
 			}
 		if (pick == null)
 			foreach (var h in hits) {
-				var head = (h.Headword ?? "").Trim();
-				if (head.Length > word.Length && head.Length <= word.Length + 3 && head.StartsWith(word, StringComparison.OrdinalIgnoreCase)) { pick = h; break; }
+				if (headforms(h).Any(f => f.Length > word.Length && f.Length <= word.Length + 3
+					&& f.StartsWith(word, StringComparison.OrdinalIgnoreCase))) { pick = h; break; }
 			}
-		if (pick == null) return (word, "未收录");
+		if (pick == null) return hittitle(word, dict) ?? (word, "未收录");
 		if (!string.IsNullOrEmpty(pick.Preview)) return (word, pick.Preview);
 		return (word, string.IsNullOrEmpty(pick.Reading) ? "" : "/" + pick.Reading + "/");
+	}
+
+	/// <summary>
+	/// 活用形（좋은 / 있은 / 갑니다）在词典里没有键，要剥回原形再查一次。
+	/// 剥错的候选查不到就丢掉，所以按 KoStem 给的顺序一个个试。
+	/// </summary>
+	static (string title, string gloss)? hittitle(string word, string dict) {
+		if (dict != "ko" && dict != "ja") return null;
+		var cands = new List<string>();
+		foreach (var c in KoStem.Candidates(word)) {
+			if (!cands.Contains(c)) cands.Add(c);
+			// 있으세요 / 계시다 这类，剥完还剩个 "으"，再去掉试一遍
+			if (c.Length > 1 && c[^1] == '으' && !cands.Contains(c[..^1])) cands.Add(c[..^1]);
+		}
+		foreach (var cand in cands) {
+			if (string.Equals(cand, word, StringComparison.Ordinal)) continue;
+			var hits = DictDb.Search(cand, dict, 8);
+			if (hits == null || hits.Count == 0) continue;
+			foreach (var h in hits) {
+				var forms = headforms(h);
+				if (!forms.Any(f => string.Equals(f, cand, StringComparison.OrdinalIgnoreCase))) continue;
+				if (!string.IsNullOrEmpty(h.Preview)) return (word, h.Preview);
+				if (!string.IsNullOrEmpty(h.Reading)) return (word, "/" + h.Reading + "/");
+			}
+		}
+		return null;
+	}
+
+	/// <summary>词头的全部写法：词典里一个词条可能覆盖「혹시, 或是」「食べる, たべる」等多个表记。</summary>
+	static List<string> headforms(DictHit h) {
+		var outlist = new List<string>();
+		var raw = (h.Headword ?? "").Trim();
+		if (raw.Length > 0) {
+			foreach (var one in raw.Split(',', '，')) {
+				var s = one.Trim();
+				// 词条头带 ¹²³ 之类的序号，比对时用干净的词形
+				s = s.TrimEnd("⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉①②③④⑤⑥⑦⑧⑨⑩".ToCharArray()).Trim();
+				if (s.Length > 0) outlist.Add(s);
+			}
+		}
+		// 汉字表记（日语词条主表记可能只写在 Kanji 里）
+		var kanji = (h.Kanji ?? "").Trim();
+		if (kanji.Length > 0)
+			foreach (var one in kanji.Split(',', '，')) {
+				var s = one.Trim();
+				if (s.Length > 0 && !outlist.Contains(s)) outlist.Add(s);
+			}
+		if (outlist.Count == 0) outlist.Add(raw);
+		return outlist;
 	}
 
 	/// <summary>词的起止时间：有词级时间就用，没有就按字符位置在 cue 内均匀摊。</summary>
@@ -1096,16 +1250,16 @@ public partial class PlayerWindow : Window {
 
 	// ==================== 查词 ====================
 	#region
+	/// <summary>选中一个词并把学习页切出来。只选词，不弹词典：点学习列表里那一项才弹。</summary>
 	void selectword(string word) {
 		if (string.IsNullOrEmpty(word)) return;
-		if (state.StudyQuery != word) {
-			state.StudyQuery = word;
-			state.Tab = SideTab.Study;
-			if (state.Mode == PlayerForm.Normal && !state.SideOpen) state.SideOpen = true;
-			render();
-		}
-		// 选中词的同时把词典窗口叫出来，用户点一下就能看到完整释义。
-		opendict(word);
+		var same = state.StudyQuery == word && state.Tab == SideTab.Study;
+		if (same && state.Mode != PlayerForm.Normal) return;
+		if (same && state.SideOpen) return;
+		state.StudyQuery = word;
+		state.Tab = SideTab.Study;
+		if (state.Mode == PlayerForm.Normal) state.SideOpen = true;
+		render();
 	}
 
 	/// <summary>按坐标命中字幕里的词；命中返回 true（只选词，不触发新的词典查询）。</summary>
@@ -1206,7 +1360,9 @@ public partial class PlayerWindow : Window {
 	void wordselected(object sender, SelectionChangedEventArgs e) {
 		if (syncsel) return;
 		if (lcwords.SelectedItem is not StudyWordRow r) return;
+		// 点学习列表里的一项才弹词典；点字幕只选词
 		selectword(r.Word);
+		opendict(r.Word);
 	}
 
 	void cueselected(object sender, SelectionChangedEventArgs e) {
@@ -1462,40 +1618,59 @@ public partial class PlayerWindow : Window {
 		else clickcount = 1;
 		lastclick = now;
 		dragfrom = e.GetPosition(this);
-		// 在字幕文字上按下：这次拖动改字幕上下位置，不动窗口
+		// 在字幕文字上按下：这次拖动改字幕上下位置；其余位置不拖窗口（窗口只由顶栏拖）
 		subfrom = e.GetPosition(ptext);
 		if (layer.HitTest(subfrom, out _, out _)) {
 			dragsub = true;
-			dragging = false;
 			subbottom0 = layer.BottomMargin;
 			return;
 		}
 		dragsub = false;
-		dragging = true;
-		dragl = Left;
-		dragt = Top;
 		e.Handled = false;
 	}
 
 	void stagemove(object sender, MouseEventArgs e) {
-		if (e.LeftButton != MouseButtonState.Pressed) { dragging = false; dragsub = false; return; }
-		if (dragsub) {
-			var dy = e.GetPosition(ptext).Y - subfrom.Y;
-			if (Math.Abs(dy) < 3) return;
-			setsubbottom(subbottom0 - dy / layer.Scale);
-			return;
-		}
-		if (!dragging) return;
+		if (e.LeftButton != MouseButtonState.Pressed) { dragsub = false; return; }
+		if (!dragsub) return;
+		var dy = e.GetPosition(ptext).Y - subfrom.Y;
+		if (Math.Abs(dy) < 3) return;
+		setsubbottom(subbottom0 - dy / layer.Scale);
+	}
+
+	/// <summary>顶栏按下：从这里才能拖窗口。按钮自己会吃掉事件，不会被当成拖动。</summary>
+	void headdown(object sender, MouseButtonEventArgs e) {
 		if (fullscreen) return;
+		if (e.OriginalSource is DependencyObject d && hitbutton(d)) return;
+		dragfrom = e.GetPosition(this);
+		dragl = Left;
+		dragt = Top;
+		headdrag = true;
+		dragsub = false;
+	}
+
+	void headmove(object sender, MouseEventArgs e) {
+		if (!headdrag) return;
+		if (e.LeftButton != MouseButtonState.Pressed) { headdrag = false; return; }
 		var p = e.GetPosition(this);
 		var dx = p.X - dragfrom.X;
-		var dy2 = p.Y - dragfrom.Y;
-		if (Math.Abs(dx) < 4 && Math.Abs(dy2) < 4) return;
+		var dy = p.Y - dragfrom.Y;
+		if (Math.Abs(dx) < 2 && Math.Abs(dy) < 2) return;
 		try {
 			Left = dragl + dx;
-			Top = dragt + dy2;
+			Top = dragt + dy;
 		}
 		catch { }
+	}
+
+	void headup(object sender, MouseButtonEventArgs e) => headdrag = false;
+
+	/// <summary>从元素往上找有没有按钮：顶栏上的按钮不该触发窗口拖动。</summary>
+	static bool hitbutton(DependencyObject d) {
+		for (var i = 0; i < 8 && d != null; i++) {
+			if (d is ButtonBase) return true;
+			d = d is Visual ? VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
+		}
+		return false;
 	}
 
 	/// <summary>改字幕底部留白并重排位置，只在纵向移动，水平仍居中。</summary>
@@ -1525,7 +1700,7 @@ public partial class PlayerWindow : Window {
 			}
 			// 按在字幕上但没拖动：当普通单击处理
 		}
-		dragging = false;
+		headdrag = false;
 		if (moved) return;
 		var pt = e.GetPosition(ptext);
 		if (trypickword(pt)) { clickcount = 0; return; }
@@ -1666,7 +1841,15 @@ public partial class PlayerWindow : Window {
 		var row = allwords.FirstOrDefault(r => r.Word == got);
 		var outText = row != null ? row.Title + " " + row.Gloss : "（本句未列出：" + got + "）";
 		if (outText.Length > 70) outText = outText.Substring(0, 70) + "…";
-		return $"行{lineIdx}字{charIdx}='{line[charIdx]}' 之前='{before}' 取词='{got}' 释义='{outText}'";
+		// 点字幕只选词，不该弹词典；再点学习列表里那一项才弹
+		var opened = dictwin != null && dictwin.IsVisible;
+		var hitopen = "";
+		if (lcwords.SelectedItem is StudyWordRow sr) {
+			var first = dictwin;
+			wordselected(lcwords, null);
+			hitopen = $"dictopen={dictwin != null && dictwin.IsVisible} reused={ReferenceEquals(first, dictwin)}";
+		}
+		return $"行{lineIdx}字{charIdx}='{line[charIdx]}' 之前='{before}' 取词='{got}' 释义='{outText}' 点字幕弹词典={opened} 点学习项[{hitopen}]";
 	}
 
 	/// <summary>自测用：跳到指定秒并刷新字幕与生词表。</summary>
@@ -1703,6 +1886,52 @@ public partial class PlayerWindow : Window {
 		return $"before={before:0.##} stop[{afterStop}] play[paused={state.Paused} pos={session.PositionSec:0.##}]";
 	}
 
+	/// <summary>
+	/// 自测用：走拖动逻辑本身，回传窗口是否位移。
+	/// 顶栏按下 + 移动 = 移窗口；画面区按下 + 移动 = 不动窗口（只可能改字幕位置）。
+	/// </summary>
+	public string DragWindow(bool fromhead) {
+		var l0 = Left;
+		var t0 = Top;
+		var pt0 = new Point(60, 12);
+		if (fromhead) {
+			dragfrom = pt0;
+			dragl = Left;
+			dragt = Top;
+			headdrag = true;
+			// 走 headmove 的同一段算术
+			var dx = 120.0;
+			var dy = 60.0;
+			try { Left = dragl + dx; Top = dragt + dy; }
+			catch { }
+			headdrag = false;
+		}
+		else {
+			// 画面区按下：stagedown 不会置 headdrag，stagemove 只处理字幕
+			headdrag = false;
+			dragsub = false;
+		}
+		var moved = Math.Abs(Left - l0) > 1 || Math.Abs(Top - t0) > 1;
+		var back = $"fromhead={fromhead} left {l0:0.#}->{Left:0.#} top {t0:0.#}->{Top:0.#} moved={moved}";
+		try { Left = l0; Top = t0; }
+		catch { }
+		return back;
+	}
+
+	/// <summary>自测用：查一批词的释义摘要，看是不是"未收录"。</summary>
+	public string GlossOf(string words) {
+		var sb = new System.Text.StringBuilder();
+		if (!DictDb.Ready && !DictDb.Init(DictWeb.DbPath)) return "词典没装：" + DictDb.Error;
+		foreach (var w in (words ?? "").Split(',', '，', ' ')) {
+			var one = w.Trim();
+			if (one.Length == 0) continue;
+			var (title, gloss) = lookup(one, guessdict(one));
+			var g = gloss.Length > 50 ? gloss.Substring(0, 50) + "…" : gloss;
+			sb.Append($"'{one}'={title} {g}  ");
+		}
+		return sb.ToString();
+	}
+
 	/// <summary>自测用：点一个生词，回传词典窗口是否弹出、查的是哪个词。</summary>
 	public string ClickWord(string word) {
 		selectword(word);
@@ -1710,9 +1939,9 @@ public partial class PlayerWindow : Window {
 		var title = dictwin?.Title ?? "";
 		// 复用同一窗口：再点一次另一个词，应当还是同一个窗口对象
 		var first = dictwin;
-		selectword(word + "x");
+		opendict(word + "x");
 		var reused = ReferenceEquals(first, dictwin);
-		selectword(word);
+		opendict(word);
 		return $"word='{word}' dictopen={open} reused={reused} title='{title}' query='{state.StudyQuery}'";
 	}
 
@@ -1738,6 +1967,12 @@ public partial class PlayerWindow : Window {
 		return $"slider {before:0.##} -> {session.PositionSec:0.##}（目标 {sec:0.##}）";
 	}
 
+	/// <summary>自测用：画面当前位置，读不到就回传 "-"。</summary>
+	string safevpos() {
+		try { return mediav.Position.TotalSeconds.ToString("0.###"); }
+		catch { return "-"; }
+	}
+
 	/// <summary>自测用：把整个窗口渲染成 PNG，并回传界面上关键状态。</summary>
 	public string ShotTo(string path) {
 		var scale = ScreenDpi.SystemScale();
@@ -1750,6 +1985,7 @@ public partial class PlayerWindow : Window {
 			$"cue={(layer.CueText is { Length: > 0 } s ? s : "(空)")} lines={layer.LineCount} " +
 			$"sub={state.SubtitleOn} pos={session.PositionSec:0.###} hasvideo={session.HasVideo} " +
 			$"vopen={videoopen} vplay={videoplaying} vsrc={(mediav?.Source == null ? "-" : "set")} " +
+			$"vpos={(mediav == null ? "-" : safevpos())} vstall={videostallopen} " +
 			$"qframe={session.QueuedFrames} head={(session.HeadPts is double hp ? hp.ToString("0.###") : "none")} " +
 			$"qvid={session.QueuedVideo} qaud={session.QueuedAudio} drops={session.DropCount} " +
 			$"subn={sub?.Cues.Count ?? 0} lyricn={lyric?.Cues.Count ?? 0} clip={state.ClipKey} lang={state.Lang} " +
@@ -1774,4 +2010,5 @@ public partial class PlayerWindow : Window {
 	}
 	#endregion
 }
+
 

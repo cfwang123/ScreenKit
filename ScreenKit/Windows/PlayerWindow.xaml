@@ -306,7 +306,8 @@
 
 		<!-- A 顶栏 -->
 		<Border x:Name="phead" Grid.Row="0" Grid.ColumnSpan="3" Background="{StaticResource BgPanel}"
-		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,6">
+		        BorderBrush="{StaticResource BorderSoft}" BorderThickness="0,0,0,1" Padding="8,6"
+		        MouseLeftButtonDown="headdown" MouseLeftButtonUp="headup" MouseMove="headmove">
 			<DockPanel>
 				<StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
 					<Button x:Name="bopen" Style="{StaticResource ToolBtn}" Content="打开" ToolTip="打开文件或目录"

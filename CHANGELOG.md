@@ -95,6 +95,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - TTS: SAPI voice list now filters by language for Japanese, Korean and other languages.
 - Japanese conjugation: words listed in the example table now win over a same-shaped dictionary entry, so いい is conjugated as an i-adjective (よくない) instead of a noun.
 - Media player: video is now shown by MediaElement while the sound still comes from the built-in decoder, so seeking no longer leaves garbled frames; files the system decoder cannot open fall back to audio only with a hint on the stage.
+- Media player: only the top bar drags the window now, dragging inside the stage moves the subtitle instead; clicking a subtitle line selects the word in the Study tab without opening the dictionary, only clicking an entry there opens it; stems of inflected Korean words resolve to the base entry so fewer words show as not found; a video that keeps replaying the same short span is detected and its media source reopened.
 
 ### 中文
 
@@ -141,6 +142,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤。
 - 日语词形变化：示例词表里的词优先于同形的词典词条，いい 现在按い形容词变化（よくない），不再按名词。
 - 媒体播放器：画面改由 MediaElement 显示，声音仍走内置解码器，跳转后不再花屏；系统解码器打不开的非常规封装会只播声音，并在画面上给出提示。
+- 媒体播放器：只有顶栏能拖窗口，画面区拖动只挪字幕；点字幕只把学习页切出来并选中该词，不再弹词典，点学习列表里的一项才弹；韩语活用形会剥回原形查释义，显示「未收录」的少了；画面反复重播同一小段会被检测到并重开媒体源。
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 
