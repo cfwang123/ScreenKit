@@ -2425,10 +2425,17 @@
 						<DockPanel Grid.Column="1" LastChildFill="True">
 							<Border DockPanel.Dock="Top" Background="{StaticResource BgPanel}" CornerRadius="12"
 							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1" Padding="10" Margin="0,0,0,8">
-								<TextBox x:Name="etoolq" Height="32" Padding="8,4"
-								         BorderBrush="{StaticResource BorderSoft}"
-								         VerticalContentAlignment="Center"
-								         AutomationProperties.AutomationId="tools.search"/>
+								<DockPanel LastChildFill="True">
+									<!-- 搜索框右边：在浏览器打开 web工具主页 -->
+									<TextBlock x:Name="lbwebhome" DockPanel.Dock="Right" FontSize="12" Cursor="Hand"
+									           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center"
+									           Margin="10,0,2,0" TextDecorations="Underline"
+									           AutomationProperties.AutomationId="tools.webhome"/>
+									<TextBox x:Name="etoolq" Height="32" Padding="8,4"
+									         BorderBrush="{StaticResource BorderSoft}"
+									         VerticalContentAlignment="Center"
+									         AutomationProperties.AutomationId="tools.search"/>
+								</DockPanel>
 							</Border>
 							<Border Background="{StaticResource BgPanel}" CornerRadius="12"
 							        BorderBrush="{StaticResource BorderSoft}" BorderThickness="1">

@@ -5869,12 +5869,18 @@ public partial class MainWindow : Window {
 			filltoolcards();
 		};
 		etoolq.TextChanged += (_, _) => filltoolcards();
+		// 搜索框右边那行文字：在浏览器打开 web工具主页
+		bindstclick(lbwebhome, () => openhttptools(fromTray: true));
 		filltoolcats();
 		filltoolcards();
 	}
 
 	void applytoolhublang() {
 		etoolq.ToolTip = Loc.T("web.find");
+		if (lbwebhome != null) {
+			lbwebhome.Text = Loc.T("web.home.link");
+			lbwebhome.ToolTip = Loc.T("web.home.tip");
+		}
 		lbtoolnone.Text = Loc.T("web.find.none");
 		filltoolcats();
 		filltoolcards();
