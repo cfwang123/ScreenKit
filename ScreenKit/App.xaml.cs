@@ -106,6 +106,19 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		// SQL 方言转换窗口冒烟：只开这个窗口，可带一个脚本文件；UIA 据此检查控件与识别结果
+		if (args.Any(a => a == "--test-sqlconv-ui")) {
+			AppConfig.initlogswitch();
+			base.OnStartup(e);
+			var cvw = new SqlConvWindow();
+			MainWindow = cvw;
+			cvw.Show();
+			var ci = Array.IndexOf(args, "--test-sqlconv-ui");
+			if (ci + 1 < args.Length && !args[ci + 1].StartsWith("--", StringComparison.Ordinal))
+				cvw.SelfTest(args[ci + 1]);
+			return;
+		}
+
 		// SOAP 调试窗口冒烟：只开这个窗口，便于 UIA 检查。
 		if (args.Any(a => a == "--test-soap-ui")) {
 			base.OnStartup(e);

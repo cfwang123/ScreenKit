@@ -1,0 +1,94 @@
+<Window x:Class="ScreenKit.SqlConvWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SQL 方言转换"
+        Width="1000" Height="720"
+        MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BgApp}"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        FontSize="13"
+        AllowDrop="True"
+        AutomationProperties.AutomationId="sqlconv.window">
+	<Grid Margin="14">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<TextBlock x:Name="lbhint" Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+
+		<!-- 文件 -->
+		<Border Grid.Row="1" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
+		        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+			<DockPanel LastChildFill="True">
+				<Button x:Name="bbrowse" DockPanel.Dock="Right" Style="{StaticResource ToolBtn}" Margin="8,0,0,0"
+				        AutomationProperties.AutomationId="sqlconv.browse"/>
+				<TextBox x:Name="efile" Height="30" Padding="8,4" VerticalContentAlignment="Center"
+				         BorderBrush="{StaticResource BorderSoft}" IsReadOnly="True"
+				         AutomationProperties.AutomationId="sqlconv.file"/>
+			</DockPanel>
+		</Border>
+
+		<!-- 源 → 目标 -->
+		<Border Grid.Row="2" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource BorderSoft}"
+		        BorderThickness="1" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+			<StackPanel>
+				<WrapPanel VerticalAlignment="Center" Margin="0,0,0,6">
+					<TextBlock x:Name="lbsrc" VerticalAlignment="Center" Width="40"
+					           Foreground="{StaticResource TextMuted}"/>
+					<ComboBox x:Name="esrceng" Width="132" Height="30" Margin="0,0,8,0" VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="sqlconv.src.engine"/>
+					<ComboBox x:Name="esrcver" Width="150" Height="30" Margin="0,0,12,0" VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="sqlconv.src.version"/>
+					<TextBlock x:Name="lbdeteced" VerticalAlignment="Center" Foreground="{StaticResource TextMuted}"
+					           FontSize="12" TextTrimming="CharacterEllipsis"
+					           AutomationProperties.AutomationId="sqlconv.detected"/>
+				</WrapPanel>
+				<WrapPanel VerticalAlignment="Center" Margin="0,0,0,6">
+					<TextBlock x:Name="lbdst" VerticalAlignment="Center" Width="40"
+					           Foreground="{StaticResource TextMuted}"/>
+					<ComboBox x:Name="edsteng" Width="132" Height="30" Margin="0,0,8,0" VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="sqlconv.dst.engine"/>
+					<ComboBox x:Name="edstver" Width="150" Height="30" Margin="0,0,12,0" VerticalContentAlignment="Center"
+					          AutomationProperties.AutomationId="sqlconv.dst.version"/>
+				</WrapPanel>
+				<WrapPanel VerticalAlignment="Center">
+					<CheckBox x:Name="cbdrop" VerticalAlignment="Center" Margin="40,0,16,0"
+					          AutomationProperties.AutomationId="sqlconv.drop"/>
+					<CheckBox x:Name="cbcomment" VerticalAlignment="Center"
+					          AutomationProperties.AutomationId="sqlconv.comments"/>
+				</WrapPanel>
+			</StackPanel>
+		</Border>
+
+		<!-- 动作 -->
+		<WrapPanel Grid.Row="3" Margin="0,0,0,8">
+			<Button x:Name="bconvert" Style="{StaticResource PrimaryBtn}" Margin="0,0,8,0"
+			        AutomationProperties.AutomationId="sqlconv.convert"/>
+			<Button x:Name="bsave" Style="{StaticResource ToolBtn}"
+			        AutomationProperties.AutomationId="sqlconv.save"/>
+		</WrapPanel>
+
+		<!-- 预览 -->
+		<DockPanel Grid.Row="4">
+			<TextBlock x:Name="lbprev" DockPanel.Dock="Top" Margin="2,0,0,4"
+			           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+			<TextBox x:Name="etext" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+			         Padding="8,6" BorderBrush="{StaticResource BorderSoft}"
+			         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+			         AutomationProperties.AutomationId="sqlconv.preview"/>
+		</DockPanel>
+
+		<TextBlock x:Name="lbstat" Grid.Row="5" Margin="2,8,0,0" TextWrapping="Wrap"
+		           Foreground="{StaticResource TextMuted}" FontSize="12"
+		           AutomationProperties.AutomationId="sqlconv.stat"/>
+	</Grid>
+</Window>
