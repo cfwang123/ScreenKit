@@ -82,7 +82,13 @@ unsafe sealed class MediaSession : IDisposable {
 
 	public string Path { get; private set; } = "";
 	public double DurationSec => demux?.DurationSec ?? 0;
-	public bool HasVideo => vdec != null;
+	/// <summary>文件里有视频流。画面可能由别处显示（此时 <see cref="DecodeVideo"/> 为 false），这里只看流。</summary>
+	public bool HasVideo => demux?.HasVideo ?? false;
+	/// <summary>
+	/// 是否自己解视频帧。播放器把画面交给 MediaElement 时置 false：少解一路，省 CPU，
+	/// 也避免两边各解一遍。关闭状态在 <see cref="Open"/> 时生效。
+	/// </summary>
+	public bool DecodeVideo { get; set; } = true;
 	public bool HasAudio => adec != null;
 	public int Width => demux?.Width ?? 0;
 	public int Height => demux?.Height ?? 0;
@@ -95,7 +101,16 @@ unsafe sealed class MediaSession : IDisposable {
 		set { if (audio != null) audio.Volume = value; }
 	}
 	public bool IsPaused => paused;
-	public bool IsEnded => eofdemux && eofvideo && eofaudio;
+	/// <summary>
+	/// 播完了没有。以时钟到结尾为准：画面交给 MediaElement 时这里不解视频，
+	/// 视频包直接扔掉，解封装会一路读到结尾，光看各流 eof 会立刻误判成播完。
+	/// </summary>
+	public bool IsEnded {
+		get {
+			if (DurationSec > 0 && PositionSec >= DurationSec - 0.2) return true;
+			return vdec != null && adec != null && eofdemux && eofvideo && eofaudio;
+		}
+	}
 	public int QueuedVideo {
 		get { lock (lockq) return vpackets.Count; }
 	}
@@ -129,17 +144,20 @@ unsafe sealed class MediaSession : IDisposable {
 		Close();
 		Path = path;
 		demux = new MediaDemuxer(path);
-		if (demux.HasVideo) vdec = new VideoDecoder(demux.VideoPar, demux.Rotation, demux.VideoTimeBase);
+		if (demux.HasVideo && DecodeVideo) vdec = new VideoDecoder(demux.VideoPar, demux.Rotation, demux.VideoTimeBase);
 		if (demux.HasAudio) {
 			adec = new AudioDecoder(demux.AudioPar, demux.AudioTimeBase);
 			audio = new AudioOut();
 			audio.Volume = lastvolume;
 		}
-		if (vdec == null && adec == null)
+		// 视频流存在就算可播：画面可能由 MediaElement 出，这里只负责声音和时钟
+		if (!demux.HasVideo && adec == null)
 			throw new InvalidOperationException("这个文件没有可播放的音视频流");
 		if (audio != null) clock.UseAudio(() => audio.PositionSec);
 		else clock.UseSystem();
 		eofdemux = eofvideo = eofaudio = false;
+		// 不解视频时没有视频线程，结尾判定不能等它
+		if (vdec == null) eofvideo = true;
 		stop = false;
 		paused = false;
 		vresync = false;
@@ -203,6 +221,8 @@ unsafe sealed class MediaSession : IDisposable {
 				}
 				var isvideo = p->stream_index == demux.VideoIndex;
 				if (isvideo) {
+					// 不解视频时视频包没人消费，留着只会把内存吃光
+					if (vdec == null) { ffmpeg.av_packet_unref(p); continue; }
 					if (videofull()) {
 						if (fullsince == 0) fullsince = Environment.TickCount;
 						var waited = unchecked(Environment.TickCount - fullsince);
@@ -256,6 +276,8 @@ unsafe sealed class MediaSession : IDisposable {
 			while (apackets.Count > 0) apackets.Dequeue().Dispose();
 		}
 		eofdemux = eofvideo = eofaudio = false;
+		// 不解视频时没有视频线程，结尾判定不能等它
+		if (vdec == null) eofvideo = true;
 		// 丢包模式是上一次卡顿的残留状态，不重置就会一路丢到下一个关键帧（本片 5 秒一个）
 		skipvideo = false;
 		fullsince = 0;

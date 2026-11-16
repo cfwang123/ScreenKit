@@ -122,8 +122,16 @@ public partial class PlayerWindow : Window {
 	TimedTextFile sub;
 	TimedTextFile lyric;
 
-	WriteableBitmap bmp;
-	long lastseq = -1;
+	/// <summary>画面与声音对齐的容忍度：超过就立刻把画面拽回主时钟。</summary>
+	const int VIDEO_SYNC_THRESHOLD_MS = 350;
+
+	string videopath;
+	/// <summary>画面是否已挂在 MediaElement 上（声音始终由 MediaSession 出）。</summary>
+	bool videomode;
+	/// <summary>MediaOpened 已触发，此时才能设 Position。</summary>
+	bool videoopen;
+	bool videoplaying;
+
 	double lastpos = -1;
 	bool seeking;
 	int seeklock;
@@ -168,6 +176,8 @@ public partial class PlayerWindow : Window {
 	public PlayerWindow(OcrOptions opt = null) {
 		InitializeComponent();
 		this.opt = opt;
+		// 画面由 mediav 出，MediaSession 只管声音与时钟，不再重复解码视频
+		session.DecodeVideo = false;
 		layer = new TimedTextLayer(ptext);
 		lcwords.ItemsSource = words;
 		lbcues.ItemsSource = cues;
@@ -314,7 +324,7 @@ public partial class PlayerWindow : Window {
 	}
 
 	void ontick() {
-		if (session.HasVideo) drawframe();
+		if (session.HasVideo) syncvideo(false);
 		var pos = session.PositionSec;
 		if (!seeking && Math.Abs(pos - lastpos) > 0.02) {
 			lastpos = pos;
@@ -339,29 +349,99 @@ public partial class PlayerWindow : Window {
 
 	// ==================== 画面 ====================
 	#region
-	void drawframe() {
-		var f = session.TakeDue();
-		if (f == null && session.IsPaused) f = session.PeekLatest();
-		if (f == null) return;
-		var seq = session.FrameSeq;
-		if (seq == lastseq && !session.IsPaused) return;
-		lastseq = seq;
-		if (bmp == null || bmp.PixelWidth != f.Width || bmp.PixelHeight != f.Height) {
-			bmp = new WriteableBitmap(f.Width, f.Height, 96, 96, PixelFormats.Bgra32, null);
-			imgvideo.Source = bmp;
+	/// <summary>
+	/// 把画面挂到 MediaElement 上。画面只当"静音显示器"：声音始终由 MediaSession 出，
+	/// 跳转由系统解码器自己处理，不会像自己解 H.264 那样断参考链花屏。
+	/// </summary>
+	void attachvideo(string path) {
+		if (mediav == null) return;
+		if (string.IsNullOrWhiteSpace(path) || !MediaFormat.IsVideo(path) || !File.Exists(path)) {
+			closevideo();
+			return;
+		}
+		if (videomode && string.Equals(videopath, path, StringComparison.OrdinalIgnoreCase)) {
+			syncvideo(true);
+			return;
+		}
+		try {
+			videomode = true;
+			videopath = path;
+			videoopen = false;
+			videoplaying = false;
+			mediav.IsMuted = true;
+			mediav.Volume = 0;
+			mediav.Source = new Uri(path, UriKind.Absolute);
+			// LoadedBehavior=Manual 时只设 Source 不会去打开媒体，必须 Play 才触发 MediaOpened
+			mediav.Play();
+			videoplaying = true;
+			lbempty.Text = "把音视频文件拖到这里（清空列表并播放）";
 			lbempty.Visibility = Visibility.Collapsed;
 		}
-		bmp.Lock();
+		catch (Exception ex) {
+			closevideo();
+			hud("画面打不开: " + ex.Message);
+		}
+	}
+
+	/// <summary>只关画面，完全不动声音与主时钟。</summary>
+	void closevideo() {
+		if (mediav != null) {
+			try { mediav.Stop(); } catch { }
+			try { mediav.Close(); } catch { }
+			try { mediav.Source = null; } catch { }
+		}
+		videopath = null;
+		videomode = false;
+		videoopen = false;
+		videoplaying = false;
+	}
+
+	void videoopened(object sender, RoutedEventArgs e) {
+		videoopen = true;
+		lbempty.Visibility = Visibility.Collapsed;
+		syncvideo(true);
+	}
+	/// <summary>画面自己播到结尾不算数：是否推进播放列表以声音为准（主时钟在 MediaSession）。</summary>
+	void videoended(object sender, RoutedEventArgs e) {
+		videoplaying = false;
+		if (session.IsPaused) return;
+		try { mediav.Pause(); } catch { }
+	}
+
+	void videofailed(object sender, ExceptionRoutedEventArgs e) {
+		var msg = e.ErrorException?.Message ?? "视频画面打开失败";
+		// 只关画面，声音继续；部分非常规封装系统解码器不支持
+		closevideo();
+		lbempty.Text = "画面不可用（声音继续）: " + msg;
+		lbempty.Visibility = Visibility.Visible;
+		hud("画面不可用（声音继续）: " + msg);
+	}
+
+	/// <summary>把画面进度与播放状态对齐到主时钟（不反向改声音）。</summary>
+	void syncvideo(bool force) {
+		if (!videomode || mediav == null || mediav.Source == null) return;
 		try {
-			var back = bmp.BackBuffer;
-			var len = Math.Min(f.Stride, bmp.BackBufferStride);
-			for (var y = 0; y < f.Height; y++)
-				Marshal.Copy(f.Bgra, y * f.Stride, back + y * bmp.BackBufferStride, len);
-			bmp.AddDirtyRect(new Int32Rect(0, 0, f.Width, f.Height));
+			var pos = session.PositionSec;
+			var want = TimeSpan.FromSeconds(pos);
+			var drift = Math.Abs((mediav.Position - want).TotalMilliseconds);
+			if (session.IsPaused) {
+				if (videoplaying || force) {
+					try { mediav.Pause(); } catch { }
+					videoplaying = false;
+				}
+				// 暂停时也要把画面停在正确的那一帧，否则跳转后还是旧位置
+				if (force || drift > VIDEO_SYNC_THRESHOLD_MS)
+					try { mediav.Position = want; } catch { }
+				return;
+			}
+			if (force || drift > VIDEO_SYNC_THRESHOLD_MS)
+				try { mediav.Position = want; } catch { }
+			if (!videoplaying || force) {
+				try { mediav.Play(); } catch { }
+				videoplaying = true;
+			}
 		}
-		finally {
-			bmp.Unlock();
-		}
+		catch { }
 	}
 	#endregion
 
@@ -460,16 +540,15 @@ public partial class PlayerWindow : Window {
 			state.ClipKey = "";
 			session.Open(item.Path);
 			session.SetVolume((float)state.Volume);
-			bmp = null;
-			lastseq = -1;
 			lastpos = -1;
-			imgvideo.Source = null;
+			closevideo();
 			Title = item.Display + " - 媒体播放器";
 			lbtitle.Text = item.Display;
 			lbempty.Visibility = Visibility.Collapsed;
 			autotext(item.Path);
 			session.Play();
 			state.Paused = false;
+			attachvideo(item.Path);
 			seeklock++;
 			try { sseek.Value = 0; }
 			finally { seeklock--; }
@@ -490,6 +569,7 @@ public partial class PlayerWindow : Window {
 		session.TogglePause();
 		state.Paused = session.IsPaused;
 		if (state.Paused) stopclip();
+		syncvideo(true);
 		state.LastActivityTick = Environment.TickCount;
 		render();
 	}
@@ -508,9 +588,9 @@ public partial class PlayerWindow : Window {
 		session.Pause();
 		state.Paused = true;
 		lastpos = -1;
-		lastseq = -1;
 		updateclock(0);
 		updatetext(0);
+		syncvideo(true);
 		render();
 		hud("已停止");
 	}
@@ -1233,6 +1313,7 @@ public partial class PlayerWindow : Window {
 		}
 		lastpos = -1;
 		stopclip();
+		syncvideo(true);
 		hud("跳到第 " + (index + 1) + " 条 " + fmt(c.Start));
 		render();
 	}
@@ -1296,9 +1377,10 @@ public partial class PlayerWindow : Window {
 		lastseekto = target;
 		lastseektick = now;
 		session.Seek(target);
-		lastseq = -1;
 		lastpos = -1;
 		stopclip();
+		// 画面跟着跳：MediaElement 自己的 seek 走系统解码器，跳到关键帧前由它自己解，不会花屏
+		syncvideo(true);
 	}
 	#endregion
 
@@ -1352,7 +1434,7 @@ public partial class PlayerWindow : Window {
 		render();
 		Dispatcher.BeginInvoke(new Action(() => {
 			layer.relayout();
-			if (session.HasVideo) drawframe();
+			syncvideo(false);
 		}), DispatcherPriority.Loaded);
 	}
 
@@ -1594,6 +1676,7 @@ public partial class PlayerWindow : Window {
 		lastpos = -1;
 		updatetext(session.PositionSec);
 		updateclock(session.PositionSec);
+		syncvideo(true);
 		render();
 	}
 
@@ -1666,6 +1749,7 @@ public partial class PlayerWindow : Window {
 			$"pbar={pbar.Visibility} phead={phead.Visibility} words={words.Count}/{allwords.Count} cues={cues.Count}/{allcues.Count} " +
 			$"cue={(layer.CueText is { Length: > 0 } s ? s : "(空)")} lines={layer.LineCount} " +
 			$"sub={state.SubtitleOn} pos={session.PositionSec:0.###} hasvideo={session.HasVideo} " +
+			$"vopen={videoopen} vplay={videoplaying} vsrc={(mediav?.Source == null ? "-" : "set")} " +
 			$"qframe={session.QueuedFrames} head={(session.HeadPts is double hp ? hp.ToString("0.###") : "none")} " +
 			$"qvid={session.QueuedVideo} qaud={session.QueuedAudio} drops={session.DropCount} " +
 			$"subn={sub?.Cues.Count ?? 0} lyricn={lyric?.Cues.Count ?? 0} clip={state.ClipKey} lang={state.Lang} " +

@@ -326,8 +326,10 @@
 		<!-- B 舞台（字幕层不随面板隐藏） -->
 		<Grid Grid.Row="1" Grid.Column="0" x:Name="pstage" Background="#FFEDF1F6"
 		      MouseLeftButtonDown="stagedown" MouseLeftButtonUp="stageup" MouseMove="stagemove" MouseWheel="stagewheel">
-			<Image x:Name="imgvideo" Stretch="Uniform" SnapsToDevicePixels="True"
-			       RenderOptions.BitmapScalingMode="HighQuality"/>
+			<!-- 画面交给 MediaElement 播（静音，声音仍由 MediaSession 出）：跳转由系统解码器处理，不会再花屏 -->
+			<MediaElement x:Name="mediav" Stretch="Uniform" LoadedBehavior="Manual" UnloadedBehavior="Manual"
+			              ScrubbingEnabled="True" IsMuted="True" Volume="0" IsHitTestVisible="False"
+			              MediaOpened="videoopened" MediaEnded="videoended" MediaFailed="videofailed"/>
 			<Grid x:Name="ptext" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False"/>
 			<TextBlock x:Name="lbempty" Text="把音视频文件拖到这里（清空列表并播放）" Foreground="#94A3B8" FontSize="16"
 			           HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>

@@ -133,9 +133,11 @@ static class MediaTest {
 				bad++;
 			}
 			if (skew > 0.4) { e($"FAIL 画面与时钟错位 {skew:0.###}s"); bad++; }
-			// 再跳一次：连跳之后画面和时钟都得继续走
+			// 再跳一次：连跳之后画面和时钟都得继续走。短片（几十秒）不能按 +300 秒算，取能落进片内的点
 			var sec2 = sec + 300;
 			if (sec2 > s.DurationSec - 5) sec2 = sec - 300;
+			if (sec2 < 1) sec2 = Math.Max(1, s.DurationSec * 0.2);
+			if (sec2 > s.DurationSec - 2) sec2 = Math.Max(1, s.DurationSec * 0.5);
 			s.Seek(sec2);
 			var t1 = Environment.TickCount;
 			var shown2 = 0;
