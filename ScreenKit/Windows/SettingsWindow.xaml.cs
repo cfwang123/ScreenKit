@@ -1298,6 +1298,8 @@ public partial class SettingsWindow : Window {
 	bool dictloading;
 	readonly List<DictRow> dictrows = new();
 	readonly Dictionary<ComboBox, string> dictlasteng = new();
+	/// <summary>打开窗口时的发音表，保存时拿来比对是否改过发音参数。</summary>
+	Dictionary<string, DictTtsLang> origdicttts;
 
 	sealed class DictRow {
 		public string Lang;
@@ -1311,6 +1313,7 @@ public partial class SettingsWindow : Window {
 		dictrows.Clear();
 		pdicttts.Children.Clear();
 		var map = DictTts.CopyMap(o?.DictTtsMap);
+		origdicttts = DictTts.CopyMap(map);
 		foreach (var lang in DictTts.LangsOf(map)) {
 			if (!map.TryGetValue(lang, out var pref) || pref == null)
 				pref = DictTtsLang.Make(DictTts.DefaultEdge(lang));
@@ -1437,6 +1440,8 @@ public partial class SettingsWindow : Window {
 		}
 		DictTts.EnsureMap(map);
 		Result.DictTtsMap = map;
+		// 发音人、引擎或语速改过，旧的发音缓存就不再是这次配置的声音了。
+		if (!DictTts.SameMap(origdicttts, map)) DictTts.ClearCache();
 	}
 
 	void flushdict(ComboBox eng, ComboBox voice, ComboBox rate, DictTtsLang hold) {

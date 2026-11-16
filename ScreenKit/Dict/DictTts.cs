@@ -334,7 +334,7 @@ static class DictTts {
 		var rate = NormRate(pref.Rate);
 		// 种子写进键，避免沿用种子随机时留下的旧 wav。
 		var cacheEng = engine == ONNX ? engine + ":s14" : engine;
-		var path = cachepath(cacheEng, voice, rate, lang, text);
+		var path = cachepath(pref, cacheEng, voice, rate, lang, text);
 		if (fresh(path)) return path;
 		var got = await synth(engine, voice, lang, text, rate).ConfigureAwait(true);
 		if (got.samples == null || got.samples.Length == 0 || got.sampleRate <= 0)
@@ -405,9 +405,45 @@ static class DictTts {
 		if (NormEngine("ONNX") != ONNX || NormEngine("windows") != AUTO) return 2;
 		if (Math.Abs(NormRate(9) - 2) > 0.001 || Math.Abs(NormRate(0.1) - 0.5) > 0.001) return 3;
 		if (SapiRate(1) != 0 || SapiRate(0.5) != -5 || SapiRate(2) != 10) return 4;
-		var id = cachepath(EDGE, "en-US-AriaNeural", 1, "en", "hello");
+		var id = cachepath(DictTtsLang.Make("en-US-AriaNeural"), EDGE, "en-US-AriaNeural", 1, "en", "hello");
 		if (!id.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)) return 5;
 		if (Path.GetFileName(id).Length < 8) return 5;
+		// 换了引擎、发音人或语速，同一个词必须是另一个缓存文件。
+		var same = cachepath(DictTtsLang.Make("en-US-AriaNeural"), EDGE, "en-US-AriaNeural", 1, "en", "hello");
+		if (id != same) return 14;
+		var otherVoice = DictTtsLang.Make("en-US-GuyNeural");
+		otherVoice.Engine = EDGE;
+		if (id == cachepath(otherVoice, EDGE, "en-US-GuyNeural", 1, "en", "hello")) return 15;
+		var otherEng = DictTtsLang.Make("en-US-AriaNeural");
+		otherEng.Engine = SAPI;
+		if (id == cachepath(otherEng, SAPI, "", 1, "en", "hello")) return 15;
+		var otherRate = DictTtsLang.Make("en-US-AriaNeural");
+		otherRate.Engine = EDGE;
+		otherRate.Rate = 1.5;
+		if (id == cachepath(otherRate, EDGE, "en-US-AriaNeural", 1.5, "en", "hello")) return 15;
+		// 参数没动时两张表算同一张，动了就要判成不同，设置页才清缓存。
+		var m1 = NewMap();
+		var m2 = CopyMap(m1);
+		if (!SameMap(m1, m2)) return 16;
+		m2["en"].Rate = 1.5;
+		if (SameMap(m1, m2)) return 16;
+		m2 = CopyMap(m1);
+		m2["en"].Edge = "en-US-GuyNeural";
+		if (SameMap(m1, m2)) return 16;
+		m2 = CopyMap(m1);
+		m2["en"].Engine = SAPI;
+		if (SameMap(m1, m2)) return 16;
+		m2 = CopyMap(m1);
+		m2["ru"] = DictTtsLang.Make(DefaultEdge("ru"));
+		if (SameMap(m1, m2)) return 16;
+		// 清缓存只删发音 wav，Chrome 的静音占位要留着。
+		var ack = AckWav();
+		var keep = Path.Combine(dir, "test_clear_probe.wav");
+		File.WriteAllBytes(keep, new byte[] { 1, 2, 3, 4 });
+		ClearCache();
+		if (File.Exists(keep)) { try { File.Delete(keep); } catch { } return 17; }
+		if (!File.Exists(ack)) return 18;
+		if (!File.Exists(AckWav())) return 18;
 		var auto = resolve(new DictTtsLang { Engine = AUTO }, "zh");
 		var hasWin = winrtvoices("zh").Count > 0;
 		if (hasWin && auto != WINRT) return 6;
@@ -669,10 +705,52 @@ static class DictTts {
 		buf[at + 3] = (byte)(value >> 24);
 	}
 
-	static string cachepath(string engine, string voice, double rate, string lang, string text) {
+	static string cachepath(DictTtsLang pref, string engine, string voice, double rate, string lang, string text) {
+		// 参数一改就换键：引擎、发音人、语速任何一处不同都不会命中旧 wav。
 		var raw = engine + "\n" + lang + "\n" + (voice ?? "") + "\n"
-			+ NormRate(rate).ToString("0.00", CultureInfo.InvariantCulture) + "\n" + text;
+			+ NormRate(rate).ToString("0.00", CultureInfo.InvariantCulture) + "\n"
+			+ sign(pref) + "\n" + text;
 		return Path.Combine(cachedir(), fnv(raw) + ".wav");
+	}
+
+	/// <summary>这一行发音参数（引擎和各引擎的发音人、语速）的指纹。</summary>
+	static string sign(DictTtsLang pref) {
+		if (pref == null) return "";
+		return NormEngine(pref.Engine)
+			+ "\u0001" + (pref.Sapi ?? "").Trim()
+			+ "\u0001" + (pref.Edge ?? "").Trim()
+			+ "\u0001" + (pref.Onnx ?? "").Trim()
+			+ "\u0001" + (pref.WinRt ?? "").Trim()
+			+ "\u0001" + (pref.Chrome ?? "").Trim()
+			+ "\u0001" + NormRate(pref.Rate).ToString("0.00", CultureInfo.InvariantCulture);
+	}
+
+	/// <summary>两张发音表是否完全一样（引擎、各引擎的发音人、语速）。</summary>
+	public static bool SameMap(Dictionary<string, DictTtsLang> a, Dictionary<string, DictTtsLang> b) {
+		if (ReferenceEquals(a, b)) return true;
+		if (a == null || b == null) return false;
+		if (a.Count != b.Count) return false;
+		foreach (var kv in a) {
+			if (!b.TryGetValue(kv.Key, out var other)) return false;
+			if (!samepref(kv.Value, other)) return false;
+		}
+		return true;
+	}
+
+	static bool samepref(DictTtsLang a, DictTtsLang b) {
+		if (ReferenceEquals(a, b)) return true;
+		if (a == null || b == null) return false;
+		return string.Equals(sign(a), sign(b), StringComparison.Ordinal);
+	}
+
+	/// <summary>发音参数改过后清掉旧的发音缓存，下次发音重新合成。Chrome 的静音占位不算发音内容，留着。</summary>
+	public static void ClearCache() {
+		var dir = cachedir();
+		if (!Directory.Exists(dir)) return;
+		foreach (var f in Directory.EnumerateFiles(dir, "*.wav")) {
+			if (string.Equals(Path.GetFileName(f), "chrome-ack.wav", StringComparison.OrdinalIgnoreCase)) continue;
+			try { File.Delete(f); } catch { }
+		}
 	}
 
 	static string fnv(string text) {
