@@ -54,37 +54,28 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- Emoji lookup has a font picker: the grid and the large preview can be rendered with any installed font, remembered separately from the Unicode chart font.
-- Database query: export a table, the current result or the whole database as a SQL script in SQLite / MySQL / SQL Server dialect - pick the target SQL Server version (2005-2022) and newer-only syntax is downgraded automatically (datetime2/date/time to datetime, no DROP TABLE IF EXISTS, no multi-row INSERT) - or as xlsx / csv / html.
+- Emoji lookup has a font picker: the grid and the large preview can be rendered with any installed font, remembered separately from the Unicode chart font, and the picker lists only fonts that actually contain emoji glyphs while the Unicode chart still lists every installed font.
+- Database query: export a table, the current result or the whole database as a SQL script in SQLite / MySQL / SQL Server dialect - pick the target SQL Server version (2005-2022) and newer-only syntax is downgraded automatically (datetime2/date/time to datetime, no DROP TABLE IF EXISTS, no multi-row INSERT) - or as xlsx / csv / html. Identifiers are written plain and strings single-quoted unless they have spaces, non-ASCII characters or reserved words, decimal precision and datetime milliseconds are kept, SQL Server gets IDENTITY_INSERT around identity rows, over-wide MySQL rows degrade to longtext, host:port is accepted for MySQL, primary key and index text columns get a bounded length, a SQLite file works as both source and target, and the export runs behind a progress window (per-table percent, rows written, elapsed time) with a working Cancel button.
 - Database tools: a new SQL dialect conversion window. Drop a .sql file and it detects the engine and version (the source engine can also be set by hand), then converts it to SQLite / MySQL / SQL Server / Oracle / PostgreSQL and saves a new .sql file. Tables, indexes, INSERT literals, identity and generated columns, comments and defaults are rewritten for the target dialect; statements it cannot rewrite are kept as-is and counted. The same conversion is available from the command line with --sqlconv.
-- WebSocket debugger: a client that connects to ws:// or wss:// with subprotocol, Origin and extra headers, sends text, binary or ping frames and logs every frame plus the raw handshake; and a server that runs on this machine, echoes incoming messages on demand, and pushes to one or all connected clients.
-- JSON/XML/YAML viewer in the web tools: paste or drop a file and it turns into a collapsible tree like the browser console, with a filter box that keeps matching nodes and highlights the hit, expand/collapse all, and auto format detection for JSON, XML, and YAML.
+- WebSocket debugger: a client that connects to ws:// or wss:// with subprotocol, Origin and extra headers, sends text, binary or ping frames and logs every frame plus the raw handshake; and a server that runs on this machine, echoes incoming messages on demand, and pushes to one or all connected clients. Buttons use distinct colors for connection state (green to connect, red to disconnect) and the HTTP debug send button is highlighted.
+- JSON/XML/YAML viewer in the web tools: paste or drop a file and it turns into a collapsible tree like the browser console, with a filter box that keeps matching nodes and highlights the hit, expand/collapse all, and auto format detection for JSON, XML, and YAML. A collapsed small array or object shows its items inline on one line, long ones show the first few items plus an ellipsis, and expanded nodes can be collapsed again.
 - Media player: video and audio in one window with subtitles, lyrics, karaoke mask, per-word lookup and TTS, and a playlist; the sidebar splits the current-line words, the subtitles and the playlist. Only the top bar drags the window, clicking a subtitle selects its word and only the Lookup button opens the dictionary, opening the window starts from the beginning, seeking and clip playback stay clean (no garbled frames, no noise blips), line pronunciation trims the silence and the padding before and after a line is configurable, and a stuck video span reopens its media source.
 
 #### Changed
 
 - Dictionary pronunciation now defaults to Microsoft Edge online voices; languages that were never configured no longer borrow the English row or fall back to SAPI, so web tool and web dictionary pronunciation for every language uses that language's Edge voice.
-- The font picker in Emoji lookup lists only fonts that actually contain emoji glyphs; the Unicode chart still lists every installed font.
-- Database query export now writes plain unquoted identifiers and single-quoted strings instead of [bracketed] names and N'...' literals; only names with spaces, non-ASCII characters or reserved words get quoted.
-- Use distinct button colors for connection state: green to connect, red to disconnect, and a highlighted send button in the HTTP debug window.
 - Web tools now rebuild a fresh panel DOM on each entry and release it on leave, and drive every tool from one shared 16ms timer instead of per-tool setInterval/setTimeout, so timers stop and pending work is dropped when leaving a tool.
-- JSON viewer: a collapsed small array or object now shows its items inline on one line, and long ones show the first few items plus an ellipsis instead of a bare bracket placeholder.
 - USB capture: the device tree keeps the left column, while the device information and the descriptor reader become two tabs in a right sidebar; the packet list, the protocol tree and the hex view stay in the middle.
 - Plot tool: zooming keeps the coordinate origin at the canvas center.
-- Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
 
 #### Fixed
 
 - Dictionary pronunciation: Edge voices are now picked per language, so each row keeps a voice of its own language instead of an English one.
-- Database query: exporting crashed because progress updates touched UI controls from the export thread; export now runs behind a real progress window (per-table percent, rows written, elapsed time) with a working Cancel button.
-- SQL export: decimal precision is preserved and datetime keeps its milliseconds, SQL Server gets IDENTITY_INSERT around identity rows, over-wide MySQL rows degrade to longtext, host:port is accepted for MySQL, primary key and index text columns get a bounded length so SQL Server accepts the script, and a SQLite file works as both source and target.
 - Report errors thrown by web tool timers to the console instead of hiding them; add ?dbg=1 to turn the reporting on.
-- JSON viewer: expanded nodes can now be collapsed again.
 - Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge.
 - 3D function plotter: filled surface no longer renders as a dot cloud.
 - The 8bit composer stopped after the first beat because the playback step function was scoped inside the play handler, where the shared timer could not reach it.
 - TTS: SAPI voice list now filters by language for Japanese, Korean and other languages.
-- Japanese conjugation: words listed in the example table now win over a same-shaped dictionary entry, so いい is conjugated as an i-adjective (よくない) instead of a noun.
 - Dictionary pronunciation: changing a language's engine, voice or rate drops the cached audio, so the next pronunciation is synthesized again
 - Chrome translation: a model folder emptied by disk cleanup is now restored by copying the same version from your own Chrome instead of downloading it again; only when no matching copy exists is the shell unregistered for re-download. New --chrome-pack-adopt restores them in one go.
 
@@ -92,37 +83,28 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### 新增
 
-- Emoji 查询增加字体选择：格子和右侧大字预览可以用本机任意字体显示，选择单独保存，不影响 Unicode 码表的字体设置。
-- 数据库查询：可把当前表、当前查询结果或整个库导出为 SQL 脚本，支持 SQLite / MySQL / SQL Server 三种方言；SQL Server 可选目标版本（2005~2022），选低版本时自动降级为新版本才有的语法（datetime2/date/time 改 datetime、不用 DROP TABLE IF EXISTS、不合并多行 INSERT），也可导出为 xlsx、csv、html。
+- Emoji 查询增加字体选择：格子和右侧大字预览可以用本机任意字体显示，选择单独保存，不影响 Unicode 码表的字体设置；字体下拉只列真正带 emoji 字形的字体，码表的字体下拉仍是全部本机字体。
+- 数据库查询：可把当前表、当前查询结果或整个库导出为 SQL 脚本，支持 SQLite / MySQL / SQL Server 三种方言；SQL Server 可选目标版本（2005~2022），选低版本时自动降级为新版本才有的语法（datetime2/date/time 改 datetime、不用 DROP TABLE IF EXISTS、不合并多行 INSERT），也可导出为 xlsx、csv、html。导出时标识符裸写、字符串统一单引号（含空格、中文或撞关键字才加引号），保留 decimal 精度与 datetime 毫秒，SQL Server 自增列补 IDENTITY_INSERT，超宽表自动降为 longtext，MySQL 主机支持 host:port，主键和索引的文本列有长度上限，SQLite 文件可作源也可作目标，导出过程走带取消的进度窗口。
 - 数据库工具：新增 SQL 方言转换窗口，拖入 .sql 自动识别引擎与版本（也可手动指定源引擎），选目标引擎和版本后导出新的 .sql；SQLite、MySQL、SQL Server、Oracle、PostgreSQL 互转时重建建表语句、索引、INSERT 字面量、自增与生成列、注释和默认值，认不得的语句原样保留并计数。命令行也能用 --sqlconv 转换。
-- 新增 WebSocket 调试：客户端可连 ws:// 或 wss://，支持子协议、Origin 和自定义请求头，按文本、二进制或 ping 发帧，日志里给出每一帧和握手原文；服务端页能在本机起一个服务，收到的消息可回显，也能推给某个或全部在线客户端。
-- 工具页新增 JSON/XML/YAML 查看器：粘贴或拖入文件后展开成和浏览器控制台一样的折叠树，过滤框只保留命中的节点并高亮，另有全部展开/折叠和 JSON、XML、YAML 的自动识别。
+- 新增 WebSocket 调试：客户端可连 ws:// 或 wss://，支持子协议、Origin 和自定义请求头，按文本、二进制或 ping 发帧，日志里给出每一帧和握手原文；服务端页能在本机起一个服务，收到的消息可回显，也能推给某个或全部在线客户端。连接状态用醒目配色（连接绿、断开红），HTTP 调试的发送按钮改强调色。
+- 工具页新增 JSON/XML/YAML 查看器：粘贴或拖入文件后展开成和浏览器控制台一样的折叠树，过滤框只保留命中的节点并高亮，另有全部展开/折叠和 JSON、XML、YAML 的自动识别；收起的小数组、小对象直接在同一行显示内容，项多时显示前几项加省略号，展开的节点也能再收起。
 - 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、逐词查词与 TTS、播放列表，右侧栏分当前句单词、字幕、播放列表三页。只有顶栏能拖窗口；点字幕只选中该词，点行尾「查词」才开词典；打开窗口从头开始；跳转和片段播放都不花屏、不出爆音，整句发音会去掉两端静音且前后多放多少秒可设置；画面卡在同一小段会被检测到并重开媒体源。
 
 #### 变更
 
 - 词典发音的默认引擎改为 Edge 在线语音；没有配置过的语言不再借英语那一行、也不再用 SAPI，网页工具和网页词典里各语言的发音都用该语言自己的 Edge 发音人。
-- Emoji 查询的字体下拉只列真正带 emoji 字形的字体，Unicode 码表的字体下拉仍是全部本机字体。
-- 数据库查询导出：标识符默认裸写、字符串统一单引号，不再用方括号和 N 前缀；只有含空格、中文或撞关键字的名字才加引号。
-- 连接状态改用醒目配色：连接为绿色、断开为红色，HTTP 调试的发送按钮改强调色。
 - web 工具每次进入都重新生成面板 DOM、离开时释放，并改为共用一个 16ms 全局定时器，工具不再自建 setInterval/setTimeout，离开工具时定时器停止、挂起任务作废。
-- JSON 查看器：收起的小数组、小对象直接在同一行显示内容，项多时显示前几项加省略号，不再只显示占位括号。
 - USB 抓包：设备树独占左栏，设备信息与设备描述符合并为右侧栏的两个页签，报文列表、协议详情与十六进制留在中间。
 - 函数图像：缩放时坐标原点保持在画面中心。
-- 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
 
 #### 修复
 
 - 词典发音：Edge 发音人按语言各自筛选，俄语等语言不会再配上英语发音人。
-- 数据库查询：导出时进度回调在导出线程上直接改控件导致崩溃；现在导出走独立进度窗口（表序号、百分比、已写行数、已用时），并支持取消。
-- SQL 导出：保留 decimal 精度与 datetime 毫秒，SQL Server 自增列补 IDENTITY_INSERT，MySQL 超宽表自动降为 longtext，MySQL 主机支持 host:port，主键和索引的文本列加上长度上限以免 SQL Server 建表失败，导出目标也支持 SQLite 文件。
 - web 工具定时器里抛出的错误不再静默吞掉，可控地打到控制台；地址加 ?dbg=1 打开。
-- JSON 查看器：展开的节点现在可以正常收起了。
 - 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白。
 - 三维函数图像：曲面填充不再变成一片点阵。
 - 8bit 编曲只播第一个节拍：推进函数原先定义在播放处理函数内部，共用定时器取不到它。
 - 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤。
-- 日语词形变化：示例词表里的词优先于同形的词典词条，いい 现在按い形容词变化（よくない），不再按名词。
 - 词典发音：改了某语言的引擎、发音人或语速后，缓存的发音失效，下次发音重新合成
 - Chrome 翻译：被磁盘清理删空的模型目录，现在从本机 Chrome 复制同版本模型直接恢复，不再重新下载；本机也没有同版本时才注销重下。新增 --chrome-pack-adopt 一次补回。
 
