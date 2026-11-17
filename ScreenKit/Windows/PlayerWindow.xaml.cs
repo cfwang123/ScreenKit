@@ -179,6 +179,8 @@ public partial class PlayerWindow : Window {
 	readonly ObservableCollection<CueRow> cues = new();
 	string builtwordsig = "";
 	string builtsubq = null;
+	CueRow lastshowncue;
+	bool sideshown;
 
 	DispatcherTimer timer;
 
@@ -596,6 +598,10 @@ public partial class PlayerWindow : Window {
 
 		updwordlist();
 		updcuelist();
+
+		var sitsub = showside && s.Tab == SideTab.Subtitle;
+		if (sitsub && !sideshown) followsubtitle();
+		sideshown = sitsub;
 	}
 	#endregion
 
@@ -1212,6 +1218,7 @@ public partial class PlayerWindow : Window {
 	#region
 	void buildcuelist() {
 		allcues.Clear();
+		lastshowncue = null;
 		var f = sub ?? lyric;
 		if (f != null) {
 			for (var i = 0; i < f.Cues.Count; i++) {
@@ -1250,7 +1257,45 @@ public partial class PlayerWindow : Window {
 	}
 
 	void updcurrentcue(double pos) {
-		foreach (var c in allcues) c.IsCurrent = pos >= c.Start && pos < c.End;
+		CueRow cur = null;
+		foreach (var c in allcues) {
+			var on = pos >= c.Start && pos < c.End;
+			c.IsCurrent = on;
+			if (on) cur = c;
+		}
+		if (cur == null || cur == lastshowncue) return;
+		lastshowncue = cur;
+		if (sidesub()) scrollcuetoview(cur);
+	}
+
+	/// <summary>刚切到字幕页：把当前句（夹在两句之间时取下一句）滚到中间。</summary>
+	void followsubtitle() {
+		var pos = session.PositionSec;
+		var row = cues.FirstOrDefault(c => pos >= c.Start && pos < c.End) ?? cues.FirstOrDefault(c => c.Start > pos);
+		if (row == null) return;
+		lastshowncue = row;
+		scrollcuetoview(row);
+	}
+
+	bool sidesub() => state.SideOpen && state.Tab == SideTab.Subtitle && state.Mode != PlayerForm.Fullscreen;
+
+	/// <summary>把这一句滚到列表中间；字幕列表按条滚动，位置就是行号减去半屏。</summary>
+	void scrollcuetoview(CueRow row) {
+		if (cues.IndexOf(row) < 0) return;
+		Dispatcher.BeginInvoke(new Action(() => {
+			var i = cues.IndexOf(row);
+			if (i < 0) return;
+			if (findscroll(lbcues) is not ScrollViewer sv || sv.ViewportHeight <= 0) return;
+			sv.ScrollToVerticalOffset(Math.Max(0, i - (sv.ViewportHeight - 1) / 2));
+		}), DispatcherPriority.Background);
+	}
+
+	static ScrollViewer findscroll(DependencyObject root) {
+		if (root is ScrollViewer sv) return sv;
+		var n = VisualTreeHelper.GetChildrenCount(root);
+		for (var i = 0; i < n; i++)
+			if (findscroll(VisualTreeHelper.GetChild(root, i)) is ScrollViewer got) return got;
+		return null;
 	}
 	#endregion
 

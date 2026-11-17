@@ -227,7 +227,7 @@
 								<Setter TargetName="bd" Property="Background" Value="#E0E7FF"/>
 							</Trigger>
 							<DataTrigger Binding="{Binding IsCurrent}" Value="True">
-								<Setter TargetName="bd" Property="Background" Value="#EEF2FF"/>
+								<Setter TargetName="bd" Property="Background" Value="#DBEAFE"/>
 								<Setter Property="FontWeight" Value="SemiBold"/>
 							</DataTrigger>
 							<DataTrigger Binding="{Binding IsSounding}" Value="True">

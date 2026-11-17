@@ -79,6 +79,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: opening the window no longer restores the previous playback position.
 - Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
 - Player: word and line pronunciation now trims the silence at both ends of the clip and extends 0.5s past the audible part, so subtitle timing drift no longer clips the speech.
+- Subtitle tab jumps to and highlights the current line while playing
 
 #### Fixed
 
@@ -129,6 +130,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 媒体播放器：打开窗口时不再恢复上次的播放位置。
 - 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
 - 播放器：生词与整句发音会先去掉片段前后的静音，再从有声段两端各延长 0.5 秒，字幕时间轴对不准时也不会把发音切掉。
+- 字幕页自动定位并高亮当前句，播放换句时跟着滚动
 
 #### 修复
 
