@@ -16,10 +16,10 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 	/// <summary>太短的片段补到这个长度。</summary>
 	const double MINLEN = 0.12;
 	/// <summary>
-	/// 去掉前后空白之后，有声段两端各再延长这么多秒（默认 0.2，可在播放器窗口调）。
-	/// 字幕时间轴常比声音早到或晚走，直接按它切会带上半句静音。
+	/// 目标区间前后各再延长这么多秒（默认 0，可在播放器窗口调）。
+	/// 字幕时间轴常比声音早到或晚走，调大可让片段多带一点。
 	/// </summary>
-	double lead = 0.2;
+	double lead = 0;
 	/// <summary>为了找到有声段边界，在片段之外多解这么多（够延长用还有余量）。</summary>
 	double search => lead + 0.25;
 	/// <summary>低于「峰值 × 这个比例」且低于 <see cref="GATEMIN"/> 的采样算静音。</summary>
@@ -45,7 +45,7 @@ unsafe sealed class MediaClipPlayer : IDisposable {
 
 	public bool IsPlaying => th != null && th.IsAlive;
 
-	/// <summary>片段两端在去掉空白后各延长多少秒。0 表示不延长，最大 3 秒。</summary>
+	/// <summary>片段两端在切出的区间外各再延长多少秒。0 表示不延长，最大 3 秒。</summary>
 	public double Lead {
 		get => lead;
 		set => lead = double.IsNaN(value) || value < 0 ? 0 : value > 3 ? 3 : value;

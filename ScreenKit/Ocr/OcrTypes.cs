@@ -373,8 +373,8 @@ public sealed class OcrOptions {
 	public string PlayKaraSung = "#FFFFD84D";
 	public string PlayKaraUnsung = "#B0FFFFFF";
 	public int PlayKaraFeather;
-	/// <summary>点字幕播放时，声音前后各多放多少秒。默认 0.2。</summary>
-	public double PlayClipLead = 0.2;
+	/// <summary>点字幕播放时，声音前后各多放多少秒。默认 0。</summary>
+	public double PlayClipLead;
 	public string PlayListMode = "sequential";
 	/// <summary>HTTP 各模块。关闭后该路径返回未启用。总开关 HttpEnabled 优先。</summary>
 	public bool HttpOcr = true;

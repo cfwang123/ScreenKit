@@ -410,8 +410,8 @@ static class MediaTest {
 		if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) { e("FAIL 文件不存在: " + file); return 1; }
 		if (start < 0) start = 1.0;
 		if (end <= start) end = start + 0.8;
-		// 扩展时间：不指定就用默认 0.2，与播放器窗口一致
-		if (lead < 0) lead = 0.2;
+		// 扩展时间：不指定就用默认 0，与播放器窗口一致
+		if (lead < 0) lead = 0;
 		o($"片段 [{start:0.###},{end:0.###}] 长 {end - start:0.###}s  扩展 {lead:0.##}s");
 		var bad = 0;
 		MediaSession s = null;

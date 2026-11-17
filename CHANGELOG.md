@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved.
 - Media player: clicking a word in the study list opens the dictionary window for it.
 - Media player: added a stop button beside play (also X). It rewinds to the start and pauses, so pressing play begins the file again. The play / stop / previous / next icons are now vector paths instead of font symbols.
+- Media player Study page: each word row gets a Lookup button that opens the dictionary, and clicking a row now only selects the word instead of opening the dictionary.
 
 #### Changed
 
@@ -80,7 +81,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
 - Player: word and line pronunciation now trims the silence at both ends of the clip and extends 0.5s past the audible part, so subtitle timing drift no longer clips the speech.
 - Subtitle tab jumps to and highlights the current line while playing
-- Media player: how many extra seconds are played before and after a subtitle line is clickable-configurable (0.2s by default); the Study page no longer offers the per-word original-voice clip.
+- Media player: how many extra seconds are played before and after a subtitle line is clickable-configurable (0s by default); the Study page no longer offers the per-word original-voice clip.
 
 #### Fixed
 
@@ -117,6 +118,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 媒体播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住。
 - 媒体播放器：在学习列表点一个词会弹出词典窗口查这个词。
 - 媒体播放器：播放键旁增加停止按钮（也可按 X），停止后回到开头并暂停，再按播放从头开始；播放、停止、上一个、下一个的图标改为矢量路径绘制，不再使用字体符号。
+- 媒体播放器学习页：每一行增加「查词」按钮用来打开词典，点行本身只选中该词，不再弹词典。
 
 #### 变更
 
@@ -132,7 +134,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
 - 播放器：生词与整句发音会先去掉片段前后的静音，再从有声段两端各延长 0.5 秒，字幕时间轴对不准时也不会把发音切掉。
 - 字幕页自动定位并高亮当前句，播放换句时跟着滚动
-- 媒体播放器：点一句字幕时前后扩展多少秒可设置（默认 0.2 秒）；学习页去掉每个单词的「原声」按钮。
+- 媒体播放器：点一句字幕时前后扩展多少秒可设置（默认 0 秒）；学习页去掉每个单词的「原声」按钮。
 
 #### 修复
 

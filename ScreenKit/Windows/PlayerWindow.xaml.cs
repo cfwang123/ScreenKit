@@ -168,7 +168,7 @@ public partial class PlayerWindow : Window {
 	string lastcue = "";
 	double savedvol = 0.8;
 	/// <summary>点字幕播放时前后各多放多少秒，跟 MediaClipPlayer.Lead 同步。</summary>
-	double cliplead = 0.2;
+	double cliplead;
 	double paused_at;
 	int hudgen;
 	SoundPlayer ttsplayer;
@@ -257,8 +257,7 @@ public partial class PlayerWindow : Window {
 		layer.FeatherPx = o.PlayKaraFeather;
 		layer.Karaoke = true;
 		state.SubtitleOn = o.PlaySubOn;
-		cliplead = o.PlayClipLead > 0 ? o.PlayClipLead : 0;
-		clip.Lead = cliplead;
+		cliplead = o.PlayClipLead > 0 ? o.PlayClipLead : 0;		clip.Lead = cliplead;
 		ecliplead.Text = cliplead.ToString("0.##", CultureInfo.InvariantCulture);
 		list.Mode = Playlist.modeparse(o.PlayListMode);
 		state.Repeat = list.Mode;
@@ -1380,15 +1379,20 @@ public partial class PlayerWindow : Window {
 		render();
 	}
 
-	/// <summary>列表选中是 render() 里给的回写，这种选中不能弹词典，只有用户点才算。</summary>
+	/// <summary>列表选中是 render() 里给的回写，这种选中不做事，只有用户点才算。</summary>
 	bool syncsel;
 
 	void wordselected(object sender, SelectionChangedEventArgs e) {
 		if (syncsel) return;
 		if (lcwords.SelectedItem is not StudyWordRow r) return;
-		// 点学习列表里的一项才弹词典；点字幕只选词
+		// 点学习列表里的一项只选中词；要看词典点行尾的「查词」
 		selectword(r.Word);
-		// 活用形在词典里没有词条，要用原形去查（부부세요 → 부부），否则词典窗口自己会显示未收录
+	}
+
+	/// <summary>行尾「查词」：按这一行的词头弹词典。活用形要用原形查，否则词典显示未收录。</summary>
+	void worddictclick(object sender, RoutedEventArgs e) {
+		if (sender is not FrameworkElement fe || fe.Tag is not StudyWordRow r) return;
+		selectword(r.Word);
 		opendict(dictquery(r));
 	}
 
@@ -1883,12 +1887,13 @@ public partial class PlayerWindow : Window {
 		var row = allwords.FirstOrDefault(r => r.Word == got);
 		var outText = row != null ? row.Title + " " + row.Gloss : "（本句未列出：" + got + "）";
 		if (outText.Length > 70) outText = outText.Substring(0, 70) + "…";
-		// 点字幕只选词，不该弹词典；再点学习列表里那一项才弹
+		// 点字幕只选词，不弹词典；要看词典点学习行尾的「查词」
 		var opened = dictwin != null && dictwin.IsVisible;
 		var hitopen = "";
 		if (lcwords.SelectedItem is StudyWordRow sr) {
 			var first = dictwin;
-			wordselected(lcwords, null);
+			var btn = new Button { Tag = sr };
+			worddictclick(btn, null);
 			hitopen = $"dictopen={dictwin != null && dictwin.IsVisible} reused={ReferenceEquals(first, dictwin)}";
 		}
 		return $"行{lineIdx}字{charIdx}='{line[charIdx]}' 之前='{before}' 取词='{got}' 释义='{outText}' 点字幕弹词典={opened} 点学习项[{hitopen}]";
