@@ -2,7 +2,7 @@
 
 Windows desktop tool (`ScreenKit.exe`, window title ScreenKit): screenshot recognition, annotation, recording, speech, translation, a dictionary, and face, plus file transfer and screencast with the Android companion. This PC also has an HTTP API and a browser tools page.
 
-**Current version: 1.0.28** · [Releases](https://github.com/cfwang123/ScreenKit/releases/latest) · [Changelog](CHANGELOG.md) · [中文](README.zh.md)
+**Current version: 1.0.39** · [Releases](https://github.com/cfwang123/ScreenKit/releases/latest) · [Changelog](CHANGELOG.md) · [中文](README.zh.md)
 
 ![Main window](docs/1%20screenshot.en.png)
 
@@ -123,7 +123,7 @@ This program receives while it is running, and that can be turned off in Setting
 
 - **Text**
   - **Text convert**: Encoding, escaping, and common text transforms
-  - **JSON / XML / YAML viewer**: Paste text or drop a file and it becomes a collapsible tree like the one in browser devtools. Click a triangle to fold or unfold a node, type in the filter box to keep only matching nodes and highlight the hit, and double-click a value to copy it. The format is detected automatically or can be picked by hand.
+  - **JSON / XML / YAML viewer**: Paste text or drop a file and it becomes a collapsible tree like the one in browser devtools. Click a triangle to fold or unfold a node, type in the filter box to keep only matching nodes and highlight the hit, and double-click a value to copy it. The format is detected automatically or can be picked by hand. A collapsed small array or object shows its items inline on one line, long ones show the first few plus an ellipsis
   - **Chinese to pinyin**: Characters to pinyin or initials
   - **Document reader**: Preview Markdown, Word, PDF, Excel, CSV, images and text files as tabs rendered on demand, with click-to-zoom images
   - **Novel reader**: A separate page (`/reader`) like the dictionary, opened from a card under Text on the tools page; Ctrl+click opens it in a new window. Drop or add txt/md files; they stay in this browser. Select text for the dictionary popup (drag its edges or corners to resize, or maximize it). It reads with the current browser’s own voices by default, and can switch to Chrome offline or other voices. Reading starts at the top of the screen or at the selected word and highlights the current sentence. Google voices do not speak online; a missing offline pack is installed when reading starts, with a progress dialog that can be cancelled, and each voice shows whether that pack is installed. Choosing browser voices shows an Install models link
@@ -191,7 +191,7 @@ This program receives while it is running, and that can be turned off in Setting
   - **Linux software**: Open-source Linux packages and install commands for common apps
   - **This browser**: What the browser can read about this device
   - **USB IDs**: USB vendor and product
-  - **Emoji lookup**: Emoji by Unicode category, searchable in Chinese and English by keyword or code point, click to copy
+  - **Emoji lookup**: Emoji by Unicode category, searchable in Chinese and English by keyword or code point, click to copy. The grid and the large preview can use any installed font, and the picker lists only fonts that actually contain emoji glyphs
   - **Unicode chart**: Unicode characters; symbols such as arrows, math, shapes, hexagrams, mahjong and playing cards come with Chinese and English names in the details, and can be searched by name
   - **ASCII chart**: ASCII characters
   - **GBK chart**: GBK characters
