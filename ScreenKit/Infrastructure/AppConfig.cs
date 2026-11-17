@@ -1158,6 +1158,9 @@ static class AppConfig {
 			o.PlayKaraUnsung = pku.Trim().Trim('"');
 		if (map.TryGetValue("play_kara_feather", out var pkf) && int.TryParse(pkf, out var pkfN))
 			o.PlayKaraFeather = Compat.Clamp(pkfN, 0, 40);
+		if (map.TryGetValue("play_clip_lead", out var pcl) &&
+			double.TryParse(pcl, NumberStyles.Float, CultureInfo.InvariantCulture, out var pclD))
+			o.PlayClipLead = Compat.Clamp(pclD, 0, 3);
 		if (map.TryGetValue("play_list_mode", out var plm)) o.PlayListMode = Playlist.modeparse(plm) switch {
 			PlayMode.Shuffle => "shuffle",
 			PlayMode.RepeatOne => "repeatone",
@@ -1186,6 +1189,8 @@ static class AppConfig {
 		sb.AppendLine($"play_kara_sung = \"{esc(o.PlayKaraSung ?? "#FFFFD84D")}\"");
 		sb.AppendLine($"play_kara_unsung = \"{esc(o.PlayKaraUnsung ?? "#B0FFFFFF")}\"");
 		sb.AppendLine($"play_kara_feather = {Compat.Clamp(o.PlayKaraFeather, 0, 40)}");
+		sb.AppendLine("# 点字幕播放时声音前后各多放多少秒（0~3）");
+		sb.AppendLine($"play_clip_lead = {Compat.Clamp(o.PlayClipLead, 0, 3).ToString("0.###", CultureInfo.InvariantCulture)}");
 		sb.AppendLine($"play_list_mode = \"{esc(o.PlayListMode ?? "sequential")}\"");
 	}
 

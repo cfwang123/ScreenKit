@@ -80,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
 - Player: word and line pronunciation now trims the silence at both ends of the clip and extends 0.5s past the audible part, so subtitle timing drift no longer clips the speech.
 - Subtitle tab jumps to and highlights the current line while playing
+- Media player: how many extra seconds are played before and after a subtitle line is clickable-configurable (0.2s by default); the Study page no longer offers the per-word original-voice clip.
 
 #### Fixed
 
@@ -131,6 +132,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
 - 播放器：生词与整句发音会先去掉片段前后的静音，再从有声段两端各延长 0.5 秒，字幕时间轴对不准时也不会把发音切掉。
 - 字幕页自动定位并高亮当前句，播放换句时跟着滚动
+- 媒体播放器：点一句字幕时前后扩展多少秒可设置（默认 0.2 秒）；学习页去掉每个单词的「原声」按钮。
 
 #### 修复
 

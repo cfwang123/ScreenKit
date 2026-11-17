@@ -187,7 +187,7 @@
 			</Setter>
 		</Style>
 
-		<!-- 生词行内容：词头 Auto 自适应（上限半行）+ 释义占满剩余 + 行尾原声/TTS -->
+		<!-- 生词行内容：词头 Auto 自适应（上限半行）+ 释义占满剩余 + 行尾 TTS -->
 		<DataTemplate x:Key="wordTemplate">
 			<Grid>
 				<Grid.ColumnDefinitions>
@@ -200,8 +200,6 @@
 				<TextBlock Grid.Column="1" Text="{Binding Gloss}" FontSize="12.5" Foreground="#4B5563"
 				           TextTrimming="CharacterEllipsis" Margin="0,0,6,0" VerticalAlignment="Center"/>
 				<StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-					<Button Style="{StaticResource wordBtn}" Content="原声" Tag="{Binding Word}" Click="wordclipclick"
-					        ToolTip="播放视频里这一个词的声音（不打断播放）"/>
 					<Button Style="{StaticResource wordBtn}" Content="TTS" Tag="{Binding Word}" Click="wordttsclick"
 					        ToolTip="用 TTS 合成发音"/>
 				</StackPanel>
@@ -525,8 +523,6 @@
 							<DockPanel>
 								<Button x:Name="bcopy" DockPanel.Dock="Right" Content="复制" Style="{StaticResource ToolBtnSm}"
 								        ToolTip="复制当前选中词" Margin="6,0,0,0"/>
-								<TextBlock x:Name="lbwordmeta" DockPanel.Dock="Right" FontSize="10.5" Foreground="#94A3B8"
-								           VerticalAlignment="Center" Margin="6,0,0,0"/>
 								<TextBox x:Name="edictq" FontSize="12" Padding="5,3" BorderBrush="{StaticResource BorderSoft}"
 								         BorderThickness="1" ToolTip="查句外的词" TextChanged="dictqchanged"/>
 							</DockPanel>
@@ -551,6 +547,24 @@
 								           VerticalAlignment="Center" Margin="6,0,0,0"/>
 								<TextBox x:Name="esubq" FontSize="12" Padding="5,3" BorderBrush="{StaticResource BorderSoft}"
 								         BorderThickness="1" ToolTip="搜索字幕文本" TextChanged="subqchanged"/>
+							</DockPanel>
+						</Border>
+						<!-- 点句播放时前后各多放一点，字幕时间轴常与声音差半拍 -->
+						<Border DockPanel.Dock="Top" Padding="8,6" BorderThickness="0,0,0,1" BorderBrush="{StaticResource BorderSoft}">
+							<DockPanel>
+								<TextBlock x:Name="lbclipleadunit" DockPanel.Dock="Right" Text="秒" FontSize="11"
+								           Foreground="{StaticResource TextMuted}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+								<TextBox x:Name="ecliplead" DockPanel.Dock="Right" Width="54" Height="26" Padding="5,2"
+								         FontSize="12" Text="0.2" TextAlignment="Right"
+								         BorderBrush="{StaticResource BorderSoft}" BorderThickness="1"
+								         VerticalContentAlignment="Center" LostFocus="clipleadchanged" KeyDown="clipleadkey"
+								         ToolTip="点字幕播放时，声音前后各多放多少秒"
+								         AutomationProperties.AutomationId="player.cliplead"/>
+								<TextBlock x:Name="lbcliplead" Text="播放扩展" FontSize="11.5" Foreground="#4B5563"
+								           VerticalAlignment="Center" Margin="0,0,8,0"/>
+								<TextBlock x:Name="lbclipleadhint" Text="点一句时前后各多放一点，缓解字幕与声音不同步"
+								           FontSize="10.5" Foreground="#94A3B8" VerticalAlignment="Center"
+								           TextTrimming="CharacterEllipsis"/>
 							</DockPanel>
 						</Border>
 						<Grid>

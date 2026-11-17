@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Media;
@@ -26,7 +27,7 @@ enum SideTab { List, Study, Subtitle }
 
 enum StudyLang { All, Zh, Ja, Ko, En }
 
-/// <summary>学习面板里的一行：本句命中的词、释义摘要、语种与词区间。</summary>
+/// <summary>学习面板里的一行：本句命中的词、释义摘要、语种与词位置。</summary>
 sealed class StudyWordRow : INotifyPropertyChanged {
 	public string Word { get; set; } = "";
 	public string Title { get; set; } = "";
@@ -34,9 +35,6 @@ sealed class StudyWordRow : INotifyPropertyChanged {
 	public StudyLang Lang { get; set; } = StudyLang.En;
 	public int CharStart { get; set; }
 	public int CharLen { get; set; }
-	public double Start { get; set; }
-	public double End { get; set; }
-	public bool Exact { get; set; }
 	public bool Manual { get; set; }
 
 	bool sounding;
@@ -169,6 +167,8 @@ public partial class PlayerWindow : Window {
 	int clickcount;
 	string lastcue = "";
 	double savedvol = 0.8;
+	/// <summary>点字幕播放时前后各多放多少秒，跟 MediaClipPlayer.Lead 同步。</summary>
+	double cliplead = 0.2;
 	double paused_at;
 	int hudgen;
 	SoundPlayer ttsplayer;
@@ -257,6 +257,9 @@ public partial class PlayerWindow : Window {
 		layer.FeatherPx = o.PlayKaraFeather;
 		layer.Karaoke = true;
 		state.SubtitleOn = o.PlaySubOn;
+		cliplead = o.PlayClipLead > 0 ? o.PlayClipLead : 0;
+		clip.Lead = cliplead;
+		ecliplead.Text = cliplead.ToString("0.##", CultureInfo.InvariantCulture);
 		list.Mode = Playlist.modeparse(o.PlayListMode);
 		state.Repeat = list.Mode;
 		state.Mode = string.Equals((o.PlayMode ?? "").Trim(), "fullscreen", StringComparison.OrdinalIgnoreCase)
@@ -270,6 +273,7 @@ public partial class PlayerWindow : Window {
 		o.PlayMode = state.Mode == PlayerForm.Fullscreen ? "fullscreen" : "normal";
 		o.PlaySubOn = state.SubtitleOn;
 		o.PlaySubBottom = (int)Math.Round(Math.Max(0, layer.BottomMargin));
+		o.PlayClipLead = cliplead;
 		o.PlayListMode = state.Repeat switch {
 			PlayMode.Shuffle => "shuffle",
 			PlayMode.RepeatOne => "repeatone",
@@ -981,7 +985,7 @@ public partial class PlayerWindow : Window {
 			if (cls == WordPick.CharClass.Latin) {
 				var s0 = i;
 				while (i < text.Length && WordPick.ClassOf(text[i]) == WordPick.CharClass.Latin) i++;
-				addword(text.Substring(s0, i - s0), s0, i - s0, cue, seen);
+				addword(text.Substring(s0, i - s0), s0, i - s0, seen);
 				continue;
 			}
 			if (cls is not WordPick.CharClass.Han and not WordPick.CharClass.Kana and not WordPick.CharClass.Hangul) {
@@ -991,7 +995,7 @@ public partial class PlayerWindow : Window {
 			var dict = guessdict(text.Substring(i, 1));
 			var best = WordPick.Longest(text, i, w => DictDb.SearchBrief(w, dict, 1) is { Count: > 0 }, 6);
 			if (best.Length > 0) {
-				addword(best, i, best.Length, cue, seen);
+				addword(best, i, best.Length, seen);
 				i += best.Length;
 			}
 			else i++;
@@ -999,11 +1003,10 @@ public partial class PlayerWindow : Window {
 		applylang();
 	}
 
-	void addword(string word, int charStart, int charLen, TimedTextCue cue, HashSet<string> seen) {
+	void addword(string word, int charStart, int charLen, HashSet<string> seen) {
 		if (word.Length == 0 || !seen.Add(word)) return;
 		var dict = guessdict(word);
 		var (title, gloss) = lookup(word, dict);
-		var (st, en, ex) = wordrange(cue, charStart, charLen);
 		allwords.Add(new StudyWordRow {
 			Word = word,
 			Title = title,
@@ -1011,9 +1014,6 @@ public partial class PlayerWindow : Window {
 			Lang = langof(dict),
 			CharStart = charStart,
 			CharLen = charLen,
-			Start = st,
-			End = en,
-			Exact = ex,
 		});
 	}
 
@@ -1099,29 +1099,6 @@ public partial class PlayerWindow : Window {
 		return outlist;
 	}
 
-	/// <summary>词的起止时间：有词级时间就用，没有就按字符位置在 cue 内均匀摊。</summary>
-	(double start, double end, bool exact) wordrange(TimedTextCue cue, int ci, int cl) {
-		if (cue.Words != null && cue.Words.Count > 0) {
-			for (var i = 0; i < cue.Words.Count; i++) {
-				var w = cue.Words[i];
-				if (ci >= w.CharStart && ci < w.CharStart + w.CharLen) {
-					var st = w.Start;
-					var en = i + 1 < cue.Words.Count ? cue.Words[i + 1].Start : cue.End;
-					if (en <= st) en = st + 0.3;
-					return (st, en, true);
-				}
-			}
-		}
-		var len = Math.Max(1, cue.Text.Length);
-		var p0 = clampi(ci, 0, len) / (double)len;
-		var p1 = clampi(ci + cl, 0, len) / (double)len;
-		var s0 = cue.Start + (cue.End - cue.Start) * p0;
-		var s1 = cue.Start + (cue.End - cue.Start) * p1;
-		if (s1 <= s0) s1 = s0 + 0.25;
-		return (s0, s1, false);
-	}
-
-	static double clampi(int v, int a, int b) => v < a ? a : v > b ? b : v;
 
 	void applylang() {
 		words.Clear();
@@ -1148,8 +1125,8 @@ public partial class PlayerWindow : Window {
 			builtwordsig = sig;
 			applylang();
 		}
-		var clipword = state.ClipKey.StartsWith("w:", StringComparison.Ordinal) || state.ClipKey.StartsWith("tts:", StringComparison.Ordinal)
-			? state.ClipKey.Substring(state.ClipKey.IndexOf(':') + 1) : "";
+		var clipword = state.ClipKey.StartsWith("tts:", StringComparison.Ordinal)
+			? state.ClipKey.Substring(4) : "";
 		foreach (var r in words) r.IsSounding = clipword.Length > 0 && r.Word == clipword;
 		var sel = words.FirstOrDefault(x => x.Word == state.StudyQuery);
 		if (!ReferenceEquals(lcwords.SelectedItem, sel)) {
@@ -1184,8 +1161,6 @@ public partial class PlayerWindow : Window {
 		lbwordcount.Text = words.Count + " 条";
 		lbwordhint.Visibility = words.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 		lbwordhint.Text = lastcue.Length == 0 ? "换到有字幕的位置，这里会列出本句所有生词和释义" : "这一句没有查到词";
-		var exact = allwords.Count > 0 && allwords.All(x => x.Exact);
-		lbwordmeta.Text = words.Count > 0 ? (exact ? "词级时间" : "按均匀推算") : "";
 	}
 
 	void buildcurcue(TimedTextCue cue) {
@@ -1436,14 +1411,34 @@ public partial class PlayerWindow : Window {
 		builtsubq = null;
 		render();
 	}
+
+	/// <summary>改「播放扩展」秒数：写进配置，并立刻同步给片段播放器。</summary>
+	void clipleadchanged(object sender, RoutedEventArgs e) => applycliplead(ecliplead.Text, true);
+
+	void clipleadkey(object sender, KeyEventArgs e) {
+		if (e.Key != Key.Enter) return;
+		applycliplead(ecliplead.Text, true);
+		Keyboard.ClearFocus();
+		e.Handled = true;
+	}
+
+	/// <summary>解析并落一个 0~3 秒的扩展值。填错就退回当前值，不报错。</summary>
+	void applycliplead(string text, bool save) {
+		var s = (text ?? "").Trim().Replace("秒", "");
+		var ok = double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)
+			|| double.TryParse(s, NumberStyles.Float, CultureInfo.CurrentCulture, out v);
+		if (!ok || double.IsNaN(v)) v = cliplead;
+		cliplead = Compat.Clamp(v, 0, 3);
+		clip.Lead = cliplead;
+		ecliplead.Text = cliplead.ToString("0.##", CultureInfo.InvariantCulture);
+		if (opt != null) opt.PlayClipLead = cliplead;
+		if (!save) return;
+		hud($"播放扩展 {cliplead:0.##} 秒");
+	}
 	#endregion
 
 	// ==================== 发音 ====================
 	#region
-	void wordclipclick(object sender, RoutedEventArgs e) {
-		if (sender is FrameworkElement fe && fe.Tag is string w) playwordclip(w);
-	}
-
 	void wordttsclick(object sender, RoutedEventArgs e) {
 		if (sender is FrameworkElement fe && fe.Tag is string w) playwordtts(w);
 	}
@@ -1454,19 +1449,6 @@ public partial class PlayerWindow : Window {
 
 	void cuejumpclick(object sender, RoutedEventArgs e) {
 		if (sender is FrameworkElement fe && fe.Tag is int i) jumpcue(i);
-	}
-
-	void playwordclip(string word) {
-		var r = allwords.FirstOrDefault(x => x.Word == word);
-		var cur = list.Current;
-		if (r == null || r.Manual) { hud("手动查的词没有对应片段，可用 TTS"); return; }
-		if (cur == null) { hud("还没有播放文件"); return; }
-		stopclip();
-		state.ClipKey = "w:" + word;
-		clip.Volume = (float)(state.Muted ? 0 : state.Volume);
-		clip.Play(cur.Path, r.Start, r.End);
-		hud($"原声：{word}  {fmt(r.Start)}–{fmt(r.End)}" + (r.Exact ? "" : " · 按均匀推算"));
-		render();
 	}
 
 	void playwordtts(string word) {

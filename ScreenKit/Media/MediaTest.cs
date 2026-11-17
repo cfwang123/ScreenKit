@@ -405,12 +405,14 @@ static class MediaTest {
 
 	// ==================== --test-player-clip ====================
 	/// <summary>旁路片段发音：抽出来的 PCM 时长对得上，且不会动到主播放器。</summary>
-	public static int ClipTest(string file, double start, double end) {
+	public static int ClipTest(string file, double start, double end, double lead = -1) {
 		o("=== 片段发音 --test-player-clip ===");
 		if (string.IsNullOrWhiteSpace(file) || !File.Exists(file)) { e("FAIL 文件不存在: " + file); return 1; }
 		if (start < 0) start = 1.0;
 		if (end <= start) end = start + 0.8;
-		o($"片段 [{start:0.###},{end:0.###}] 长 {end - start:0.###}s");
+		// 扩展时间：不指定就用默认 0.2，与播放器窗口一致
+		if (lead < 0) lead = 0.2;
+		o($"片段 [{start:0.###},{end:0.###}] 长 {end - start:0.###}s  扩展 {lead:0.##}s");
 		var bad = 0;
 		MediaSession s = null;
 		try {
@@ -429,7 +431,7 @@ static class MediaTest {
 			o($"暂停在主位置 {pos0:0.###}s");
 
 			var msgs = new StringBuilder();
-			using var cp = new MediaClipPlayer();
+			using var cp = new MediaClipPlayer { Lead = lead };
 			cp.Failed += m => msgs.AppendLine(m);
 			var pcm = cp.Extract(file, start, end);
 			if (pcm == null) {
@@ -437,8 +439,8 @@ static class MediaTest {
 				return 1;
 			}
 			var sec = pcm.Length / (double)MediaClipPlayer.BYTERATE;
-			// 片段会先去掉前后空白，再从有声段两端各延长 0.5s，所以长度不再严格等于区间长度
-			var want = (end - start) + 1.0;
+			// 片段会先去掉前后空白，再从有声段两端各延长 lead 秒，所以长度不再严格等于区间长度
+			var want = (end - start) + lead * 2;
 			o($"抽出 PCM {pcm.Length} 字节 = {sec:0.###}s（去掉空白后约 {want:0.###}s 以内）");
 			if (sec < 0.12 || sec > want + 0.6) { e($"FAIL 片段时长偏离：{sec:0.###}s"); bad++; }
 			// 长度必须是采样帧（S16 立体声 4 字节）的整数倍。

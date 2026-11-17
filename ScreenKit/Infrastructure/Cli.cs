@@ -375,7 +375,8 @@ static class Cli {
 					var cf = i + 1 < args.Length ? args[i + 1] : "";
 					var cs = i + 2 < args.Length && double.TryParse(args[i + 2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var cd0) ? cd0 : -1;
 					var ce = i + 3 < args.Length && double.TryParse(args[i + 3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var cd1) ? cd1 : -1;
-					return MediaTest.ClipTest(cf, cs, ce);
+					var cl = i + 4 < args.Length && double.TryParse(args[i + 4], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var cd2) ? cd2 : -1;
+					return MediaTest.ClipTest(cf, cs, ce, cl);
 				}
 				case "--test-natsort":
 					MediaTest.Attach(Out, Err);
