@@ -60,12 +60,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - WebSocket debugger: a client that connects to ws:// or wss:// with subprotocol, Origin and extra headers, sends text, binary or ping frames and logs every frame plus the raw handshake; and a server that runs on this machine, echoes incoming messages on demand, and pushes to one or all connected clients.
 - JSON/XML/YAML viewer in the web tools: paste or drop a file and it turns into a collapsible tree like the browser console, with a filter box that keeps matching nodes and highlights the hit, expand/collapse all, and auto format detection for JSON, XML, and YAML.
 - Media player: play video and audio in one window with subtitles, lyrics, karaoke-style progress mask, click-to-look-up words, and a playlist that plays sequentially, shuffled or on repeat (one or all). It follows the app's light theme, and the right sidebar splits the words of the current line, the playlist and the subtitle browser into three collapsible tabs.
-- Media player: the study tab gives every word of the current line its own row with a gloss and a button that plays the video clip or the TTS reading; the subtitle tab can play or jump to any line.
+- Media player: the study tab gives every word of the current line its own row with its gloss, a Lookup button that opens the dictionary and a TTS reading button; the subtitle tab can play or jump to any line and keeps the current one highlighted and scrolled into view while playing.
 - Media player: click the video area to play or pause; drag a file onto the video area to replace the playlist and play it, or onto the list to append it.
 - Media player: drag the subtitle up or down on the stage to adjust its vertical position; it stays horizontally centered and the setting is saved.
-- Media player: clicking a word in the study list opens the dictionary window for it.
 - Media player: added a stop button beside play (also X). It rewinds to the start and pauses, so pressing play begins the file again. The play / stop / previous / next icons are now vector paths instead of font symbols.
-- Media player Study page: each word row gets a Lookup button that opens the dictionary, and clicking a row now only selects the word instead of opening the dictionary.
 
 #### Changed
 
@@ -79,9 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Plot tool: zooming keeps the coordinate origin at the canvas center.
 - Media player: opening the window no longer restores the previous playback position.
 - Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
-- Player: word and line pronunciation now trims the silence at both ends of the clip and extends 0.5s past the audible part, so subtitle timing drift no longer clips the speech.
-- Subtitle tab jumps to and highlights the current line while playing
-- Media player: how many extra seconds are played before and after a subtitle line is clickable-configurable (0s by default); the Study page no longer offers the per-word original-voice clip.
+- Player: line pronunciation trims the silence at both ends of the clip, and how many extra seconds are played before and after a subtitle line is configurable (0 by default), so subtitle timing drift no longer clips the speech.
 
 #### Fixed
 
@@ -94,12 +90,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 3D function plotter: filled surface no longer renders as a dot cloud.
 - The 8bit composer stopped after the first beat because the playback step function was scoped inside the play handler, where the shared timer could not reach it.
 - Media player: stop dropping video packets when the queue is full, which broke the H.264 reference chain and caused garbled frames.
-- Media player: clicking the seek bar jumps immediately, and seeking no longer leaves garbled frames, a frozen picture or drifting audio and subtitles.
-- Media player: word clips no longer play a blast of noise (sample-frame alignment, send/receive loop, edge fades).
+- Media player: clicking the seek bar jumps immediately, and seeking no longer leaves garbled frames, a frozen picture or drifting audio and subtitles; video is now shown by MediaElement while the sound still comes from the built-in decoder, and files the system decoder cannot open fall back to audio only with a hint on the stage.
+- Media player: clip playback no longer plays a blast of noise (sample-frame alignment, send/receive loop, edge fades).
 - TTS: SAPI voice list now filters by language for Japanese, Korean and other languages.
 - Japanese conjugation: words listed in the example table now win over a same-shaped dictionary entry, so いい is conjugated as an i-adjective (よくない) instead of a noun.
-- Media player: video is now shown by MediaElement while the sound still comes from the built-in decoder, so seeking no longer leaves garbled frames; files the system decoder cannot open fall back to audio only with a hint on the stage.
-- Media player: only the top bar drags the window now, dragging inside the stage moves the subtitle instead; clicking a subtitle line selects the word in the Study tab without opening the dictionary, only clicking an entry there opens it; stems of inflected Korean words resolve to the base entry so fewer words show as not found; a video that keeps replaying the same short span is detected and its media source reopened.
+- Media player: only the top bar drags the window now, dragging inside the stage moves the subtitle instead; clicking a subtitle line selects the word in the Study tab without opening the dictionary, only the Lookup button on a row opens it; stems of inflected Korean words resolve to the base entry so fewer words show as not found; a video that keeps replaying the same short span is detected and its media source reopened.
 - Dictionary pronunciation: changing a language's engine, voice or rate drops the cached audio, so the next pronunciation is synthesized again
 - Chrome translation: a model folder emptied by disk cleanup is now restored by copying the same version from your own Chrome instead of downloading it again; only when no matching copy exists is the shell unregistered for re-download. New --chrome-pack-adopt restores them in one go.
 
@@ -113,12 +108,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 新增 WebSocket 调试：客户端可连 ws:// 或 wss://，支持子协议、Origin 和自定义请求头，按文本、二进制或 ping 发帧，日志里给出每一帧和握手原文；服务端页能在本机起一个服务，收到的消息可回显，也能推给某个或全部在线客户端。
 - 工具页新增 JSON/XML/YAML 查看器：粘贴或拖入文件后展开成和浏览器控制台一样的折叠树，过滤框只保留命中的节点并高亮，另有全部展开/折叠和 JSON、XML、YAML 的自动识别。
 - 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、点词查词，播放列表可按顺序、随机或循环（单曲/列表）播放。窗口跟随应用的浅色主题，右侧栏把当前句单词、播放列表、字幕浏览分成三页并可收起。
-- 媒体播放器：学习页把当前句每个词列成一行，带释义和「原声/TTS」发音按钮；字幕页可逐条播声或跳转。
+- 媒体播放器：学习页把当前句每个词列成一行，带释义、「查词」（打开词典）和 TTS 发音按钮；字幕页可逐条播声或跳转，播放时自动定位并高亮当前句。
 - 媒体播放器：在视频画面区单击即可播放或暂停；文件拖到画面区会清空播放列表并播放它，拖到列表区则追加到末尾。
 - 媒体播放器：可直接在画面上拖动字幕调整上下位置（始终水平居中），位置会记住。
-- 媒体播放器：在学习列表点一个词会弹出词典窗口查这个词。
 - 媒体播放器：播放键旁增加停止按钮（也可按 X），停止后回到开头并暂停，再按播放从头开始；播放、停止、上一个、下一个的图标改为矢量路径绘制，不再使用字体符号。
-- 媒体播放器学习页：每一行增加「查词」按钮用来打开词典，点行本身只选中该词，不再弹词典。
 
 #### 变更
 
@@ -132,9 +125,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 函数图像：缩放时坐标原点保持在画面中心。
 - 媒体播放器：打开窗口时不再恢复上次的播放位置。
 - 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
-- 播放器：生词与整句发音会先去掉片段前后的静音，再从有声段两端各延长 0.5 秒，字幕时间轴对不准时也不会把发音切掉。
-- 字幕页自动定位并高亮当前句，播放换句时跟着滚动
-- 媒体播放器：点一句字幕时前后扩展多少秒可设置（默认 0 秒）；学习页去掉每个单词的「原声」按钮。
+- 播放器：整句发音会先去掉片段前后的静音，点一句时前后多放多少秒可设置（默认 0 秒），字幕时间轴对不准时也不会把发音切掉。
 
 #### 修复
 
@@ -147,12 +138,11 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维函数图像：曲面填充不再变成一片点阵。
 - 8bit 编曲只播第一个节拍：推进函数原先定义在播放处理函数内部，共用定时器取不到它。
 - 播放器：队列满时不再丢视频包（会破坏 H.264 参考帧导致花屏），改为背压等待、必要时跳到下一个关键帧重建。
-- 播放器：点进度条轨道可直接跳转；跳转后不再花屏、画面卡住或声音字幕不同步。
-- 媒体播放器：点「原声」不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）。
+- 播放器：点进度条轨道可直接跳转；跳转后不再花屏、画面卡住或声音字幕不同步；画面改由 MediaElement 显示，声音仍走内置解码器，系统解码器打不开的非常规封装只播声音并在画面上给出提示。
+- 媒体播放器：片段播放不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）。
 - 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤。
 - 日语词形变化：示例词表里的词优先于同形的词典词条，いい 现在按い形容词变化（よくない），不再按名词。
-- 媒体播放器：画面改由 MediaElement 显示，声音仍走内置解码器，跳转后不再花屏；系统解码器打不开的非常规封装会只播声音，并在画面上给出提示。
-- 媒体播放器：只有顶栏能拖窗口，画面区拖动只挪字幕；点字幕只把学习页切出来并选中该词，不再弹词典，点学习列表里的一项才弹；韩语活用形会剥回原形查释义，显示「未收录」的少了；画面反复重播同一小段会被检测到并重开媒体源。
+- 媒体播放器：只有顶栏能拖窗口，画面区拖动只挪字幕；点字幕或点列表行只选中该词，要看词典点行尾的「查词」；韩语活用形会剥回原形查释义，显示「未收录」的少了；画面反复重播同一小段会被检测到并重开媒体源。
 - 词典发音：改了某语言的引擎、发音人或语速后，缓存的发音失效，下次发音重新合成
 - Chrome 翻译：被磁盘清理删空的模型目录，现在从本机 Chrome 复制同版本模型直接恢复，不再重新下载；本机也没有同版本时才注销重下。新增 --chrome-pack-adopt 一次补回。
 
