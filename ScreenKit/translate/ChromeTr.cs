@@ -49,6 +49,23 @@ static class ChromeTr {
 		return 0;
 	}
 
+	/// <summary>真翻一句，确认模型确实能用（模型目录被清过之后只有它才能验证）。</summary>
+	public static int TestTranslate(string src, string dst, string text) {
+		src = TrLang.Normalize(src ?? "");
+		dst = TrLang.Normalize(dst ?? "");
+		if (src.Length == 0) src = "en";
+		if (dst.Length == 0) dst = "zh";
+		if (string.IsNullOrWhiteSpace(text)) text = "hello";
+		try {
+			var got = Translate(text, src, dst, null, 60, CancellationToken.None);
+			return string.IsNullOrWhiteSpace(got) ? 3 : 0;
+		}
+		catch (Exception ex) {
+			CaptureLog.Ex("chrome-tr-test", ex);
+			return 4;
+		}
+	}
+
 	/// <summary>和朗读是同一个进程。children 是它下面还活着的子进程数。</summary>
 	public static bool TryRun(out int children) => ChromeHost.TryRun(out children);
 

@@ -50,7 +50,7 @@ static class Cli {
 			if (a is "--image" or "-i" or "--probe-cuda" or "--list-models" or "--list-tts"
 				or "--list-sapi"
 				or "--probe-tts-gender" or "--snap" or "--snap-all" or "--record-snap"
-				or "--test-tts-sherpa" or "--test-edge-tts" or "--test-chrome-tts" or "--test-chrome-tr" or "--test-chrome-pack" or "--test-chrome-host" or "--list-edge-tts"
+				or "--test-tts-sherpa" or "--test-edge-tts" or "--test-chrome-tts" or "--test-chrome-tr" or "--test-chrome-pack" or "--chrome-pack-adopt" or "--test-chrome-host" or "--list-edge-tts"
 				or "--test-capture-during-record" or "--test-overlay-during-record"
 				or "--test-overlay-layout" or "--test-overlay-span-adj" or "--test-ocr-overlay-fit"
 				or "--test-record-avsync" or "--test-gif-record" or "--test-record-codec"
@@ -180,6 +180,9 @@ static class Cli {
 		bool doTestChromeTr = false;
 		bool doTestChromePack = false;
 		bool doTestChromeHost = false;
+		bool doChromePackAdopt = false;
+		string testChromeTrPair = null;
+		string testChromeTrText = "hello world";
 		string testTtsModel = null;
 		string testEdgeVoice = "zh-CN-XiaoxiaoNeural";
 		string testTtsText = "안녕하세요. 한국어 음성 합성 테스트입니다.";
@@ -626,9 +629,17 @@ static class Cli {
 						break;
 					case "--test-chrome-tr":
 						doTestChromeTr = true;
+						if (i + 1 < args.Length && args[i + 1].Length > 2 && args[i + 1][0] != '-') {
+							testChromeTrPair = Next();
+							if (i + 1 < args.Length && args[i + 1].Length > 0 && args[i + 1][0] != '-')
+								testChromeTrText = Next();
+						}
 						break;
 					case "--test-chrome-pack":
 						doTestChromePack = true;
+						break;
+					case "--chrome-pack-adopt":
+						doChromePackAdopt = true;
 						break;
 					case "--test-chrome-host":
 						doTestChromeHost = true;
@@ -864,6 +875,13 @@ static class Cli {
 			}
 		}
 
+		if (doChromePackAdopt) {
+			Out("=== Chrome 翻译模型从本机 Chrome 补回 ===");
+			var n = ChromePack.AdoptMissing(s => Out("  " + s));
+			Out(n > 0 ? $"OK 补回 {n} 个模型" : "没有可补回的模型（本机 Chrome 里没有同版本）");
+			return 0;
+		}
+
 		if (doTestChromeTts) {
 			var code = ChromeTts.Test();
 			if (code == 0) Out($"OK chrome voices={ChromeTts.Voices.Count}");
@@ -873,8 +891,21 @@ static class Cli {
 
 		if (doTestChromeTr) {
 			var code = ChromeTr.Test();
-			if (code == 0) Out("OK chrome tr");
-			else Err("FAIL chrome tr");
+			if (code != 0) {
+				Err("FAIL chrome tr");
+				return code;
+			}
+			if (testChromeTrPair != null) {
+				var bits = (testChromeTrPair ?? "").Split('-');
+				var from = bits.Length > 0 ? bits[0] : "en";
+				var to = bits.Length > 1 ? bits[1] : "zh";
+				Out($"翻译 {from} → {to} …");
+				code = ChromeTr.TestTranslate(from, to, testChromeTrText);
+				if (code == 0) Out($"OK chrome tr {from} → {to}");
+				else Err($"FAIL chrome tr {from} → {to}");
+				return code;
+			}
+			Out("OK chrome tr");
 			return code;
 		}
 

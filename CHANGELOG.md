@@ -98,6 +98,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Media player: video is now shown by MediaElement while the sound still comes from the built-in decoder, so seeking no longer leaves garbled frames; files the system decoder cannot open fall back to audio only with a hint on the stage.
 - Media player: only the top bar drags the window now, dragging inside the stage moves the subtitle instead; clicking a subtitle line selects the word in the Study tab without opening the dictionary, only clicking an entry there opens it; stems of inflected Korean words resolve to the base entry so fewer words show as not found; a video that keeps replaying the same short span is detected and its media source reopened.
 - Dictionary pronunciation: changing a language's engine, voice or rate drops the cached audio, so the next pronunciation is synthesized again
+- Chrome translation: a model folder emptied by disk cleanup is now restored by copying the same version from your own Chrome instead of downloading it again; only when no matching copy exists is the shell unregistered for re-download. New --chrome-pack-adopt restores them in one go.
 
 ### 中文
 
@@ -147,6 +148,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 媒体播放器：画面改由 MediaElement 显示，声音仍走内置解码器，跳转后不再花屏；系统解码器打不开的非常规封装会只播声音，并在画面上给出提示。
 - 媒体播放器：只有顶栏能拖窗口，画面区拖动只挪字幕；点字幕只把学习页切出来并选中该词，不再弹词典，点学习列表里的一项才弹；韩语活用形会剥回原形查释义，显示「未收录」的少了；画面反复重播同一小段会被检测到并重开媒体源。
 - 词典发音：改了某语言的引擎、发音人或语速后，缓存的发音失效，下次发音重新合成
+- Chrome 翻译：被磁盘清理删空的模型目录，现在从本机 Chrome 复制同版本模型直接恢复，不再重新下载；本机也没有同版本时才注销重下。新增 --chrome-pack-adopt 一次补回。
 
 ## v1.0.38 (2026-11-11 ~ 11-13)
 

@@ -140,6 +140,38 @@ static class ChromePack {
 		var tg3 = new List<string>();
 		trtargets(fake, tg3, "en");
 		if (!tg3.Contains("zh") || !tg3.Contains("ja")) return 2;
+		if (pairfolder("zh", "en") != "en_zh") return 2;
+		if (pairfolder("en", "ja") != "en_ja") return 2;
+		if (pairfolder("zh", "ja") != null) return 2;
+		// 借模型时版本号必须照注册记录，否则 Chrome 按自己的版本找不到目录。
+		var scratch = Path.Combine(TmpStore.Root, "chromepacktest");
+		try {
+			var ver = Path.Combine(scratch, "user", "TranslateKit", "models", "en_zh", "2024.10.8.1");
+			Directory.CreateDirectory(Path.Combine(ver, "en_zh_nmt"));
+			File.WriteAllBytes(Path.Combine(ver, "en_zh_nmt", "encoder_0.tflite"), new byte[2 * 1024 * 1024]);
+			if (!packok(ver)) return 3;
+			var many = Path.Combine(scratch, "user2", "TranslateKit", "models", "en_zh");
+			foreach (var v in new[] { "2024.10.8.1", "2024.10.8.2" }) {
+				var d = Path.Combine(many, v, "en_zh_nmt");
+				Directory.CreateDirectory(d);
+				File.WriteAllBytes(Path.Combine(d, "encoder_0.tflite"), new byte[2 * 1024 * 1024]);
+			}
+			// 有多个版本又不确定该用哪个，就别乱挑，交给 Chrome 自己下。
+			if (pickversion(many) != null) return 3;
+			if (pickversion(Path.Combine(scratch, "user", "TranslateKit", "models", "en_zh")) != ver) return 3;
+			// 空壳不算已装。
+			var shell = Path.Combine(scratch, "shell", "TranslateKit", "models", "en_zh");
+			Directory.CreateDirectory(shell);
+			File.WriteAllText(Path.Combine(shell, "manifest.json"), "{}");
+			if (packok(shell)) return 3;
+			// 复制后目标得是完整的。
+			var copy = Path.Combine(scratch, "copy");
+			copytree(ver, copy);
+			if (!packok(copy)) return 4;
+		}
+		finally {
+			try { Directory.Delete(scratch, true); } catch { }
+		}
 		return 0;
 	}
 
@@ -1027,16 +1059,131 @@ static class ChromePack {
 			if (pair != null) {
 				var dir = Path.Combine(ChromeTr.ProfileDir(), "TranslateKit", "models", pair);
 				if (Directory.Exists(dir) && !packok(dir)) {
-					//只剩空壳：删掉目录并注销，让 Chrome 当作没装过重新下
-					try { Directory.Delete(dir, true); } catch { }
-					unregister(pair);
-					log?.Invoke($"Chrome 翻译模型 {pair} 只剩空壳，已注销，下次翻译会重新下载");
-					fixedAny = true;
+					// 只剩空壳。能借到本机 Chrome 同版本的就直接复制，省一次下载；借不到才注销让 Chrome 重下。
+					if (adoptfromuser(pair, log)) fixedAny = true;
+					else {
+						try { Directory.Delete(dir, true); } catch { }
+						unregister(pair);
+						log?.Invoke($"Chrome 翻译模型 {pair} 只剩空壳，已注销，下次翻译会重新下载");
+						fixedAny = true;
+					}
 				}
 			}
 		}
 		catch { }
 		return fixedAny;
+	}
+
+	/// <summary>
+	/// 把只剩空壳的翻译模型从本机 Chrome 补回来（版本照注册记录，缺的补注册）。
+	/// 返回恢复的模型个数。已经完整的、本机没有同版本的都跳过。
+	/// </summary>
+	public static int AdoptMissing(Action<string> log) {
+		var n = 0;
+		foreach (var pair in TrPairs) {
+			try {
+				var folder = TrFolder(pair);
+				var dir = Path.Combine(ChromeTr.ProfileDir(), "TranslateKit", "models", folder);
+				if (packok(dir)) continue;
+				if (adoptfromuser(folder, log)) n++;
+			}
+			catch (Exception ex) {
+				log?.Invoke(pair + ": " + ex.Message);
+			}
+		}
+		if (n > 0) raisechanged();
+		return n;
+	}
+
+	/// <summary>本机 Chrome 的用户目录。程序自己的配置是另一个，不能混用。</summary>
+	static string userprofiledir() =>
+		Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+			"Google", "Chrome", "User Data");
+
+	/// <summary>
+	/// 模型目录只剩空壳时，从本机 Chrome 复制同版本模型过来并补好注册。
+	/// 版本必须与这边注册记录一致，否则 Chrome 会按自己的版本号找不到目录。
+	/// </summary>
+	static bool adoptfromuser(string pair, Action<string> log) {
+		try {
+			var user = Path.Combine(userprofiledir(), "TranslateKit", "models", pair);
+			if (!packok(user)) return false;
+			var want = registeredversion(pair);
+			var from = want != null ? Path.Combine(user, want) : pickversion(user);
+			if (from == null || !packok(from)) return false;
+			var ver = Path.GetFileName(from);
+			var dest = Path.Combine(ChromeTr.ProfileDir(), "TranslateKit", "models", pair, ver);
+			Directory.CreateDirectory(Path.GetDirectoryName(dest));
+			copytree(from, dest);
+			if (!packok(dest)) {
+				try { Directory.Delete(dest, true); } catch { }
+				return false;
+			}
+			register(pair, dest);
+			log?.Invoke($"Chrome 翻译模型 {pair} 只剩空壳，已从本机 Chrome 复制 {ver}，不用重新下载");
+			return true;
+		}
+		catch (Exception ex) {
+			log?.Invoke($"Chrome 翻译模型 {pair} 从本机 Chrome 复制失败: {ex.Message}");
+			return false;
+		}
+	}
+
+	/// <summary>注册记录里这一对模型记的目录名（如 2024.10.8.1）。没有记录返回 null。</summary>
+	static string registeredversion(string pair) {
+		try {
+			var path = Path.Combine(ChromeTr.ProfileDir(), "Local State");
+			if (!File.Exists(path)) return null;
+			var root = JSONF.Parse(File.ReadAllText(path));
+			var node = root.get("on_device_translation");
+			if (!node.IsObject) return null;
+			var packs = node.get("translate_kit_packages");
+			if (!packs.IsObject) return null;
+			var recorded = packs.get(pair + "_path");
+			if (!recorded.IsNotNull) return null;
+			var dir = Path.GetFileName((recorded.Value ?? "").Replace('\\', '/').TrimEnd('/'));
+			return dir.Length > 0 ? dir : null;
+		}
+		catch { return null; }
+	}
+
+	/// <summary>没有注册记录时挑一个版本目录；只有一个才敢用，多个就交给 Chrome 自己下。</summary>
+	static string pickversion(string dir) {
+		var list = new List<string>();
+		try {
+			foreach (var sub in Directory.GetDirectories(dir)) {
+				if (packok(sub)) list.Add(sub);
+			}
+		}
+		catch { return null; }
+		return list.Count == 1 ? list[0] : null;
+	}
+
+	/// <summary>把模型目录写进 Chrome 的注册表，下次启动由 Chrome 直接加载，不用重新下载。</summary>
+	static void register(string pair, string dir) {
+		try {
+			var path = Path.Combine(ChromeTr.ProfileDir(), "Local State");
+			if (!File.Exists(path)) return;
+			var root = JSONF.Parse(File.ReadAllText(path));
+			if (!root.IsObject) return;
+			var node = child(root, "on_device_translation");
+			var packs = child(node, "translate_kit_packages");
+			packs[pair + "_path"] = dir;
+			packs[pair + "_registered"] = true;
+			File.WriteAllText(path, root.ToJSONString(-1), new UTF8Encoding(false));
+		}
+		catch { }
+	}
+
+	/// <summary>递归复制目录，已存在的同名文件不覆盖。</summary>
+	static void copytree(string src, string dest) {
+		Directory.CreateDirectory(dest);
+		foreach (var f in Directory.GetFiles(src)) {
+			var to = Path.Combine(dest, Path.GetFileName(f));
+			if (!File.Exists(to)) File.Copy(f, to);
+		}
+		foreach (var d in Directory.GetDirectories(src))
+			copytree(d, Path.Combine(dest, Path.GetFileName(d)));
 	}
 
 	/// <summary>语言对对应的模型目录名。Chrome 一律以英文一侧命名，如 zh/en -> en_zh。</summary>
