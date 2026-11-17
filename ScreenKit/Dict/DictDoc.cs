@@ -93,6 +93,12 @@ static class DictDoc {
 		var blockstyle = e.Dict == "ko" || e.Dict == "en";
 		JSONF curp = default;
 		var idiomopen = false;
+		// 最后一行是不是空行（没有行内块）。仅释义时换词性前要空一行，已经空过就不再加。
+		bool lastisgap() {
+			if (blocks.Count == 0) return true;
+			var runs = blocks.get(blocks.Count - 1).get(2);
+			return runs.IsArray && runs.Count == 0;
+		}
 		foreach (var sn in e.Senses) {
 			if (!sn.Sub) idiomopen = false;
 			if (sn.Idiom.Length > 0 || !sn.Sub) curp = default;
@@ -114,13 +120,15 @@ static class DictDoc {
 				}
 			}
 			else if (anySense && !sn.Sub && (!only || (e.Dict != "en" && e.Dict != "ja"))) blocks.Add(gap(4));
-			anySense = true;
 			if (sn.Pos.Length > 0 && sn.Pos != e.Pos && sn.Pos != lastpos) {
+				// 仅释义时换词性也要空一行，和义项之间一样；行前已经有空行就不再加。
+				if (only && anySense && !lastisgap()) blocks.Add(gap(4));
 				blocks.Add(one("▶ " + sn.Pos, "p", 1, DictWindow.TextLang(sn.Pos, entrylang)));
 				lastpos = sn.Pos;
 				n = 1;
 				curp = default;
 			}
+			anySense = true;
 			var numbered = false;
 			// 返回新建的段落；仅释义时把它记作 curp，后续译文并到同一段。
 			JSONF gloss(string tagkey, string lemma, string def, string lang) {

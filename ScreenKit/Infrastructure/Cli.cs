@@ -9578,10 +9578,12 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Err("FAIL: 同一义项下的子义项没有合并成一行");
 				return 7;
 			}
-			var gap = after.IndexOf("\r\n\r\n2. ", StringComparison.Ordinal) >= 0;
-			Out($"gap={gap}");
+			var gap = after.IndexOf("\r\n\r\n2. ", StringComparison.Ordinal) >= 0
+				|| after.IndexOf("\r\n\r\n▶ ", StringComparison.Ordinal) >= 0;
+			var posgap = after.IndexOf("\r\n\r\n▶ ", StringComparison.Ordinal) >= 0;
+			Out($"gap={gap} posgap={posgap}");
 			if (wantgap == 1 && !gap) {
-				Err("FAIL: 多行义项之间没有空行");
+				Err("FAIL: 义项或不同词性之间没有空行");
 				return 8;
 			}
 			if (wantgap == 0 && gap) {
