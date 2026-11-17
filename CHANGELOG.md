@@ -59,7 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Database tools: a new SQL dialect conversion window. Drop a .sql file and it detects the engine and version (the source engine can also be set by hand), then converts it to SQLite / MySQL / SQL Server / Oracle / PostgreSQL and saves a new .sql file. Tables, indexes, INSERT literals, identity and generated columns, comments and defaults are rewritten for the target dialect; statements it cannot rewrite are kept as-is and counted. The same conversion is available from the command line with --sqlconv.
 - WebSocket debugger: a client that connects to ws:// or wss:// with subprotocol, Origin and extra headers, sends text, binary or ping frames and logs every frame plus the raw handshake; and a server that runs on this machine, echoes incoming messages on demand, and pushes to one or all connected clients.
 - JSON/XML/YAML viewer in the web tools: paste or drop a file and it turns into a collapsible tree like the browser console, with a filter box that keeps matching nodes and highlights the hit, expand/collapse all, and auto format detection for JSON, XML, and YAML.
-- Media player: video and audio in one window with subtitles, lyrics, karaoke mask, word lookup, TTS and a playlist.
+- Media player: video and audio in one window with subtitles, lyrics, karaoke mask, per-word lookup and TTS, and a playlist; the sidebar splits the current-line words, the subtitles and the playlist. Only the top bar drags the window, clicking a subtitle selects its word and only the Lookup button opens the dictionary, opening the window starts from the beginning, seeking and clip playback stay clean (no garbled frames, no noise blips), line pronunciation trims the silence and the padding before and after a line is configurable, and a stuck video span reopens its media source.
 
 #### Changed
 
@@ -71,9 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - JSON viewer: a collapsed small array or object now shows its items inline on one line, and long ones show the first few items plus an ellipsis instead of a bare bracket placeholder.
 - USB capture: the device tree keeps the left column, while the device information and the descriptor reader become two tabs in a right sidebar; the packet list, the protocol tree and the hex view stay in the middle.
 - Plot tool: zooming keeps the coordinate origin at the canvas center.
-- Media player: opening the window no longer restores the previous playback position.
 - Japanese/Korean conjugation: an object such as ご飯を食べる / 밥을 먹다 is accepted; the object is put in front of every form and stripped before the dictionary lookup; more object examples added.
-- Player: line pronunciation trims the silence at both ends of the clip, and how many extra seconds are played before and after a subtitle line is configurable (0 by default), so subtitle timing drift no longer clips the speech.
 
 #### Fixed
 
@@ -85,12 +83,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Plot tool: zooming keeps mesh density and no longer goes blank after shrink-then-enlarge.
 - 3D function plotter: filled surface no longer renders as a dot cloud.
 - The 8bit composer stopped after the first beat because the playback step function was scoped inside the play handler, where the shared timer could not reach it.
-- Media player: stop dropping video packets when the queue is full, which broke the H.264 reference chain and caused garbled frames.
-- Media player: clicking the seek bar jumps immediately, and seeking no longer leaves garbled frames, a frozen picture or drifting audio and subtitles; video is now shown by MediaElement while the sound still comes from the built-in decoder, and files the system decoder cannot open fall back to audio only with a hint on the stage.
-- Media player: clip playback no longer plays a blast of noise (sample-frame alignment, send/receive loop, edge fades).
 - TTS: SAPI voice list now filters by language for Japanese, Korean and other languages.
 - Japanese conjugation: words listed in the example table now win over a same-shaped dictionary entry, so いい is conjugated as an i-adjective (よくない) instead of a noun.
-- Media player: only the top bar drags the window now, dragging inside the stage moves the subtitle instead; clicking a subtitle line selects the word in the Study tab without opening the dictionary, only the Lookup button on a row opens it; stems of inflected Korean words resolve to the base entry so fewer words show as not found; a video that keeps replaying the same short span is detected and its media source reopened.
 - Dictionary pronunciation: changing a language's engine, voice or rate drops the cached audio, so the next pronunciation is synthesized again
 - Chrome translation: a model folder emptied by disk cleanup is now restored by copying the same version from your own Chrome instead of downloading it again; only when no matching copy exists is the shell unregistered for re-download. New --chrome-pack-adopt restores them in one go.
 
@@ -103,7 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 数据库工具：新增 SQL 方言转换窗口，拖入 .sql 自动识别引擎与版本（也可手动指定源引擎），选目标引擎和版本后导出新的 .sql；SQLite、MySQL、SQL Server、Oracle、PostgreSQL 互转时重建建表语句、索引、INSERT 字面量、自增与生成列、注释和默认值，认不得的语句原样保留并计数。命令行也能用 --sqlconv 转换。
 - 新增 WebSocket 调试：客户端可连 ws:// 或 wss://，支持子协议、Origin 和自定义请求头，按文本、二进制或 ping 发帧，日志里给出每一帧和握手原文；服务端页能在本机起一个服务，收到的消息可回显，也能推给某个或全部在线客户端。
 - 工具页新增 JSON/XML/YAML 查看器：粘贴或拖入文件后展开成和浏览器控制台一样的折叠树，过滤框只保留命中的节点并高亮，另有全部展开/折叠和 JSON、XML、YAML 的自动识别。
-- 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、点词查词、TTS 和播放列表，右侧栏分当前句单词、字幕、播放列表三页。
+- 媒体播放器：音视频共用一个窗口播放，支持字幕、歌词、卡拉OK 进度蒙版、逐词查词与 TTS、播放列表，右侧栏分当前句单词、字幕、播放列表三页。只有顶栏能拖窗口；点字幕只选中该词，点行尾「查词」才开词典；打开窗口从头开始；跳转和片段播放都不花屏、不出爆音，整句发音会去掉两端静音且前后多放多少秒可设置；画面卡在同一小段会被检测到并重开媒体源。
 
 #### 变更
 
@@ -115,9 +109,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - JSON 查看器：收起的小数组、小对象直接在同一行显示内容，项多时显示前几项加省略号，不再只显示占位括号。
 - USB 抓包：设备树独占左栏，设备信息与设备描述符合并为右侧栏的两个页签，报文列表、协议详情与十六进制留在中间。
 - 函数图像：缩放时坐标原点保持在画面中心。
-- 媒体播放器：打开窗口时不再恢复上次的播放位置。
 - 日语/韩语词形变化：支持「ご飯を食べる」「밥을 먹다」这种带宾语的写法，宾语加在每一个变形前面、查词时自动去掉；示例词表补了宾语条目。
-- 播放器：整句发音会先去掉片段前后的静音，点一句时前后多放多少秒可设置（默认 0 秒），字幕时间轴对不准时也不会把发音切掉。
 
 #### 修复
 
@@ -129,12 +121,8 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 函数图像：缩放时网格密度保持稳定，缩小后再放大不再变稀或整片空白。
 - 三维函数图像：曲面填充不再变成一片点阵。
 - 8bit 编曲只播第一个节拍：推进函数原先定义在播放处理函数内部，共用定时器取不到它。
-- 播放器：队列满时不再丢视频包（会破坏 H.264 参考帧导致花屏），改为背压等待、必要时跳到下一个关键帧重建。
-- 播放器：点进度条轨道可直接跳转；跳转后不再花屏、画面卡住或声音字幕不同步；画面改由 MediaElement 显示，声音仍走内置解码器，系统解码器打不开的非常规封装只播声音并在画面上给出提示。
-- 媒体播放器：片段播放不再出现爆音（采样帧对齐、送收循环、首尾淡入淡出）。
 - 语音合成：SAPI 引擎选择日语、韩语等语言时，发音人列表按所选语言过滤。
 - 日语词形变化：示例词表里的词优先于同形的词典词条，いい 现在按い形容词变化（よくない），不再按名词。
-- 媒体播放器：只有顶栏能拖窗口，画面区拖动只挪字幕；点字幕或点列表行只选中该词，要看词典点行尾的「查词」；韩语活用形会剥回原形查释义，显示「未收录」的少了；画面反复重播同一小段会被检测到并重开媒体源。
 - 词典发音：改了某语言的引擎、发音人或语速后，缓存的发音失效，下次发音重新合成
 - Chrome 翻译：被磁盘清理删空的模型目录，现在从本机 Chrome 复制同版本模型直接恢复，不再重新下载；本机也没有同版本时才注销重下。新增 --chrome-pack-adopt 一次补回。
 
