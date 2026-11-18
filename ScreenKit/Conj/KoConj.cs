@@ -261,19 +261,16 @@ static class KoConj {
 		["jimah"] = new[] { "敬语禁止", "높임 금지", "formal don't" },
 		["bsida"] = new[] { "敬语", "높임", "formal" },
 		["ja"] = new[] { "非敬语", "반말", "casual" },
+		["mothap"] = new[] { "敬语", "높임", "formal" },
 		["mothey"] = new[] { "半敬语", "해요체", "polite" },
 		["motban"] = new[] { "非敬语", "반말", "casual" },
 		["motplain"] = new[] { "书面", "해라체", "plain" },
 		["motpast"] = new[] { "半敬语过去", "해요 과거", "polite past" },
+		["motphap"] = new[] { "敬语过去", "높임 과거", "formal past" },
 		["motpban"] = new[] { "非敬语过去", "반말 과거", "casual past" },
 		["motpplain"] = new[] { "书面过去", "해라 과거", "plain past" },
 		["motprog"] = new[] { "进行", "진행", "progressive" },
 		["motfut"] = new[] { "将来", "미래", "future" },
-		["jlnothey"] = new[] { "长否定", "긴 부정", "long" },
-		["jlnothap"] = new[] { "长否定敬语", "긴 부정 높임", "long formal" },
-		["jljnotpast"] = new[] { "长否定过去", "긴 부정 과거", "long past" },
-		["mohtada"] = new[] { "ㄹ 수 없다", "ㄹ 수 없다", "can't" },
-		["mohtada2"] = new[] { "을 수 없습니다", "을 수 없습니다", "cannot" },
 		["honh"] = new[] { "敬语", "높임", "formal" },
 		["hony"] = new[] { "半敬语", "해요체", "polite" },
 		["honpy"] = new[] { "半敬语过去", "해요 과거", "polite past" },
@@ -1232,6 +1229,20 @@ static class KoConj {
 			add("cban", "해", ba, jn(syls) + "지 마");
 			add("jima", "지 마세요", jn(syls) + "지 마세요");
 			add("jimah", "지 마십시오", jn(syls) + "지 마십시오");
+			// 能力：同一时体、敬语等级下并列「ㄹ 수 있다 / 못 / 지 못하다」。
+			// 三个都是完整说法，不让 compose 再叠一次 안／지 않。
+			cur = g("neg");
+			var able = rl + " 수 있";
+			add("mothap", "敬语", able + "습니다 / " + wrapneg(stem, irr, hapsho(syls), "못") + " / " + jn(syls) + "지 못합니다");
+			add("mothey", "半敬语", able + "어요 / " + wrapneg(stem, irr, hey, "못") + " / " + jn(syls) + "지 못해요");
+			add("motban", "非敬语", able + "어 / " + wrapneg(stem, irr, ba, "못") + " / " + jn(syls) + "지 못해");
+			add("motplain", "书面", able + "다 / " + wrapneg(stem, irr, plainnow, "못") + " / " + jn(syls) + "지 못한다");
+			add("motphap", "敬语过去", able + "었습니다 / " + wrapneg(stem, irr, past + "습니다", "못") + " / " + jn(syls) + "지 못했습니다");
+			add("motpast", "半敬语过去", able + "었어요 / " + wrapneg(stem, irr, past + "어요", "못") + " / " + jn(syls) + "지 못했어요");
+			add("motpban", "非敬语过去", able + "었어 / " + wrapneg(stem, irr, past + "어", "못") + " / " + jn(syls) + "지 못했어");
+			add("motpplain", "书面过去", able + "었다 / " + wrapneg(stem, irr, past + "다", "못") + " / " + jn(syls) + "지 못했다");
+			add("motfut", "将来", rl + " 수 있을 거예요 / " + wrapneg(stem, irr, rl + " 거예요", "못") + " / " + jn(syls) + "지 못할 거예요");
+			add("motprog", "进行", "지금 " + able + "어요 / " + wrapneg(stem, irr, jn(syls) + "고 있어요", "못") + " / " + jn(syls) + "지 못하고 있어요");
 			cur = g("prop");
 			// 提议的否定是「지 말자 / 지 맙시다」
 			add("bsida", "ㅂ시다", bsida(syls, irr), jn(syls) + "지 맙시다");
@@ -1507,23 +1518,6 @@ static class KoConj {
 		if (verb) add("neuntong", "는 통에", nowmod + " 통에");
 		add("deonji", "던지", jn(syls) + "던지");
 		add("gemandeulda", "게 만들다", jn(syls) + "게 만들어요");
-		// 能力：못 的各个时体，单独成类，不并进上面对应行的否定
-		if (verb) {
-			cur = g("neg");
-			add("mothey", "못 해요", wrapneg(stem, irr, hey, "못"));
-			add("motban", "못 해", wrapneg(stem, irr, ba, "못"));
-			add("motplain", "못 한다", wrapneg(stem, irr, plainnow, "못"));
-			add("motpast", "못 했어요", wrapneg(stem, irr, past + "어요", "못"));
-			add("motpban", "못 했어", wrapneg(stem, irr, past + "어", "못"));
-			add("motpplain", "못 했다", wrapneg(stem, irr, past + "다", "못"));
-			add("motprog", "못 하고 있어요", wrapneg(stem, irr, jn(syls) + "고 있어요", "못"));
-			add("motfut", "못 할 거예요", wrapneg(stem, irr, rl + " 거예요", "못"));
-			add("jlnothey", "지 못해요", jn(syls) + "지 못해요");
-			add("jlnothap", "지 못합니다", jn(syls) + "지 못합니다");
-			add("jljnotpast", "지 못했어요", jn(syls) + "지 못했어요");
-			add("mohtada", "ㄹ 수 없다", rl + " 수 없어요");
-			add("mohtada2", "을 수 없다", rl + " 수 없습니다");
-		}
 		// 省略：것 的缩略和带空格的「将来的东西」与承诺形 ㄹ게 分开
 		var full = fullpolite(syls, irr);
 		cur = g("ellip");

@@ -49,6 +49,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Changed
+
+- Korean conjugation: Ability group lists potential (ㄹ 수 있다), 못 and 지 못하다 for each tense and speech level, and comes before Suggest.
+
+### 中文
+
+#### 变更
+
+- 韩语词形变化：能力组按时体与敬语等级并列「ㄹ 수 있다 / 못 / 지 못하다」，并移到提议之前。
+
 ## v1.0.39 (2026-11-14 ~ 11-17)
 
 ### English
