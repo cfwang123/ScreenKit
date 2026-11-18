@@ -22,6 +22,7 @@ public partial class SqlConvWindow : Window {
 	string sourceText = "";
 	bool loading;
 	SqlConvertResult last;
+	readonly DispatcherTimer detectTimer = new() { Interval = TimeSpan.FromMilliseconds(450) };
 
 	internal string Preview => etext.Text ?? "";
 	internal SqlDetect LastDetect { get; private set; }
@@ -45,6 +46,7 @@ public partial class SqlConvWindow : Window {
 		lbhint.Text = Loc.T("sqlconv.hint");
 		lbsrc.Text = Loc.T("sqlconv.src");
 		lbdst.Text = Loc.T("sqlconv.dst");
+		lbsrcscript.Text = Loc.T("sqlconv.source");
 		lbprev.Text = Loc.T("sqlconv.preview");
 		bconvert.Content = Loc.T("sqlconv.convert");
 		bsave.Content = Loc.T("sqlconv.save");
@@ -60,6 +62,17 @@ public partial class SqlConvWindow : Window {
 		bbrowse.Click += (_, _) => browse();
 		bconvert.Click += (_, _) => convert();
 		bsave.Click += (_, _) => save();
+		// 源脚本框可以直接输入/粘贴/删除：停下打字后再重新识别引擎和版本
+		esrc.TextChanged += (_, _) => {
+			if (loading) return;
+			enableui(true);
+			detectTimer.Stop();
+			detectTimer.Start();
+		};
+		detectTimer.Tick += (_, _) => {
+			detectTimer.Stop();
+			returntoedit();
+		};
 		esrceng.SelectionChanged += (_, _) => {
 			if (loading) return;
 			fillversions(true);
@@ -192,7 +205,24 @@ public partial class SqlConvWindow : Window {
 		// 换文件时源引擎回到「自动识别」，让识别结果重新说了算
 		loading = true;
 		esrceng.SelectedIndex = 0;
+		esrc.Text = sourceText;
 		loading = false;
+		enableui(true);
+		redetect();
+		convert();
+	}
+
+	/// <summary>源脚本框被编辑后：重新识别引擎与版本，再转一次刷新结果框。</summary>
+	void returntoedit() {
+		sourceText = esrc.Text ?? "";
+		if (sourceText.Trim().Length == 0) {
+			last = null;
+			etext.Text = "";
+			lbdeteced.Text = "";
+			lbstat.Text = Loc.T("sqlconv.waithint");
+			bsave.IsEnabled = false;
+			return;
+		}
 		enableui(true);
 		redetect();
 		convert();

@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Speed up 3D surface rendering while dragging: batch triangles by depth and colour, draw at half resolution during the drag, and fill/refill once per colour instead of per shape.
 - Performance window: the two columns now split the width evenly, the sparkline fills any spare width, and the window resizes by dragging any edge
 - Perf window: the process ranking is no longer capped at 5 rows - it fills whatever height the window gives it
+- SQL dialect conversion: the preview is now split into an editable source box and a result box; auto-detects the engine while you type.
 
 #### Fixed
 
@@ -87,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 三维曲面拖动视角不再卡顿：三角形按深度和颜色分片合并、拖动时半分辨率绘制、同色图形并成一条路径一次填充。
 - 性能监控：两列各占一半宽度，折线自动占满剩余空间；窗口可拖动四边/角调整大小
 - 性能监控：进程排行不再限制 5 行，窗口有多高就显示多少行
+- SQL 方言转换：结果框拆成可编辑的源脚本框和转换结果框，输入时自动识别引擎并刷新结果。
 
 #### 修复
 

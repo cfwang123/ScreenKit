@@ -76,16 +76,34 @@
 			        AutomationProperties.AutomationId="sqlconv.save"/>
 		</WrapPanel>
 
-		<!-- 预览 -->
-		<DockPanel Grid.Row="4">
-			<TextBlock x:Name="lbprev" DockPanel.Dock="Top" Margin="2,0,0,4"
-			           Foreground="{StaticResource TextMuted}" FontSize="12"/>
-			<TextBox x:Name="etext" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
-			         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-			         Padding="8,6" BorderBrush="{StaticResource BorderSoft}"
-			         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
-			         AutomationProperties.AutomationId="sqlconv.preview"/>
-		</DockPanel>
+		<!-- 源脚本 ⇄ 结果 -->
+		<Grid Grid.Row="4">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="8"/>
+				<ColumnDefinition Width="*"/>
+			</Grid.ColumnDefinitions>
+			<DockPanel Grid.Column="0">
+				<TextBlock x:Name="lbsrcscript" DockPanel.Dock="Top" Margin="2,0,0,4"
+				           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+				<TextBox x:Name="esrc" AcceptsReturn="True" TextWrapping="NoWrap"
+				         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+				         Padding="8,6" BorderBrush="{StaticResource BorderSoft}"
+				         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+				         AutomationProperties.AutomationId="sqlconv.source"/>
+			</DockPanel>
+			<GridSplitter Grid.Column="1" Width="8" HorizontalAlignment="Stretch"
+			              Background="Transparent"/>
+			<DockPanel Grid.Column="2">
+				<TextBlock x:Name="lbprev" DockPanel.Dock="Top" Margin="2,0,0,4"
+				           Foreground="{StaticResource TextMuted}" FontSize="12"/>
+				<TextBox x:Name="etext" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+				         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+				         Padding="8,6" BorderBrush="{StaticResource BorderSoft}"
+				         FontFamily="Consolas, Microsoft YaHei UI" FontSize="12"
+				         AutomationProperties.AutomationId="sqlconv.preview"/>
+			</DockPanel>
+		</Grid>
 
 		<TextBlock x:Name="lbstat" Grid.Row="5" Margin="2,8,0,0" TextWrapping="Wrap"
 		           Foreground="{StaticResource TextMuted}" FontSize="12"
