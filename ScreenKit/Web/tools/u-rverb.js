@@ -651,8 +651,8 @@
 		ab_umet: ["会（умею）", "know how (умею)"],
 		ab_umet_past: ["那时会（умел）", "knew how (умел)"],
 		ab_smoch: ["能做成（смогу）", "will manage (смогу)"],
-		ab_udat: ["得以（удалось）", "managed (удалось)"],
-		ab_poluch: ["会成功（получится）", "will succeed (получится)"],
+		ab_udat: ["做得到（удаётся）", "manage to (удаётся)"],
+		ab_poluch: ["做得成（получается）", "succeed in (получается)"],
 		ab_sost: ["有能力（в состоянии）", "be in a position (в состоянии)"],
 		ab_nemoch: ["不能（не могу）", "cannot (не могу)"],
 		ca_allow: ["允许（разрешаю）", "permit (разрешаю)"],
@@ -698,7 +698,7 @@
 		q_neli: ["не … ли（是不是）", "is it not (не … ли)"],
 		q_why: ["почему бы не（何不）", "why not (почему бы не)"],
 		q_how: ["как же не（怎能不）", "how can one not"],
-		q_whynot: ["чем не（何尝不是）", "why not (чем не)"],
+		q_whynot: ["стоит ли（是否该）", "should one (стоит ли)"],
 		neg_inf: ["не + 不定式", "не + infinitive"],
 		neg_words: ["ничего / никого 等 + не", "ничего / никого + не"],
 		neg_never: ["никогда не", "никогда не"],
@@ -960,20 +960,20 @@
 		R(g, L(lang, LAB.ab_umet), "умею " + full + " / умеет " + full);
 		R(g, L(lang, LAB.ab_umet_past), "умел " + full + " / умела " + full);
 		R(g, L(lang, LAB.ab_smoch), "смогу " + full + " / сможет " + full + " / смогут " + full);
-		R(g, L(lang, LAB.ab_udat), "мне удалось " + full + " / ему удалось " + full);
-		R(g, L(lang, LAB.ab_poluch), "у меня получится " + full + " / у него получится " + full);
+		R(g, L(lang, LAB.ab_udat), "мне удаётся " + full + " / ему удаётся " + full);
+		R(g, L(lang, LAB.ab_poluch), "у меня получается " + full + " / у него получается " + full);
 		R(g, L(lang, LAB.ab_sost), "в состоянии " + full);
 		R(g, L(lang, LAB.ab_nemoch), "не могу " + full + " / не может " + full);
 		g = L(lang, LAB.g_caus);
-		R(g, L(lang, LAB.ca_allow), "разрешаю " + full + " / разрешу " + full);
-		R(g, L(lang, LAB.ca_let), "позволяю " + full + " / позволю " + full);
-		R(g, L(lang, LAB.ca_give), "даю " + full + " / дам " + full);
-		R(g, L(lang, LAB.ca_force), "заставляю " + full + " / заставлю " + full);
-		R(g, L(lang, LAB.ca_ask), "прошу " + full + " / попрошу " + full);
-		R(g, L(lang, LAB.ca_order), "велю " + full + " / прикажу " + full);
-		R(g, L(lang, LAB.ca_help), "помогаю " + full + " / помогу " + full);
-		R(g, L(lang, LAB.ca_forbid), "запрещаю " + full + " / запрещу " + full);
-		R(g, L(lang, LAB.ca_let_me), "дай(те) " + full + " / разреши(те) " + full);
+		R(g, L(lang, LAB.ca_allow), "разрешаю ему " + full + " / разрешу ему " + full);
+		R(g, L(lang, LAB.ca_let), "позволяю ему " + full + " / позволю ему " + full);
+		R(g, L(lang, LAB.ca_give), "даю ему " + full + " / дам ему " + full);
+		R(g, L(lang, LAB.ca_force), "заставляю его " + full + " / заставлю его " + full);
+		R(g, L(lang, LAB.ca_ask), "прошу его " + full + " / попрошу его " + full);
+		R(g, L(lang, LAB.ca_order), "велю ему " + full + " / прикажу ему " + full);
+		R(g, L(lang, LAB.ca_help), "помогаю ему " + full + " / помогу ему " + full);
+		R(g, L(lang, LAB.ca_forbid), "запрещаю ему " + full + " / запрещу ему " + full);
+		R(g, L(lang, LAB.ca_let_me), "дай(те) мне " + full + " / разреши(те) мне " + full);
 		g = L(lang, LAB.g_phase);
 		R(g, L(lang, LAB.ph_start), "начинаю " + full + " / начну " + full);
 		R(g, L(lang, LAB.ph_become), "стану " + full + " / стал " + full);
@@ -1012,7 +1012,7 @@
 		R(g, L(lang, LAB.q_neli), "не " + p3 + " ли?");
 		R(g, L(lang, LAB.q_why), "почему бы не " + full + "?");
 		R(g, L(lang, LAB.q_how), "как же не " + full + "?");
-		R(g, L(lang, LAB.q_whynot), "чем не " + base + "?");
+		R(g, L(lang, LAB.q_whynot), "стоит ли " + full + "?");
 		// 否定：не 放在动词前，词形不变。完成体没有现在时，否定落在将来时那组；
 		// быть 的现在时本来就缺，否定只给过去和将来。
 		var n1, npast = [];
@@ -2314,4 +2314,6 @@
 
 	var esc = SK.esc;
 })();
+
+
 
