@@ -5048,21 +5048,50 @@ public partial class MainWindow : Window {
 			return w;
 		}, "menu.mdread");
 
-	// 已显示则隐藏；最小化或已隐藏则重新打开。
+	// 热键：窗口已在最前面则隐藏；没显示、最小化或压在其他窗口后面则显示并置顶。
 	void togglemdread() {
 		var w = mdReadWin;
-		if (w != null && w.IsVisible && w.WindowState != WindowState.Minimized) {
+		if (w != null && w.IsVisible && w.WindowState != WindowState.Minimized && windowforeground(w)) {
 			w.Hide();
 			return;
 		}
-		if (w != null) {
+		if (w == null) {
+			openmdread();
+			w = mdReadWin;
+			if (w == null) return;
+		}
+		showontop(w);
+	}
+
+	/// <summary>窗口是否已经是前台（含它的子窗口、弹出层）。</summary>
+	static bool windowforeground(Window w) {
+		try {
+			if (w == null || !w.IsVisible || w.WindowState == WindowState.Minimized) return false;
+			if (w.IsActive) return true;
+			var fg = GetForegroundWindow();
+			if (fg == IntPtr.Zero) return false;
+			var hwnd = new System.Windows.Interop.WindowInteropHelper(w).Handle;
+			if (hwnd == IntPtr.Zero) return false;
+			return fg == hwnd || GetAncestor(fg, GA_ROOT) == hwnd;
+		}
+		catch { return false; }
+	}
+
+	/// <summary>显示并拉到最前面（Topmost 一闪，绕过前台锁）。</summary>
+	static void showontop(Window w) {
+		try {
+			if (!w.IsVisible) w.Show();
 			if (w.WindowState == WindowState.Minimized)
 				w.WindowState = WindowState.Normal;
-			if (!w.IsVisible) w.Show();
-			w.Activate();
-			return;
+			try { w.Activate(); } catch { }
+			try {
+				w.Topmost = true;
+				w.Topmost = false;
+				w.Focus();
+			}
+			catch { }
 		}
-		openmdread();
+		catch { }
 	}
 
 	void opendoc2md() =>
@@ -5168,7 +5197,9 @@ public partial class MainWindow : Window {
 			if (win != null) {
 				if (win.WindowState == WindowState.Minimized)
 					win.WindowState = WindowState.Normal;
-				win.Activate();
+				// 工具窗可能被热键 Hide 过：Activate 对隐藏窗无效，得先显示再拉前台
+				if (!win.IsVisible) showontop(win);
+				else win.Activate();
 				return;
 			}
 			win = create();
