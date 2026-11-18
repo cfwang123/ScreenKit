@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text;
 using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
@@ -39,6 +41,7 @@ public partial class PerfMonWindow : Window {
 	static readonly string[] TabKeys = { "tcpu", "tmem", "tdisk", "tnet" };
 	readonly Dictionary<string, TextBlock[,]> tabcells = new();
 	readonly Dictionary<string, TextBlock> tabnote = new();
+	readonly Dictionary<string, Button> tabadmin = new();
 	readonly Dictionary<string, bool> tabbuilt = new();
 	PerfMonOptWindow optWin;
 	ProcTop procs;
@@ -335,6 +338,7 @@ public partial class PerfMonWindow : Window {
 		tabs.Items.Clear();
 		tabcells.Clear();
 		tabnote.Clear();
+		tabadmin.Clear();
 		tabbuilt.Clear();
 		if (!opt.TopProcs) {
 			tabs.Visibility = Visibility.Collapsed;
@@ -419,9 +423,50 @@ public partial class PerfMonWindow : Window {
 		Grid.SetColumnSpan(note, heads.Length);
 		host.Children.Add(note);
 		host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		if (key == "tnet") {
+			// 网络字节只有连接级统计拿得到，那需要管理员，给个一键提权重开
+			var btn = new Button {
+				Content = Loc.T("perf.netadmin"),
+				Foreground = downBrush,
+				FontSize = SMALL,
+				Cursor = Cursors.Hand,
+				HorizontalAlignment = HorizontalAlignment.Left,
+				Padding = new Thickness(0),
+				Margin = new Thickness(0, 2, 0, 0),
+				Background = Brushes.Transparent,
+				BorderThickness = new Thickness(0),
+				Visibility = Visibility.Collapsed,
+			};
+			btn.Click += (_, _) => reopenelevated();
+			Grid.SetRow(btn, ProcTop.TOP + 3);
+			Grid.SetColumnSpan(btn, heads.Length);
+			host.Children.Add(btn);
+			host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			tabadmin[key] = btn;
+		}
 		tabcells[key] = body;
 		tabnote[key] = note;
 	}
+
+	/// <summary>关掉本窗口，以管理员权限重开一个性能监控（只开 --perfmon，不启动主界面）。</summary>
+	void reopenelevated() {
+		try {
+			var exe = Process.GetCurrentProcess().MainModule?.FileName ?? "";
+			if (string.IsNullOrEmpty(exe)) return;
+			var script = "Start-Process -FilePath " + psq(exe) + " -ArgumentList '--perfmon' -Verb RunAs";
+			var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+			Process.Start(new ProcessStartInfo {
+				FileName = "cmd.exe",
+				Arguments = "/c start \"ScreenKit\" /b powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand " + encoded,
+				UseShellExecute = false,
+				CreateNoWindow = true,
+			});
+			Close();
+		}
+		catch (Exception ex) { lbtitle.Text = ex.Message; }
+	}
+
+	static string psq(string text) => "'" + (text ?? "").Replace("'", "''") + "'";
 
 	void startprocs() {
 		if (!opt.TopProcs) {
@@ -461,9 +506,14 @@ public partial class PerfMonWindow : Window {
 		if (!tabcells.TryGetValue(key, out var body)) return;
 		var net = key == "tnet";
 		var note = tabnote.TryGetValue(key, out var nb) ? nb : null;
+		var btn = tabadmin.TryGetValue(key, out var bb) ? bb : null;
 		if (net && !netOk) {
 			if (note != null) note.Text = Loc.T("perf.netneed");
-		} else if (note != null) note.Text = "";
+			if (btn != null) btn.Visibility = Visibility.Visible;
+		} else {
+			if (note != null) note.Text = "";
+			if (btn != null) btn.Visibility = Visibility.Collapsed;
+		}
 		for (var r = 0; r < ProcTop.TOP; r++) {
 			var row = list != null && r < list.Count ? list[r] : null;
 			body[r, 0].Text = row == null ? "—" : row.Name;

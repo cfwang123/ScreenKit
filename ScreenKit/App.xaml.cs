@@ -106,6 +106,16 @@ public partial class App : System.Windows.Application {
 			return;
 		}
 
+		// 性能小窗：提权后重开（读各进程网络字节需要管理员），只开这一个窗口。
+		if (args.Any(a => a == "--perfmon")) {
+			AppConfig.initlogswitch();
+			base.OnStartup(e);
+			var perfwin = new PerfMonWindow();
+			MainWindow = perfwin;
+			perfwin.Show();
+			return;
+		}
+
 		// SQL 方言转换窗口冒烟：只开这个窗口，可带一个脚本文件；UIA 据此检查控件与识别结果
 		if (args.Any(a => a == "--test-sqlconv-ui")) {
 			AppConfig.initlogswitch();
