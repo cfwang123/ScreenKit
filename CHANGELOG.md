@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Document viewer: .doc files whose content is entirely floating pictures and text boxes now render page by page instead of showing a blank page
+- Perf window: per-process network showed bogus values when the connection's ESTATS could not be enabled; it now stays blank unless real per-connection byte counters are available
 
 ### 中文
 
@@ -88,6 +89,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 文档查看器：正文全是浮动图片和文本框的 .doc 现在按图形版式逐页显示，不再是一片空白
+- 性能监控：进程网络列在无法开启连接级统计时会显示乱数，现在读不到就留空并提示需要管理员
 
 ## v1.0.39 (2026-11-14 ~ 11-17)
 

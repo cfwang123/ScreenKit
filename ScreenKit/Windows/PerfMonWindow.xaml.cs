@@ -472,8 +472,8 @@ public partial class PerfMonWindow : Window {
 			body[r, 2].Foreground = row == null ? dimBrush : nameBrush;
 			body[r, 3].Text = row == null ? "—" : (row.Disk > 0 ? rate(row.Disk) : "0");
 			body[r, 3].Foreground = row == null ? dimBrush : (row.Disk > 0 ? downBrush : nameBrush);
-			body[r, 4].Text = row == null ? "—" : (row.Net > 0 ? rate(row.Net) : "0");
-			body[r, 4].Foreground = row == null ? dimBrush : (row.Net > 0 ? warnBrush : nameBrush);
+			body[r, 4].Text = row == null || !netOk ? "—" : (row.Net > 0 ? rate(row.Net) : "0");
+			body[r, 4].Foreground = row == null || !netOk ? dimBrush : (row.Net > 0 ? warnBrush : nameBrush);
 		}
 	}
 

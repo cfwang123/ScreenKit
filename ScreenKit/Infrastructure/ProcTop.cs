@@ -36,6 +36,8 @@ sealed class ProcTop : IDisposable {
 	readonly Dictionary<int, ulong> preIo = new();
 	readonly Dictionary<string, ConnPrev> preConn = new(StringComparer.Ordinal);
 	readonly HashSet<string> triedConn = new(StringComparer.Ordinal);
+	// 只有成功开启 ESTATS 的连接才读得到真实字节数，其余读回的是内存垃圾
+	readonly HashSet<string> okConn = new(StringComparer.Ordinal);
 	readonly Dictionary<int, double> netBps = new();
 	readonly StringBuilder pathbuf = new(1024);
 	volatile bool stop;
@@ -190,7 +192,6 @@ sealed class ProcTop : IDisposable {
 	void samplenet(double secs) {
 		var acc = new Dictionary<int, ulong>();
 		var alive = new HashSet<string>(StringComparer.Ordinal);
-		var ok = false;
 		try {
 			foreach (var row in IpHelper.ReadTcp4()) {
 				var pid = (int)row.OwningPid;
@@ -198,9 +199,10 @@ sealed class ProcTop : IDisposable {
 				var key = $"4|{row.LocalAddr}|{row.LocalPort}|{row.RemoteAddr}|{row.RemotePort}";
 				alive.Add(key);
 				if ((ConnState)row.State != ConnState.Established) continue;
-				if (triedConn.Add(key)) IpHelper.TryEnableEstats4(row);
+				if (triedConn.Add(key) && IpHelper.TryEnableEstats4(row)) okConn.Add(key);
+				// 没开成的连接读回来是垃圾值，宁可显示 0 也不报假数字
+				if (!okConn.Contains(key)) continue;
 				if (!IpHelper.TryGetEstats4(row, out var rod)) continue;
-				ok = true;
 				addnet(key, pid, acc, rod.DataBytesOut, rod.DataBytesIn);
 			}
 			foreach (var row in IpHelper.ReadTcp6()) {
@@ -209,18 +211,19 @@ sealed class ProcTop : IDisposable {
 				var key = $"6|{IpHelper.FormatIpv6(row.LocalAddr)}|{row.LocalPort}|{IpHelper.FormatIpv6(row.RemoteAddr)}|{row.RemotePort}";
 				alive.Add(key);
 				if ((ConnState)row.State != ConnState.Established) continue;
-				if (triedConn.Add(key)) IpHelper.TryEnableEstats6(row);
+				if (triedConn.Add(key) && IpHelper.TryEnableEstats6(row)) okConn.Add(key);
+				if (!okConn.Contains(key)) continue;
 				if (!IpHelper.TryGetEstats6(row, out var rod)) continue;
-				ok = true;
 				addnet(key, pid, acc, rod.DataBytesOut, rod.DataBytesIn);
 			}
 		}
 		catch { }
 		foreach (var key in preConn.Keys.Where(k => !alive.Contains(k)).ToList()) preConn.Remove(key);
 		triedConn.RemoveWhere(k => !alive.Contains(k));
+		okConn.RemoveWhere(k => !alive.Contains(k));
 		netBps.Clear();
 		foreach (var kv in acc) netBps[kv.Key] = kv.Value / secs;
-		netOk = ok;
+		netOk = okConn.Count > 0;
 	}
 
 	void addnet(string key, int pid, Dictionary<int, ulong> acc, ulong o, ulong i) {
