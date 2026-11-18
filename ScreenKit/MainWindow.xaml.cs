@@ -432,21 +432,15 @@ public partial class MainWindow : Window {
 			WindowStartupLocation = WindowStartupLocation.Manual;
 			Width = w;
 			Height = h;
-			// 保证至少一部分落在虚拟屏内
-			var va = SystemParameters.VirtualScreenLeft;
-			var vt = SystemParameters.VirtualScreenTop;
-			var vw = SystemParameters.VirtualScreenWidth;
-			var vh = SystemParameters.VirtualScreenHeight;
-			var l = opt.WinL;
-			var t = opt.WinT;
-			if (double.IsNaN(l) || double.IsNaN(t)
-				|| l > va + vw - 80 || t > vt + vh - 40
-				|| l + w < va + 40 || t + h < vt + 40) {
-				l = va + Math.Max(0, (vw - w) / 2);
-				t = vt + Math.Max(0, (vh - h) / 2);
+			// 上次位置可能落在所有显示器之外（拔了副屏、改过多屏布局），钳回某块屏内
+			if (double.IsNaN(opt.WinL) || double.IsNaN(opt.WinT)) {
+				WindowStartupLocation = WindowStartupLocation.CenterScreen;
 			}
-			Left = l;
-			Top = t;
+			else {
+				Left = opt.WinL;
+				Top = opt.WinT;
+				WinPlace.KeepOnScreen(this);
+			}
 			if (opt.WinMax)
 				WindowState = WindowState.Maximized;
 		}
@@ -5205,6 +5199,8 @@ public partial class MainWindow : Window {
 			win = create();
 			var w = win;
 			attachdialogowner(w, independent: true);
+			// 工具窗首次显示后统一兜底：不管它自己记的位置在不在屏幕里，都拉回可见区域
+			WinPlace.Attach(w);
 			w.Closed += (_, _) => {
 				if (ReferenceEquals(qrMakeWin, w)) qrMakeWin = null;
 				else if (ReferenceEquals(renameWin, w)) renameWin = null;

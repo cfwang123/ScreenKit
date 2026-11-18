@@ -86,6 +86,8 @@ public partial class AsrCaptionOsdWindow : Window {
 		}
 		Left = x;
 		Top = y;
+		// 上次位置若整块落在屏幕外，也拉回来
+		WinPlace.KeepOnScreen(this);
 	}
 
 	void wiregrip(Ellipse el, ResizeEdge edge) {

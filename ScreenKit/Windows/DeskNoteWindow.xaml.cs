@@ -121,6 +121,8 @@ public partial class DeskNoteWindow : Window {
 		if (note.Height >= MinHeight) Height = note.Height;
 		Left = note.Left;
 		Top = note.Top;
+		// 上次可能落在已经没有的副屏上：拉回某块屏里
+		WinPlace.KeepOnScreen(this);
 	}
 
 	void toggle() {

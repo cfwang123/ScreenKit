@@ -126,12 +126,14 @@ public partial class PerfMonWindow : Window {
 			Width = opt.WinWidth;
 			Height = opt.WinHeight;
 		}
+		var area = SystemParameters.WorkArea;
 		if (opt.HasPos) {
 			Left = opt.Left;
 			Top = opt.Top;
+			// 上次可能在副屏上，副屏拔了就会落在所有屏幕之外：钳回屏内
+			WinPlace.KeepOnScreen(this);
 			return;
 		}
-		var area = SystemParameters.WorkArea;
 		Left = Math.Max(area.Left, area.Right - ActualWidth - 16);
 		Top = Math.Max(area.Top, area.Bottom - ActualHeight - 16);
 	}
