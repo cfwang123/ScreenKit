@@ -17,6 +17,8 @@ public partial class PerfMonWindow : Window {
 	const double SPARK_H = 12;
 	// 数值列与右边界之间留一个空格的宽度
 	const double SPACEW = 7;
+	// 进程排行每行高度（字号 9 + 上下留白）
+	const double ROWH = 15;
 	const double RESIZE_EDGE = 6;
 	const int E_LEFT = 1, E_TOP = 2, E_RIGHT = 4, E_BOTTOM = 8;
 	bool resizing;
@@ -42,6 +44,7 @@ public partial class PerfMonWindow : Window {
 	readonly Dictionary<string, TextBlock[,]> tabcells = new();
 	readonly Dictionary<string, TextBlock> tabnote = new();
 	readonly Dictionary<string, Button> tabadmin = new();
+	readonly Dictionary<string, Grid> tabhost = new();
 	readonly Dictionary<string, bool> tabbuilt = new();
 	PerfMonOptWindow optWin;
 	ProcTop procs;
@@ -88,6 +91,12 @@ public partial class PerfMonWindow : Window {
 		MouseMove += (_, e) => {
 			if (resizing) return;
 			setcursor(edgeat(e));
+		};
+		SizeChanged += (_, _) => {
+			foreach (var key in tabcells.Keys.ToList()) fitrows(key);
+		};
+		tabs.SizeChanged += (_, _) => {
+			foreach (var key in tabcells.Keys.ToList()) fitrows(key);
 		};
 		ContentRendered += (_, _) => {
 			place();
@@ -339,6 +348,7 @@ public partial class PerfMonWindow : Window {
 		tabcells.Clear();
 		tabnote.Clear();
 		tabadmin.Clear();
+		tabhost.Clear();
 		tabbuilt.Clear();
 		if (!opt.TopProcs) {
 			tabs.Visibility = Visibility.Collapsed;
@@ -446,6 +456,47 @@ public partial class PerfMonWindow : Window {
 		}
 		tabcells[key] = body;
 		tabnote[key] = note;
+		tabhost[key] = host;
+		host.SizeChanged += (_, _) => fitrows(key);
+		fitrows(key);
+	}
+
+	// 行数不定：按 tab 内容区高度算能放几行，超出的折叠
+	void fitrows(string key) {
+		if (!tabcells.TryGetValue(key, out var body)) return;
+		if (!tabhost.TryGetValue(key, out var host)) return;
+		if (body.GetLength(0) == 0) return;
+		// 可用高度取 tab 控件高度减掉标签头，内容 Grid 本身是 Auto 高，量它会越算越大
+		var avail = tabs.ActualHeight - headerheight();
+		if (avail <= 0) return;
+		var noteh = tabnote.TryGetValue(key, out var nt) && nt.Visibility == Visibility.Visible ? nt.ActualHeight + nt.Margin.Top : 0;
+		var btnh = tabadmin.TryGetValue(key, out var bb) && bb.Visibility == Visibility.Visible ? bb.ActualHeight + bb.Margin.Top : 0;
+		var headh = host.RowDefinitions[0].ActualHeight + host.RowDefinitions[1].ActualHeight;
+		var fit = (int)((avail - headh - noteh - btnh) / ROWH);
+		if (fit < 1) fit = 1;
+		if (fit > body.GetLength(0)) fit = body.GetLength(0);
+		for (var r = 0; r < body.GetLength(0); r++) {
+			var vis = r < fit ? Visibility.Visible : Visibility.Collapsed;
+			for (var c = 0; c < body.GetLength(1); c++)
+				if (body[r, c].Visibility != vis) body[r, c].Visibility = vis;
+		}
+	}
+
+	double headerheight() {
+		var panel = findchild<TabPanel>(tabs);
+		return panel != null && panel.ActualHeight > 0 ? panel.ActualHeight + tabs.Margin.Top : 24;
+	}
+
+	static T findchild<T>(DependencyObject root) where T : DependencyObject {
+		if (root == null) return null;
+		var n = VisualTreeHelper.GetChildrenCount(root);
+		for (var i = 0; i < n; i++) {
+			var c = VisualTreeHelper.GetChild(root, i);
+			if (c is T hit) return hit;
+			var deeper = findchild<T>(c);
+			if (deeper != null) return deeper;
+		}
+		return null;
 	}
 
 	/// <summary>关掉本窗口，以管理员权限重开一个性能监控（只开 --perfmon，不启动主界面）。</summary>
@@ -527,6 +578,7 @@ public partial class PerfMonWindow : Window {
 			body[r, 4].Text = row == null || !netOk ? "—" : (row.Net > 0 ? rate(row.Net) : "0");
 			body[r, 4].Foreground = row == null || !netOk ? dimBrush : (row.Net > 0 ? warnBrush : nameBrush);
 		}
+		fitrows(key);
 	}
 
 	static string bytes(long v) {

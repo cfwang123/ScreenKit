@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="性能监控"
-        SizeToContent="WidthAndHeight"
+        SizeToContent="Manual"
+        Width="470" Height="300"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -43,36 +44,41 @@
 	<Border x:Name="card" Background="#434C53" CornerRadius="8" BorderBrush="#2A3238" BorderThickness="1"
 	        Padding="10,6,10,8" Cursor="SizeAll">
 		<Grid>
-			<StackPanel>
-				<Grid Margin="0,0,0,4">
-					<TextBlock x:Name="lbtitle" FontSize="12" FontWeight="SemiBold" Foreground="#D6E4EA"
-					           VerticalAlignment="Center"/>
-					<Button x:Name="btop" Width="22" Height="18" HorizontalAlignment="Right" Cursor="Arrow"
-					        Focusable="False" Background="Transparent" BorderThickness="0" Padding="0"
-					        Click="btop_Click" AutomationProperties.AutomationId="perf.pin">
-						<Button.Template>
-							<ControlTemplate TargetType="Button">
-								<Border x:Name="bd" Background="Transparent" CornerRadius="4">
-									<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-								</Border>
-								<ControlTemplate.Triggers>
-									<Trigger Property="IsMouseOver" Value="True">
-										<Setter TargetName="bd" Property="Background" Value="#33455560"/>
-									</Trigger>
-								</ControlTemplate.Triggers>
-							</ControlTemplate>
-						</Button.Template>
-						<TextBlock x:Name="lbtop" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-						           Foreground="#40C070" VerticalAlignment="Center"/>
-					</Button>
-				</Grid>
-				<Border Height="1" Background="#556068" Margin="0,0,0,4"/>
-				<Grid x:Name="rows"/>
-				<Border x:Name="psec" Height="1" Background="#556068" Margin="0,4,0,0"/>
-				<TabControl x:Name="tabs" Margin="0,2,0,0" Padding="0" Background="Transparent"
-				            BorderThickness="0" ItemContainerStyle="{StaticResource TbItem}"
-				            AutomationProperties.AutomationId="perf.tabs"/>
-			</StackPanel>
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+			<Grid Margin="0,0,0,4">
+				<TextBlock x:Name="lbtitle" FontSize="12" FontWeight="SemiBold" Foreground="#D6E4EA"
+				           VerticalAlignment="Center"/>
+				<Button x:Name="btop" Width="22" Height="18" HorizontalAlignment="Right" Cursor="Arrow"
+				        Focusable="False" Background="Transparent" BorderThickness="0" Padding="0"
+				        Click="btop_Click" AutomationProperties.AutomationId="perf.pin">
+					<Button.Template>
+						<ControlTemplate TargetType="Button">
+							<Border x:Name="bd" Background="Transparent" CornerRadius="4">
+								<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+							</Border>
+							<ControlTemplate.Triggers>
+								<Trigger Property="IsMouseOver" Value="True">
+									<Setter TargetName="bd" Property="Background" Value="#33455560"/>
+								</Trigger>
+							</ControlTemplate.Triggers>
+						</ControlTemplate>
+					</Button.Template>
+					<TextBlock x:Name="lbtop" Text="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+					           Foreground="#40C070" VerticalAlignment="Center"/>
+				</Button>
+			</Grid>
+			<Border Grid.Row="1" Height="1" Background="#556068" Margin="0,0,0,4"/>
+			<Grid x:Name="rows" Grid.Row="2" VerticalAlignment="Top"/>
+			<Border x:Name="psec" Grid.Row="3" Height="1" Background="#556068" Margin="0,4,0,0"/>
+			<TabControl x:Name="tabs" Grid.Row="4" Margin="0,2,0,0" Padding="0" Background="Transparent"
+			            BorderThickness="0" ItemContainerStyle="{StaticResource TbItem}"
+			            AutomationProperties.AutomationId="perf.tabs"/>
 			<Thumb x:Name="grip" Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Bottom"
 			       Cursor="SizeNWSE"
 			       AutomationProperties.AutomationId="perf.grip">

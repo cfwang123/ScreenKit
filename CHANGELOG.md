@@ -65,6 +65,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Korean conjugation: Ability group lists potential (ㄹ 수 있다), 못 and 지 못하다 for each tense and speech level, and comes before Suggest.
 - Speed up 3D surface rendering while dragging: batch triangles by depth and colour, draw at half resolution during the drag, and fill/refill once per colour instead of per shape.
 - Performance window: the two columns now split the width evenly, the sparkline fills any spare width, and the window resizes by dragging any edge
+- Perf window: the process ranking is no longer capped at 5 rows - it fills whatever height the window gives it
 
 #### Fixed
 
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 韩语词形变化：能力组按时体与敬语等级并列「ㄹ 수 있다 / 못 / 지 못하다」，并移到提议之前。
 - 三维曲面拖动视角不再卡顿：三角形按深度和颜色分片合并、拖动时半分辨率绘制、同色图形并成一条路径一次填充。
 - 性能监控：两列各占一半宽度，折线自动占满剩余空间；窗口可拖动四边/角调整大小
+- 性能监控：进程排行不再限制 5 行，窗口有多高就显示多少行
 
 #### 修复
 

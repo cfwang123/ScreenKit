@@ -5,7 +5,8 @@ namespace ScreenKit;
 
 /// <summary>进程占用排行：CPU、内存、磁盘、网络。后台线程每秒采样，UI 只读快照。</summary>
 sealed class ProcTop : IDisposable {
-	public const int TOP = 5;
+	// 采样上限：原本只取前 5，现在要按窗口高度能显示几个就显示几个
+	public const int TOP = 40;
 
 	public sealed class Row {
 		public int Pid;
