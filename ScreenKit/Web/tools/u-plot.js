@@ -441,6 +441,17 @@
 		}
 	}
 
+	// 三维拖动 / 滚轮时按低分辨率出图再放大贴上：曲面是几千个三角、几万个圆盘的光栅化，
+	// 耗时几乎全在填像素上，源图缩一半面积就少四分之三，一帧能省掉几倍时间。
+	// 画布本身也跟着缩（CSS 是 100%×100%，浏览器自动拉伸），合成那一遍也一起变便宜。
+	// 只在拖动中糊一下，松手（settle）按全分辨率补一张，静止画面仍是清晰的。
+	// 二维的线条本来就便宜，缩了只会让线变糊，不缩。
+	var QUICKSCALE = 0.5;
+
+	function quickscale(){
+		return quick() && mode === "3" ? QUICKSCALE : 1;
+	}
+
 	function paint(){
 		if (!canvas || !canvas.parentElement) return;
 		var stage = canvas.parentElement;
@@ -448,20 +459,38 @@
 		var h = stage.clientHeight;
 		if (w < 2 || h < 2) return;
 		var dpr = window.devicePixelRatio || 1;
-		var bw = Math.max(1, Math.floor(w * dpr));
-		var bh = Math.max(1, Math.floor(h * dpr));
+		var qs = quickscale();
+		var bw = Math.max(1, Math.floor(w * dpr * qs));
+		var bh = Math.max(1, Math.floor(h * dpr * qs));
 		if (canvas.width !== bw || canvas.height !== bh) {
 			canvas.width = bw;
 			canvas.height = bh;
 		}
 		var ctx = F.ctx(canvas);
 		var key = sceneKey(w, h);
+		// 拖动中每帧都要重画，中转的 plate 只会多一遍整屏 prepend + drawImage，
+		// 直接画在可见画布上（反正这一刻也没有悬停读数要保留）。
+		if (qs !== 1) {
+			ctx.setTransform(bw / w, 0, 0, bh / h, 0, 0);
+			ctx.clearRect(0, 0, w, h);
+			ctx.fillStyle = "#fafaf9";
+			ctx.fillRect(0, 0, w, h);
+			clipbox.x0 = 0;
+			clipbox.y0 = 0;
+			clipbox.x1 = w;
+			clipbox.y1 = h;
+			if (mode === "3") draw3(ctx, w, h);
+			else draw2(ctx, w, h);
+			plateKey = null;
+			hideRead();
+			return;
+		}
 		if (plateKey !== key) {
 			if (!plate) plate = F.el("canvas");
 			plate.width = bw;
 			plate.height = bh;
 			var pctx = F.ctx(plate);
-			pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+			pctx.setTransform(bw / w, 0, 0, bh / h, 0, 0);
 			pctx.clearRect(0, 0, w, h);
 			pctx.fillStyle = "#fafaf9";
 			pctx.fillRect(0, 0, w, h);
@@ -478,7 +507,7 @@
 		ctx.clearRect(0, 0, bw, bh);
 		ctx.drawImage(plate, 0, 0);
 		if (mode === "2" && crossOn && hover && !drag) {
-			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+			ctx.setTransform(bw / w, 0, 0, bh / h, 0, 0);
 			drawCross(ctx, w, h);
 		}
 		else hideRead();
@@ -487,9 +516,10 @@
 	function sceneKey(w, h){
 		var input = SK.dom("plot-fn");
 		var src = input ? input.value : "";
+		var q = quickscale() !== 1 ? "|d" + QUICKSCALE : "";
 		if (mode === "3")
-			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom + (quick() ? "|d" : "");
-		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1 + (quick() ? "|d" : "");
+			return "3|" + style + "|" + src + "|" + w + "x" + h + "|" + cam.cx + "," + cam.cy + "," + cam.xspan + "," + cam.yspan + "," + cam.yaw + "," + cam.pitch + "," + cam.zoom + q;
+		return "2|" + src + "|" + w + "x" + h + "|" + view.x0 + "," + view.x1 + "," + view.y0 + "," + view.y1 + q;
 	}
 
 	function down(ev){
@@ -1141,6 +1171,10 @@
 		// 放大就多画几条、缩小就少画几条，转视角时格子也不会一边挤一边松。
 		// 曲面和等高线用少一点，渐变就够细了。
 		var ny = surfrows(w, h);
+		// 曲面填充看不出网格密度，拖动时格子减半：三角面和填充次数一下少四分之三，
+		// 曲面轮廓不会变（点仍落在曲面上），松手再补一张细的。
+		// 网格线和点阵不能减，一减就明显变稀、像换了个粗糙模型。
+		if (quick() && style === "fill" && ny > 48) ny = Math.max(48, Math.round(ny * 0.7));
 		var nx = gridcount(ny);
 		var gw = nx + 1, gh = ny + 1;
 		var zraw = new Array(gw * gh);
@@ -1608,15 +1642,55 @@
 		upper.sort(function(a, b){ return b.d - a.d; });
 		for (k = 0; k < 2; k++) {
 			arr = k ? upper : lower;
-			for (i = 0; i < arr.length; i++) {
-				var n = arr[i].n;
-				ctx.fillStyle = n ? shadecolor(arr[i].t, n.nr, n.nu, n.nd) : zcolor(arr[i].t);
-				ctx.beginPath();
-				ctx.arc(arr[i].x, arr[i].y, arr[i].rad, 0, 6.2832);
-				ctx.fill();
-			}
+			batcharcs(ctx, arr);
 		}
 	}
+
+	// 按深度从远到近画圆盘。每个点都重设一次 fillStyle 太贵（实测占拖动帧四成），
+	// 所以按深度切片，片内先按颜色归堆，一堆只设一次 fillStyle。
+	// 圆盘仍是一个一个 fill：把所有圆并进一条路径再 fill，光栅化要在一个几千条子路径的
+	// 大多边形上算环绕数，实测反而慢十倍。
+	// 切片要够细：圆盘半径比格距大，同片内不同颜色仍会互相压边，切粗了就是一片麻点。
+	function batcharcs(ctx, arr){
+		var n = arr.length;
+		if (!n) return;
+		var slice = Math.max(32, Math.ceil(n / 96));
+		var i, j, p, c, cell, key, used;
+		for (i = 0; i < n; i += slice) {
+			used = [];
+			for (j = i; j < i + slice && j < n; j++) {
+				p = arr[j];
+				c = p.n ? shadenum(p.t, p.n.nr, p.n.nu, p.n.nd) : null;
+				if (!c) {
+					var raw = zrgb(p.t);
+					c = [Math.round(raw[0]), Math.round(raw[1]), Math.round(raw[2])];
+				}
+				// 每通道 5 位量化
+				key = ((c[0] >> 3) << 10) | ((c[1] >> 3) << 5) | (c[2] >> 3);
+				cell = arckeys.get(key);
+				if (!cell) {
+					cell = { css: "rgb(" + (c[0] & 248) + "," + (c[1] & 248) + "," + (c[2] & 248) + ")", list: [] };
+					arckeys.set(key, cell);
+					used.push(cell);
+				}
+				cell.list.push(p);
+			}
+			for (j = 0; j < used.length; j++) {
+				cell = used[j];
+				ctx.fillStyle = cell.css;
+				for (var m = 0; m < cell.list.length; m++) {
+					p = cell.list[m];
+					ctx.beginPath();
+					ctx.arc(p.x, p.y, p.rad, 0, 6.2832);
+					ctx.fill();
+				}
+				cell.list.length = 0;
+			}
+			arckeys.clear();
+		}
+	}
+
+	var arckeys = new Map();
 
 	// 隐式曲面的法线走解析式：F 的梯度就是法线方向，比差分稳，球的轮廓处也不会乱。
 	function impsurfnormal(pts, cyaw, syaw, cp, sp){
@@ -1801,14 +1875,7 @@
 		}
 		var rad = Math.max(1.2, Math.min(2.6, gap * 0.45));
 		pts.sort(function(a, b){ return b.d - a.d; });
-		ctx.globalAlpha = 0.92;
-		for (i = 0; i < pts.length; i++) {
-			ctx.fillStyle = zcolor(pts[i].t);
-			ctx.beginPath();
-			ctx.arc(pts[i].x, pts[i].y, rad, 0, 6.2832);
-			ctx.fill();
-		}
-		ctx.globalAlpha = 1;
+		dotloop(ctx, pts, rad, 0.92);
 	}
 
 	// 等高线：在每个水平 z 层上对 F(x,y,z)=0 做一次等值线。
@@ -1871,22 +1938,20 @@
 				}
 			}
 		}
-		segs.sort(function(u, v){ return v.d - u.d; });
-		ctx.lineWidth = 1.5;
-		ctx.lineJoin = "round";
-		ctx.lineCap = "round";
-		for (i = 0; i < segs.length; i++) {
-			ctx.strokeStyle = zcolor(segs[i].t);
-			ctx.beginPath();
-			ctx.moveTo(segs[i].p.x, segs[i].p.y);
-			ctx.lineTo(segs[i].q.x, segs[i].q.y);
-			ctx.stroke();
-		}
+		strokeSegs(ctx, segs, 1.5);
 	}
+
+	// 填充面：三角形按深度从远到近画。逐个 beginPath + fillStyle + fill 时，
+	// 一屏几千个三角就是几千次状态切换，拖动时全耗在这上面（实测占七成以上）。
+	// 这里按深度切片：同一片里的三角在屏幕上基本不重叠，片内再按量化后的颜色合并，
+	// 一片一种颜色一次 fill，绘制顺序仍是远到近，叠压关系不变。
+	var FILL_SLICE = 24;
+	var fillkeys = new Map();
+	var fillused = [];
 
 	function drawFill(ctx, pts, nx, ny, gw, zraw){
 		var tris = [];
-		var i, j, a, b, c, d, p0, p1, p2;
+		var i, j, a, b, c, d;
 		for (j = 0; j < ny; j++) {
 			for (i = 0; i < nx; i++) {
 				a = j * gw + i;
@@ -1897,28 +1962,74 @@
 				pushtri(tris, pts, c, d, b);
 			}
 		}
+		var n = tris.length;
+		if (!n) return;
 		tris.sort(function(u, v){ return v.d - u.d; });
 		var cyaw = Math.cos(cam.yaw), syaw = Math.sin(cam.yaw);
 		var cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
 		var nc = surfnormal(pts, zraw, nx, ny, gw, cyaw, syaw, cp, sp);
-		for (i = 0; i < tris.length; i++) {
-			p0 = pts[tris[i].a];
-			p1 = pts[tris[i].b];
-			p2 = pts[tris[i].c];
+
+		var dmax = tris[0].d, dmin = tris[n - 1].d;
+		var step = (dmax - dmin) / FILL_SLICE;
+		if (!(step > 0) || !isFinite(step)) step = 1;
+		var cur = -1, t, p0, p1, p2, na, nb, ncc, nr, nu, nd, nlen, rgb, key, cell, slice;
+		for (i = 0; i < n; i++) {
+			t = tris[i];
+			var sl = Math.floor((dmax - t.d) / step);
+			if (sl > FILL_SLICE - 1) sl = FILL_SLICE - 1;
+			if (sl !== cur) {
+				if (cur >= 0) flushfill(ctx, pts);
+				cur = sl;
+			}
+			p0 = pts[t.a]; p1 = pts[t.b]; p2 = pts[t.c];
 			// 三个顶点的法线取平均，小三角面之间才不会一块块跳色。
-			var na = nc[tris[i].a], nb = nc[tris[i].b], ncc = nc[tris[i].c];
-			var nr = (na.nr + nb.nr + ncc.nr) / 3;
-			var nu = (na.nu + nb.nu + ncc.nu) / 3;
-			var nd = (na.nd + nb.nd + ncc.nd) / 3;
-			var nlen = Math.sqrt(nr * nr + nu * nu + nd * nd) || 1;
-			ctx.beginPath();
-			ctx.moveTo(p0.x, p0.y);
-			ctx.lineTo(p1.x, p1.y);
-			ctx.lineTo(p2.x, p2.y);
-			ctx.closePath();
-			ctx.fillStyle = shadecolor((p0.t + p1.t + p2.t) / 3, nr / nlen, nu / nlen, nd / nlen);
-			ctx.fill();
+			na = nc[t.a]; nb = nc[t.b]; ncc = nc[t.c];
+			nr = (na.nr + nb.nr + ncc.nr) / 3;
+			nu = (na.nu + nb.nu + ncc.nu) / 3;
+			nd = (na.nd + nb.nd + ncc.nd) / 3;
+			nlen = Math.sqrt(nr * nr + nu * nu + nd * nd) || 1;
+			rgb = shadenum((p0.t + p1.t + p2.t) / 3, nr / nlen, nu / nlen, nd / nlen);
+			// 颜色量化：曲面平滑时同色三角大量重复，合并后状态切换能少一个数量级。
+			// 拖动时量化得更狠（每通道 4 位），反正半分辨率下看不出色阶，换来的填充次数少一大截。
+			key = quick()
+				? ((rgb[0] >> 4) << 8) | ((rgb[1] >> 4) << 4) | (rgb[2] >> 4)
+				: ((rgb[0] >> 3) << 10) | ((rgb[1] >> 3) << 5) | (rgb[2] >> 3);
+			cell = fillkeys.get(key);
+			if (!cell) {
+				cell = {
+					list: [],
+					css: quick()
+						? "rgb(" + (rgb[0] & 240) + "," + (rgb[1] & 240) + "," + (rgb[2] & 240) + ")"
+						: "rgb(" + (rgb[0] & 248) + "," + (rgb[1] & 248) + "," + (rgb[2] & 248) + ")"
+				};
+				fillkeys.set(key, cell);
+				fillused.push(cell);
+			}
+			cell.list.push(t.a, t.b, t.c);
 		}
+		if (cur >= 0) flushfill(ctx, pts);
+	}
+
+	// 把当前切片里同色的三角形并成一条路径，一种颜色只 fill 一次。
+	function flushfill(ctx, pts){
+		var k, i, cell, list, p0, p1, p2;
+		for (k = 0; k < fillused.length; k++) {
+			cell = fillused[k];
+			list = cell.list;
+			ctx.beginPath();
+			for (i = 0; i < list.length; i += 3) {
+				p0 = pts[list[i]]; p1 = pts[list[i + 1]]; p2 = pts[list[i + 2]];
+				ctx.moveTo(p0.x, p0.y);
+				ctx.lineTo(p1.x, p1.y);
+				ctx.lineTo(p2.x, p2.y);
+				ctx.closePath();
+			}
+			ctx.fillStyle = cell.css;
+			ctx.fill();
+			list.length = 0;
+		}
+		fillused.length = 0;
+		fillkeys.clear();
 	}
 
 	// 每个顶点的表面法线：沿 x、y 两个方向做中心差分求切向，叉乘得到法线。
@@ -2006,13 +2117,22 @@
 		var i, p;
 		for (i = 0; i < pts.length; i++) if (pts[i].ok) list.push(pts[i]);
 		list.sort(function(a, b){ return b.d - a.d; });
+		dotloop(ctx, list, 2.2, 1);
+	}
+
+	// 点阵：按深度从远到近逐个画。这里不能像填充面那样按颜色归堆：
+	// 颜色按 z 连续变化，几乎没有重复，分组反而多一遍 Map 查找和一轮 GC。
+	function dotloop(ctx, list, rad, alpha){
+		var i, p;
+		if (alpha !== 1) ctx.globalAlpha = alpha;
 		for (i = 0; i < list.length; i++) {
 			p = list[i];
 			ctx.fillStyle = zcolor(p.t);
 			ctx.beginPath();
-			ctx.arc(p.x, p.y, 2.2, 0, 6.2832);
+			ctx.arc(p.x, p.y, rad, 0, 6.2832);
 			ctx.fill();
 		}
+		if (alpha !== 1) ctx.globalAlpha = 1;
 	}
 
 	function drawLevels(ctx, pts, zraw, nx, ny, gw, lo, hi){
@@ -2085,21 +2205,49 @@
 		segs.push({ p: p, q: q, d: (p.d + q.d) / 2, t: (p.t + q.t) / 2 });
 	}
 
+	// 线段按深度从远到近描边。逐条设 strokeStyle + stroke 太贵，按深度切片后
+	// 同类颜色的线并成一条路径一次 stroke，绘制顺序仍是远到近。
 	function strokeSegs(ctx, segs, width){
-		var i, s;
+		var i, n = segs.length;
+		if (!n) return;
 		segs.sort(function(a, b){ return b.d - a.d; });
 		ctx.lineWidth = width;
 		ctx.lineJoin = "round";
 		ctx.lineCap = "round";
-		for (i = 0; i < segs.length; i++) {
-			s = segs[i];
-			ctx.strokeStyle = zcolor(s.t);
-			ctx.beginPath();
-			ctx.moveTo(s.p.x, s.p.y);
-			ctx.lineTo(s.q.x, s.q.y);
-			ctx.stroke();
+		var slice = Math.max(64, Math.ceil(n / 96));
+		var j, s, c, key, cell, used;
+		for (i = 0; i < n; i += slice) {
+			used = [];
+			for (j = i; j < i + slice && j < n; j++) {
+				s = segs[j];
+				c = zrgb(s.t);
+				// 每通道 5 位量化
+				key = ((c[0] >> 3) << 10) | ((c[1] >> 3) << 5) | (c[2] >> 3);
+				cell = segkeys.get(key);
+				if (!cell) {
+					cell = { css: zcolor(s.t), list: [] };
+					segkeys.set(key, cell);
+					used.push(cell);
+				}
+				cell.list.push(s);
+			}
+			for (j = 0; j < used.length; j++) {
+				cell = used[j];
+				ctx.strokeStyle = cell.css;
+				ctx.beginPath();
+				for (var m = 0; m < cell.list.length; m++) {
+					s = cell.list[m];
+					ctx.moveTo(s.p.x, s.p.y);
+					ctx.lineTo(s.q.x, s.q.y);
+				}
+				ctx.stroke();
+				cell.list.length = 0;
+			}
+			segkeys.clear();
 		}
 	}
+
+	var segkeys = new Map();
 
 	function pushtri(tris, pts, a, b, c){
 		var p0 = pts[a], p1 = pts[b], p2 = pts[c];
@@ -2206,6 +2354,12 @@
 	// 漫反射压低，主体靠环境渐变，再加一道收窄的白高光；轮廓光只提亮本色，不能掺白，
 	// 否则陡坡会被冲成一圈灰的。
 	function shadecolor(t, nr, nu, nd){
+		var c = shadenum(t, nr, nu, nd);
+		return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+	}
+
+	// 着色结果直接给整数分量，填充面按颜色合并时不用再从字符串里解析回来。
+	function shadenum(t, nr, nu, nd){
 		var base = zrgb(t);
 		var diff = nr * LIGHT.lx + nu * LIGHT.ly + nd * LIGHT.lz;
 		if (!(diff > 0)) diff = 0;
@@ -2222,10 +2376,11 @@
 		var r = base[0] * lit + 255 * spec * 0.80;
 		var g = base[1] * lit + 255 * spec * 0.84;
 		var b = base[2] * lit + 255 * spec * 0.92;
-		r = r > 255 ? 255 : r < 0 ? 0 : r;
-		g = g > 255 ? 255 : g < 0 ? 0 : g;
-		b = b > 255 ? 255 : b < 0 ? 0 : b;
-		return "rgb(" + Math.round(r) + "," + Math.round(g) + "," + Math.round(b) + ")";
+		return [
+			r > 255 ? 255 : r < 0 ? 0 : Math.round(r),
+			g > 255 ? 255 : g < 0 ? 0 : Math.round(g),
+			b > 255 ? 255 : b < 0 ? 0 : Math.round(b)
+		];
 	}
 
 	// 把世界法线转到相机空间：(nr, nu, nd)

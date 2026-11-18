@@ -61,6 +61,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Changed
 
 - Korean conjugation: Ability group lists potential (ㄹ 수 있다), 못 and 지 못하다 for each tense and speech level, and comes before Suggest.
+- Speed up 3D surface rendering while dragging: batch triangles by depth and colour, draw at half resolution during the drag, and fill/refill once per colour instead of per shape.
 
 #### Fixed
 
@@ -76,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 变更
 
 - 韩语词形变化：能力组按时体与敬语等级并列「ㄹ 수 있다 / 못 / 지 못하다」，并移到提议之前。
+- 三维曲面拖动视角不再卡顿：三角形按深度和颜色分片合并、拖动时半分辨率绘制、同色图形并成一条路径一次填充。
 
 #### 修复
 
