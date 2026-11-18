@@ -15,6 +15,8 @@ public sealed class PerfOpt {
 	public bool HasPos { get; set; }
 	/// <summary>采样间隔，毫秒。200～5000，缺省 1000。</summary>
 	public int IntervalMs { get; set; } = 1000;
+	/// <summary>小窗下方是否显示进程排行 tab。</summary>
+	public bool TopProcs { get; set; } = true;
 	public Dictionary<string, bool> Flags { get; set; } = new();
 
 	public static int NormMs(int ms) {
@@ -115,8 +117,7 @@ static class PerfMon {
 		log("=== 性能监控 --test-perfmon ===");
 		Take();
 		Thread.Sleep(350);
-		var s = Take();
-		log($"cpu={s.Cpu:0.0} gpu={s.Gpu:0.0} mem={s.Mem:0.0} down={s.Down:0} up={s.Up:0} rd={s.Read:0} wr={s.Write:0} cput={s.CpuTemp:0.0} gput={s.GpuTemp:0.0} gpup={s.GpuPower:0.0} cpup={s.CpuPower:0.0}");
+		var s = Take();		log($"cpu={s.Cpu:0.0} gpu={s.Gpu:0.0} mem={s.Mem:0.0} down={s.Down:0} up={s.Up:0} rd={s.Read:0} wr={s.Write:0} cput={s.CpuTemp:0.0} gput={s.GpuTemp:0.0} gpup={s.GpuPower:0.0} cpup={s.CpuPower:0.0}");
 		if (double.IsNaN(s.Cpu) || s.Cpu < 0 || s.Cpu > 100) {
 			err("CPU 占用不在 0～100");
 			return 1;
@@ -142,9 +143,10 @@ static class PerfMon {
 			var o = new PerfOpt();
 			o.Set("gpu", false);
 			o.IntervalMs = 2500;
+			o.TopProcs = false;
 			o.Save(path);
 			var q = PerfOpt.Load(path);
-			if (q.On("gpu") || !q.On("cpu") || !q.Topmost || q.IntervalMs != 2500 || PerfOpt.NormMs(0) != 1000) {
+			if (q.On("gpu") || !q.On("cpu") || !q.Topmost || q.IntervalMs != 2500 || PerfOpt.NormMs(0) != 1000 || q.TopProcs) {
 				err("开关没有保存");
 				return 1;
 			}

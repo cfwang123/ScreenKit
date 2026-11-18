@@ -57,6 +57,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - English and Russian word forms: added 1-6 level sentence patterns, particles, hearsay, ability, causative, aspect and dialect groups to match Japanese and Korean coverage
 - Show each word's meaning in the conjugation result header, multiple senses joined on one line
+- Performance window: a new tab group below shows the top 5 processes by CPU, memory, disk or network, each with all four usage figures; can be turned on or off in the settings
 
 #### Changed
 
@@ -73,6 +74,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 英语、俄语词形变化：补齐 1–6 级句型、语气词、传闻、能力、使役、体阶段与方言分组，与日语、韩语的分组对应
 - 变形结果表头显示词语释义，多个义项用「; 」并成一行
+- 性能监控小窗下方新增 CPU、内存、硬盘、网络 tab；选中后列出该项目占用最多的 5 个进程，并显示四项占用；可在参数设置和右键菜单中开关
 
 #### 变更
 

@@ -2,10 +2,11 @@ using System.Windows.Threading;
 
 namespace ScreenKit;
 
-/// <summary>无边框性能小窗。双列显示，右键开关每一项，图钉固定到前面。</summary>
+/// <summary>无边框性能小窗。双列显示，右键开关每一项，图钉固定到前面；下方 tab 看进程占用排行。</summary>
 public partial class PerfMonWindow : Window {
 	readonly PerfOpt opt;
 	readonly DispatcherTimer timer;
+	readonly DispatcherTimer proctimer;
 	readonly Dictionary<string, TextBlock> cells = new();
 	readonly SolidColorBrush nameBrush = freeze("#9BB0B8");
 	readonly SolidColorBrush okBrush = freeze("#3DDC84");
@@ -13,14 +14,23 @@ public partial class PerfMonWindow : Window {
 	readonly SolidColorBrush hotBrush = freeze("#FF6B5A");
 	readonly SolidColorBrush downBrush = freeze("#4CC2F0");
 	readonly SolidColorBrush dimBrush = freeze("#7E9098");
+	readonly SolidColorBrush headBrush = freeze("#C5D0D6");
+	readonly SolidColorBrush gridBrush = freeze("#33455560");
 	readonly SolidColorBrush pinOn = freeze("#40C070");
 	readonly SolidColorBrush pinOff = freeze("#C5D0D6");
 	const double BODY = 10;
+	const double SMALL = 9;
 	static readonly string[] ShowOrder = {
 		"cpu", "gpu", "mem", "cputemp", "down", "up", "read", "write", "gputemp", "gpupower", "cpupower",
 	};
+	static readonly string[] TabKeys = { "tcpu", "tmem", "tdisk", "tnet" };
+	readonly Dictionary<string, TextBlock[,]> tabcells = new();
+	readonly Dictionary<string, TextBlock> tabnote = new();
+	readonly Dictionary<string, bool> tabbuilt = new();
 	PerfMonOptWindow optWin;
+	ProcTop procs;
 	MenuItem topmi;
+	MenuItem procmi;
 	bool placed;
 
 	public PerfMonWindow() {
@@ -33,14 +43,18 @@ public partial class PerfMonWindow : Window {
 		paintpin();
 		buildmenu();
 		buildrows();
+		buildtabs();
 		card.MouseLeftButtonDown += (_, e) => {
-			if (under(btop, e.OriginalSource as DependencyObject)) return;
+			var src = e.OriginalSource as DependencyObject;
+			if (under(btop, src) || under(tabs, src) || under(psec, src)) return;
 			try { DragMove(); } catch { }
 		};
 		card.MouseLeftButtonUp += (_, _) => savepos();
 		ContentRendered += (_, _) => place();
 		Closed += (_, _) => {
 			timer.Stop();
+			proctimer.Stop();
+			procs?.Dispose();
 			savepos();
 		};
 		WindowEsc.Attach(this);
@@ -48,6 +62,9 @@ public partial class PerfMonWindow : Window {
 		timer.Tick += (_, _) => tick();
 		timer.Start();
 		tick();
+		proctimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
+		proctimer.Tick += (_, _) => tickprocs();
+		startprocs();
 	}
 
 	void place() {
@@ -80,6 +97,9 @@ public partial class PerfMonWindow : Window {
 			menu.Items.Add(item);
 		}
 		menu.Items.Add(new Separator());
+		procmi = new MenuItem { Header = Loc.T("perf.topproc"), IsCheckable = true, IsChecked = opt.TopProcs };
+		procmi.Click += (_, _) => settopprocs(procmi.IsChecked);
+		menu.Items.Add(procmi);
 		var settings = new MenuItem { Header = Loc.T("perf.settings") };
 		settings.Click += (_, _) => opensettings();
 		menu.Items.Add(settings);
@@ -158,6 +178,164 @@ public partial class PerfMonWindow : Window {
 		}
 	}
 
+	// ==================== 进程排行 ====================
+	#region
+	void buildtabs() {
+		var keep = tabs.SelectedIndex;
+		tabs.Items.Clear();
+		tabcells.Clear();
+		tabnote.Clear();
+		tabbuilt.Clear();
+		if (!opt.TopProcs) {
+			tabs.Visibility = Visibility.Collapsed;
+			psec.Visibility = Visibility.Collapsed;
+			return;
+		}
+		tabs.Visibility = Visibility.Visible;
+		psec.Visibility = Visibility.Visible;
+		foreach (var key in TabKeys) {
+			var host = new Grid { Margin = new Thickness(0, 4, 0, 0) };
+			var item = new TabItem { Header = Loc.T($"perf.{key}"), Content = host, Tag = key };
+			tabs.Items.Add(item);
+		}
+		tabs.SelectionChanged -= ontabchanged;
+		tabs.SelectionChanged += ontabchanged;
+		tabs.SelectedIndex = keep >= 0 && keep < tabs.Items.Count ? keep : 0;
+		opentab(tabs.SelectedIndex);
+	}
+
+	void ontabchanged(object sender, SelectionChangedEventArgs e) {
+		if (e.OriginalSource != tabs) return;
+		opentab(tabs.SelectedIndex);
+	}
+
+	void opentab(int index) {
+		if (index < 0 || index >= tabs.Items.Count) return;
+		if (tabs.Items[index] is not TabItem item || item.Content is not Grid host) return;
+		ensuretab((string)item.Tag, host);
+	}
+
+	void ensuretab(string key, Grid host) {
+		if (tabbuilt.ContainsKey(key)) return;
+		tabbuilt[key] = true;
+		host.Children.Clear();
+		host.ColumnDefinitions.Clear();
+		host.RowDefinitions.Clear();
+		var widths = new[] { 118.0, 44.0, 46.0, 56.0, 56.0 };
+		for (var c = 0; c < widths.Length; c++)
+			host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(widths[c]) });
+		var heads = new[] { "perf.colname", "perf.cpu", "perf.mem", "perf.disk", "perf.net" };
+		host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		for (var c = 0; c < heads.Length; c++) {
+			var lb = new TextBlock {
+				Text = Loc.T(heads[c]),
+				Foreground = headBrush,
+				FontSize = SMALL,
+				Margin = new Thickness(0, 0, c == 0 ? 6 : 4, 2),
+				HorizontalAlignment = c == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
+			};
+			Grid.SetRow(lb, 0);
+			Grid.SetColumn(lb, c);
+			host.Children.Add(lb);
+		}
+		var sep = new Border { Height = 1, Background = gridBrush, Margin = new Thickness(0, 0, 0, 2) };
+		Grid.SetRow(sep, 1);
+		Grid.SetColumnSpan(sep, heads.Length);
+		host.Children.Add(sep);
+		host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		var body = new TextBlock[ProcTop.TOP, heads.Length];
+		for (var r = 0; r < ProcTop.TOP; r++) {
+			host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			for (var c = 0; c < heads.Length; c++) {
+				var lb = new TextBlock {
+					Text = "—",
+					Foreground = dimBrush,
+					FontSize = SMALL,
+					TextTrimming = TextTrimming.CharacterEllipsis,
+					Margin = new Thickness(0, 0, c == 0 ? 6 : 4, 1),
+					HorizontalAlignment = c == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
+				};
+				Grid.SetRow(lb, r + 2);
+				Grid.SetColumn(lb, c);
+				host.Children.Add(lb);
+				body[r, c] = lb;
+			}
+		}
+		var note = new TextBlock { Foreground = dimBrush, FontSize = SMALL, Margin = new Thickness(0, 2, 0, 0) };
+		Grid.SetRow(note, ProcTop.TOP + 2);
+		Grid.SetColumnSpan(note, heads.Length);
+		host.Children.Add(note);
+		host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+		tabcells[key] = body;
+		tabnote[key] = note;
+	}
+
+	void startprocs() {
+		if (!opt.TopProcs) {
+			proctimer.Stop();
+			procs?.Dispose();
+			procs = null;
+			return;
+		}
+		if (procs == null) {
+			procs = new ProcTop();
+			procs.Start();
+		}
+		proctimer.Start();
+		tickprocs();
+	}
+
+	void settopref() {
+		buildtabs();
+		startprocs();
+		if (!opt.TopProcs) {
+			var area = SystemParameters.WorkArea;
+			Top = Math.Min(Top, Math.Max(area.Top, area.Bottom - ActualHeight - 16));
+		}
+	}
+
+	void tickprocs() {
+		if (!opt.TopProcs) return;
+		if (procs == null) return;
+		var s = procs.Take();
+		painttab("tcpu", s.Cpu, s.NetOk);
+		painttab("tmem", s.Mem, s.NetOk);
+		painttab("tdisk", s.Disk, s.NetOk);
+		painttab("tnet", s.Net, s.NetOk);
+	}
+
+	void painttab(string key, List<ProcTop.Row> list, bool netOk) {
+		if (!tabcells.TryGetValue(key, out var body)) return;
+		var net = key == "tnet";
+		var note = tabnote.TryGetValue(key, out var nb) ? nb : null;
+		if (net && !netOk) {
+			if (note != null) note.Text = Loc.T("perf.netneed");
+		} else if (note != null) note.Text = "";
+		for (var r = 0; r < ProcTop.TOP; r++) {
+			var row = list != null && r < list.Count ? list[r] : null;
+			body[r, 0].Text = row == null ? "—" : row.Name;
+			body[r, 0].Foreground = row == null ? dimBrush : headBrush;
+			body[r, 1].Text = row == null ? "—" : $"{row.Cpu:0.0}%";
+			body[r, 1].Foreground = row == null ? dimBrush : pctc(row.Cpu);
+			body[r, 2].Text = row == null ? "—" : bytes(row.Mem);
+			body[r, 2].Foreground = row == null ? dimBrush : nameBrush;
+			body[r, 3].Text = row == null ? "—" : (row.Disk > 0 ? rate(row.Disk) : "0");
+			body[r, 3].Foreground = row == null ? dimBrush : (row.Disk > 0 ? downBrush : nameBrush);
+			body[r, 4].Text = row == null ? "—" : (row.Net > 0 ? rate(row.Net) : "0");
+			body[r, 4].Foreground = row == null ? dimBrush : (row.Net > 0 ? warnBrush : nameBrush);
+		}
+	}
+
+	static string bytes(long v) {
+		if (v <= 0) return "—";
+		const double kb = 1024, mb = 1024 * 1024, gb = 1024 * 1024 * 1024;
+		if (v >= gb) return $"{v / gb:0.0}G";
+		if (v >= mb) return $"{v / mb:0}M";
+		if (v >= kb) return $"{v / kb:0}K";
+		return $"{v}B";
+	}
+	#endregion
+
 	void tick() {
 		try { paint(PerfMon.Take()); }
 		catch (Exception ex) { lbtitle.Text = ex.Message; }
@@ -195,6 +373,9 @@ public partial class PerfMonWindow : Window {
 		var cpu = win.Shown("cpu");
 		var mem = win.Shown("mem");
 		log($"win cpu={cpu} mem={mem}");
+		var tabcpu = win.TabShown("tcpu", 0, 0);
+		var tabcpuval = win.TabShown("tcpu", 0, 1);
+		log($"tab cpu={tabcpu} {tabcpuval}");
 		win.Close();
 		if (cpu.Length == 0 || cpu == "—") {
 			err("窗口没有显示 CPU");
@@ -204,7 +385,17 @@ public partial class PerfMonWindow : Window {
 			err("窗口没有显示内存");
 			return 1;
 		}
+		if (tabcpu.Length == 0 || tabcpu == "—") {
+			err("进程排行没有显示进程");
+			return 1;
+		}
 		return 0;
+	}
+
+	public string TabShown(string key, int row, int col) {
+		if (!tabcells.TryGetValue(key, out var body)) return "";
+		if (row < 0 || row >= ProcTop.TOP || col < 0 || col >= body.GetLength(1)) return "";
+		return body[row, col].Text ?? "";
 	}
 
 	void set(string key, string text, SolidColorBrush brush) {
@@ -268,7 +459,7 @@ public partial class PerfMonWindow : Window {
 			optWin.Activate();
 			return;
 		}
-		optWin = new PerfMonOptWindow(opt, setinterval) { Owner = this, Topmost = Topmost };
+		optWin = new PerfMonOptWindow(opt, setinterval, settopprocs) { Owner = this, Topmost = Topmost };
 		optWin.Closed += (_, _) => optWin = null;
 		optWin.Show();
 	}
@@ -277,6 +468,13 @@ public partial class PerfMonWindow : Window {
 		opt.IntervalMs = PerfOpt.NormMs(ms);
 		timer.Interval = TimeSpan.FromMilliseconds(opt.IntervalMs);
 		opt.Save();
+	}
+
+	void settopprocs(bool on) {
+		opt.TopProcs = on;
+		opt.Save();
+		if (procmi != null) procmi.IsChecked = on;
+		settopref();
 	}
 
 	void savepos() {

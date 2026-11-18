@@ -14,6 +14,30 @@
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display"
         AutomationProperties.AutomationId="perf.window">
+	<Window.Resources>
+		<Style x:Key="TbItem" TargetType="TabItem">
+			<Setter Property="Foreground" Value="#9BB0B8"/>
+			<Setter Property="FontSize" Value="10"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="TabItem">
+						<Border x:Name="bd" Background="Transparent" CornerRadius="4" Padding="8,2" Margin="0,0,2,0">
+							<ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#33455560"/>
+							</Trigger>
+							<Trigger Property="IsSelected" Value="True">
+								<Setter TargetName="bd" Property="Background" Value="#556068"/>
+								<Setter Property="Foreground" Value="#E7F1F5"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+	</Window.Resources>
 	<Border x:Name="card" Background="#434C53" CornerRadius="8" BorderBrush="#2A3238" BorderThickness="1"
 	        Padding="10,6,10,8" MinWidth="240" Cursor="SizeAll">
 		<StackPanel>
@@ -41,6 +65,10 @@
 			</Grid>
 			<Border Height="1" Background="#556068" Margin="0,0,0,4"/>
 			<Grid x:Name="rows"/>
+			<Border x:Name="psec" Height="1" Background="#556068" Margin="0,4,0,0"/>
+			<TabControl x:Name="tabs" Margin="0,2,0,0" Padding="0" Background="Transparent"
+			            BorderThickness="0" ItemContainerStyle="{StaticResource TbItem}"
+			            AutomationProperties.AutomationId="perf.tabs"/>
 		</StackPanel>
 	</Border>
 </Window>
