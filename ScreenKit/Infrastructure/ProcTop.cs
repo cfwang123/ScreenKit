@@ -27,6 +27,8 @@ sealed class ProcTop : IDisposable {
 	const uint QUERY_INFORMATION = 0x0400;
 	const uint QUERY_LIMITED = 0x1000;
 	const uint VM_READ = 0x0010;
+	// 两秒最多 2 GB，超过就是基线抖动，不是真流量
+	const ulong MAX_DELTA = 2UL << 30;
 
 	readonly Thread worker;
 	readonly object gate = new();
@@ -222,6 +224,8 @@ sealed class ProcTop : IDisposable {
 	}
 
 	void addnet(string key, int pid, Dictionary<int, ulong> acc, ulong o, ulong i) {
+		// 没开成 ESTATS 时读回的是垃圾值，超过 1 PB 一律不认
+		if (o >= (1UL << 50) || i >= (1UL << 50)) return;
 		if (!preConn.TryGetValue(key, out var p)) {
 			preConn[key] = new ConnPrev { Pid = pid, Out = o, In = i };
 			return;
@@ -232,9 +236,14 @@ sealed class ProcTop : IDisposable {
 			p.In = i;
 			return;
 		}
-		var d = (o >= p.Out ? o - p.Out : 0) + (i >= p.In ? i - p.In : 0);
+		var dOut = o >= p.Out ? o - p.Out : 0;
+		var dIn = i >= p.In ? i - p.In : 0;
 		p.Out = o;
 		p.In = i;
+		// 单次采样涨得太离谱说明基线是垃圾值，只对齐基线不计数
+		if (dOut > MAX_DELTA) dOut = 0;
+		if (dIn > MAX_DELTA) dIn = 0;
+		var d = dOut + dIn;
 		if (d == 0) return;
 		acc[pid] = acc.TryGetValue(pid, out var v) ? v + d : d;
 	}

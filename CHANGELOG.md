@@ -58,11 +58,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - English and Russian word forms: added 1-6 level sentence patterns, particles, hearsay, ability, causative, aspect and dialect groups to match Japanese and Korean coverage
 - Show each word's meaning in the conjugation result header, multiple senses joined on one line
 - Performance window: a new tab group below shows the top 5 processes by CPU, memory, disk or network, each with all four usage figures; can be turned on or off in the settings
+- Performance window: each metric row now has a mini sparkline and wider value columns
 
 #### Changed
 
 - Korean conjugation: Ability group lists potential (ㄹ 수 있다), 못 and 지 못하다 for each tense and speech level, and comes before Suggest.
 - Speed up 3D surface rendering while dragging: batch triangles by depth and colour, draw at half resolution during the drag, and fill/refill once per colour instead of per shape.
+- Performance window: the two columns now split the width evenly, the sparkline fills any spare width, and the window resizes by dragging any edge
 
 #### Fixed
 
@@ -75,11 +77,13 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 英语、俄语词形变化：补齐 1–6 级句型、语气词、传闻、能力、使役、体阶段与方言分组，与日语、韩语的分组对应
 - 变形结果表头显示词语释义，多个义项用「; 」并成一行
 - 性能监控小窗下方新增 CPU、内存、硬盘、网络 tab；选中后列出该项目占用最多的 5 个进程，并显示四项占用；可在参数设置和右键菜单中开关
+- 性能监控：每个监控项前面加了一条迷你折线图，数值列加宽
 
 #### 变更
 
 - 韩语词形变化：能力组按时体与敬语等级并列「ㄹ 수 있다 / 못 / 지 못하다」，并移到提议之前。
 - 三维曲面拖动视角不再卡顿：三角形按深度和颜色分片合并、拖动时半分辨率绘制、同色图形并成一条路径一次填充。
+- 性能监控：两列各占一半宽度，折线自动占满剩余空间；窗口可拖动四边/角调整大小
 
 #### 修复
 

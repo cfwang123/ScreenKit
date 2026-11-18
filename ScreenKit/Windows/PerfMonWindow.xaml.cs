@@ -1,3 +1,4 @@
+using System.Windows.Controls.Primitives;
 using System.Windows.Threading;
 
 namespace ScreenKit;
@@ -8,6 +9,16 @@ public partial class PerfMonWindow : Window {
 	readonly DispatcherTimer timer;
 	readonly DispatcherTimer proctimer;
 	readonly Dictionary<string, TextBlock> cells = new();
+	readonly Dictionary<string, PerfSpark> sparks = new();
+	readonly Dictionary<string, List<(int tick, double v)>> history = new();
+		const int SPAN_MS = 120000;
+	const double SPARK_H = 12;
+	const double RESIZE_EDGE = 6;
+	const int E_LEFT = 1, E_TOP = 2, E_RIGHT = 4, E_BOTTOM = 8;
+	bool resizing;
+	int resizeEdge;
+	Point resizeFrom;
+	double resizeL, resizeT, resizeW, resizeH;
 	readonly SolidColorBrush nameBrush = freeze("#9BB0B8");
 	readonly SolidColorBrush okBrush = freeze("#3DDC84");
 	readonly SolidColorBrush warnBrush = freeze("#F5C518");
@@ -47,10 +58,35 @@ public partial class PerfMonWindow : Window {
 		card.MouseLeftButtonDown += (_, e) => {
 			var src = e.OriginalSource as DependencyObject;
 			if (under(btop, src) || under(tabs, src) || under(psec, src)) return;
+			var edge = edgeat(e);
+			if (edge != 0) {
+				startresize(edge, e);
+				return;
+			}
+			if (under(grip, src)) return;
 			try { DragMove(); } catch { }
 		};
-		card.MouseLeftButtonUp += (_, _) => savepos();
-		ContentRendered += (_, _) => place();
+		card.MouseMove += (_, e) => onresizemove(e);
+		card.MouseLeftButtonUp += (_, _) => {
+			endresize();
+			savepos();
+		};
+		card.MouseLeave += (_, _) => {
+			if (!resizing) setcursor(0);
+		};
+		grip.DragDelta += (_, e) => {
+			startmanual();
+			Width = Math.Max(MinWidth, ActualWidth + e.HorizontalChange);
+			Height = Math.Max(MinHeight, ActualHeight + e.VerticalChange);
+		};
+		grip.DragCompleted += (_, _) => savepos();
+		MouseMove += (_, e) => {
+			if (resizing) return;
+			setcursor(edgeat(e));
+		};
+		ContentRendered += (_, _) => {
+			place();
+		};
 		Closed += (_, _) => {
 			timer.Stop();
 			proctimer.Stop();
@@ -70,6 +106,11 @@ public partial class PerfMonWindow : Window {
 	void place() {
 		if (placed) return;
 		placed = true;
+		if (opt.WinWidth >= MinWidth && opt.WinHeight >= MinHeight) {
+			SizeToContent = SizeToContent.Manual;
+			Width = opt.WinWidth;
+			Height = opt.WinHeight;
+		}
 		if (opt.HasPos) {
 			Left = opt.Left;
 			Top = opt.Top;
@@ -136,29 +177,131 @@ public partial class PerfMonWindow : Window {
 		return false;
 	}
 
+	// ==================== 边缘拖动改大小 ====================
+	#region
+	int edgeat(MouseEventArgs e) {
+		if (e == null) return 0;
+		var p = e.GetPosition(card);
+		if (p.X < 0 || p.Y < 0 || p.X > card.ActualWidth || p.Y > card.ActualHeight) return 0;
+		var edge = 0;
+		if (p.X <= RESIZE_EDGE) edge |= E_LEFT;
+		if (p.X >= card.ActualWidth - RESIZE_EDGE) edge |= E_RIGHT;
+		if (p.Y <= RESIZE_EDGE) edge |= E_TOP;
+		if (p.Y >= card.ActualHeight - RESIZE_EDGE) edge |= E_BOTTOM;
+		return edge;
+	}
+
+	void setcursor(int edge) {
+		Cursor cur;
+		switch (edge) {
+			case E_LEFT | E_TOP:
+			case E_RIGHT | E_BOTTOM: cur = Cursors.SizeNWSE; break;
+			case E_RIGHT | E_TOP:
+			case E_LEFT | E_BOTTOM: cur = Cursors.SizeNESW; break;
+			case E_LEFT:
+			case E_RIGHT: cur = Cursors.SizeWE; break;
+			case E_TOP:
+			case E_BOTTOM: cur = Cursors.SizeNS; break;
+			default: cur = Cursors.SizeAll; break;
+		}
+		if (!ReferenceEquals(card.Cursor, cur)) card.Cursor = cur;
+	}
+
+	void startresize(int edge, MouseButtonEventArgs e) {
+		resizing = true;
+		resizeEdge = edge;
+		resizeFrom = e.GetPosition(this);
+		startmanual();
+		resizeL = Left;
+		resizeT = Top;
+		resizeW = ActualWidth;
+		resizeH = ActualHeight;
+		card.CaptureMouse();
+	}
+
+	void onresizemove(MouseEventArgs e) {
+		if (!resizing) return;
+		var p = e.GetPosition(this);
+		var dx = p.X - resizeFrom.X;
+		var dy = p.Y - resizeFrom.Y;
+		var w = resizeW;
+		var h = resizeH;
+		var l = resizeL;
+		var t = resizeT;
+		if ((resizeEdge & E_RIGHT) != 0) w = Math.Max(MinWidth, resizeW + dx);
+		if ((resizeEdge & E_LEFT) != 0) {
+			w = Math.Max(MinWidth, resizeW - dx);
+			l = resizeL + resizeW - w;
+		}
+		if ((resizeEdge & E_BOTTOM) != 0) h = Math.Max(MinHeight, resizeH + dy);
+		if ((resizeEdge & E_TOP) != 0) {
+			h = Math.Max(MinHeight, resizeH - dy);
+			t = resizeT + resizeH - h;
+		}
+		Width = w;
+		Height = h;
+		if ((resizeEdge & (E_LEFT | E_TOP)) != 0) {
+			Left = l;
+			Top = t;
+		}
+	}
+
+	void endresize() {
+		if (!resizing) return;
+		resizing = false;
+		card.ReleaseMouseCapture();
+		setcursor(0);
+	}
+
+	void startmanual() {
+		if (SizeToContent == SizeToContent.Manual) return;
+		SizeToContent = SizeToContent.Manual;
+		Width = ActualWidth;
+		Height = ActualHeight;
+	}
+	#endregion
+
 	void buildrows() {
 		rows.Children.Clear();
 		rows.RowDefinitions.Clear();
 		rows.ColumnDefinitions.Clear();
 		cells.Clear();
-		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
-		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
-		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+		sparks.Clear();
+		history.Clear();
+		// 左右各占一半，右边不留空白
+		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 		var on = new List<string>();
 		foreach (var key in ShowOrder)
 			if (opt.On(key)) on.Add(key);
+		var halves = new Grid[2];
+		for (var h = 0; h < 2; h++) {
+			var half = new Grid { Margin = new Thickness(0, 0, h == 0 ? 8 : 0, 0) };
+			half.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+			half.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+			half.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
+			halves[h] = half;
+			Grid.SetColumn(half, h);
+			rows.Children.Add(half);
+		}
 		for (var i = 0; i < on.Count; i++) {
-			var row = i / 2;
-			if (i % 2 == 0) rows.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-			var col = i % 2 == 0 ? 0 : 3;
+			var h = i % 2;
+			var r = i / 2;
+			if (h == 0) {
+				halves[0].RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+				halves[1].RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+			}
 			var name = new TextBlock {
 				Text = Loc.T($"perf.{on[i]}"),
 				Foreground = nameBrush,
 				FontSize = BODY,
 				VerticalAlignment = VerticalAlignment.Center,
-				Margin = new Thickness(0, 1, 8, 1),
+				Margin = new Thickness(0, 1, 4, 1),
+			};
+			var spark = new PerfSpark {
+				Height = SPARK_H,
+				Margin = new Thickness(0, 1, 4, 1),
+				VerticalAlignment = VerticalAlignment.Center,
 			};
 			var val = new TextBlock {
 				Text = "—",
@@ -168,13 +311,18 @@ public partial class PerfMonWindow : Window {
 				VerticalAlignment = VerticalAlignment.Center,
 				Margin = new Thickness(0, 1, 0, 1),
 			};
-			Grid.SetRow(name, row);
-			Grid.SetColumn(name, col);
-			Grid.SetRow(val, row);
-			Grid.SetColumn(val, col + 1);
-			rows.Children.Add(name);
-			rows.Children.Add(val);
+			Grid.SetRow(name, r);
+			Grid.SetColumn(name, 0);
+			Grid.SetRow(spark, r);
+			Grid.SetColumn(spark, 1);
+			Grid.SetRow(val, r);
+			Grid.SetColumn(val, 2);
+			halves[h].Children.Add(name);
+			halves[h].Children.Add(spark);
+			halves[h].Children.Add(val);
 			cells[on[i]] = val;
+			sparks[on[i]] = spark;
+			history[on[i]] = new List<(int tick, double v)>();
 		}
 	}
 
@@ -221,9 +369,12 @@ public partial class PerfMonWindow : Window {
 		host.Children.Clear();
 		host.ColumnDefinitions.Clear();
 		host.RowDefinitions.Clear();
-		var widths = new[] { 118.0, 44.0, 46.0, 56.0, 56.0 };
+		var widths = new[] { 92.0, 42.0, 46.0, 56.0, 56.0 };
 		for (var c = 0; c < widths.Length; c++)
-			host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(widths[c]) });
+			host.ColumnDefinitions.Add(new ColumnDefinition {
+				Width = c == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(widths[c]),
+				MinWidth = c == 0 ? 60 : 0,
+			});
 		var heads = new[] { "perf.colname", "perf.cpu", "perf.mem", "perf.disk", "perf.net" };
 		host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 		for (var c = 0; c < heads.Length; c++) {
@@ -342,17 +493,37 @@ public partial class PerfMonWindow : Window {
 	}
 
 	void paint(PerfMon.Snap s) {
-		set("cpu", pct(s.Cpu), pctc(s.Cpu));
-		set("gpu", pct(s.Gpu), pctc(s.Gpu));
-		set("mem", pct(s.Mem), pctc(s.Mem));
-		set("down", rate(s.Down), downBrush);
-		set("up", rate(s.Up), warnBrush);
-		set("read", rate(s.Read), downBrush);
-		set("write", rate(s.Write), warnBrush);
-		set("cputemp", temp(s.CpuTemp), heat(s.CpuTemp));
-		set("gputemp", temp(s.GpuTemp), heat(s.GpuTemp));
-		set("gpupower", watt(s.GpuPower), downBrush);
-		set("cpupower", watt(s.CpuPower), warnBrush);
+		set("cpu", pct(s.Cpu), pctc(s.Cpu), s.Cpu, 25);
+		set("gpu", pct(s.Gpu), pctc(s.Gpu), s.Gpu, 25);
+		set("mem", pct(s.Mem), pctc(s.Mem), s.Mem, 25);
+		set("down", rate(s.Down), downBrush, s.Down);
+		set("up", rate(s.Up), warnBrush, s.Up);
+		set("read", rate(s.Read), downBrush, s.Read);
+		set("write", rate(s.Write), warnBrush, s.Write);
+		set("cputemp", temp(s.CpuTemp), heat(s.CpuTemp), s.CpuTemp, 80);
+		set("gputemp", temp(s.GpuTemp), heat(s.GpuTemp), s.GpuTemp, 80);
+		set("gpupower", watt(s.GpuPower), downBrush, s.GpuPower);
+		set("cpupower", watt(s.CpuPower), warnBrush, s.CpuPower);
+	}
+
+	void push(string key, double v, double max) {
+		if (!sparks.TryGetValue(key, out var spark)) return;
+		var list = history[key];
+		var now = Environment.TickCount;
+		// 没读数的不画，占位用 NaN，折线在那一段断开
+		list.Add((now, double.IsNaN(v) || v < 0 ? double.NaN : v));
+		var cut = now - SPAN_MS - 5000;
+		var drop = 0;
+		while (drop < list.Count && unchecked(list[drop].tick - cut) < 0) drop++;
+		if (drop > 0) list.RemoveRange(0, drop);
+		var data = new double[list.Count];
+		var ages = new double[list.Count];
+		for (var i = 0; i < list.Count; i++) {
+			data[i] = list[i].v;
+			ages[i] = unchecked(now - list[i].tick);
+		}
+		if (cells.TryGetValue(key, out var cell)) spark.Stroke = cell.Foreground;
+		spark.Push(data, ages, max);
 	}
 
 	public string Shown(string key) => cells.TryGetValue(key, out var block) ? block.Text ?? "" : "";
@@ -398,10 +569,11 @@ public partial class PerfMonWindow : Window {
 		return body[row, col].Text ?? "";
 	}
 
-	void set(string key, string text, SolidColorBrush brush) {
+	void set(string key, string text, SolidColorBrush brush, double value = double.NaN, double max = 0) {
 		if (!cells.TryGetValue(key, out var block)) return;
 		block.Text = text;
 		block.Foreground = text == "—" ? dimBrush : brush;
+		push(key, value, max);
 	}
 
 	SolidColorBrush pctc(double v) {
@@ -482,6 +654,10 @@ public partial class PerfMonWindow : Window {
 		opt.HasPos = true;
 		opt.Left = Left;
 		opt.Top = Top;
+		opt.WinWidth = ActualWidth;
+		opt.WinHeight = ActualHeight;
 		opt.Save();
 	}
 }
+
+

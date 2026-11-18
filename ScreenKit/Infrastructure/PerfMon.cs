@@ -13,6 +13,9 @@ public sealed class PerfOpt {
 	public double Left { get; set; }
 	public double Top { get; set; }
 	public bool HasPos { get; set; }
+	/// <summary>窗口大小，0 表示用默认。</summary>
+	public double WinWidth { get; set; }
+	public double WinHeight { get; set; }
 	/// <summary>采样间隔，毫秒。200～5000，缺省 1000。</summary>
 	public int IntervalMs { get; set; } = 1000;
 	/// <summary>小窗下方是否显示进程排行 tab。</summary>
