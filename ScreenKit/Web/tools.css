@@ -479,9 +479,15 @@ input[type="color"] { padding: 3px; cursor: pointer; }
 }
 .combo-item.on, .combo-item:hover { background: #fff1e8; }
 .jv-tab .kv-g { color: var(--ink); font-weight: 600; font-size: 12px; padding-top: 8px; }
-.jv-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 4px; }
-.jv-head b { font-size: 16px; }
-.jv-head span { color: var(--muted); font-size: 12px; }
+.jv-head { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 4px; min-width: 0; }
+.jv-head b { font-size: 16px; flex: none; }
+.jv-head span { color: var(--muted); font-size: 12px; flex: none; }
+/* 释义只占一行，放不下就省略，别把计时挤走 */
+.jv-head .jv-mean {
+	flex: 1 1 auto; min-width: 0;
+	color: var(--ink); font-size: 13px;
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .jv-head .jv-time { margin-left: auto; padding-left: 10px; white-space: nowrap; }
 .jv-tab { border-collapse: collapse; table-layout: fixed; font-size: 14px; line-height: 1.35; }
 .jv-tab td { padding: 1px 0; vertical-align: middle; white-space: nowrap; }

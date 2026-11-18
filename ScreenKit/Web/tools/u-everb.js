@@ -747,7 +747,9 @@
 			var miss = hits && !hits.length ? tx("web.everb.miss", "词典里没有这个词，已按词形判断。") : "";
 			resolveobj(word, hits, function(){
 			if (n !== gen) return;
+			var gloss = SK.verbpickmean(PICKS, word, 1, 2, -1);
 			var t1 = ui.now();
+			SK.verbmean("en", word, gloss, function(mean){
 			conjreq(conjparams(word, sel), function(d){
 				if (n !== gen) return;
 				var tcalc = ui.now() - t1;
@@ -763,8 +765,9 @@
 				}
 				lastkind = d.kind || "";
 				showobj();
-				ui.paint(d.head, d.note, objrows(d.rows), ui.timestr(tdict, tcalc, miss));
+				ui.paint(d.head, d.note, objrows(d.rows), ui.timestr(tdict, tcalc, miss), mean);
 				SK.msg("box-msg", "");
+			});
 			});
 			});
 		});

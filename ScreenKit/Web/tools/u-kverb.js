@@ -307,6 +307,8 @@
 			if (n !== gen) return;
 			var tdict = hits ? ui.now() - t0 : -1;
 			var miss = hits && !hits.length ? tx("web.kverb.miss", "词典里没有这个词，已按词尾判断。") : "";
+			var gloss = SK.verbpickmean(PICKS, word, 1, 2, 4);
+			SK.verbmean("ko", word, gloss, function(mean){
 			var t1 = ui.now();
 			conjreq({ lang: "ko", q: full, type: force, ui: langcode() }, function(d){
 				if (n !== gen) return;
@@ -321,8 +323,9 @@
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
-				ui.paint(d.head, d.note, objrows(d.rows), ui.timestr(tdict, tcalc, miss));
+				ui.paint(d.head, d.note, objrows(d.rows), ui.timestr(tdict, tcalc, miss), mean);
 				SK.msg("box-msg", "");
+			});
 			});
 		});
 	}

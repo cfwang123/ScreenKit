@@ -375,6 +375,8 @@
 				SK.msg("box-msg", tx("web.jverb.bad", "看不出是动词的辞书形"), true);
 				return;
 			}
+			// 释义：示例词用示例里那条，其它词查词典。
+			SK.verbmean("ja", word, pre ? SK.verbmeanrow(pre, 6, 7) : "", function(mean){
 			var t1 = ui.now();
 			conjreq({ lang: "ja", q: full, kind: use.kind, flag: use.flag, sub: use.sub, ui: langcode() }, function(d){
 				var tcalc = ui.now() - t1;
@@ -388,8 +390,9 @@
 					SK.msg("box-msg", d.err, true);
 					return;
 				}
-				ui.paint(d.head, d.name, rowsarr(d.rows), ui.timestr(tdict, tcalc, bad ? "" : note));
+				ui.paint(d.head, d.name, rowsarr(d.rows), ui.timestr(tdict, tcalc, bad ? "" : note), mean);
 				SK.msg("box-msg", bad ? note : "", bad);
+			});
 			});
 		});
 	}

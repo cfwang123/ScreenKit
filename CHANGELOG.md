@@ -56,6 +56,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - English and Russian word forms: added 1-6 level sentence patterns, particles, hearsay, ability, causative, aspect and dialect groups to match Japanese and Korean coverage
+- Show each word's meaning in the conjugation result header, multiple senses joined on one line
 
 #### Changed
 
@@ -70,6 +71,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 新增
 
 - 英语、俄语词形变化：补齐 1–6 级句型、语气词、传闻、能力、使役、体阶段与方言分组，与日语、韩语的分组对应
+- 变形结果表头显示词语释义，多个义项用「; 」并成一行
 
 #### 变更
 

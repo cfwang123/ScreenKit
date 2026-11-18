@@ -2,6 +2,113 @@
 	// 动词变位类工具（英语/日语/韩语/俄语）共用的结果区：分栏排版、发音、计时。
 	// 各语言只提供单元格内容、分组取法和发音语言，排版和窗口适配逻辑只留这一份。
 	// spec: outId、lang、tabcls、nospeak:[键, 兜底]、groupof(row)、cell(row, tip)。
+	// 释义：示例词用示例里那一条，其它词查词典；多个义项用「; 」并成一行。
+	SK.verbmean = function(dict, word, gloss, done){
+		gloss = String(gloss || "").trim();
+		if (gloss) { done(gloss); return; }
+		// 词典只有中日韩英四种，其它语言只能用示例里的释义。
+		if (!/^(zh|en|ja|ko)$/.test(String(dict || "")) || !word) { done(""); return; }
+		var q = "/api/dict?limit=8&dict=" + encodeURIComponent(dict) + "&q=" + encodeURIComponent(word);
+		reqjson(q, function(jo){
+			var hits = jo && jo.code === 100 && jo.data && jo.data.hits ? jo.data.hits : [];
+			SK.verbpick(hits, word, function(h){
+				if (!h || !h.id) { done(""); return; }
+				reqjson("/api/dict/entry?id=" + encodeURIComponent(h.id), function(ej){
+					var e = ej && ej.code === 100 ? ej.data : null;
+					done(shorten(senses(e) || h.preview, 100));
+				});
+			});
+		});
+	};
+
+	// 同一批搜索结果里挑出这个词本身：词头相同优先，其次词头以它开头的。
+	function pickhits(hits, word){
+		var low = String(word || "").toLowerCase();
+		var same = [], pre = [];
+		var i, h, w;
+		for (i = 0; hits && i < hits.length; i++) {
+			h = hits[i];
+			w = String((h && h.word) || "").toLowerCase();
+			if (w === low) same.push(h);
+			else if (w.indexOf(low) === 0) pre.push(h);
+		}
+		return same.length ? same : pre;
+	}
+
+	// 同形词条（먹다¹ 聋 / 먹다² 吃）取义项最多的那条，生僻的同形词条排在前面也不会被选中。
+	SK.verbpick = function(hits, word, done){
+		var list = pickhits(hits, word).slice(0, 3);
+		if (!list.length) { done(null); return; }
+		if (list.length === 1) { done(list[0]); return; }
+		var best = list[0], bestn = -1, left = list.length, i;
+		for (i = 0; i < list.length; i++) {
+			(function(x){
+				reqjson("/api/dict/entry?id=" + encodeURIComponent(x.id), function(ej){
+					var n = ej && ej.code === 100 && ej.data && ej.data.senses ? ej.data.senses.length : 0;
+					if (n > bestn) { bestn = n; best = x; }
+					if (--left === 0) done(best);
+				});
+			})(list[i]);
+		}
+	};
+
+	// 界面语言对应的那条短释义；同一个说法只留一次，最多五条再并成一行。
+	function senses(e){
+		var list = e && e.senses ? e.senses : [];
+		var code = (SK.langcode ? SK.langcode() : "zh").substring(0, 2);
+		var key = code === "en" ? "en" : code === "ja" ? "ja" : code === "ko" ? "ko" : "zh";
+		var out = [];
+		var i, s, t;
+		for (i = 0; i < list.length && out.length < 5; i++) {
+			s = list[i];
+			if (!s) continue;
+			t = String(s[key] || "").trim();
+			if (!t && key !== "zh") t = String(s.zh || "").trim();
+			if (!t || out.indexOf(t) >= 0) continue;
+			out.push(t);
+		}
+		return out.join("; ");
+	}
+
+	// 释义太长会挤掉计时，截一下并加省略号。
+	function shorten(t, max){
+		t = String(t || "").trim();
+		max = max || 100;
+		return t.length > max ? t.substring(0, max).replace(/[，,、;；]$/, "") + "…" : t;
+	}
+
+	function reqjson(url, ok){
+		var xhr = new XMLHttpRequest();
+		xhr.open("GET", url, true);
+		xhr.onload = function(){
+			try { ok(JSON.parse(xhr.responseText)); }
+			catch (e) { ok(null); }
+		};
+		xhr.onerror = function(){ ok(null); };
+		xhr.send();
+	}
+
+	// 示例词表里同一行的释义，按界面语言取中文或英文；那一栏没写就返回空，让调用方去查词典。
+	// 示例后面常跟「 · 」注的活用说明（听 · ㄷ、吃饭 · 带动词宾语），释义只取前半。
+	SK.verbmeanrow = function(row, zhcol, encol){
+		if (!row) return "";
+		var en = (SK.langcode ? SK.langcode() : "zh").substring(0, 2) === "en";
+		var t = en ? (encol >= 0 ? String(row[encol] || "") : "") : (zhcol >= 0 ? String(row[zhcol] || "") : "");
+		var i = t.indexOf(" · ");
+		return (i >= 0 ? t.substring(0, i) : t).trim();
+	};
+
+	SK.verbpickmean = function(picks, word, match, zhcol, encol){
+		var low = String(word || "").toLowerCase();
+		var i, p;
+		for (i = 0; i < picks.length; i++) {
+			p = picks[i];
+			if (String(p[match || 1]).toLowerCase() !== low) continue;
+			return SK.verbmeanrow(p, zhcol, encol);
+		}
+		return "";
+	};
+
 	SK.verbui = function(spec){
 		var tx = SK.tx;
 		var outId = spec.outId;
@@ -41,7 +148,7 @@
 			return (SK.curpage && SK.curpage.doms && SK.curpage.doms[k]) || null;
 		}
 
-		function paint(head, note, rows, tm){
+		function paint(head, note, rows, tm, mean){
 			var el = out();
 			if (!el) return;
 			if (!rows || !rows.length) {
@@ -49,7 +156,7 @@
 				lastpaint = null;
 				return;
 			}
-			lastpaint = { head: head, note: note, rows: rows, tm: tm };
+			lastpaint = { head: head, note: note, rows: rows, tm: tm, mean: mean || "" };
 			render(el);
 		}
 
@@ -76,7 +183,7 @@
 			perline = Math.floor(cw / CELLW);
 			if (perline < 1) perline = 1;
 			if (perline > 8) perline = 8;
-			el.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows, lastpaint.tm);
+			el.innerHTML = tablehtml(lastpaint.head, lastpaint.note, lastpaint.rows, lastpaint.tm, lastpaint.mean);
 		}
 
 		function onresize(){
@@ -96,9 +203,11 @@
 			F.on(window, "resize", onresize);
 		}
 
-		function tablehtml(head, note, rows, tm){
+		function tablehtml(head, note, rows, tm, mean){
 			var tip = SK.esc(tx("dict.speak", "发音"));
-			var html = '<div class="jv-head"><b>' + SK.esc(head) + "</b><span>" + SK.esc(note) + "</span>"
+			var html = '<div class="jv-head"><b>' + SK.esc(head) + "</b>"
+				+ "<span>" + SK.esc(note) + "</span>"
+				+ (mean ? '<span class="jv-mean">' + SK.esc(mean) + "</span>" : "")
 				+ (tm ? '<span class="jv-time">' + SK.esc(tm) + "</span>" : "") + "</div>" + tabopen();
 			var g = null;
 			var buf = [];

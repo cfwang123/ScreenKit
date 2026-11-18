@@ -2281,7 +2281,7 @@
 			SK.msg("box-msg", built.err, true);
 			return;
 		}
-		ui.paint(built.head, built.note, built.rows, ui.timestr(-1, tcalc));
+		ui.paint(built.head, built.note, built.rows, ui.timestr(-1, tcalc), SK.verbpickmean(PICKS, norm(word), 1, 2, 3));
 		SK.msg("box-msg", "");
 	}
 
