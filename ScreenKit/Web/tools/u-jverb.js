@@ -202,9 +202,9 @@
 		SK.combofill("jv-in", pickgroups());
 		setlab("jv-type", "web.jverb.type", ens ? "Type" : "类型");
 		setopt("auto", "web.jverb.auto", ens ? "Auto" : "自动");
-		setopt("1", "web.jverb.t1", ens ? "Group 1 (godan)" : "1类（五段）");
-		setopt("2", "web.jverb.t2", ens ? "Group 2 (ichidan)" : "2类（一段）");
-		setopt("3", "web.jverb.t3", ens ? "Group 3 (suru, kuru, zuru)" : "3类（する・くる・ずる）");
+		setopt("1", "web.jverb.t1", ens ? "Group 1 verbs (godan)" : "1类动词（五段）");
+		setopt("2", "web.jverb.t2", ens ? "Group 2 verbs (ichidan)" : "2类动词（一段）");
+		setopt("3", "web.jverb.t3", ens ? "Group 3 verbs (suru / kuru)" : "3类动词（する・くる）");
 		setopt("ai", "web.jverb.tai", ens ? "i-adjective" : "い形容词");
 		setopt("an", "web.jverb.tan", ens ? "na-adjective" : "な形容词");
 		setopt("n", "web.jverb.tn", ens ? "Noun" : "名词");

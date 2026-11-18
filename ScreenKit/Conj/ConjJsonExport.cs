@@ -40,9 +40,9 @@ static class ConjJsonExport {
 
 	static readonly Dictionary<string, Dictionary<string, string>> NAMES = new() {
 		["ja"] = new() {
-			["1"] = "1类（五段）",
-			["2"] = "2类（一段）",
-			["3"] = "3类（する・くる）",
+			["1"] = "1类动词（五段）",
+			["2"] = "2类动词（一段）",
+			["3"] = "3类动词（する・くる）",
 			["ai"] = "い形容词",
 			["an"] = "な形容词",
 			["n"] = "名词",
