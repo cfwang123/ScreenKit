@@ -57,11 +57,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Korean conjugation: Ability group lists potential (ㄹ 수 있다), 못 and 지 못하다 for each tense and speech level, and comes before Suggest.
 
+#### Fixed
+
+- Document viewer: .doc files whose content is entirely floating pictures and text boxes now render page by page instead of showing a blank page
+
 ### 中文
 
 #### 变更
 
 - 韩语词形变化：能力组按时体与敬语等级并列「ㄹ 수 있다 / 못 / 지 못하다」，并移到提议之前。
+
+#### 修复
+
+- 文档查看器：正文全是浮动图片和文本框的 .doc 现在按图形版式逐页显示，不再是一片空白
 
 ## v1.0.39 (2026-11-14 ~ 11-17)
 

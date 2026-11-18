@@ -54,10 +54,9 @@ static class LegacyOfficeLoader {
 		return data;
 	}
 
-	public static void LoadDocInto(FlowDocument flow, Stream stream) {
+	public static void LoadDocInto(FlowDocument flow, HWPFDocument doc) {
 		if (flow == null) throw new ArgumentNullException(nameof(flow));
-		if (stream == null) throw new ArgumentNullException(nameof(stream));
-		var doc = new HWPFDocument(stream);
+		if (doc == null) throw new ArgumentNullException(nameof(doc));
 		var range = doc.GetRange();
 		if (range == null) return;
 

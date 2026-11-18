@@ -375,7 +375,21 @@ sealed class DocxViewer : IDocViewer {
 		tocEntries.Clear();
 		numCounters.Clear();
 
-		LegacyOfficeLoader.LoadDocInto(flow, stream);
+		var doc = new NPOI.HWPF.HWPFDocument(stream);
+		LegacyOfficeLoader.LoadDocInto(flow, doc);
+		// 图片和文本框在 .doc 里都是锚定图形，正文只剩 U+0008 占位符：按段落读会是一页空白，
+		// 这时改按图形版式铺页（每页一张位图，XamlPackage 克隆能完整带到每页的 RichTextBox）。
+		if (LegacyDocLayout.BodyEmpty(doc)) {
+			getpagemetrics(out _, out _, out _, out _, out var cw, out var ch);
+			var bodies = flow.Blocks.ToList();
+			foreach (var block in bodies)
+				flow.Blocks.Remove(block);
+			if (!LegacyDocLayout.TryAppend(flow, doc, cw, ch, flow.FontSize)) {
+				// 没有图形可排，退回逐段落
+				foreach (var block in bodies)
+					flow.Blocks.Add(block);
+			}
+		}
 		if (flow.Blocks.Count == 0)
 			flow.Blocks.Add(new Paragraph(new Run("(无可显示内容)")));
 
