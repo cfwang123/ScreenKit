@@ -909,50 +909,6 @@ static class EnConj {
 		R(g, L("n_pcont"), "I am not " + ingF + " · he is not " + ingF);
 		R(g, L("n_ppf"), "I have not " + ppF + " · he has not " + ppF);
 		R(g, L("n_fut"), "I will not " + b);
-		// ain't：各人称同形。代替 am/is/are not、have/has not；方言里后接原形，代替 don't/doesn't/didn't。
-		g = L("g_aint");
-		if (isBe) {
-			R(g, L("a_cop"), "I ain't" + sp + " · you ain't" + sp + " · he ain't" + sp + " · she ain't" + sp
-				+ " · it ain't" + sp + " · we ain't" + sp + " · they ain't" + sp + " · there ain't" + sp);
-			R(g, L("a_qcop"), "Ain't I" + sp + "? · Ain't you" + sp + "? · Ain't he" + sp + "? · Ain't she" + sp
-				+ "? · Ain't it" + sp + "? · Ain't we" + sp + "? · Ain't they" + sp + "? · Ain't there" + sp + "?");
-			R(g, L("a_tag"), "I am" + sp + ", ain't I? · you are" + sp + ", ain't you? · he is" + sp + ", ain't he?"
-				+ " · we are" + sp + ", ain't we? · they are" + sp + ", ain't they?");
-			R(g, L("a_wh"), "Why ain't I" + sp + "? · Why ain't he" + sp + "? · Where ain't they" + sp + "?");
-		}
-		else {
-			R(g, L("a_do"), "I ain't " + b + " · he ain't " + b + " · they ain't " + b);
-			R(g, L("a_did"), "I ain't " + b + " · he ain't " + b + " · they ain't " + b);
-			R(g, L("a_qdo"), "Ain't I " + b + "? · Ain't he " + b + "? · Ain't they " + b + "?");
-			R(g, L("a_tag"), "you " + b + ", ain't you? · he " + s3F + ", ain't he?");
-		}
-		R(g, L("a_ing"), "I ain't " + ingF + " · he ain't " + ingF + " · they ain't " + ingF);
-		R(g, L("a_pp"), "I ain't " + ppF + " · he ain't " + ppF + " · they ain't " + ppF);
-		R(g, L("a_ppc"), "I ain't been " + ingF + " · he ain't been " + ingF);
-		R(g, L("a_qing"), "Ain't I " + ingF + "? · Ain't he " + ingF + "? · Ain't they " + ingF + "?");
-		R(g, L("a_qpp"), "Ain't I " + ppF + "? · Ain't he " + ppF + "? · Ain't they " + ppF + "?");
-		R(g, L("a_tagc"), "you're " + ingF + ", ain't you? · he's " + ingF + ", ain't he?");
-		R(g, L("a_tagf"), "you've " + ppF + ", ain't you? · he's " + ppF + ", ain't he?");
-		if (!isBe) R(g, L("a_wh"), "Why ain't you " + ingF + "? · Why ain't he " + ppF + "? · Why ain't they " + b + "?");
-		if (!isBe) {
-			if (!has) R(g, L("a_pas"), "it ain't " + ppBare + " · they ain't " + ppBare
-				+ " · it ain't been " + ppBare + " · they ain't been " + ppBare);
-			else {
-				objagree(o1, out var asub, out _, out _, out _);
-				var arest = o2.Length > 0 ? " " + o2 : "";
-				R(g, L("a_pas"), asub + " ain't " + ppBare + arest + " · " + asub + " ain't been " + ppBare + arest);
-			}
-		}
-		R(g, L("a_gonna"), "I ain't gonna " + b + " · he ain't gonna " + b);
-		R(g, L("a_about"), "I ain't about to " + b + " · he ain't about to " + b);
-		R(g, L("a_gotta"), "I ain't gotta " + b + " · he ain't gotta " + b + " · I ain't got to " + b);
-		R(g, L("a_spose"), "he ain't supposed to " + b + " · they ain't supposed to " + b);
-		if (baseword == "have")
-			R(g, L("a_got"), "I ain't got" + sp + " · he ain't got" + sp + " · they ain't got" + sp);
-		R(g, L("a_never"), isBe
-			? "I ain't never" + sp + " · he ain't never been" + sp
-			: "I ain't never " + b + " · he ain't never " + ppF + " · he ain't never " + ingF);
-		if (!isBe || has) R(g, L("a_half"), isBe ? "he ain't half" + sp : "he ain't half " + ingF);
 		// 疑问
 		g = L("g_q");
 		R(g, L("q_pres"), isBe ? "Am I" + sp + "? · Is he" + sp + "?" : "Do I " + b + "? · Does he " + b + "?");
@@ -1159,6 +1115,50 @@ static class EnConj {
 		R(g, L("d_br1"), breP + " / " + brePP + " · have got · at the weekend · in hospital");
 		R(g, L("d_am1"), ameP + " / " + amePP + " · have · on the weekend · in the hospital");
 		R(g, L("d_au1"), breP + " / " + brePP + " · have got · at the weekend · in hospital");
+		// ain't：各人称同形。代替 am/is/are not、have/has not；方言里后接原形，代替 don't/doesn't/didn't。
+		g = L("g_aint");
+		if (isBe) {
+			R(g, L("a_cop"), "I ain't" + sp + " · you ain't" + sp + " · he ain't" + sp + " · she ain't" + sp
+				+ " · it ain't" + sp + " · we ain't" + sp + " · they ain't" + sp + " · there ain't" + sp);
+			R(g, L("a_qcop"), "Ain't I" + sp + "? · Ain't you" + sp + "? · Ain't he" + sp + "? · Ain't she" + sp
+				+ "? · Ain't it" + sp + "? · Ain't we" + sp + "? · Ain't they" + sp + "? · Ain't there" + sp + "?");
+			R(g, L("a_tag"), "I am" + sp + ", ain't I? · you are" + sp + ", ain't you? · he is" + sp + ", ain't he?"
+				+ " · we are" + sp + ", ain't we? · they are" + sp + ", ain't they?");
+			R(g, L("a_wh"), "Why ain't I" + sp + "? · Why ain't he" + sp + "? · Where ain't they" + sp + "?");
+		}
+		else {
+			R(g, L("a_do"), "I ain't " + b + " · he ain't " + b + " · they ain't " + b);
+			R(g, L("a_did"), "I ain't " + b + " · he ain't " + b + " · they ain't " + b);
+			R(g, L("a_qdo"), "Ain't I " + b + "? · Ain't he " + b + "? · Ain't they " + b + "?");
+			R(g, L("a_tag"), "you " + b + ", ain't you? · he " + s3F + ", ain't he?");
+		}
+		R(g, L("a_ing"), "I ain't " + ingF + " · he ain't " + ingF + " · they ain't " + ingF);
+		R(g, L("a_pp"), "I ain't " + ppF + " · he ain't " + ppF + " · they ain't " + ppF);
+		R(g, L("a_ppc"), "I ain't been " + ingF + " · he ain't been " + ingF);
+		R(g, L("a_qing"), "Ain't I " + ingF + "? · Ain't he " + ingF + "? · Ain't they " + ingF + "?");
+		R(g, L("a_qpp"), "Ain't I " + ppF + "? · Ain't he " + ppF + "? · Ain't they " + ppF + "?");
+		R(g, L("a_tagc"), "you're " + ingF + ", ain't you? · he's " + ingF + ", ain't he?");
+		R(g, L("a_tagf"), "you've " + ppF + ", ain't you? · he's " + ppF + ", ain't he?");
+		if (!isBe) R(g, L("a_wh"), "Why ain't you " + ingF + "? · Why ain't he " + ppF + "? · Why ain't they " + b + "?");
+		if (!isBe) {
+			if (!has) R(g, L("a_pas"), "it ain't " + ppBare + " · they ain't " + ppBare
+				+ " · it ain't been " + ppBare + " · they ain't been " + ppBare);
+			else {
+				objagree(o1, out var asub, out _, out _, out _);
+				var arest = o2.Length > 0 ? " " + o2 : "";
+				R(g, L("a_pas"), asub + " ain't " + ppBare + arest + " · " + asub + " ain't been " + ppBare + arest);
+			}
+		}
+		R(g, L("a_gonna"), "I ain't gonna " + b + " · he ain't gonna " + b);
+		R(g, L("a_about"), "I ain't about to " + b + " · he ain't about to " + b);
+		R(g, L("a_gotta"), "I ain't gotta " + b + " · he ain't gotta " + b + " · I ain't got to " + b);
+		R(g, L("a_spose"), "he ain't supposed to " + b + " · they ain't supposed to " + b);
+		if (baseword == "have")
+			R(g, L("a_got"), "I ain't got" + sp + " · he ain't got" + sp + " · they ain't got" + sp);
+		R(g, L("a_never"), isBe
+			? "I ain't never" + sp + " · he ain't never been" + sp
+			: "I ain't never " + b + " · he ain't never " + ppF + " · he ain't never " + ingF);
+		if (!isBe || has) R(g, L("a_half"), isBe ? "he ain't half" + sp : "he ain't half " + ingF);
 		if (row != null) {
 			note = L("irr");
 			if (pasts.Count > 0) note += " · " + L("f_past") + " " + variants(row[1], particle, "", "");
@@ -1341,14 +1341,6 @@ static class EnConj {
 		R(g, L("d_excl"), P("How " + baseword + "! · So " + baseword + "!", "Isn't it " + baseword + "!"));
 		R(g, L("d_enough"), P(baseword + " enough · too " + baseword,
 			"not " + baseword + " enough · not too " + baseword));
-		g = L("g_aint");
-		R(g, L("a_stmt"), "it ain't " + baseword + " · they ain't " + baseword);
-		R(g, L("a_qcop"), "Ain't it " + baseword + "? · Ain't they " + baseword + "?");
-		R(g, L("a_tag"), "it's " + baseword + ", ain't it? · they're " + baseword + ", ain't they?");
-		R(g, L("a_excl"), "Ain't it " + baseword + "!");
-		R(g, L("a_wh"), "Why ain't it " + baseword + "? · Why ain't they " + baseword + "?");
-		R(g, L("a_never"), "it ain't never " + baseword + " · they ain't never " + baseword);
-		R(g, L("a_half"), "it ain't half " + baseword);
 		g = L("g_a_oth");
 		R(g, L("a_adv"), advform(baseword));
 		R(g, L("a_noun"), adjnoun(baseword));
@@ -1359,6 +1351,14 @@ static class EnConj {
 		R(g, L("a_the"), zh ? "the rich / the poor / the young（一类人）" : "the rich / the poor / the young (a group of people)");
 		R(g, L("a_mult"), "three times as " + baseword + " as · the more we try, the " + c1 + " it gets");
 		grammarrows(rows, zh, "a", new() { ["adj"] = baseword, ["cmp"] = c1, ["sup"] = s1 });
+		g = L("g_aint");
+		R(g, L("a_stmt"), "it ain't " + baseword + " · they ain't " + baseword);
+		R(g, L("a_qcop"), "Ain't it " + baseword + "? · Ain't they " + baseword + "?");
+		R(g, L("a_tag"), "it's " + baseword + ", ain't it? · they're " + baseword + ", ain't they?");
+		R(g, L("a_excl"), "Ain't it " + baseword + "!");
+		R(g, L("a_wh"), "Why ain't it " + baseword + "? · Why ain't they " + baseword + "?");
+		R(g, L("a_never"), "it ain't never " + baseword + " · they ain't never " + baseword);
+		R(g, L("a_half"), "it ain't half " + baseword);
 		var note = irr != null ? L("irr_a") : L("reg_a");
 		if (irr != null) note += " · " + c + " · " + s + (zh ? " · " + irr[2] : "");
 		if (from.Length > 0) note = fmt(L("from"), from) + " · " + note;
@@ -1428,6 +1428,12 @@ static class EnConj {
 		R(g, L("q_deduct"), P("It may be " + artbase + " · it must be " + artbase,
 			"It may not be " + artbase + " · it can't be " + artbase));
 		R(g, L("q_hear"), P("It is said to be " + artbase, "It is said not to be " + artbase));
+		g = L("g_n_extra");
+		R(g, L("n_dposs"), uncount ? ("some " + baseword + " of mine · a friend of mine") : ("a " + baseword + " of mine · a friend of mine"));
+		R(g, L("n_part"), uncount ? ("a piece of " + baseword + " · a bit of " + baseword) : ("a " + baseword + " · two " + first + " · a couple of " + first));
+		R(g, L("n_compound"), L("n_compound_t"));
+		R(g, L("n_coll"), L("n_coll_t"));
+		grammarrows(rows, zh, "n", new() { ["n"] = baseword, ["pl"] = first, ["art"] = uncount ? "" : article(baseword) });
 		g = L("g_aint");
 		if (uncount) {
 			R(g, L("a_stmt"), "it ain't " + baseword);
@@ -1443,12 +1449,6 @@ static class EnConj {
 			R(g, L("a_tag"), "it's " + artbase + ", ain't it? · they're " + first + ", ain't they?");
 			R(g, L("a_wh"), "Why ain't it " + artbase + "? · Why ain't there any " + first + "?");
 		}
-		g = L("g_n_extra");
-		R(g, L("n_dposs"), uncount ? ("some " + baseword + " of mine · a friend of mine") : ("a " + baseword + " of mine · a friend of mine"));
-		R(g, L("n_part"), uncount ? ("a piece of " + baseword + " · a bit of " + baseword) : ("a " + baseword + " · two " + first + " · a couple of " + first));
-		R(g, L("n_compound"), L("n_compound_t"));
-		R(g, L("n_coll"), L("n_coll_t"));
-		grammarrows(rows, zh, "n", new() { ["n"] = baseword, ["pl"] = first, ["art"] = uncount ? "" : article(baseword) });
 		var note = NOUNIRR.ContainsKey(baseword) ? L("irr_n") : L("reg_n");
 		if (!uncount) note += " · " + string.Join(" / ", plist);
 		else note += " · " + L("count_no");
@@ -1766,3 +1766,4 @@ static class EnConj {
 		return dict;
 	}
 }
+
