@@ -256,9 +256,42 @@ static class EnGrammarCatalog {
 		new[] { "2", "a", "enough to", "enough to", "{adj} enough to do it" },
 		new[] { "3", "a", "so … that", "so … that", "so {adj} that" },
 		new[] { "3", "a", "such a … that", "such a … that", "such a {adj} day that" },
-		new[] { "4", "a", "越……越（the more … the more）", "the more … the more", "the {cmp}, the better" },
+		new[] { "4", "a", "越……越（the more … the more）", "the more … the more", "the {cmp} …, the more …" },
 		new[] { "5", "a", "与其说（not so much … as）", "not so much … as", "not so much {adj} as" },
+		// ---- 名词 ----
+		new[] { "1", "n", "冠词（a / an）", "article", "{art} {n}" },
+		new[] { "1", "n", "定冠词（the）", "definite article", "the {n}" },
+		new[] { "1", "n", "复数", "plural", "some {pl}" },
+		new[] { "1", "n", "所有格", "possessive", "my {n}" },
+		new[] { "1", "n", "指示（this / these）", "demonstratives", "this {n} · these {pl}" },
+		new[] { "1", "n", "存在（there is）", "there is", "there is {art} {n}" },
+		new[] { "1", "n", "数量（some / any）", "some / any", "some {pl} · any {pl}" },
+		new[] { "1", "n", "并列（and）", "and", "{art} {n} and {art} {n}" },
+		new[] { "1", "n", "处所（in / on / at）", "place prepositions", "in the {n} · on the {n}" },
+		new[] { "1", "n", "疑问（what / which）", "wh-question", "What is this {n}? · Which {n}?" },
+		new[] { "2", "n", "of 结构", "of-phrase", "the {n} of the city" },
+		new[] { "2", "n", "伴随（with）", "with-phrase", "{art} {n} with {art} {n}" },
+		new[] { "2", "n", "不可数数量", "uncountable quantity", "a piece of {n} · a lot of {n}" },
+		new[] { "2", "n", "可数数量", "countable quantity", "two {pl} · several {pl} · many {pl}" },
+		new[] { "2", "n", "定语从句", "relative clause", "the {n} that I bought" },
+		new[] { "2", "n", "条件", "conditional", "if the {n} comes" },
+		new[] { "2", "n", "比较", "comparison", "more {n} than · as much {n} as" },
+		new[] { "2", "n", "存在句复数", "there are", "there are some {pl}" },
+		new[] { "3", "n", "复合名词", "compound noun", "{n} shop · {n}-{n}" },
+		new[] { "3", "n", "名词化", "nominalization", "the {n} of it" },
+		new[] { "3", "n", "集合名词一致", "collective agreement", "the {n} is / are" },
+		new[] { "3", "n", "双重所有格", "double possessive", "a {n} of mine" },
+		new[] { "3", "n", "非限定修饰", "non-finite modifier", "the {n} being discussed" },
+		new[] { "4", "n", "抽象用法", "abstract use", "the {n} in question" },
+		new[] { "4", "n", "让步", "concession", "for all the {n}" },
+		new[] { "5", "n", "否定（no / none）", "negation", "no {n} · none of the {pl}" },
+		new[] { "5", "n", "部分与整体", "partitive", "most of the {pl} · half the {n}" },
+		new[] { "6", "n", "法律、公文用法", "legal / formal", "the said {n} · the {n} in question" },
 	};
 }
+
+
+
+
 
 

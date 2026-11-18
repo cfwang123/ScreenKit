@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace ScreenKit;
@@ -371,6 +372,10 @@ static class EnConj {
 		["g_tag"] = new[] { "附加疑问句", "Tag questions" },
 		["g_cau"] = new[] { "使役与允许", "Causative & permission" },
 		["g_dia"] = new[] { "地区变体", "Regional variants" },
+		["g_dia2"] = new[] { "方言与英式美式", "Dialect & UK/US" },
+		["d_br1"] = new[] { "英式", "British" },
+		["d_am1"] = new[] { "美式", "American" },
+		["d_au1"] = new[] { "澳新", "Australian & NZ" },
 		["m_can"] = new[] { "能力·可能（can / could）", "Ability & possibility (can / could)" },
 		["m_may"] = new[] { "许可·推测（may / might）", "Permission & speculation (may / might)" },
 		["m_must"] = new[] { "必须（must）", "Obligation (must)" },
@@ -1145,6 +1150,15 @@ static class EnConj {
 			R(g, L("x_cleft"), "I do " + b + " · It was he who " + pastF);
 		}
 		else R(g, L("x_cleft"), "It is he who " + s3F + " · It was he who " + pastF);
+		// 分级语法：1–6 级句型 + 其它
+		grammarrows(rows, zh, "v", new() {
+			["b"] = b, ["s3"] = s3F, ["past"] = pastF, ["pp"] = ppF, ["ing"] = ingF,
+		});
+		// 方言：英美澳常见差异
+		g = L("g_dia2");
+		R(g, L("d_br1"), breP + " / " + brePP + " · have got · at the weekend · in hospital");
+		R(g, L("d_am1"), ameP + " / " + amePP + " · have · on the weekend · in the hospital");
+		R(g, L("d_au1"), breP + " / " + brePP + " · have got · at the weekend · in hospital");
 		if (row != null) {
 			note = L("irr");
 			if (pasts.Count > 0) note += " · " + L("f_past") + " " + variants(row[1], particle, "", "");
@@ -1157,6 +1171,41 @@ static class EnConj {
 		else note = L("reg");
 		if (has) note += " · " + comp;
 		return ok(baseword + tail, note, rows);
+	}
+
+	// ==================== 分级语法 ====================
+
+	static readonly string[] LEVELG = { "1 级语法", "2 级语法", "3 级语法", "4 级语法", "5 级语法", "6 级语法", "其它语法" };
+	static readonly string[] LEVELGE = { "Level 1", "Level 2", "Level 3", "Level 4", "Level 5", "Level 6", "Other" };
+
+	// 把 EnGrammarCatalog 的句型套到当前词上；dict 缺哪个占位符就跳过那一条。
+	static void grammarrows(List<ConjRow> rows, bool zh, string kind, Dictionary<string, string> dict) {
+		foreach (var p in EnGrammarCatalog.Verb) {
+			if (p[1] != kind) continue;
+			var text = fillpat(p[4], dict);
+			if (text.Length == 0) continue;
+			var li = Array.IndexOf(EnGrammarCatalog.GroupOf, p[0]);
+			if (li < 0) continue;
+			var g = zh ? LEVELG[li] : LEVELGE[li];
+			rows.Add(new ConjRow(zh ? p[2] : p[3], text, g));
+		}
+	}
+
+	static string fillpat(string pat, Dictionary<string, string> dict) {
+		var sb = new StringBuilder();
+		for (var i = 0; i < pat.Length; i++) {
+			if (pat[i] != '{') {
+				sb.Append(pat[i]);
+				continue;
+			}
+			var end = pat.IndexOf('}', i + 1);
+			if (end < 0) return "";
+			var key = pat.Substring(i + 1, end - i - 1);
+			if (!dict.TryGetValue(key, out var val) || val.Length == 0) return "";
+			sb.Append(val);
+			i = end;
+		}
+		return Regex.Replace(sb.ToString(), " {2,}", " ").Trim();
 	}
 
 	// 人称代词：主格、宾格、形容词性物主、名词性物主、反身、中文说明、英文说明。
@@ -1309,6 +1358,7 @@ static class EnConj {
 		R(g, L("a_eding"), L("a_eding_t"));
 		R(g, L("a_the"), zh ? "the rich / the poor / the young（一类人）" : "the rich / the poor / the young (a group of people)");
 		R(g, L("a_mult"), "three times as " + baseword + " as · the more we try, the " + c1 + " it gets");
+		grammarrows(rows, zh, "a", new() { ["adj"] = baseword, ["cmp"] = c1, ["sup"] = s1 });
 		var note = irr != null ? L("irr_a") : L("reg_a");
 		if (irr != null) note += " · " + c + " · " + s + (zh ? " · " + irr[2] : "");
 		if (from.Length > 0) note = fmt(L("from"), from) + " · " + note;
@@ -1398,6 +1448,7 @@ static class EnConj {
 		R(g, L("n_part"), uncount ? ("a piece of " + baseword + " · a bit of " + baseword) : ("a " + baseword + " · two " + first + " · a couple of " + first));
 		R(g, L("n_compound"), L("n_compound_t"));
 		R(g, L("n_coll"), L("n_coll_t"));
+		grammarrows(rows, zh, "n", new() { ["n"] = baseword, ["pl"] = first, ["art"] = uncount ? "" : article(baseword) });
 		var note = NOUNIRR.ContainsKey(baseword) ? L("irr_n") : L("reg_n");
 		if (!uncount) note += " · " + string.Join(" / ", plist);
 		else note += " · " + L("count_no");

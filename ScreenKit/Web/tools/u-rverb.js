@@ -640,6 +640,65 @@
 		g_neg_past: ["否定 · 过去时", "Negation · past"],
 		g_neg_fut: ["否定 · 将来时", "Negation · future"],
 		g_neg_more: ["否定 · 其他说法", "Negation · other patterns"],
+		g_abil: ["能力与可能", "Ability & possibility"],
+		g_caus: ["使役与许可", "Causative & permission"],
+		g_phase: ["体与阶段", "Aspect & phase"],
+		g_hear: ["传闻与推量", "Hearsay & conjecture"],
+		g_part: ["语气词", "Particles"],
+		g_q: ["疑问与反问", "Question & rhetorical"],
+		ab_moch: ["可以（могу）", "can (могу)"],
+		ab_moch_past: ["那时可以（мог）", "could (мог)"],
+		ab_umet: ["会（умею）", "know how (умею)"],
+		ab_umet_past: ["那时会（умел）", "knew how (умел)"],
+		ab_smoch: ["能做成（смогу）", "will manage (смогу)"],
+		ab_udat: ["得以（удалось）", "managed (удалось)"],
+		ab_poluch: ["会成功（получится）", "will succeed (получится)"],
+		ab_sost: ["有能力（в состоянии）", "be in a position (в состоянии)"],
+		ab_nemoch: ["不能（не могу）", "cannot (не могу)"],
+		ca_allow: ["允许（разрешаю）", "permit (разрешаю)"],
+		ca_let: ["让（позволяю）", "let (позволяю)"],
+		ca_give: ["给……做（даю）", "give leave (даю)"],
+		ca_force: ["迫使（заставляю）", "force (заставляю)"],
+		ca_ask: ["请求（прошу）", "ask to (прошу)"],
+		ca_order: ["命令（велю）", "order (велю)"],
+		ca_help: ["帮着做（помогаю）", "help to (помогаю)"],
+		ca_forbid: ["禁止（запрещаю）", "forbid (запрещаю)"],
+		ca_let_me: ["让我做（дай）", "let me (дай)"],
+		ph_start: ["开始（начинаю）", "begin (начинаю)"],
+		ph_become: ["开始经常（стану）", "come to (стану)"],
+		ph_cont: ["继续（продолжаю）", "continue (продолжаю)"],
+		ph_stop: ["不再（перестаю）", "stop (перестаю)"],
+		ph_finish: ["做完（кончаю）", "finish (кончаю)"],
+		ph_quit: ["放弃（бросаю）", "quit (бросаю)"],
+		ph_habit: ["习惯于（привыкаю）", "get used to (привыкаю)"],
+		ph_again: ["再做一次（снова）", "do again (снова)"],
+		ph_keep: ["一直做（всё … и …）", "keep on (всё … и …)"],
+		he_say: ["据说（говорят）", "they say (говорят)"],
+		he_alleg: ["据称（якобы）", "allegedly (якобы)"],
+		he_mol: ["说是（мол）", "says (мол)"],
+		he_deskat: ["说是（дескать）", "says (дескать)"],
+		he_must: ["想必（должно быть）", "must be (должно быть)"],
+		he_prob: ["大概（наверное）", "probably (наверное)"],
+		he_unlikely: ["未必（вряд ли）", "unlikely (вряд ли)"],
+		he_seem: ["好像（кажется）", "seems (кажется)"],
+		he_suppose: ["假定（предполагается）", "is assumed (предполагается)"],
+		pt_zhe: ["же（强调）", "же (emphasis)"],
+		pt_ved: ["ведь（提醒）", "ведь (reminder)"],
+		pt_to: ["-то（强调）", "-то (emphasis)"],
+		pt_li: ["ли（疑问）", "ли (question)"],
+		pt_ka: ["-ка（缓和）", "-ка (softening)"],
+		pt_hoch: ["хоть（至少）", "хоть (at least)"],
+		pt_uzh: ["уж（确实）", "уж (indeed)"],
+		pt_taki: ["всё-таки（终究）", "всё-таки (after all)"],
+		pt_prosto: ["просто（就是）", "просто (just)"],
+		q_li: ["ли 问句", "ли question"],
+		q_razve: ["разве（难道）", "разве (really?)"],
+		q_neuzheli: ["неужели（难道）", "неужели (can it be?)"],
+		q_whatif: ["что если（万一）", "what if (что если)"],
+		q_neli: ["не … ли（是不是）", "is it not (не … ли)"],
+		q_why: ["почему бы не（何不）", "why not (почему бы не)"],
+		q_how: ["как же не（怎能不）", "how can one not"],
+		q_whynot: ["чем не（何尝不是）", "why not (чем не)"],
 		neg_inf: ["не + 不定式", "не + infinitive"],
 		neg_words: ["ничего / никого 等 + не", "ничего / никого + не"],
 		neg_never: ["никогда не", "никогда не"],
@@ -892,6 +951,68 @@
 		else R(g, L(lang, LAB.m_proh), "не " + full);
 		R(g, L(lang, LAB.m_cond), "если бы " + info.past[0] + " / если бы " + info.past[3]);
 		R(g, L(lang, LAB.m_pot), (info.a === "pf" ? "смог бы " : "мог бы ") + full + " / " + (info.a === "pf" ? "смогла бы " : "могла бы ") + full);
+		// 以下按意思对齐日语、韩语的分组：能愿、许可使役、体阶段、传闻推量、语气词、疑问反问。
+		var p1 = isBe ? info.past[0] : info.pres[0];
+		var p3 = isBe ? info.past[0] : info.pres[2];
+		g = L(lang, LAB.g_abil);
+		R(g, L(lang, LAB.ab_moch), "могу " + full + " / можешь " + full + " / может " + full);
+		R(g, L(lang, LAB.ab_moch_past), "мог " + full + " / могла " + full + " / могли " + full);
+		R(g, L(lang, LAB.ab_umet), "умею " + full + " / умеет " + full);
+		R(g, L(lang, LAB.ab_umet_past), "умел " + full + " / умела " + full);
+		R(g, L(lang, LAB.ab_smoch), "смогу " + full + " / сможет " + full + " / смогут " + full);
+		R(g, L(lang, LAB.ab_udat), "мне удалось " + full + " / ему удалось " + full);
+		R(g, L(lang, LAB.ab_poluch), "у меня получится " + full + " / у него получится " + full);
+		R(g, L(lang, LAB.ab_sost), "в состоянии " + full);
+		R(g, L(lang, LAB.ab_nemoch), "не могу " + full + " / не может " + full);
+		g = L(lang, LAB.g_caus);
+		R(g, L(lang, LAB.ca_allow), "разрешаю " + full + " / разрешу " + full);
+		R(g, L(lang, LAB.ca_let), "позволяю " + full + " / позволю " + full);
+		R(g, L(lang, LAB.ca_give), "даю " + full + " / дам " + full);
+		R(g, L(lang, LAB.ca_force), "заставляю " + full + " / заставлю " + full);
+		R(g, L(lang, LAB.ca_ask), "прошу " + full + " / попрошу " + full);
+		R(g, L(lang, LAB.ca_order), "велю " + full + " / прикажу " + full);
+		R(g, L(lang, LAB.ca_help), "помогаю " + full + " / помогу " + full);
+		R(g, L(lang, LAB.ca_forbid), "запрещаю " + full + " / запрещу " + full);
+		R(g, L(lang, LAB.ca_let_me), "дай(те) " + full + " / разреши(те) " + full);
+		g = L(lang, LAB.g_phase);
+		R(g, L(lang, LAB.ph_start), "начинаю " + full + " / начну " + full);
+		R(g, L(lang, LAB.ph_become), "стану " + full + " / стал " + full);
+		R(g, L(lang, LAB.ph_cont), "продолжаю " + full + " / продолжал " + full);
+		R(g, L(lang, LAB.ph_stop), "перестаю " + full + " / перестану " + full);
+		R(g, L(lang, LAB.ph_finish), "кончаю " + full + " / кончил " + full);
+		R(g, L(lang, LAB.ph_quit), "бросаю " + full + " / бросил " + full);
+		R(g, L(lang, LAB.ph_habit), "привыкаю " + full + " / привык " + full);
+		R(g, L(lang, LAB.ph_again), "снова " + info.past[0] + " / опять " + p1);
+		R(g, L(lang, LAB.ph_keep), "всё " + p3 + " и " + p3);
+		g = L(lang, LAB.g_hear);
+		R(g, L(lang, LAB.he_say), "говорят, что " + p3);
+		R(g, L(lang, LAB.he_alleg), "якобы " + p3);
+		R(g, L(lang, LAB.he_mol), p3 + ", мол, …");
+		R(g, L(lang, LAB.he_deskat), p3 + ", дескать, …");
+		R(g, L(lang, LAB.he_must), "должно быть, " + p3);
+		R(g, L(lang, LAB.he_prob), "наверное, " + p3 + " / видимо, " + p3);
+		R(g, L(lang, LAB.he_unlikely), "вряд ли " + p3 + " / едва ли " + p3);
+		R(g, L(lang, LAB.he_seem), "кажется, " + p3 + " / по-видимому, " + p3);
+		R(g, L(lang, LAB.he_suppose), "предполагается, что " + p3);
+		g = L(lang, LAB.g_part);
+		R(g, L(lang, LAB.pt_zhe), p3 + " же");
+		R(g, L(lang, LAB.pt_ved), "ведь " + p3);
+		R(g, L(lang, LAB.pt_to), base + "-то " + p3);
+		R(g, L(lang, LAB.pt_li), p3 + " ли");
+		R(g, L(lang, LAB.pt_ka), (info.imp ? info.imp[0] : full) + "-ка");
+		R(g, L(lang, LAB.pt_hoch), "хоть " + (info.imp ? info.imp[0] : full));
+		R(g, L(lang, LAB.pt_uzh), "уж " + p1);
+		R(g, L(lang, LAB.pt_taki), "всё-таки " + p3 + " / таки " + p3);
+		R(g, L(lang, LAB.pt_prosto), "просто " + p1);
+		g = L(lang, LAB.g_q);
+		R(g, L(lang, LAB.q_li), p3 + " ли?");
+		R(g, L(lang, LAB.q_razve), "разве " + p3 + "?");
+		R(g, L(lang, LAB.q_neuzheli), "неужели " + p3 + "?");
+		R(g, L(lang, LAB.q_whatif), "что если " + p3 + "?");
+		R(g, L(lang, LAB.q_neli), "не " + p3 + " ли?");
+		R(g, L(lang, LAB.q_why), "почему бы не " + full + "?");
+		R(g, L(lang, LAB.q_how), "как же не " + full + "?");
+		R(g, L(lang, LAB.q_whynot), "чем не " + base + "?");
 		// 否定：не 放在动词前，词形不变。完成体没有现在时，否定落在将来时那组；
 		// быть 的现在时本来就缺，否定只给过去和将来。
 		var n1, npast = [];

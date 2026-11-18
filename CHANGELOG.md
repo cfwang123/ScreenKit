@@ -53,6 +53,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Added
+
+- English and Russian word forms: added 1-6 level sentence patterns, particles, hearsay, ability, causative, aspect and dialect groups to match Japanese and Korean coverage
+
 #### Changed
 
 - Korean conjugation: Ability group lists potential (ㄹ 수 있다), 못 and 지 못하다 for each tense and speech level, and comes before Suggest.
@@ -62,6 +66,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Document viewer: .doc files whose content is entirely floating pictures and text boxes now render page by page instead of showing a blank page
 
 ### 中文
+
+#### 新增
+
+- 英语、俄语词形变化：补齐 1–6 级句型、语气词、传闻、能力、使役、体阶段与方言分组，与日语、韩语的分组对应
 
 #### 变更
 
