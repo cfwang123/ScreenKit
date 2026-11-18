@@ -89,13 +89,12 @@
 	}
 
 	// 示例词表里同一行的释义，按界面语言取中文或英文；那一栏没写就返回空，让调用方去查词典。
-	// 示例后面常跟「 · 」注的活用说明（听 · ㄷ、吃饭 · 带动词宾语），释义只取前半。
+	// 示例后面跟的「 · 」备注（信ずる · ずる型、吃饭 · 带动词宾语）一并显示。
 	SK.verbmeanrow = function(row, zhcol, encol){
 		if (!row) return "";
 		var en = (SK.langcode ? SK.langcode() : "zh").substring(0, 2) === "en";
 		var t = en ? (encol >= 0 ? String(row[encol] || "") : "") : (zhcol >= 0 ? String(row[zhcol] || "") : "");
-		var i = t.indexOf(" · ");
-		return (i >= 0 ? t.substring(0, i) : t).trim();
+		return t.trim();
 	};
 
 	SK.verbpickmean = function(picks, word, match, zhcol, encol){
