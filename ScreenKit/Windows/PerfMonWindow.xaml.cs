@@ -17,8 +17,9 @@ public partial class PerfMonWindow : Window {
 	const double SPARK_H = 12;
 	// 数值列与右边界之间留一个空格的宽度
 	const double SPACEW = 7;
-	// 进程排行每行高度（字号 9 + 上下留白）
-	const double ROWH = 15;
+	// 进程排行每行高度（字号 9 + 上下留白），实测不到时的兜底
+	const double ROWH = 12;
+	double rowhcache;
 	const double RESIZE_EDGE = 6;
 	const int E_LEFT = 1, E_TOP = 2, E_RIGHT = 4, E_BOTTOM = 8;
 	bool resizing;
@@ -472,7 +473,11 @@ public partial class PerfMonWindow : Window {
 		var noteh = tabnote.TryGetValue(key, out var nt) && nt.Visibility == Visibility.Visible ? nt.ActualHeight + nt.Margin.Top : 0;
 		var btnh = tabadmin.TryGetValue(key, out var bb) && bb.Visibility == Visibility.Visible ? bb.ActualHeight + bb.Margin.Top : 0;
 		var headh = host.RowDefinitions[0].ActualHeight + host.RowDefinitions[1].ActualHeight;
-		var fit = (int)((avail - headh - noteh - btnh) / ROWH);
+		// 行高用实测值，折叠掉的量不到就沿用上一次的
+		var rowh = body[0, 0].ActualHeight > 0 ? body[0, 0].ActualHeight + body[0, 0].Margin.Bottom : rowhcache;
+		if (rowh > 0) rowhcache = rowh;
+		if (rowh <= 0) rowh = ROWH;
+		var fit = (int)((avail - headh - noteh - btnh) / rowh);
 		if (fit < 1) fit = 1;
 		if (fit > body.GetLength(0)) fit = body.GetLength(0);
 		for (var r = 0; r < body.GetLength(0); r++) {
