@@ -11,8 +11,10 @@ public partial class PerfMonWindow : Window {
 	readonly Dictionary<string, TextBlock> cells = new();
 	readonly Dictionary<string, PerfSpark> sparks = new();
 	readonly Dictionary<string, List<(int tick, double v)>> history = new();
-		const int SPAN_MS = 120000;
+	const int SPAN_MS = 120000;
 	const double SPARK_H = 12;
+	// 数值列与右边界之间留一个空格的宽度
+	const double SPACEW = 7;
 	const double RESIZE_EDGE = 6;
 	const int E_LEFT = 1, E_TOP = 2, E_RIGHT = 4, E_BOTTOM = 8;
 	bool resizing;
@@ -369,10 +371,10 @@ public partial class PerfMonWindow : Window {
 		host.Children.Clear();
 		host.ColumnDefinitions.Clear();
 		host.RowDefinitions.Clear();
-		var widths = new[] { 92.0, 42.0, 46.0, 56.0, 56.0 };
-		for (var c = 0; c < widths.Length; c++)
+		// 数值列按最长内容加一个空格定宽，剩下的全给进程名
+		for (var c = 0; c < 5; c++)
 			host.ColumnDefinitions.Add(new ColumnDefinition {
-				Width = c == 0 ? new GridLength(1, GridUnitType.Star) : new GridLength(widths[c]),
+				Width = c == 0 ? new GridLength(1, GridUnitType.Star) : GridLength.Auto,
 				MinWidth = c == 0 ? 60 : 0,
 			});
 		var heads = new[] { "perf.colname", "perf.cpu", "perf.mem", "perf.disk", "perf.net" };
@@ -382,7 +384,7 @@ public partial class PerfMonWindow : Window {
 				Text = Loc.T(heads[c]),
 				Foreground = headBrush,
 				FontSize = SMALL,
-				Margin = new Thickness(0, 0, c == 0 ? 6 : 4, 2),
+				Margin = new Thickness(0, 0, c == 0 ? 6 : SPACEW, 2),
 				HorizontalAlignment = c == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
 			};
 			Grid.SetRow(lb, 0);
@@ -403,7 +405,7 @@ public partial class PerfMonWindow : Window {
 					Foreground = dimBrush,
 					FontSize = SMALL,
 					TextTrimming = TextTrimming.CharacterEllipsis,
-					Margin = new Thickness(0, 0, c == 0 ? 6 : 4, 1),
+					Margin = new Thickness(0, 0, c == 0 ? 6 : SPACEW, 1),
 					HorizontalAlignment = c == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
 				};
 				Grid.SetRow(lb, r + 2);
