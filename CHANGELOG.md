@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Show each word's meaning in the conjugation result header, multiple senses joined on one line
 - Performance window: a new tab group below shows the top 5 processes by CPU, memory, disk or network, each with all four usage figures; can be turned on or off in the settings
 - Performance window: each metric row now has a mini sparkline and wider value columns
+- SQL dialect conversion: date and time functions are rewritten for the target dialect (DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB, DATEDIFF/TIMESTAMPDIFF in both directions, DATE_TRUNC/DATETRUNC/TRUNC, DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT styles, EXTRACT/YEAR and other date parts, UNIX_TIMESTAMP, LAST_DAY, CONCAT, IFNULL/ISNULL/NVL, LEN/LENGTH, RAND/NEWID/UUID), nested calls and SELECT statements included, identifiers re-quoted and dbo. dropped; dialects that cannot keep a function default (SQLite, MySQL before 5.7) drop it and say so, and the window reports how many functions were rewritten
 
 #### Changed
 
@@ -67,6 +68,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Performance window: the two columns now split the width evenly, the sparkline fills any spare width, and the window resizes by dragging any edge
 - Perf window: the process ranking is no longer capped at 5 rows - it fills whatever height the window gives it
 - SQL dialect conversion: the preview is now split into an editable source box and a result box; auto-detects the engine while you type.
+- SQL dialect conversion window: the source and target engine and version dropdowns stay enabled before any script is loaded, so a dialect can be picked first
 
 #### Fixed
 
@@ -82,6 +84,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 变形结果表头显示词语释义，多个义项用「; 」并成一行
 - 性能监控小窗下方新增 CPU、内存、硬盘、网络 tab；选中后列出该项目占用最多的 5 个进程，并显示四项占用；可在参数设置和右键菜单中开关
 - 性能监控：每个监控项前面加了一条迷你折线图，数值列加宽
+- SQL 方言转换：日期时间函数按目标方言改写（DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB、双向的 DATEDIFF/TIMESTAMPDIFF、DATE_TRUNC/DATETRUNC/TRUNC、DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT 样式号、EXTRACT/YEAR 等日期部分、UNIX_TIMESTAMP、LAST_DAY、CONCAT、IFNULL/ISNULL/NVL、LEN/LENGTH、RAND/NEWID/UUID），嵌套调用与 SELECT 语句一并处理，标识符引号跟着换、dbo. 前缀去掉；目标方言无法保留函数默认值时（SQLite、5.7 之前的 MySQL）去掉并说明，窗口里显示改写了多少处函数
 
 #### 变更
 
@@ -90,6 +93,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 性能监控：两列各占一半宽度，折线自动占满剩余空间；窗口可拖动四边/角调整大小
 - 性能监控：进程排行不再限制 5 行，窗口有多高就显示多少行
 - SQL 方言转换：结果框拆成可编辑的源脚本框和转换结果框，输入时自动识别引擎并刷新结果。
+- SQL 方言转换窗口：没载入脚本时源与目标引擎、版本下拉也可选，可以先定方言再输入脚本
 
 #### 修复
 

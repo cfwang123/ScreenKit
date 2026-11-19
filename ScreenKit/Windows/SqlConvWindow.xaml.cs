@@ -165,15 +165,10 @@ public partial class SqlConvWindow : Window {
 
 	Version dstver() => edstver.SelectedItem is SqlTargets.Item it ? it.Version : SqlEngines.Default(dste());
 
+	// 引擎、版本和选项不受有没有脚本影响：先选好方言再输入也能正常工作
 	void enableui(bool on) {
 		bconvert.IsEnabled = on;
 		bsave.IsEnabled = on && last != null && last.Text.Length > 0;
-		esrceng.IsEnabled = on;
-		esrcver.IsEnabled = on;
-		edsteng.IsEnabled = on;
-		edstver.IsEnabled = on;
-		cbdrop.IsEnabled = on;
-		cbcomment.IsEnabled = on;
 	}
 
 	void browse() {
@@ -230,6 +225,12 @@ public partial class SqlConvWindow : Window {
 
 	/// <summary>识别源引擎和版本并把结果填进下拉；用户手动指定了引擎就只换版本。</summary>
 	void redetect() {
+		// 还没有脚本时不猜方言：让下拉保持用户手选的值
+		if (sourceText.Trim().Length == 0) {
+			LastDetect = null;
+			lbdeteced.Text = "";
+			return;
+		}
 		var d = SqlScript.Detect(sourceText);
 		LastDetect = d;
 		lbdeteced.Text = d.Reasons.Count > 0
@@ -300,6 +301,10 @@ public partial class SqlConvWindow : Window {
 		bsave.IsEnabled = true;
 		var msg = Loc.T("sqlconv.done", last.Tables, last.Rows, last.Indexes);
 		if (last.Kept > 0) msg += "  " + Loc.T("sqlconv.kept", last.Kept);
+		if (last.Funcs > 0) msg += "  " + Loc.T("sqlconv.funcs", last.Funcs);
+		if (last.Skipped.Count > 0)
+			msg += "\r\n" + Loc.T("sqlconv.skipped", last.Skipped.Count, string.Join("、", last.Skipped.ToArray()));
+		foreach (var w in last.Warnings) msg += "\r\n" + w;
 		lbstat.Text = msg;
 	}
 

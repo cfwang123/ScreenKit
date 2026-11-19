@@ -7933,7 +7933,9 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 			Err("FAIL: " + res.Error);
 			return 1;
 		}
-		Out($"目标：{SqlEngines.Label(dst, ver ?? SqlEngines.Default(dst))}  表 {res.Tables}  行 {res.Rows}  索引 {res.Indexes}  保留 {res.Kept}");
+		Out($"目标：{SqlEngines.Label(dst, ver ?? SqlEngines.Default(dst))}  表 {res.Tables}  行 {res.Rows}  索引 {res.Indexes}  保留 {res.Kept}  函数 {res.Funcs}");
+		foreach (var w in res.Warnings) Out("  ! " + w);
+		if (res.Skipped.Count > 0) Out("  ? 认不出写法的函数：" + string.Join("、", res.Skipped.ToArray()));
 		if (outp != null) {
 			SqlScript.WriteText(outp, res.Text);
 			Out("已写 " + outp);
@@ -8105,6 +8107,57 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 		}
 		else if (toMs.Text.IndexOf("'中文'", StringComparison.Ordinal) < 0) {
 			Err("FAIL: SQL Server 中文未按普通单引号输出");
+			bad++;
+		}
+
+		// 函数改写：日期时间函数按目标方言换写法
+		var fn = SqlScript.Convert(
+			"CREATE TABLE `t` (`id` int NOT NULL AUTO_INCREMENT, `at` datetime DEFAULT CURRENT_TIMESTAMP, `u` char(36) DEFAULT (UUID()));\n" +
+			"SELECT DATE_FORMAT(NOW(), '%Y-%m-%d') d, DATEDIFF(NOW(), '2024-01-01') a, " +
+			"DATEDIFF(HOUR, '2024-01-01', '2024-01-02') b, DATE_ADD(NOW(), INTERVAL 30 DAY) c, " +
+			"TIMESTAMPDIFF(MINUTE, '2024-01-01', NOW()) e FROM `t`;\n",
+			new SqlConvertOptions {
+				Source = SqlEngine.Mysql, SourceVersion = new Version(8, 0),
+				Target = SqlEngine.Mssql, TargetVersion = new Version(16, 0),
+			});
+		// 目标 SQL Server 时 NOW() 落到 GETDATE()，格式串换成样式号
+		if (fn.Text.IndexOf("CONVERT(varchar, GETDATE(), 23)", StringComparison.Ordinal) < 0) {
+			Err("FAIL: DATE_FORMAT 没换成 CONVERT 样式号");
+			bad++;
+		}
+		if (fn.Text.IndexOf("DATEDIFF(day, '2024-01-01', GETDATE())", StringComparison.Ordinal) < 0) {
+			Err("FAIL: DATEDIFF 两参数没有按天数换算");
+			bad++;
+		}
+		if (fn.Text.IndexOf("DATEDIFF(hour, '2024-01-01', '2024-01-02')", StringComparison.Ordinal) < 0) {
+			Err("FAIL: DATEDIFF 三参数的单位丢失");
+			bad++;
+		}
+		if (fn.Text.IndexOf("DATEADD(day, 30, GETDATE())", StringComparison.Ordinal) < 0) {
+			Err("FAIL: DATE_ADD + INTERVAL 没换成 DATEADD");
+			bad++;
+		}
+		if (fn.Text.IndexOf("DATEDIFF(minute, '2024-01-01', GETDATE())", StringComparison.Ordinal) < 0) {
+			Err("FAIL: TIMESTAMPDIFF 没有换成 DATEDIFF");
+			bad++;
+		}
+		if (fn.Funcs < 5) {
+			Err($"FAIL: 函数改写计数 {fn.Funcs}");
+			bad++;
+		}
+		// 同一个脚本转 PostgreSQL，日期函数方向也要跟着目标方言换
+		var fnpg = SqlScript.Convert(
+			"SELECT DATEDIFF(DAY, '2024-01-01', '2024-02-01') d, YEAR(CURRENT_TIMESTAMP) y;\n",
+			new SqlConvertOptions {
+				Source = SqlEngine.Mysql, SourceVersion = new Version(8, 0),
+				Target = SqlEngine.Postgres, TargetVersion = new Version(16, 0),
+			});
+		if (fnpg.Text.IndexOf("CAST(('2024-02-01' AS date) - ('2024-01-01' AS date)", StringComparison.Ordinal) < 0) {
+			Err("FAIL: PostgreSQL 的 DATEDIFF 方向不对");
+			bad++;
+		}
+		if (fnpg.Text.IndexOf("EXTRACT(year FROM CURRENT_TIMESTAMP)", StringComparison.Ordinal) < 0) {
+			Err("FAIL: PostgreSQL 的 YEAR 没换成 EXTRACT");
 			bad++;
 		}
 

@@ -127,6 +127,12 @@ sealed class SqlConvertResult {
 	public long Rows;
 	/// <summary>原样保留、未做方言改写的语句数（复杂语句会保留原文）。</summary>
 	public int Kept;
+	/// <summary>改写了写法的函数调用数。</summary>
+	public int Funcs;
+	/// <summary>认不出写法、按原样保留的函数名，如 DATEDIFF(mi,..) 的单位写成了别的。</summary>
+	public readonly List<string> Skipped = new();
+	/// <summary>目标方言做不到、只能退让的写法，连原因一起提示。</summary>
+	public readonly List<string> Warnings = new();
 	public string Error = "";
 }
 
@@ -431,7 +437,7 @@ static class SqlScript {
 		foreach (var t in tables) {
 			if (t.Columns.Count == 0) continue;
 			if (o.KeepComments && t.Comment.Length > 0) sb.Append("-- ").Append(t.Comment).Append("\r\n");
-			sb.Append(createtable(t, dst, dver, o.WithDrop));
+			sb.Append(createtable(t, src, dst, dver, o.WithDrop, res));
 			foreach (var ix in t.Indexes) sb.Append(createindex(t, ix, dst, dver));
 			sb.Append("\r\n");
 			res.Tables++;
@@ -445,7 +451,8 @@ static class SqlScript {
 		}
 		if (others.Count > 0) {
 			sb.Append("-- ").Append(Loc.T("sqlconv.header.kept", others.Count)).Append("\r\n");
-			foreach (var s in others) sb.Append(wrapkeep(s, dst)).Append("\r\n");
+			// 原样保留的语句也过一遍函数改写：SELECT 里的日期函数照样换个写法
+			foreach (var s in others) sb.Append(wrapkeep(sqlfunc(s, src, dst, dver, res), dst)).Append("\r\n");
 			res.Kept = others.Count;
 		}
 		appendfooter(sb, dst, tables);
@@ -500,7 +507,7 @@ static class SqlScript {
 
 	// ==================== 建表 ====================
 
-	static string createtable(SqlCvTable t, SqlEngine dst, Version ver, bool withdrop) {
+	static string createtable(SqlCvTable t, SqlEngine src, SqlEngine dst, Version ver, bool withdrop, SqlConvertResult res) {
 		var tn = qname(dst, t.Name, ver);
 		var sb = new StringBuilder();
 		if (withdrop) sb.Append(dropof(t.Name, dst, ver));
@@ -516,10 +523,10 @@ static class SqlScript {
 		for (var i = 0; i < t.Columns.Count; i++) {
 			var c = t.Columns[i];
 			var line = $"  {qname(dst, c.Name, ver)} {typetext(c, dst, ver)}";
-			var def = defaultof(c, dst, ver);
+			var def = defaultology(c, src, dst, ver, res);
 			if (def.Length > 0) line += " DEFAULT " + def;
 			// SQLite 生成列只能 PERSISTED/VIRTUAL，PostgreSQL 只写 GENERATED ALWAYS AS (...)
-			if (c.Generated.Length > 0) line += generatedof(c.Generated, dst, ver);
+			if (c.Generated.Length > 0) line += generatedof(c.Generated, src, dst, ver);
 			// SQLite 的 AUTOINCREMENT 跟主键一起写在列上；Postgres/Oracle 的 IDENTITY 要单独带上
 			if (c.Identity && !(i == inline && dst == SqlEngine.Sqlite)) line += identityof(dst, c, ver);
 			if (!c.Nullable) line += " NOT NULL";
@@ -611,8 +618,8 @@ static class SqlScript {
 	}
 
 	/// <summary>生成列：各方言写法不同，目标不支持就退化成普通列（数据里带着算好的值）。</summary>
-	static string generatedof(string expr, SqlEngine dst, Version ver) {
-		var body = requote(expr, dst);
+	static string generatedof(string expr, SqlEngine src, SqlEngine dst, Version ver) {
+		var body = requote(expr, src, dst);
 		switch (dst) {
 		case SqlEngine.Postgres:
 			return $" GENERATED ALWAYS AS ({body}) STORED";
@@ -628,27 +635,44 @@ static class SqlScript {
 		}
 	}
 
-	/// <summary>生成列表达式里的反引号/方括号标识符换成目标引号。</summary>
-	static string requote(string expr, SqlEngine dst) {
-		var outText = new StringBuilder(expr.Length + 8);
+	/// <summary>把源方言的标识符引号换成目标方言的；单引号里的内容不动</summary>
+	static string requote(string expr, SqlEngine src, SqlEngine dst) {
+		if (string.IsNullOrEmpty(expr)) return expr;
+		var sb = new StringBuilder(expr.Length + 8);
 		var i = 0;
 		while (i < expr.Length) {
 			var ch = expr[i];
-			if (ch == '`' || ch == '[' || (ch == '"' && dst != SqlEngine.Postgres && dst != SqlEngine.Oracle)) {
+			if (ch == '\'') {
+				var start = i;
+				i++;
+				while (i < expr.Length) {
+					if (expr[i] == '\'') {
+						if (i + 1 < expr.Length && expr[i + 1] == '\'') {
+							i += 2;
+							continue;
+						}
+						i++;
+						break;
+					}
+					i++;
+				}
+				sb.Append(expr.Substring(start, i - start));
+				continue;
+			}
+			// 双引号在 MySQL 默认是字符串，只有 ANSI 模式下才是标识符
+			if (ch == '`' || ch == '[' || (ch == '"' && src != SqlEngine.Mysql)) {
 				var close = ch == '[' ? ']' : ch;
 				var j = expr.IndexOf(close, i + 1);
 				if (j > 0) {
-					var name = expr.Substring(i + 1, j - i - 1);
-					outText.Append(qname(dst, name, null));
+					sb.Append(qname(dst, expr.Substring(i + 1, j - i - 1), null));
 					i = j + 1;
 					continue;
 				}
 			}
-			outText.Append(ch);
+			sb.Append(ch);
 			i++;
 		}
-		// MySQL 的 CONCAT(x,y) 在其它方言里写法相同，原样留着
-		return outText.ToString();
+		return sb.ToString();
 	}
 
 	static string identityof(SqlEngine d, SqlCvColumn c, Version ver) {
@@ -724,7 +748,7 @@ static class SqlScript {
 				var col = t != null && i < cols.Count
 					? t.Columns.Find(x => same(x.Name, cols[i]))
 					: null;
-				sb.Append(literal(row[i], o.Source, d, col, ver));
+				sb.Append(literal(row[i], o.Source, d, col, ver, res));
 			}
 			sb.Append(')');
 			n++;
@@ -740,8 +764,8 @@ static class SqlScript {
 		return sb.ToString();
 	}
 
-	/// <summary>字面量按源方言解析、按目标方言重新书写；解析不了的（函数表达式）原样搬过去。</summary>
-	static string literal(string raw, SqlEngine src, SqlEngine dst, SqlCvColumn col, Version ver) {
+	/// <summary>字面量按源方言解析、按目标方言重新书写；函数表达式交给函数改写，认不出才原样搬过去。</summary>
+	static string literal(string raw, SqlEngine src, SqlEngine dst, SqlCvColumn col, Version ver, SqlConvertResult res) {
 		var v = (raw ?? "").Trim();
 		if (v.Length == 0) return "NULL";
 		if (same(v, "null")) return "NULL";
@@ -760,26 +784,11 @@ static class SqlScript {
 				return v == "1" ? "TRUE" : "FALSE";
 			return v;
 		}
-		// 函数、CASE、子查询：能在文本层安全换掉的常见时间函数处理一下
-		var fn = Regex.Match(v, @"^(getdate|getutcdate|now|sysdate|current_timestamp|newid|uuid|uuid_generate_v4)\s*\(\s*\)$",
-			RegexOptions.IgnoreCase);
-		if (fn.Success) {
-			var name = fn.Groups[1].Value.ToLowerInvariant();
-			switch (name) {
-			case "getdate":
-			case "now":
-			case "sysdate":
-			case "current_timestamp":
-				if (dst == SqlEngine.Mssql) return "GETDATE()";
-				if (dst == SqlEngine.Oracle) return "SYSDATE";
-				return "CURRENT_TIMESTAMP";
-			case "getutcdate":
-				return dst == SqlEngine.Mssql ? "GETUTCDATE()" : dst == SqlEngine.Postgres ? "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')" : "CURRENT_TIMESTAMP";
-			default:
-				return dst == SqlEngine.Mssql ? "NEWID()" : dst == SqlEngine.Mysql ? "(UUID())" : dst == SqlEngine.Postgres ? "gen_random_uuid()" : "SYS_GUID()";
-			}
-		}
-		return v;
+		var fn = sqlfunc(v, src, dst, ver, res);
+		// PostgreSQL 的布尔列不接受 0/1，字面量被改写成数字时补一次
+		if (dst == SqlEngine.Postgres && col != null && col.Kind == SqlTypeKind.Bool && (v == "0" || v == "1"))
+			return v == "1" ? "TRUE" : "FALSE";
+		return fn;
 	}
 
 	static string boolval(bool b, SqlEngine d) {
@@ -1060,54 +1069,54 @@ static class SqlScript {
 
 	// ==================== 默认值 ====================
 
-	static string defaultof(SqlCvColumn c, SqlEngine d, Version ver) {
+	/// <summary>默认值落到建表语句：SQLite 与老版本 MySQL 不认函数默认值，只能去掉</summary>
+	static string defaultology(SqlCvColumn c, SqlEngine src, SqlEngine dst, Version ver, SqlConvertResult res) {
+		var def = defaultof(c, src, dst, ver, res);
+		if (def.Length == 0) return def;
+		if (dst == SqlEngine.Sqlite) {
+			if (def.Contains('(')) {
+				if (res != null) res.Warnings.Add(Loc.T("sqlconv.warn.sqlitedefault", c.Name));
+				return "";
+			}
+			return def;
+		}
+		// MySQL 5.7 起才允许除 CURRENT_TIMESTAMP 之外的表达式默认值
+		if (dst == SqlEngine.Mysql && def.Contains('(')
+			&& !Regex.IsMatch(def, @"^(CURRENT_TIMESTAMP|NOW|LOCALTIME|LOCALTIMESTAMP)\b", RegexOptions.IgnoreCase)) {
+			if (ver == null || ver < new Version(5, 7)) {
+				if (res != null) res.Warnings.Add(Loc.T("sqlconv.warn.mysqldefault", SqlEngines.Label(SqlEngine.Mysql, ver), c.Name));
+				return "";
+			}
+		}
+		return def;
+	}
+
+	/// <summary>默认值：字面量按目标方言重写，函数表达式交给函数改写</summary>
+	static string defaultof(SqlCvColumn c, SqlEngine src, SqlEngine d, Version ver, SqlConvertResult res) {
 		var raw = (c.Default ?? "").Trim();
 		if (raw.Length == 0) return "";
 		var low = raw.ToLowerInvariant();
 		if (low is "null") return "";
+		// 序列的默认值由 IDENTITY / SERIAL 接管
 		if (low.StartsWith("nextval(", StringComparison.Ordinal) || low.Contains(".nextval")) return "";
-		// now() / CURRENT_TIMESTAMP(3)：参数只对 MySQL 有意义，其余方言去掉，免得建表报语法错
-		var tsm = Regex.Match(low, @"^(?:now|current_timestamp|localtime|localtimestamp|getdate|getutcdate)\s*(?:\((\d*)\))?$");
-		if (tsm.Success) {
-			if (low.StartsWith("getutcdate", StringComparison.Ordinal)) {
-				return d switch {
-					SqlEngine.Mssql => "GETUTCDATE()",
-					SqlEngine.Postgres => "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')",
-					SqlEngine.Sqlite => "CURRENT_TIMESTAMP",
-					SqlEngine.Mysql => "UTC_TIMESTAMP(3)",
-					_ => "SYS_EXTRACT_UTC(SYSTIMESTAMP)",
-				};
-			}
-			if (d == SqlEngine.Mysql && tsm.Groups[1].Success && tsm.Groups[1].Value.Length > 0
-				&& ver >= new Version(5, 6)) return "CURRENT_TIMESTAMP(" + tsm.Groups[1].Value + ")";
-			return "CURRENT_TIMESTAMP";
+		if (low is "true" or "false") {
+			var b = low == "true";
+			return boolval(b, d);
 		}
-		if (low is "current_timestamp" or "current_date" or "current_time")
-			return raw.ToUpperInvariant();
-		// 布尔默认值
 		if (low is "0" or "1" && c.Kind == SqlTypeKind.Bool) {
 			if (d == SqlEngine.Postgres) return low == "1" ? "TRUE" : "FALSE";
 			return low;
 		}
-		if (low is "true" or "false") {
-			var b = low == "true";
-			if (d == SqlEngine.Postgres) return b ? "TRUE" : "FALSE";
-			return b ? "1" : "0";
-		}
-		// 字符串字面量：MySQL 可能带反斜杠转义，按目标重写
-		if (low == "uuid_generate_v4()" || low == "newid()" || low == "gen_random_uuid()") {
-			if (d == SqlEngine.Mssql) return "NEWID()";
-			if (d == SqlEngine.Mysql) return "(UUID())";
-			if (d == SqlEngine.Postgres) return "gen_random_uuid()";
-			return "";
-		}
+		// current_date / current_time 不带括号也算函数，MySQL 里尤其常见
+		if (same(low, "current_date")) return d == SqlEngine.Oracle ? "TRUNC(SYSDATE)" : "CURRENT_DATE";
+		if (same(low, "current_time")) return "CURRENT_TIME";
 		if (raw[0] == '\'' || (raw.Length > 1 && raw[0] is 'N' or 'n' && raw[1] == '\'')) {
 			var q = raw[0] == '\'' ? raw : raw.Substring(1);
 			var s = unquote(q, SqlEngine.Mysql);
 			return strval(s, d, c, ver);
 		}
 		if (Regex.IsMatch(raw, @"^[-+]?(\d+(\.\d*)?|\.\d+)$")) return raw;
-		return raw;
+		return sqlfunc(raw, src, d, ver, res);
 	}
 
 	// ==================== 语句拆分 ====================
@@ -1677,6 +1686,835 @@ static class SqlScript {
 			i = close + 1;
 		}
 		return ins.Rows.Count > 0 ? ins : null;
+	}
+
+	// ==================== 函数改写 ====================
+
+	/// <summary>函数名集合，比较时不分大小写</summary>
+	sealed class SqlNameSet {
+		readonly HashSet<string> set;
+
+		public SqlNameSet(params string[] names) => set = new HashSet<string>(names, StringComparer.OrdinalIgnoreCase);
+
+		public bool Has(string n) => set.Contains(n ?? "");
+	}
+
+	/// <summary>认得出写法的函数名；不在表里的函数一律原样保留</summary>
+	static readonly SqlNameSet SvFuncs = new(
+		"now", "getdate", "sysdate", "systimestamp", "current_timestamp", "current_date", "current_time",
+		"localtime", "localtimestamp", "getutcdate", "utc_timestamp",
+		"dateadd", "date_add", "adddate", "add_months", "date_sub", "subdate",
+		"datediff", "date_diff", "timestampdiff", "months_between",
+		"datetrunc", "date_trunc", "trunc", "strftime", "datetime", "date_format",
+		"to_char", "convert", "format", "date", "year", "month", "day", "hour", "minute", "second",
+		"dayofweek", "weekday", "dayofyear", "quarter", "extract", "datepart", "datename",
+		"unix_timestamp", "from_unixtime", "julianday", "str_to_date", "to_date", "to_timestamp",
+		"last_day", "eomonth",
+		"ifnull", "isnull", "nvl", "coalesce", "nullif", "concat", "concat_ws",
+		"len", "length", "charindex", "instr", "locate", "left", "right",
+		"random", "rand", "newid", "uuid", "gen_random_uuid", "sys_guid", "uuid_generate_v4",
+		"iif", "if", "ceiling", "ceil");
+
+	/// <summary>去掉源方言的标识符引号：反引号、方括号、双引号都按普通名字处理</summary>
+	static string barename(string s) {
+		var t = (s ?? "").Trim();
+		if (t.Length >= 2 && t[0] == '`' && t[^1] == '`') t = t.Substring(1, t.Length - 2).Replace("``", "`");
+		if (t.Length >= 2 && t[0] == '[' && t[^1] == ']') t = t.Substring(1, t.Length - 2).Replace("]]", "]");
+		if (t.Length >= 2 && t[0] == '"' && t[^1] == '"') t = t.Substring(1, t.Length - 2).Replace("\"\"", "\"");
+		return t;
+	}
+
+	/// <summary>这个名字是否值得改写：带点的是 schema.fn，不动</summary>
+	static bool knownfunc(string name) {
+		var n = barename(name).ToLowerInvariant();
+		return n.Length > 0 && !n.Contains('.') && SvFuncs.Has(n);
+	}
+
+	/// <summary>把「名字 + 参数」拆出来；不是函数调用返回 false</summary>
+	static bool callof(string v, out string name, out List<string> args) {
+		name = "";
+		args = null;
+		var s = (v ?? "").Trim();
+		var i = 0;
+		while (i < s.Length && (char.IsLetterOrDigit(s[i]) || s[i] == '_' || s[i] == '$' || s[i] == '#')) i++;
+		if (i == 0) return false;
+		name = s.Substring(0, i);
+		var j = skipws(s, i);
+		if (j >= s.Length || s[j] != '(') return false;
+		var close = matchparen(s, j);
+		if (close < 0) return false;
+		if (s.Substring(close + 1).Trim().Length > 0) return false;
+		args = splitargs(s.Substring(j + 1, close - j - 1)).ConvertAll(x => x.Trim());
+		args.RemoveAll(x => x.Length == 0);
+		return true;
+	}
+
+	/// <summary>再往后套一层运算时补括号，别把优先级拆散</summary>
+	static string sqlnest(string s) {
+		var t = (s ?? "").Trim();
+		if (t.Length == 0) return t;
+		if (Regex.IsMatch(t, @"^[A-Za-z_][A-Za-z0-9_]*$")) return t;
+		if (Regex.IsMatch(t, @"^[A-Za-z_][A-Za-z0-9_]*\s*\(.*\)$")) return t;
+		if (Regex.IsMatch(t, @"^[-+]?(\d+(\.\d*)?|\.\d+)$")) return t;
+		if (t.Length > 1 && t[0] == '\'' && t[^1] == '\'') return t;
+		return "(" + t + ")";
+	}
+
+	/// <summary>日期部分名统一成 SQL Server 的写法；认不出的返回空串</summary>
+	static string datepart(string p) {
+		var s = (p ?? "").Trim().ToLowerInvariant().Trim('\'', '"');
+		if (s.StartsWith("interval ", StringComparison.Ordinal)) {
+			var sp = s.LastIndexOf(' ');
+			s = sp > 0 ? s.Substring(sp + 1) : s;
+		}
+		switch (s) {
+		case "year" or "yyyy" or "yy" or "y":
+			return "year";
+		case "quarter" or "qq" or "q":
+			return "quarter";
+		case "month" or "mon" or "mm" or "m":
+			return "month";
+		case "day" or "dd" or "d":
+			return "day";
+		case "dayofyear" or "dy":
+			return "dayofyear";
+		case "week" or "wk" or "ww" or "weekofyear" or "isoweek":
+			return "week";
+		case "weekday" or "dw" or "w":
+			return "weekday";
+		case "hour" or "hh":
+			return "hour";
+		case "minute" or "mi" or "n":
+			return "minute";
+		case "second" or "ss" or "s" or "sec":
+			return "second";
+		case "millisecond" or "ms":
+			return "millisecond";
+		case "microsecond" or "mcs" or "us":
+			return "microsecond";
+		case "nanosecond" or "ns":
+			return "nanosecond";
+		default:
+			return "";
+		}
+	}
+
+	/// <summary>SQL Server 的 DATEPART 不认 year 之外的别名，统一写全称</summary>
+	static string mssqlunit(string part) => part is "dayofyear" or "weekday" or "millisecond" or "microsecond"
+		or "nanosecond" ? part : part;
+
+	/// <summary>从日期取一项：SQL Server 走 DATEPART，其余走 EXTRACT</summary>
+	static string partof(string unit, string x, SqlEngine dst) {
+		var v = sqlnest(x);
+		if (dst == SqlEngine.Mssql) return $"DATEPART({mssqlunit(unit)}, {v})";
+		if (dst == SqlEngine.Mysql) {
+			var m = unit switch {
+				"year" => "YEAR",
+				"month" => "MONTH",
+				"day" => "DAY",
+				"hour" => "HOUR",
+				"minute" => "MINUTE",
+				"second" => "SECOND",
+				"quarter" => "QUARTER",
+				"week" => "WEEK",
+				_ => "",
+			};
+			if (m.Length > 0) return $"{m}({v})";
+			return "";
+		}
+		if (dst == SqlEngine.Sqlite) {
+			var f = unit switch {
+				"year" => "%Y",
+				"month" => "%m",
+				"day" => "%d",
+				"hour" => "%H",
+				"minute" => "%M",
+				"second" => "%S",
+				_ => "",
+			};
+			if (f.Length > 0) return $"CAST(strftime('{f}', {v}) AS INTEGER)";
+			if (unit == "dayofyear") return $"CAST(strftime('%j', {v}) AS INTEGER)";
+			return "";
+		}
+		// Oracle 没有 EXTRACT(dayofyear)，要借 TO_CHAR
+		if (dst == SqlEngine.Oracle) {
+			if (unit == "dayofyear") return $"TO_NUMBER(TO_CHAR({v}, 'DDD'))";
+			if (unit == "dayofweek") return $"TO_NUMBER(TO_CHAR({v}, 'D'))";
+			if (unit == "weekday") return $"TO_NUMBER(TO_CHAR({v}, 'D')) - 1";
+			if (unit is "week") return $"TO_NUMBER(TO_CHAR({v}, 'IW'))";
+		}
+		return $"EXTRACT({unit} FROM {v})";
+	}
+
+	/// <summary>目标方言里的当前时间（服务器时区）</summary>
+	static string curval(SqlEngine dst) => dst switch {
+		SqlEngine.Mssql => "GETDATE()",
+		SqlEngine.Oracle => "SYSDATE",
+		SqlEngine.Sqlite => "datetime('now')",
+		_ => "CURRENT_TIMESTAMP",
+	};
+
+	/// <summary>目标方言里的当前 UTC 时间；精度只对 MySQL 有意义</summary>
+	static string utcval(int precision, SqlEngine dst, Version ver) {
+		var ms = ver != null && ver >= new Version(5, 6);
+		return dst switch {
+			SqlEngine.Mssql => "GETUTCDATE()",
+			SqlEngine.Mysql => precision > 0 && ms ? $"UTC_TIMESTAMP({precision})" : "UTC_TIMESTAMP()",
+			SqlEngine.Sqlite => "CURRENT_TIMESTAMP",
+			SqlEngine.Oracle => "SYS_EXTRACT_UTC(SYSTIMESTAMP)",
+			_ => "(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')",
+		};
+	}
+
+	/// <summary>目标方言里的本地时间；只要日期就给当天零点</summary>
+	static string localval(bool dateonly, SqlEngine dst) => dst switch {
+		SqlEngine.Mssql => dateonly ? "CAST(GETDATE() AS date)" : "GETDATE()",
+		SqlEngine.Oracle => dateonly ? "TRUNC(SYSDATE)" : "SYSDATE",
+		SqlEngine.Mysql => dateonly ? "CURDATE()" : "NOW()",
+		_ => dateonly ? "date('now','localtime')" : "datetime('now','localtime')",
+	};
+
+	/// <summary>目标方言里只保留日期部分的值</summary>
+	static string dateval(string x, SqlEngine dst) => dst switch {
+		SqlEngine.Mssql => $"CAST({sqlnest(x)} AS date)",
+		SqlEngine.Oracle => $"TRUNC({sqlnest(x)})",
+		SqlEngine.Mysql => $"DATE({sqlnest(x)})",
+		_ => $"date({sqlnest(x)})",
+	};
+
+	/// <summary>把 strftime 风格的格式串落到目标方言；不认识的返回空串</summary>
+	static string fmtout(string strf, SqlEngine dst) {
+		var s = strf ?? "";
+		if (s.Length == 0 || !s.Contains('%')) return "";
+		if (dst == SqlEngine.Sqlite || dst == SqlEngine.Postgres) return s;
+		if (dst == SqlEngine.Mysql) return s.Replace("%M", "%i").Replace("%S", "%s");
+		if (dst == SqlEngine.Mssql) {
+			// SQL Server 只有固定的样式号，认不准就不转
+			if (s is "%Y-%m-%d") return "23";
+			if (s is "%Y%m%d") return "112";
+			if (s is "%Y-%m-%d %H:%M:%S") return "120";
+			if (s is "%Y-%m-%d %H:%M:%S.%f") return "121";
+			if (s is "%H:%M:%S") return "108";
+			return "";
+		}
+		return s.Replace("%Y", "YYYY").Replace("%m", "MM").Replace("%d", "DD")
+			.Replace("%H", "HH24").Replace("%i", "MI").Replace("%s", "SS")
+			.Replace("%M", "MI").Replace("%S", "SS");
+	}
+
+	/// <summary>把 Oracle / SQL Server 的常见格式串换成 strftime 写法；认不准返回空串</summary>
+	static string fmtin(string f) {
+		var s = (f ?? "").Trim().Trim('\'').Trim();
+		if (s.Length == 0) return "";
+		if (s.Contains('%')) return s;
+		var u = s.ToUpperInvariant().Replace("FM", "").Replace("HH24", "%H").Replace("HH12", "%I");
+		var m = Regex.Match(u, @"^(YYYY|RRRR)([-/.])(MM|MON|MONTH)\2(DD)$");
+		if (m.Success) return "%Y" + m.Groups[2].Value + "%m" + m.Groups[2].Value + "%d";
+		if (Regex.IsMatch(u, @"^(YYYY|RRRR)$")) return "%Y";
+		if (u == "YYYYMMDD") return "%Y%m%d";
+		m = Regex.Match(u, @"^(YYYY|RRRR)([-/.])(MM)\2(DD) (%H|%I):MI:SS$");
+		if (m.Success) return "%Y" + m.Groups[2].Value + "%m" + m.Groups[2].Value + "%d %H:%M:%S";
+		if (u == "%H:MI:SS" || u == "HH24:MI:SS") return "%H:%M:%S";
+		return "";
+	}
+
+	/// <summary>.NET 的日期格式串换成 strftime 写法；认不准返回空串</summary>
+	static string fmtnet(string f) {
+		var t = (f ?? "").Trim().Trim('\'');
+		if (t.Length == 0) return "";
+		if (t.Contains('%')) return t;
+		var s = t
+			.Replace("yyyy", "%Y").Replace("yyy", "%Y").Replace("yy", "%y")
+			.Replace("MMMM", "%B").Replace("MMM", "%b").Replace("MM", "%m")
+			.Replace("dddd", "%A").Replace("ddd", "%a").Replace("dd", "%d")
+			.Replace("HH", "%H").Replace("hh", "%I")
+			.Replace("mm", "%M").Replace("ss", "%S").Replace("fff", "%f").Replace("ff", "%f");
+		if (Regex.IsMatch(s, @"[A-Za-z]{2,}")) return "";
+		return s;
+	}
+
+	/// <summary>DATE_FORMAT / strftime / TO_CHAR 三者互转：fmt 是 strftime 写法，x 是日期表达式</summary>
+	static string formatval(string strf, string x, SqlEngine dst) {
+		var f = fmtout(strf, dst);
+		if (f.Length == 0) return null;
+		var v = sqlnest(x);
+		if (dst == SqlEngine.Postgres) {
+			var of = fmtout(strf, SqlEngine.Oracle);
+			return of.Length == 0 ? null : $"TO_CHAR({v}, '{of}')";
+		}
+		return dst switch {
+			SqlEngine.Mssql => $"CONVERT(varchar, {v}, {f})",
+			SqlEngine.Oracle => $"TO_CHAR({v}, '{f}')",
+			SqlEngine.Mysql => $"DATE_FORMAT({v}, '{f}')",
+			_ => $"strftime('{f}', {v})",
+		};
+	}
+
+	/// <summary>DATEADD / DATE_ADD / ADD_MONTHS / 日期加减：统一成「日期 + 数额 + 单位」</summary>
+	static bool addparts(List<string> a, out string unit, out string amount, out string date) {
+		unit = "";
+		amount = "";
+		date = "";
+		if (a.Count == 3) {
+			unit = datepart(a[0]);
+			amount = a[1];
+			date = a[2];
+		}
+		else if (a.Count == 2) {
+			// MySQL 的 DATE_ADD(d, INTERVAL n unit)
+			if (!Regex.IsMatch(a[1], @"^interval\b", RegexOptions.IgnoreCase)) return false;
+			unit = datepart(a[1]);
+			date = a[0];
+			amount = Regex.Replace(Regex.Replace(a[1], @"^interval\s*", "", RegexOptions.IgnoreCase), @"\s+\w+$", "").Trim();
+		}
+		if (amount.Length == 0) amount = "0";
+		return unit.Length > 0 && date.Length > 0;
+	}
+
+	static string addval(string unit, string amount, string date, SqlEngine dst) {
+		var x = sqlnest(datelit(date, dst));
+		var a = sqlnest(amount);
+		return dst switch {
+			SqlEngine.Mssql => $"DATEADD({mssqlunit(unit)}, {a}, {x})",
+			SqlEngine.Mysql => $"DATE_ADD({x}, INTERVAL {a} {unit})",
+			SqlEngine.Postgres => $"({x} + ({a}) * INTERVAL '1 {unit}')",
+			// SQLite 的日期修饰符只认复数单位
+			SqlEngine.Sqlite => $"datetime({x}, ({a}) || ' {unit}s')",
+			_ => unit switch {
+				"month" => $"ADD_MONTHS({x}, {a})",
+				"quarter" => $"ADD_MONTHS({x}, ({a}) * 3)",
+				"year" => $"ADD_MONTHS({x}, ({a}) * 12)",
+				// Oracle 的日期加数字按天算，更小的单位要换算成一天的比例
+				"day" => $"({x} + {a})",
+				"week" => $"({x} + ({a}) * 7)",
+				"hour" => $"({x} + ({a}) / 24)",
+				"minute" => $"({x} + ({a}) / 1440)",
+				_ => $"({x} + ({a}) / 86400)",
+			},
+		};
+	}
+
+	/// <summary>两个日期按单位求差：方向和 SQL Server 的 DATEDIFF 一致（前减后），按整单位截断</summary>
+	static string diffval(string unit, string d1, string d2, SqlEngine dst) {
+		var x = sqlnest(d1);
+		var y = sqlnest(d2);
+		if (dst == SqlEngine.Mssql) return $"DATEDIFF({mssqlunit(unit)}, {y}, {x})";
+		if (dst == SqlEngine.Mysql) {
+			var q = unit.ToUpperInvariant();
+			if (q is "YEAR" or "QUARTER" or "MONTH" or "WEEK" or "DAY" or "HOUR" or "MINUTE" or "SECOND")
+				return $"TIMESTAMPDIFF({q}, {y}, {x})";
+			return null;
+		}
+		if (dst == SqlEngine.Postgres) {
+			var secs = $"EXTRACT(epoch FROM (({x}) - ({y})))";
+			return unit switch {
+				"day" => $"CAST(({x} AS date) - ({y} AS date) AS integer)",
+				"week" => $"CAST({secs} / 604800 AS integer)",
+				"month" => monthdiff("EXTRACT(year FROM {0}) * 12 + EXTRACT(month FROM {0})", x, y),
+				"quarter" => $"CAST(({monthdiff("EXTRACT(year FROM {0}) * 12 + EXTRACT(month FROM {0})", x, y)}) / 3 AS integer)",
+				"year" => $"CAST(({monthdiff("EXTRACT(year FROM {0}) * 12 + EXTRACT(month FROM {0})", x, y)}) / 12 AS integer)",
+				"hour" => $"CAST({secs} / 3600 AS integer)",
+				"minute" => $"CAST({secs} / 60 AS integer)",
+				"second" => $"CAST({secs} AS integer)",
+				_ => null,
+			};
+		}
+		if (dst == SqlEngine.Oracle) {
+			return unit switch {
+				"day" => $"(TRUNC({x}) - TRUNC({y}))",
+				"hour" => $"TRUNC(({x} - {y}) * 24)",
+				"minute" => $"TRUNC(({x} - {y}) * 1440)",
+				"second" => $"TRUNC(({x} - {y}) * 86400)",
+				"month" => $"TRUNC(MONTHS_BETWEEN({x}, {y}))",
+				"quarter" => $"TRUNC(MONTHS_BETWEEN({x}, {y}) / 3)",
+				"year" => $"TRUNC(MONTHS_BETWEEN({x}, {y}) / 12)",
+				_ => null,
+			};
+		}
+		// SQLite：按儒略日算天数，更小的单位再乘上去
+		var days = $"julianday({x}) - julianday({y})";
+		return unit switch {
+			"day" => $"CAST({days} AS INTEGER)",
+			"week" => $"CAST(({days}) / 7 AS INTEGER)",
+			"hour" => $"CAST(({days}) * 24 AS INTEGER)",
+			"minute" => $"CAST(({days}) * 1440 AS INTEGER)",
+			"second" => $"CAST(({days}) * 86400 AS INTEGER)",
+			"month" => $"CAST(({monthdiff("CAST(strftime('%Y', {0}) AS INTEGER) * 12 + CAST(strftime('%m', {0}) AS INTEGER)", x, y)}) AS INTEGER)",
+			"quarter" => $"CAST(({monthdiff("CAST(strftime('%Y', {0}) AS INTEGER) * 12 + CAST(strftime('%m', {0}) AS INTEGER)", x, y)}) / 3 AS INTEGER)",
+			"year" => $"CAST(({monthdiff("CAST(strftime('%Y', {0}) AS INTEGER) * 12 + CAST(strftime('%m', {0}) AS INTEGER)", x, y)}) / 12 AS INTEGER)",
+			_ => null,
+		};
+	}
+
+	/// <summary>日期字符串在目标方言里的写法：Oracle 要 TO_DATE，其余靠隐式转换</summary>
+	static string datetimeval(string s, SqlEngine dst) {
+		if (dst != SqlEngine.Oracle) return "'" + s + "'";
+		var hasTime = s.Length > 10;
+		var fmt = hasTime ? "YYYY-MM-DD HH24:MI:SS" : "YYYY-MM-DD";
+		var lit = hasTime && s.Length == 16 ? s + ":00" : s;
+		return $"TO_DATE('{lit}', '{fmt}')";
+	}
+
+	/// <summary>日期加减里的日期参数：Oracle 的字符串要显式 TO_DATE 才能参与运算</summary>
+	static string datelit(string x, SqlEngine dst) {
+		if (dst != SqlEngine.Oracle) return x;
+		var m = Regex.Match((x ?? "").Trim(), @"^'((\d{4}-\d{2}-\d{2})([ T]\d{2}:\d{2}(:\d{2}(.\d{1,7})?)?)?)'$");
+		if (!m.Success) return x;
+		return datetimeval(m.Groups[1].Value.Replace('T', ' '), SqlEngine.Oracle);
+	}
+
+	/// <summary>月份差：先各自折成「年 * 12 + 月」，pattern 里的 {0} 换成日期表达式</summary>
+	static string monthdiff(string pattern, string x, string y) =>
+		$"(({pattern.Replace("{0}", x)}) - ({pattern.Replace("{0}", y)}))";
+
+	/// <summary>截断到某个单位：DATE_TRUNC / DATETRUNC / TRUNC(date, fmt)</summary>
+	static string truncval(string unit, string x, SqlEngine dst, Version ver) {
+		var v = sqlnest(x);
+		switch (dst) {
+		case SqlEngine.Postgres:
+			return $"date_trunc('{unit}', {v})";
+		case SqlEngine.Mysql:
+			return unit switch {
+				"day" => $"CAST(DATE({v}) AS datetime)",
+				"week" => $"CAST(DATE_FORMAT({v}, '%Y-%m-%d 00:00:00') AS datetime)",
+				"month" => $"CAST(DATE_FORMAT({v}, '%Y-%m-01 00:00:00') AS datetime)",
+				"quarter" => $"CAST(DATE_FORMAT({v}, '%Y-%m-01 00:00:00') AS datetime)",
+				"year" => $"CAST(DATE_FORMAT({v}, '%Y-01-01 00:00:00') AS datetime)",
+				"hour" => $"CAST(DATE_FORMAT({v}, '%Y-%m-%d %H:00:00') AS datetime)",
+				_ => null,
+			};
+		case SqlEngine.Mssql:
+			if (ver != null && ver.Major >= 16) return $"DATETRUNC({mssqlunit(unit)}, {v})";
+			return $"DATEADD({mssqlunit(unit)}, DATEDIFF({mssqlunit(unit)}, 0, {v}), 0)";
+		case SqlEngine.Sqlite:
+			return unit switch {
+				"day" => $"date({v})",
+				"week" => $"date({v})",
+				"month" => $"date({v}, 'start of month')",
+				"quarter" => $"date({v}, 'start of month', '-' || ((CAST(strftime('%m', {v}) AS INTEGER) - 1) % 3) || ' months')",
+				"year" => $"date({v}, 'start of year')",
+				"hour" => $"strftime('%Y-%m-%d %H:00:00', {v})",
+				_ => null,
+			};
+		default:
+			return unit switch {
+				"year" => $"TRUNC({v}, 'YYYY')",
+				"quarter" => $"TRUNC({v}, 'Q')",
+				"month" => $"TRUNC({v}, 'MM')",
+				"week" => $"TRUNC({v}, 'IW')",
+				"day" => $"TRUNC({v})",
+				"hour" => $"TRUNC({v}, 'HH')",
+				"minute" => $"TRUNC({v}, 'MI')",
+				_ => null,
+			};
+		}
+	}
+
+	/// <summary>一个函数调用的改写；返回 null 表示认不出，保留原文</summary>
+	static string funcbody(string name, List<string> a, SqlEngine src, SqlEngine dst, Version ver) {
+		var n = barename(name).ToLowerInvariant();
+		switch (n) {
+		case "getutcdate":
+		case "utc_timestamp":
+			return utcval(a.Count > 0 && int.TryParse(a[0], out var p) ? p : 0, dst, ver);
+		case "now":
+		case "getdate":
+			return curval(dst);
+		case "current_timestamp":
+			// 带精度参数的只有 MySQL 用得上
+			if (a.Count > 0) return dst == SqlEngine.Mysql ? $"CURRENT_TIMESTAMP({a[0]})" : curval(dst);
+			return curval(dst);
+		case "sysdate":
+		case "systimestamp":
+			return localval(false, dst);
+		case "localtime":
+			return localval(true, dst);
+		case "localtimestamp":
+			return localval(false, dst);
+		case "current_date":
+			return dst == SqlEngine.Oracle ? "TRUNC(SYSDATE)" : "CURRENT_DATE";
+		case "current_time":
+			return dst == SqlEngine.Sqlite ? "time('now')" : "CURRENT_TIME";
+		case "dateadd":
+		case "date_add":
+		case "adddate":
+			if (a.Count < 2) return null;
+			if (!addparts(a, out var u1, out var n1, out var d1)) return null;
+			return addval(u1, n1, d1, dst);
+		case "date_sub":
+		case "subdate":
+			if (!addparts(a, out var u2, out var n2, out var d2)) return null;
+			return addval(u2, "-(" + n2 + ")", d2, dst);
+		case "add_months":
+			if (a.Count != 2) return null;
+			return addval("month", a[1], a[0], dst);
+		case "datediff":
+		case "date_diff":
+		case "timestampdiff":
+			return diffcall(n, a, dst);
+		case "months_between":
+			if (a.Count != 2) return null;
+			if (dst == SqlEngine.Mssql) return $"DATEDIFF(month, {sqlnest(a[1])}, {sqlnest(a[0])})";
+			if (dst == SqlEngine.Mysql) return $"TIMESTAMPDIFF(MONTH, {sqlnest(a[1])}, {sqlnest(a[0])})";
+			if (dst == SqlEngine.Sqlite)
+				return monthdiff("CAST(strftime('%Y', {0}) AS INTEGER) * 12 + CAST(strftime('%m', {0}) AS INTEGER)", sqlnest(a[0]), sqlnest(a[1]));
+			return $"MONTHS_BETWEEN({sqlnest(a[0])}, {sqlnest(a[1])})";
+		case "datetrunc":
+		case "date_trunc":
+			if (a.Count != 2) return null;
+			return truncval(datepart(a[0]), a[1], dst, ver);
+		case "trunc":
+			// TRUNC(date, 'MM') 是截断日期；Oracle 的 TRUNC(日期) 取到日，其它方言的 TRUNC 是取整
+			if (a.Count == 2) {
+				var tu = datepart(a[1]);
+				if (tu.Length == 0) return null;
+				return truncval(tu, a[0], dst, ver);
+			}
+			if (a.Count == 1 && src == SqlEngine.Oracle) return dateval(a[0], dst);
+			return null;
+		case "strftime":
+			if (a.Count != 2) return null;
+			return formatval(fmtin(a[0]), a[1], dst);
+		case "date_format":
+			if (a.Count != 2) return null;
+			return formatval(fmtin(a[1]), a[0], dst);
+		case "datetime":
+			// SQLite 的 datetime(x) 只取日期时间，其余方言按取日期再还原处理
+			if (a.Count != 1) return null;
+			return dst == SqlEngine.Sqlite ? $"datetime({a[0]})" : dateval(a[0], dst);
+		case "format":
+			// SQL Server 的 FORMAT(x, 'yyyy-MM-dd') 用 .NET 格式串
+			if (a.Count == 2) return formatval(fmtnet(a[1]), a[0], dst);
+			return null;
+		case "to_char":
+			if (a.Count == 1) return dateval(a[0], dst);
+			if (a.Count != 2) return null;
+			return formatval(fmtin(a[1]), a[0], dst);
+		case "date":
+			if (a.Count != 1) return null;
+			return dateval(a[0], dst);
+		case "year":
+		case "month":
+		case "day":
+		case "hour":
+		case "minute":
+		case "second":
+		case "quarter":
+			if (a.Count != 1) return null;
+			return partof(n, a[0], dst);
+		case "dayofweek":
+			if (a.Count != 1) return null;
+			return dst switch {
+				SqlEngine.Mssql => $"DATEPART(weekday, {sqlnest(a[0])})",
+				SqlEngine.Mysql => $"DAYOFWEEK({sqlnest(a[0])})",
+				SqlEngine.Oracle => $"(TRUNC({sqlnest(a[0])}) - TRUNC({sqlnest(a[0])}, 'IW') + 1)",
+				SqlEngine.Postgres => $"(EXTRACT(dow FROM {sqlnest(a[0])}) + 1)",
+				_ => $"(CAST(strftime('%w', {sqlnest(a[0])}) AS INTEGER) + 1)",
+			};
+		case "weekday":
+			if (a.Count != 1) return null;
+			return dst switch {
+				SqlEngine.Mssql => $"DATEPART(weekday, {sqlnest(a[0])})",
+				SqlEngine.Mysql => $"WEEKDAY({sqlnest(a[0])})",
+				SqlEngine.Oracle => $"(TRUNC({sqlnest(a[0])}) - TRUNC({sqlnest(a[0])}, 'IW'))",
+				SqlEngine.Postgres => $"EXTRACT(dow FROM {sqlnest(a[0])})",
+				_ => $"CAST(strftime('%w', {sqlnest(a[0])}) AS INTEGER)",
+			};
+		case "dayofyear":
+			if (a.Count != 1) return null;
+			return dst switch {
+				SqlEngine.Mssql => $"DATEPART(dayofyear, {sqlnest(a[0])})",
+				SqlEngine.Mysql => $"DAYOFYEAR({sqlnest(a[0])})",
+				_ => $"EXTRACT(doy FROM {sqlnest(a[0])})",
+			};
+		case "extract":
+			if (a.Count != 1) return null;
+			var em = Regex.Match(a[0], @"^\s*(\w+)\s+from\s+(.+)$", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+			if (!em.Success) return null;
+			var eu = datepart(em.Groups[1].Value);
+			return eu.Length == 0 ? null : partof(eu, em.Groups[2].Value, dst);
+		case "datepart":
+		case "datename":
+			if (a.Count != 2) return null;
+			var pu = datepart(a[0]);
+			return pu.Length == 0 ? null : partof(pu, a[1], dst);
+		case "unix_timestamp":
+			var ux = a.Count > 0 ? a[0] : "CURRENT_TIMESTAMP";
+			return dst switch {
+				SqlEngine.Mysql => a.Count > 0 ? $"UNIX_TIMESTAMP({sqlnest(ux)})" : "UNIX_TIMESTAMP()",
+				SqlEngine.Postgres => $"CAST(EXTRACT(epoch FROM {sqlnest(ux)}) AS bigint)",
+				SqlEngine.Sqlite => $"CAST(strftime('%s', {sqlnest(ux)}) AS INTEGER)",
+				SqlEngine.Mssql => $"DATEDIFF(second, '1970-01-01', {sqlnest(ux)})",
+				_ => $"TRUNC(({sqlnest(ux)} - TO_DATE('1970-01-01', 'YYYY-MM-DD')) * 86400)",
+			};
+		case "from_unixtime":
+			if (a.Count < 1) return null;
+			return dst switch {
+				SqlEngine.Mysql => $"FROM_UNIXTIME({sqlnest(a[0])})",
+				SqlEngine.Postgres => $"to_timestamp({sqlnest(a[0])})",
+				SqlEngine.Sqlite => $"datetime({sqlnest(a[0])}, 'unixepoch')",
+				SqlEngine.Mssql => $"DATEADD(second, {sqlnest(a[0])}, '1970-01-01')",
+				_ => $"TO_DATE('1970-01-01', 'YYYY-MM-DD') + ({sqlnest(a[0])}) / 86400",
+			};
+		case "julianday":
+			if (a.Count != 1) return null;
+			if (dst == SqlEngine.Sqlite) return $"julianday({sqlnest(a[0])})";
+			if (dst == SqlEngine.Mysql) return $"(TO_DAYS({sqlnest(a[0])}) + 1721424.5)";
+			return null;
+		case "to_date":
+		case "to_timestamp":
+		case "str_to_date":
+			if (a.Count == 0) return null;
+			var strf = a.Count > 1 ? fmtin(a[1]) : "";
+			return dst switch {
+				SqlEngine.Oracle => strf.Length > 0
+					? $"TO_DATE({sqlnest(a[0])}, '{fmtout(strf, SqlEngine.Oracle)}')"
+					: $"TO_DATE({sqlnest(a[0])}, 'YYYY-MM-DD HH24:MI:SS')",
+				SqlEngine.Mysql => strf.Length > 0
+					? $"STR_TO_DATE({sqlnest(a[0])}, '{fmtout(strf, SqlEngine.Mysql)}')"
+					: $"CAST({sqlnest(a[0])} AS datetime)",
+				SqlEngine.Mssql => $"CONVERT(datetime, {sqlnest(a[0])}, 120)",
+				SqlEngine.Postgres => $"CAST({sqlnest(a[0])} AS timestamp)",
+				_ => $"datetime({sqlnest(a[0])})",
+			};
+		case "last_day":
+		case "eomonth":
+			if (a.Count != 1) return null;
+			return dst switch {
+				SqlEngine.Oracle => $"LAST_DAY({sqlnest(a[0])})",
+				SqlEngine.Mysql => $"LAST_DAY({sqlnest(a[0])})",
+				SqlEngine.Postgres => $"(date_trunc('month', {sqlnest(a[0])}) + interval '1 month' - interval '1 day')",
+				SqlEngine.Sqlite => $"date({sqlnest(a[0])}, 'start of month', '+1 month', '-1 day')",
+				_ => $"EOMONTH({sqlnest(a[0])})",
+			};
+		case "convert":
+			return convertval(a, dst);
+		case "ifnull":
+		case "isnull":
+		case "nvl":
+			if (a.Count != 2) return null;
+			return dst switch {
+				SqlEngine.Mssql => $"ISNULL({sqlnest(a[0])}, {sqlnest(a[1])})",
+				SqlEngine.Mysql => $"IFNULL({sqlnest(a[0])}, {sqlnest(a[1])})",
+				SqlEngine.Oracle => $"NVL({sqlnest(a[0])}, {sqlnest(a[1])})",
+				_ => $"COALESCE({sqlnest(a[0])}, {sqlnest(a[1])})",
+			};
+		case "coalesce":
+			return a.Count == 0 ? null : "COALESCE(" + string.Join(", ", a.ToArray()) + ")";
+		case "concat":
+			if (a.Count == 0) return null;
+			if (dst == SqlEngine.Oracle || dst == SqlEngine.Sqlite) {
+				if (a.Count == 1) return sqlnest(a[0]);
+				return "(" + string.Join(" || ", a.ConvertAll(sqlnest).ToArray()) + ")";
+			}
+			return "CONCAT(" + string.Join(", ", a.ToArray()) + ")";
+		case "concat_ws":
+			if (a.Count < 2) return null;
+			if (dst == SqlEngine.Mysql || dst == SqlEngine.Mssql)
+				return "CONCAT_WS(" + string.Join(", ", a.ToArray()) + ")";
+			return null;
+		case "len":
+		case "length":
+			if (a.Count != 1) return null;
+			return dst == SqlEngine.Mssql ? $"LEN({sqlnest(a[0])})" : $"LENGTH({sqlnest(a[0])})";
+		case "charindex":
+		case "instr":
+		case "locate":
+			if (a.Count < 2) return null;
+			// SQL Server 是 (子串, 串)，MySQL / SQLite / Oracle 是 (串, 子串)
+			var sub = n == "charindex" ? a[0] : a[1];
+			var whole = n == "charindex" ? a[1] : a[0];
+			return dst switch {
+				SqlEngine.Mssql => $"CHARINDEX({sqlnest(sub)}, {sqlnest(whole)})",
+				SqlEngine.Mysql => $"INSTR({sqlnest(whole)}, {sqlnest(sub)})",
+				SqlEngine.Oracle => $"INSTR({sqlnest(whole)}, {sqlnest(sub)})",
+				SqlEngine.Sqlite => $"INSTR({sqlnest(whole)}, {sqlnest(sub)})",
+				_ => $"POSITION({sqlnest(sub)} IN {sqlnest(whole)})",
+			};
+		case "left":
+			if (a.Count != 2) return null;
+			return dst switch {
+				SqlEngine.Mssql or SqlEngine.Mysql => $"LEFT({sqlnest(a[0])}, {sqlnest(a[1])})",
+				SqlEngine.Oracle => $"SUBSTR({sqlnest(a[0])}, 1, {sqlnest(a[1])})",
+				SqlEngine.Sqlite => $"SUBSTR({sqlnest(a[0])}, 1, {sqlnest(a[1])})",
+				_ => $"SUBSTRING({sqlnest(a[0])} FROM 1 FOR {sqlnest(a[1])})",
+			};
+		case "right":
+			if (a.Count != 2) return null;
+			return dst switch {
+				SqlEngine.Mssql or SqlEngine.Mysql => $"RIGHT({sqlnest(a[0])}, {sqlnest(a[1])})",
+				SqlEngine.Oracle => $"SUBSTR({sqlnest(a[0])}, -({sqlnest(a[1])}))",
+				SqlEngine.Sqlite => $"SUBSTR({sqlnest(a[0])}, -({sqlnest(a[1])}))",
+				_ => $"RIGHT({sqlnest(a[0])}, {sqlnest(a[1])}::int)",
+			};
+		case "iif":
+		case "if":
+			if (a.Count != 3) return null;
+			if (dst == SqlEngine.Mssql) return $"IIF({sqlnest(a[0])}, {sqlnest(a[1])}, {sqlnest(a[2])})";
+			if (dst == SqlEngine.Mysql) return $"IF({sqlnest(a[0])}, {sqlnest(a[1])}, {sqlnest(a[2])})";
+			return $"(CASE WHEN {sqlnest(a[0])} THEN {sqlnest(a[1])} ELSE {sqlnest(a[2])} END)";
+		case "ceiling":
+		case "ceil":
+			if (a.Count != 1) return null;
+			return dst == SqlEngine.Mssql ? $"CEILING({sqlnest(a[0])})" : $"CEIL({sqlnest(a[0])})";
+		case "random":
+		case "rand":
+			return dst switch {
+				SqlEngine.Sqlite => "(ABS(RANDOM()) / 9223372036854775807.0)",
+				_ => "RAND()",
+			};
+		case "newid":
+		case "uuid":
+		case "gen_random_uuid":
+		case "sys_guid":
+		case "uuid_generate_v4":
+			return dst switch {
+				SqlEngine.Mssql => "NEWID()",
+				SqlEngine.Mysql => "(UUID())",
+				SqlEngine.Postgres => "gen_random_uuid()",
+				SqlEngine.Oracle => "SYS_GUID()",
+				_ => "lower(hex(randomblob(16)))",
+			};
+		}
+		return null;
+	}
+
+	/// <summary>SQL Server 的 CONVERT(type, x, style)：只处理日期时间与文本这两类</summary>
+	static string convertval(List<string> a, SqlEngine dst) {
+		if (a.Count < 2) return null;
+		var type = a[0].Trim().Trim('(', ')').ToLowerInvariant();
+		var x = a[1];
+		if (type is "date") return dateval(x, dst);
+		if (type.StartsWith("varchar", StringComparison.Ordinal) || type.StartsWith("nvarchar", StringComparison.Ordinal)
+			|| type.StartsWith("char", StringComparison.Ordinal) || type.StartsWith("nchar", StringComparison.Ordinal)) {
+			var style = a.Count > 2 ? a[2].Trim() : "0";
+			var strf = style switch {
+				"112" => "%Y%m%d",
+				"120" or "121" or "0" => "%Y-%m-%d %H:%M:%S",
+				"108" => "%H:%M:%S",
+				_ => "",
+			};
+			if (strf.Length == 0) return null;
+			return formatval(strf, x, dst);
+		}
+		return null;
+	}
+
+	static string diffcall(string n, List<string> a, SqlEngine dst) {
+		//差值的符号一律是「大的减小的」：SQL Server 的 DATEDIFF(单位, 起, 止) 取止减起，
+		//MySQL 的两参数 DATEDIFF(止, 起) 与 TIMESTAMPDIFF(单位, 起, 止) 也是止减起
+		string unit;
+		string d1;
+		string d2;
+		if (n == "timestampdiff") {
+			if (a.Count != 3) return null;
+			unit = datepart(a[0]);
+			d1 = a[2];
+			d2 = a[1];
+		}
+		else if (a.Count == 3) {
+			unit = datepart(a[0]);
+			d1 = a[2];
+			d2 = a[1];
+		}
+		else if (a.Count == 2) {
+			unit = "day";
+			d1 = a[0];
+			d2 = a[1];
+		}
+		else return null;
+		return unit.Length == 0 ? null : diffval(unit, d1, d2, dst);
+	}
+
+	/// <summary>逐个替换文本里的函数调用；识别不了的保留原文并记下名字</summary>
+	static string mapfuncs(string v, SqlEngine src, SqlEngine dst, Version ver, SqlConvertResult res) {
+		var sb = new StringBuilder(v.Length + 16);
+		var i = 0;
+		var n = v.Length;
+		while (i < n) {
+			var ch = v[i];
+			if (ch is '\'' or '"' or '`') {
+				var q = ch;
+				var start = i;
+				i++;
+				while (i < n) {
+					if (v[i] == q) {
+						if (i + 1 < n && v[i + 1] == q) {
+							i += 2;
+							continue;
+						}
+						i++;
+						break;
+					}
+					i++;
+				}
+				sb.Append(v.Substring(start, i - start));
+				continue;
+			}
+			if (ch == '[') {
+				var end = v.IndexOf(']', i + 1);
+				if (end > 0) {
+					sb.Append(v.Substring(i, end - i + 1));
+					i = end + 1;
+					continue;
+				}
+			}
+			if (!char.IsLetter(ch) && ch != '_') {
+				sb.Append(ch);
+				i++;
+				continue;
+			}
+			var s0 = i;
+			while (i < n && (char.IsLetterOrDigit(v[i]) || v[i] == '_' || v[i] == '$')) i++;
+			var word = v.Substring(s0, i - s0);
+			var dotted = s0 > 0 && v[s0 - 1] == '.';
+			var j = skipws(v, i);
+			if (dotted || !knownfunc(word) || j >= n || v[j] != '(') {
+				sb.Append(word);
+				// 名字与括号之间的空白照抄，别把 SQL 挤成一行
+				var k = i;
+				while (k < n && char.IsWhiteSpace(v[k])) {
+					sb.Append(v[k]);
+					k++;
+				}
+				i = k;
+				continue;
+			}
+			var close = matchparen(v, j);
+			if (close < 0) {
+				sb.Append(word);
+				continue;
+			}
+			var raw = v.Substring(j + 1, close - j - 1);
+			var args = splitargs(raw).ConvertAll(x => x.Trim());
+			args.RemoveAll(x => x.Length == 0);
+			// 参数里的函数也要换：DATEDIFF(NOW(), col) 里的 NOW() 不能漏
+			for (var k2 = 0; k2 < args.Count; k2++) {
+				if (args[k2].Contains('(')) args[k2] = mapfuncs(args[k2], src, dst, ver, res);
+			}
+			var body = funcbody(word, args, src, dst, ver);
+			if (body == null) {
+				var shown = barename(word).ToLowerInvariant() + "()";
+				if (res != null && !res.Skipped.Contains(shown)) res.Skipped.Add(shown);
+				sb.Append(word).Append('(').Append(raw).Append(')');
+				i = close + 1;
+				continue;
+			}
+			if (res != null && !same(body, v.Substring(s0, close + 1 - s0))) res.Funcs++;
+			sb.Append(body);
+			i = close + 1;
+		}
+		return sb.ToString();
+	}
+
+	/// <summary>表达式里的函数按目标方言改写、标识符引号也跟着换；同一方言原样返回</summary>
+	static string sqlfunc(string v, SqlEngine src, SqlEngine dst, Version ver, SqlConvertResult res) {
+		if (string.IsNullOrEmpty(v) || src == dst) return v;
+		var t = requote(mapfuncs(v, src, dst, ver, res), src, dst);
+		// dbo. 是 SQL Server 的默认架构，别的库里没有这一层
+		if (src == SqlEngine.Mssql && dst != SqlEngine.Mssql)
+			t = Regex.Replace(t, @"(\[dbo\]|\bdbo)\s*\.\s*", "", RegexOptions.IgnoreCase);
+		return t;
 	}
 
 	// ==================== 文本工具 ====================
