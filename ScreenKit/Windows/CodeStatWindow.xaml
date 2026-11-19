@@ -91,6 +91,14 @@
 						          VirtualizingPanel.ScrollUnit="Item"
 						          ScrollViewer.CanContentScroll="True"
 						          AutomationProperties.AutomationId="codestat.files">
+							<ListView.ContextMenu>
+								<ContextMenu>
+									<MenuItem x:Name="mnfopen" Header="打开"
+									          AutomationProperties.AutomationId="codestat.file.open"/>
+									<MenuItem x:Name="mnfshow" Header="在资源管理器中定位"
+									          AutomationProperties.AutomationId="codestat.file.show"/>
+								</ContextMenu>
+							</ListView.ContextMenu>
 							<ListView.View>
 								<GridView>
 									<GridViewColumn x:Name="colfname" Header="文件" Width="320" DisplayMemberBinding="{Binding Name}"/>

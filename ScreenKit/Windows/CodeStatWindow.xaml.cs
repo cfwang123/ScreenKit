@@ -81,6 +81,10 @@ public partial class CodeStatWindow : Window {
 		bgo.Click += (_, _) => go();
 		lpaths.MouseDoubleClick += (_, _) => openpath();
 		lvfile.MouseDoubleClick += (_, _) => openfile();
+		// 右键先把光标下的行选中，菜单再对选中行生效
+		lvfile.PreviewMouseRightButtonDown += (_, e) => pickfilerow(e.OriginalSource as DependencyObject);
+		mnfopen.Click += (_, _) => openfile();
+		mnfshow.Click += (_, _) => showfile();
 		lvlang.SelectionChanged += (_, _) => showfiles();
 		PreviewDragOver += ondrag;
 		Drop += ondrop;
@@ -107,6 +111,8 @@ public partial class CodeStatWindow : Window {
 		ToolBtnUi.Set(bdel, ToolBtnUi.Delete, Loc.T("codestat.del"));
 		ToolBtnUi.Set(bclear, ToolBtnUi.Clear, Loc.T("imgconv.clear"));
 		ToolBtnUi.Set(bgo, ToolBtnUi.Play, Loc.T("codestat.go"));
+		mnfopen.Header = Loc.T("codestat.file.open");
+		mnfshow.Header = Loc.T("codestat.file.show");
 	}
 
 	void addbydialog() {
@@ -267,6 +273,15 @@ public partial class CodeStatWindow : Window {
 		return best;
 	}
 
+	/// <summary>右键菜单点在哪一行就选中哪一行；点空白处不动选中。</summary>
+	void pickfilerow(DependencyObject src) {
+		while (src != null && src is not ListViewItem)
+			src = VisualTreeHelper.GetParent(src);
+		if (src is not ListViewItem item) return;
+		item.IsSelected = true;
+		item.Focus();
+	}
+
 	/// <summary>双击文件列表：用系统默认程序打开这个文件。</summary>
 	void openfile() {
 		var row = lvfile.SelectedItem as CodeStatFileView;
@@ -276,6 +291,14 @@ public partial class CodeStatWindow : Window {
 				UseShellExecute = true,
 			});
 		}
+		catch { }
+	}
+
+	/// <summary>在资源管理器中定位并选中这个文件。</summary>
+	void showfile() {
+		var row = lvfile.SelectedItem as CodeStatFileView;
+		if (row == null || string.IsNullOrEmpty(row.Path)) return;
+		try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + row.Path + "\""); }
 		catch { }
 	}
 

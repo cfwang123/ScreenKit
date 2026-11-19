@@ -62,6 +62,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SQL dialect conversion: date and time functions are rewritten for the target dialect (DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB, DATEDIFF/TIMESTAMPDIFF in both directions, DATE_TRUNC/DATETRUNC/TRUNC, DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT styles, EXTRACT/YEAR and other date parts, UNIX_TIMESTAMP, LAST_DAY, CONCAT, IFNULL/ISNULL/NVL, LEN/LENGTH, RAND/NEWID/UUID), nested calls and SELECT statements included, identifiers re-quoted and dbo. dropped; dialects that cannot keep a function default (SQLite, MySQL before 5.7) drop it and say so, and the window reports how many functions were rewritten
 - SQL dialect conversion: statements are laid out one clause per line (SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT, subqueries indented, one VALUES row per line) even when the source is a single line, and comments above a statement stay on their own line
 - Code stats: untick a language to leave it out of the totals
+- Code statistics: right-click a file for Open and Show in Explorer
 
 #### Changed
 
@@ -95,6 +96,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SQL 方言转换：日期时间函数按目标方言改写（DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB、双向的 DATEDIFF/TIMESTAMPDIFF、DATE_TRUNC/DATETRUNC/TRUNC、DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT 样式号、EXTRACT/YEAR 等日期部分、UNIX_TIMESTAMP、LAST_DAY、CONCAT、IFNULL/ISNULL/NVL、LEN/LENGTH、RAND/NEWID/UUID），嵌套调用与 SELECT 语句一并处理，标识符引号跟着换、dbo. 前缀去掉；目标方言无法保留函数默认值时（SQLite、5.7 之前的 MySQL）去掉并说明，窗口里显示改写了多少处函数
 - SQL 方言转换：源脚本不换行也能处理，输出按子句排版（SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT 各占一行，子查询再缩进，INSERT 一行一条），语句前的注释单独占行
 - 代码统计：每种语言可取消勾选，取消后不计入合计
+- 代码统计：文件列表右键菜单支持打开和在资源管理器中定位
 
 #### 变更
 
