@@ -592,7 +592,9 @@ static class SqlScript {
 				// 后面紧跟括号的函数少数几个（IF / LEFT / RIGHT / REPLACE）写法不动，其余关键字大写
 				var after = skipws(src, wordend(src, i));
 				var iscall = after < src.Length && src[after] == '(' && Callable(word);
-				line.Append(Keyword(word) && !iscall ? word.ToUpperInvariant() : word);
+				// 大小写按源文原样保留，别把 NULL 写成一堆小写
+				var raw = src.Substring(i, wordend(src, i) - i);
+				line.Append(Keyword(word) && !iscall ? raw.ToUpperInvariant() : raw);
 				i = wordend(src, i);
 				continue;
 			}
@@ -1332,12 +1334,15 @@ static class SqlScript {
 
 	// ==================== 语句拆分 ====================
 
-	/// <summary>按分号拆语句，引号内的分号不动；GO 单独一行也算分隔。</summary>
+	/// <summary>按分号拆语句，引号内的分号不动；GO 单独一行也算分隔（SQL Server 的批处理）</summary>
 	static List<string> SplitStatements(string text) {
 		var list = new List<string>();
 		var sb = new StringBuilder();
 		var i = 0;
 		var n = text.Length;
+		// 当前物理行在 sb 里的起点，用来认「整行只有 GO」的批处理分隔
+		var linestart = 0;
+		var depth = 0;
 		while (i < n) {
 			var ch = text[i];
 			if (ch == '\'' || ch == '"' || ch == '`') {
@@ -1381,7 +1386,8 @@ static class SqlScript {
 				while (i < n && text[i] != '\n') sb.Append(text[i++]);
 				continue;
 			}
-			if (ch == '#') {
+			// # 只在行首算 MySQL 注释，SQL Server 的 #tmp 是临时表
+			if (ch == '#' && sb.ToString(linestart, sb.Length - linestart).Trim().Length == 0) {
 				while (i < n && text[i] != '\n') sb.Append(text[i++]);
 				continue;
 			}
@@ -1395,26 +1401,98 @@ static class SqlScript {
 				}
 				continue;
 			}
+			if (ch == '(') {
+				depth++;
+				sb.Append(ch);
+				i++;
+				continue;
+			}
+			if (ch == ')') {
+				if (depth > 0) depth--;
+				sb.Append(ch);
+				i++;
+				continue;
+			}
 			if (ch == ';') {
 				push(list, sb);
+				linestart = 0;
+				depth = 0;
+				i++;
+				continue;
+			}
+			if (ch == '\n') {
+				// 整行只有 GO（可带次数或行尾注释）时按批处理分隔：这一行丢掉，前面的语句收掉
+				if (isgoline(sb, linestart)) {
+					sb.Length = linestart;
+					push(list, sb);
+					linestart = 0;
+					depth = 0;
+					i++;
+					continue;
+				}
+				// 有的脚本不给分号，靠换行分行：上一句已经收口（')'、字面量、数字）时按新语句拆
+				if (depth == 0 && sb.Length > linestart && newstatement(text, i + 1) && ended(sb)) {
+					push(list, sb);
+					linestart = 0;
+					sb.Append('\n');
+					i++;
+					continue;
+				}
+				sb.Append(ch);
+				linestart = sb.Length;
 				i++;
 				continue;
 			}
 			sb.Append(ch);
 			i++;
-			if (ch == '\n') {
-				var line = sb.ToString();
-				var t = line.TrimEnd().TrimStart();
-				if (t.Length <= 2 && t.Equals("go", StringComparison.OrdinalIgnoreCase)) {
-					sb.Clear();
-					list.Add("");
-				}
-			}
 		}
+		// 最后一行没有换行时也可能是 GO
+		if (isgoline(sb, linestart)) sb.Length = linestart;
 		push(list, sb);
-		// 去掉 GO 留下的空占位
-		list.RemoveAll(x => x.Trim().Length == 0);
 		return list;
+	}
+
+	/// <summary>sb 里从 start 开始这一行是不是只有 GO（允许 GO 5、GO -- 注释）</summary>
+	static bool isgoline(StringBuilder sb, int start) {
+		if (start < 0 || start >= sb.Length) return false;
+		var line = sb.ToString(start, sb.Length - start).Trim();
+		if (line.Length == 0) return false;
+		// 行尾注释不算内容
+		var cut = line.IndexOf("--", StringComparison.Ordinal);
+		if (cut >= 0) line = line.Substring(0, cut).Trim();
+		if (!line.StartsWith("go", StringComparison.OrdinalIgnoreCase)) return false;
+		var rest = line.Substring(2).Trim();
+		// GO 之后只允许一个正整数（批处理重复次数）
+		return rest.Length == 0 || Regex.IsMatch(rest, @"^\d{1,4}$");
+	}
+
+	/// <summary>下一行的开头是不是一条新语句的关键字</summary>
+	static bool newstatement(string text, int i) {
+		while (i < text.Length && (text[i] == ' ' || text[i] == '\t' || text[i] == '\r')) i++;
+		if (i >= text.Length) return false;
+		var j = i;
+		while (j < text.Length && char.IsLetter(text[j])) j++;
+		if (j == i) return false;
+		var w = text.Substring(i, j - i).ToLowerInvariant();
+		return w is "insert" or "update" or "delete" or "create" or "alter" or "drop"
+			or "truncate" or "select" or "exec" or "execute" or "declare" or "print" or "use" or "begin";
+	}
+
+	/// <summary>已经写完一句：末尾是右括号、字面量或数字，且最后一个词不是接着往下写的</summary>
+	static bool ended(StringBuilder sb) {
+		var t = sb.ToString().TrimEnd();
+		if (t.Length == 0) return false;
+		var last = t[^1];
+		if (!(last == ')' || last == '\'' || last == '"' || last == '`' || last == ']' || char.IsDigit(last) || char.IsLetter(last)))
+			return false;
+		var w = Regex.Match(t, @"([A-Za-z_]+)\s*$");
+		if (!w.Success) return true;
+		var word = w.Groups[1].Value.ToLowerInvariant();
+		return word is not ("and" or "or" or "not" or "on" or "where" or "from" or "by" or "set"
+			or "into" or "values" or "value" or "select" or "as" or "in" or "is" or "like" or "case"
+			or "when" or "then" or "else" or "join" or "left" or "right" or "inner" or "outer" or "cross"
+			or "union" or "all" or "distinct" or "between" or "having" or "group" or "order" or "limit"
+			or "offset" or "exists" or "if" or "return" or "null" or "key" or "index" or "table" or "default");
 	}
 
 	static void push(List<string> list, StringBuilder sb) {
