@@ -55,68 +55,64 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 #### Added
 
-- English and Russian word forms: added 1-6 level sentence patterns, particles, hearsay, ability, causative, aspect and dialect groups to match Japanese and Korean coverage
-- Show each word's meaning in the conjugation result header, multiple senses joined on one line
-- Performance window: a new tab group below shows the top 5 processes by CPU, memory, disk or network, each with all four usage figures; can be turned on or off in the settings
-- Performance window: each metric row now has a mini sparkline and wider value columns
+- English and Russian word forms: 1-6 level sentence patterns, particles, hearsay, ability, causative, aspect and dialect groups, matching the Japanese and Korean coverage, with the Russian causative, ability and rhetorical patterns worded more naturally
+- Conjugation header shows each word's meaning, several senses joined with "; ", and keeps notes such as "· -zuru type" after the gloss
+- Performance window: a tab group below lists the processes using the most CPU, memory, disk or network with all four figures, filled to the window height and with a mini sparkline on every metric row; the tabs can be turned off in the settings
 - SQL dialect conversion: date and time functions are rewritten for the target dialect (DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB, DATEDIFF/TIMESTAMPDIFF in both directions, DATE_TRUNC/DATETRUNC/TRUNC, DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT styles, EXTRACT/YEAR and other date parts, UNIX_TIMESTAMP, LAST_DAY, CONCAT, IFNULL/ISNULL/NVL, LEN/LENGTH, RAND/NEWID/UUID), nested calls and SELECT statements included, identifiers re-quoted and dbo. dropped; dialects that cannot keep a function default (SQLite, MySQL before 5.7) drop it and say so, and the window reports how many functions were rewritten
-- SQL dialect conversion: statements are laid out one clause per line (SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT, subqueries indented, one VALUES row per line) even when the source is a single line, and comments above a statement stay on their own line
-- Code stats: untick a language to leave it out of the totals
-- Code statistics: right-click a file for Open and Show in Explorer
+- SQL dialect conversion: statements are laid out one clause per line (SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT, subqueries indented, one VALUES row per line) even from a single-line source, comments above a statement stay on their own line, and the preview splits into an editable source box and a result box that auto-detects the engine while you type
+- Code stats: untick a language to leave it out of the totals; double-click a file to open it with its default program, or right-click for Open and Show in Explorer
 
 #### Changed
 
 - Korean conjugation: Ability group lists potential (ㄹ 수 있다), 못 and 지 못하다 for each tense and speech level, and comes before Suggest.
+- Japanese conjugation: verb type labels now spell out the group, such as "group 1 verbs (godan)", and match the dropdown.
+- English conjugation: contractions such as ain't come last in the verb, adjective and noun groups.
 - Speed up 3D surface rendering while dragging: batch triangles by depth and colour, draw at half resolution during the drag, and fill/refill once per colour instead of per shape.
-- Performance window: the two columns now split the width evenly, the sparkline fills any spare width, and the window resizes by dragging any edge
-- Perf window: the process ranking is no longer capped at 5 rows - it fills whatever height the window gives it
-- SQL dialect conversion: the preview is now split into an editable source box and a result box; auto-detects the engine while you type.
+- Performance window: the two columns split the width evenly, the sparkline fills any spare width, the process ranking fills whatever height the window gives it, and the window resizes by dragging any edge
 - SQL dialect conversion window: the source and target engine and version dropdowns stay enabled before any script is loaded, so a dialect can be picked first
+- Document reader hotkey: hides the window only when it is already in front, otherwise it shows and brings it to the front
 - Trim the working set once after the first frame so the graphics driver's swap-chain surfaces are handed back to the system
 - Screenshot history list scrolls by pixel instead of whole items
-- Code statistics: double-clicking a file opens it with its default program instead of revealing it in Explorer
 
 #### Fixed
 
 - Document viewer: .doc files whose content is entirely floating pictures and text boxes now render page by page instead of showing a blank page
-- Perf window: per-process network showed bogus values when the connection's ESTATS could not be enabled; it now stays blank unless real per-connection byte counters are available
+- Perf window: per-process network showed bogus values when the connection's ESTATS could not be enabled; it now stays blank unless real per-connection byte counters are available, and the network tab offers a restart-as-administrator button
+- Perf window: the layout switches to a single column when the window is narrow and the reading columns size to their content instead of being clipped; CPU power shows a dash instead of a bogus 0.0 W when the machine has no energy meter, and the minimum window width drops from 300 to 200 pixels
 - Windows restored to a saved position now clamp back on screen when the monitor layout changed (e.g. a removed secondary display), instead of appearing outside every screen.
 - SQL dialect conversion: a GO line now ends the batch only when it stands alone (case-insensitive, optionally with a repeat count or a trailing comment), it no longer swallows the next INSERT, MySQL # comments are only recognised at line start so SQL Server #temp tables survive, and statements without a trailing semicolon are split at line breaks
-- Performance window: CPU power shows a dash instead of a bogus 0.0 W when the machine has no energy meter, and the minimum window width drops from 300 to 200 pixels
 - Web tools: unit converter type, date calc mode and grid/list picks respond to clicks again
 
 ### 中文
 
 #### 新增
 
-- 英语、俄语词形变化：补齐 1–6 级句型、语气词、传闻、能力、使役、体阶段与方言分组，与日语、韩语的分组对应
-- 变形结果表头显示词语释义，多个义项用「; 」并成一行
-- 性能监控小窗下方新增 CPU、内存、硬盘、网络 tab；选中后列出该项目占用最多的 5 个进程，并显示四项占用；可在参数设置和右键菜单中开关
-- 性能监控：每个监控项前面加了一条迷你折线图，数值列加宽
+- 英语、俄语词形变化：补齐 1–6 级句型、语气词、传闻、能力、使役、体阶段与方言分组，与日语、韩语的分组对应；俄语的使役、能力与反问句型改为更自然的说法
+- 变形结果表头显示词语释义，多个义项用「; 」并成一行，释义后的「· ずる型」这类备注一并保留
+- 性能监控小窗下方新增 CPU、内存、硬盘、网络 tab；选中后按窗口高度列出该项目占用最多的进程，并显示四项占用；每个监控项前面加了一条迷你折线图，数值列加宽；可在参数设置和右键菜单中开关
 - SQL 方言转换：日期时间函数按目标方言改写（DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB、双向的 DATEDIFF/TIMESTAMPDIFF、DATE_TRUNC/DATETRUNC/TRUNC、DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT 样式号、EXTRACT/YEAR 等日期部分、UNIX_TIMESTAMP、LAST_DAY、CONCAT、IFNULL/ISNULL/NVL、LEN/LENGTH、RAND/NEWID/UUID），嵌套调用与 SELECT 语句一并处理，标识符引号跟着换、dbo. 前缀去掉；目标方言无法保留函数默认值时（SQLite、5.7 之前的 MySQL）去掉并说明，窗口里显示改写了多少处函数
-- SQL 方言转换：源脚本不换行也能处理，输出按子句排版（SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT 各占一行，子查询再缩进，INSERT 一行一条），语句前的注释单独占行
-- 代码统计：每种语言可取消勾选，取消后不计入合计
-- 代码统计：文件列表右键菜单支持打开和在资源管理器中定位
+- SQL 方言转换：源脚本不换行也能处理，输出按子句排版（SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT 各占一行，子查询再缩进，INSERT 一行一条），语句前的注释单独占行；结果框拆成可编辑的源脚本框和转换结果框，输入时自动识别引擎并刷新结果
+- 代码统计：每种语言可取消勾选，取消后不计入合计；双击文件用系统默认程序打开，右键菜单可打开或在资源管理器中定位
 
 #### 变更
 
 - 韩语词形变化：能力组按时体与敬语等级并列「ㄹ 수 있다 / 못 / 지 못하다」，并移到提议之前。
+- 日语词形变化：动词类型标签改为「1类动词（五段）」这类写法，与下拉一致。
+- 英语词形变化：ain't 这类缩写组移到动词、形容词、名词分组的最后。
 - 三维曲面拖动视角不再卡顿：三角形按深度和颜色分片合并、拖动时半分辨率绘制、同色图形并成一条路径一次填充。
-- 性能监控：两列各占一半宽度，折线自动占满剩余空间；窗口可拖动四边/角调整大小
-- 性能监控：进程排行不再限制 5 行，窗口有多高就显示多少行
-- SQL 方言转换：结果框拆成可编辑的源脚本框和转换结果框，输入时自动识别引擎并刷新结果。
+- 性能监控：两列各占一半宽度，折线自动占满剩余空间，进程排行不再限制 5 行，窗口可拖四边/角调整大小
 - SQL 方言转换窗口：没载入脚本时源与目标引擎、版本下拉也可选，可以先定方言再输入脚本
+- 文档阅读器热键：窗口已在最前面时隐藏，否则显示并置顶
 - 首帧渲染后回收一次工作集，把核显驱动给 WPF 的表面还给系统
 - 截图历史列表改为按像素连续滚动，不再整张图片跳动
-- 代码统计：双击文件用系统默认程序打开，不再只是定位到资源管理器
 
 #### 修复
 
 - 文档查看器：正文全是浮动图片和文本框的 .doc 现在按图形版式逐页显示，不再是一片空白
-- 性能监控：进程网络列在无法开启连接级统计时会显示乱数，现在读不到就留空并提示需要管理员
+- 性能监控：进程网络列在无法开启连接级统计时会显示乱数，现在读不到就留空，网络页提供「以管理员身份重开」入口
+- 性能小窗：窗口变窄时改单列排版，读数列按内容定宽不再被裁；机器没有能量计量时 CPU 功率显示「—」而不是假的 0.0 W；窗口最小宽度由 300 降到 200 像素
 - 恢复上次窗口位置时若显示器布局已变（比如副屏拔掉），窗口会被拉回屏内，不再跑到所有屏幕之外。
 - SQL 方言转换：GO 只在独占一行时才算批处理分隔（不分大小写，可带重复次数或行尾注释），不会再吞掉下一条 INSERT；MySQL 的 # 注释只在行首识别，SQL Server 的 #临时表 得以保留；没有分号的语句按换行拆分
-- 性能小窗：机器没有能量计量时 CPU 功率显示「—」而不是假的 0.0 W；窗口最小宽度由 300 降到 200 像素
 - 网页工具：单位换算的类型、日期计算的模式以及码表/摩斯码等列表点击重新生效
 
 ## v1.0.39 (2026-11-14 ~ 11-17)
