@@ -183,6 +183,21 @@ static class CodeStat {
 		return result;
 	}
 
+	/// <summary>把未禁用的顶层语言合成一行合计；子语言是 Markdown 围栏的细分，不参与合计。</summary>
+	public static CodeLangRow Sum(IEnumerable<CodeLangRow> rows, ICollection<string> off) {
+		var sum = new CodeLangRow { Name = "" };
+		foreach (var row in rows) {
+			if (row.Child) continue;
+			if (off != null && off.Contains(row.Name)) continue;
+			sum.Files += row.Files;
+			sum.Lines += row.Lines;
+			sum.Code += row.Code;
+			sum.Comments += row.Comments;
+			sum.Blanks += row.Blanks;
+		}
+		return sum;
+	}
+
 	static void report(Action<string, int, string> progress, string phase, int n, string path) {
 		try { progress?.Invoke(phase, n, path ?? ""); } catch { }
 	}

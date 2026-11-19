@@ -10,6 +10,9 @@
         FontFamily="Segoe UI, Microsoft YaHei UI"
         AllowDrop="True"
         AutomationProperties.AutomationId="codestat.window">
+	<Window.Resources>
+		<BooleanToVisibilityConverter x:Key="BoolToVis"/>
+	</Window.Resources>
 	<Grid Margin="16">
 		<TabControl x:Name="tabs" BorderBrush="{StaticResource BorderSoft}"
 		            AutomationProperties.AutomationId="codestat.tabs">
@@ -51,8 +54,27 @@
 						</Grid.ColumnDefinitions>
 						<ListView x:Name="lvlang" BorderBrush="{StaticResource BorderSoft}"
 						          AutomationProperties.AutomationId="codestat.langs">
+							<ListView.ItemContainerStyle>
+								<Style TargetType="ListViewItem">
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding Enabled}" Value="False">
+											<Setter Property="Opacity" Value="0.45"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</ListView.ItemContainerStyle>
 							<ListView.View>
 								<GridView>
+									<GridViewColumn x:Name="coluse" Header="统计" Width="46">
+										<GridViewColumn.CellTemplate>
+											<DataTemplate>
+												<CheckBox IsChecked="{Binding Enabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+												          HorizontalAlignment="Center" VerticalAlignment="Center"
+												          Visibility="{Binding Selectable, Converter={StaticResource BoolToVis}}"
+												          AutomationProperties.AutomationId="codestat.lang.enable"/>
+											</DataTemplate>
+										</GridViewColumn.CellTemplate>
+									</GridViewColumn>
 									<GridViewColumn x:Name="collang" Header="语言" Width="130" DisplayMemberBinding="{Binding Name}"/>
 									<GridViewColumn x:Name="colfiles" Header="文件" Width="60" DisplayMemberBinding="{Binding Files}"/>
 									<GridViewColumn x:Name="collines" Header="行" Width="70" DisplayMemberBinding="{Binding Lines}"/>

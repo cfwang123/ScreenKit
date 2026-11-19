@@ -1,8 +1,12 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace ScreenKit;
 
-sealed class CodeStatLangView {
+sealed class CodeStatLangView : INotifyPropertyChanged {
+	public event PropertyChangedEventHandler PropertyChanged;
+	bool enabled = true;
+
 	public string Name { get; set; }
 	public string Lang { get; set; }
 	public int Files { get; set; }
@@ -11,6 +15,35 @@ sealed class CodeStatLangView {
 	public int Comments { get; set; }
 	public int Blanks { get; set; }
 	public bool Total { get; set; }
+	public bool Selectable { get; set; }
+
+	/// <summary>勾选后才进入合计，取消勾选立即重算。</summary>
+	public bool Enabled {
+		get => enabled;
+		set {
+			if (enabled == value) return;
+			enabled = value;
+			raise(nameof(Enabled));
+			Changed?.Invoke(Lang ?? "", value);
+		}
+	}
+
+	public Action<string, bool> Changed;
+
+	public void settotals(CodeLangRow row) {
+		Files = row.Files;
+		Lines = row.Lines;
+		Code = row.Code;
+		Comments = row.Comments;
+		Blanks = row.Blanks;
+		raise(nameof(Files));
+		raise(nameof(Lines));
+		raise(nameof(Code));
+		raise(nameof(Comments));
+		raise(nameof(Blanks));
+	}
+
+	void raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 sealed class CodeStatFileView {
@@ -25,7 +58,9 @@ public partial class CodeStatWindow : Window {
 	readonly ObservableCollection<string> paths = new();
 	readonly ObservableCollection<CodeStatLangView> langs = new();
 	readonly ObservableCollection<CodeStatFileView> files = new();
+	readonly HashSet<string> offlangs = new(StringComparer.Ordinal);
 	CodeStatResult last;
+	CodeStatLangView totalrow;
 	List<string> roots = new();
 	int seq;
 
@@ -58,6 +93,7 @@ public partial class CodeStatWindow : Window {
 		cgit.Content = Loc.T("codestat.git");
 		lbignore.Text = Loc.T("codestat.ignore");
 		eignore.ToolTip = Loc.T("codestat.ignore.tip");
+		coluse.Header = Loc.T("codestat.col.use");
 		collang.Header = Loc.T("codestat.col.lang");
 		colfiles.Header = Loc.T("codestat.col.files");
 		collines.Header = Loc.T("codestat.col.lines");
@@ -153,13 +189,8 @@ public partial class CodeStatWindow : Window {
 		langs.Clear();
 		files.Clear();
 		if (last == null) return;
-		var tf = 0; var tl = 0; var tc = 0; var tm = 0; var tb = 0;
 		foreach (var row in last.Langs) {
-			if (row.Child) continue;
-			tf += row.Files; tl += row.Lines; tc += row.Code; tm += row.Comments; tb += row.Blanks;
-		}
-		foreach (var row in last.Langs) {
-			langs.Add(new CodeStatLangView {
+			var item = new CodeStatLangView {
 				Name = row.Child ? "    " + row.Name : row.Name,
 				Lang = row.Child ? "" : row.Name,
 				Files = row.Files,
@@ -167,16 +198,34 @@ public partial class CodeStatWindow : Window {
 				Code = row.Code,
 				Comments = row.Comments,
 				Blanks = row.Blanks,
-			});
+				Selectable = !row.Child,
+				Enabled = row.Child || !offlangs.Contains(row.Name),
+			};
+			item.Changed = (lang, on) => {
+				if (lang.Length == 0) return;
+				if (on) offlangs.Remove(lang);
+				else offlangs.Add(lang);
+				sumlangs();
+				showfiles();
+			};
+			langs.Add(item);
 		}
-		langs.Add(new CodeStatLangView {
+		totalrow = new CodeStatLangView {
 			Name = Loc.T("codestat.total"),
-			Files = tf, Lines = tl, Code = tc, Comments = tm, Blanks = tb, Total = true,
-		});
-		lbstat.Text = string.IsNullOrEmpty(last.Error)
-			? Loc.T("codestat.done", tf, last.Skipped)
-			: last.Error;
+			Total = true,
+		};
+		langs.Add(totalrow);
+		sumlangs();
+		if (!string.IsNullOrEmpty(last.Error)) lbstat.Text = last.Error;
 		showfiles();
+	}
+
+	void sumlangs() {
+		if (last == null) return;
+		var sum = CodeStat.Sum(last.Langs, offlangs);
+		totalrow?.settotals(sum);
+		if (string.IsNullOrEmpty(last.Error))
+			lbstat.Text = Loc.T("codestat.done", sum.Files, last.Skipped);
 	}
 
 	void showfiles() {
@@ -185,7 +234,10 @@ public partial class CodeStatWindow : Window {
 		var view = lvlang.SelectedItem as CodeStatLangView;
 		var lang = view != null && !view.Total ? view.Lang : "";
 		foreach (var row in last.Files) {
-			if (lang.Length > 0 && !string.Equals(row.Lang, lang, StringComparison.Ordinal)) continue;
+			if (lang.Length > 0) {
+				if (!string.Equals(row.Lang, lang, StringComparison.Ordinal)) continue;
+			}
+			else if (offlangs.Contains(row.Lang)) continue;
 			files.Add(new CodeStatFileView {
 				Name = relname(row.Path),
 				Path = row.Path,
@@ -220,5 +272,25 @@ public partial class CodeStatWindow : Window {
 		if (row == null || string.IsNullOrEmpty(row.Path)) return;
 		try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + row.Path + "\""); }
 		catch { }
+	}
+
+	/// <summary>--test-codestat-ui：灌入一次统计，勾掉一种语言看合计和文件列表是否跟着变。</summary>
+	internal string SelfTest(string root) {
+		paths.Add(root);
+		last = CodeStat.Run(new[] { root }, false, null, CancellationToken.None);
+		showlangs();
+		var pick = langs.FirstOrDefault(x => x.Selectable && x.Files > 0);
+		if (pick == null) return "FAIL: 没有可禁用的语言";
+		if (totalrow.Selectable) return "FAIL: 合计行不该有勾选框";
+		var before = totalrow.Files;
+		var filesbefore = files.Count;
+		pick.Enabled = false;
+		if (totalrow.Files != before - pick.Files)
+			return $"FAIL: 合计未随禁用变化 {before}->{totalrow.Files}";
+		if (files.Count != filesbefore - pick.Files)
+			return $"FAIL: 文件列表未排除禁用的语言 {filesbefore}->{files.Count}";
+		pick.Enabled = true;
+		if (totalrow.Files != before) return $"FAIL: 恢复勾选后合计不对 {totalrow.Files}";
+		return $"OK: {pick.Lang} 禁用后合计 {before}->{totalrow.Files - pick.Files}，恢复 {totalrow.Files}";
 	}
 }

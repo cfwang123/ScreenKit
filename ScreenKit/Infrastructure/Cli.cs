@@ -61,7 +61,7 @@ static class Cli {
 				or "--test-apk-qr"
 				or "--test-img-convert" or "--charart" or "--test-charart" or "--test-vid-convert" or "--test-vid-gif" or "--test-screenshot-dir" or "--test-qr-make" or "--test-rename"
 				or "--test-media" or "--test-seek" or "--test-subtitle" or "--test-subtitle-hit" or "--test-karaoke" or "--test-playlist" or "--test-natsort" or "--test-player-clip"
-				or "--test-hash" or "--test-codestat" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
+				or "--test-hash" or "--test-codestat" or "--test-codestat-ui" or "--test-texttool" or "--test-fx" or "--test-pwgen" or "--test-fake" or "--test-pinyin" or "--test-hangul" or "--test-ime" or "--test-ime-dict" or "--test-ime-dict-ui" or "--test-ime-key" or "--ime-dict-import" or "--ime-db-clean" or "--ime-ja-expand" or "--test-ime-ja" or "--test-vim-caret" or "--test-ime-caret" or "--test-7za" or "--test-htmlui" or "--test-nettool" or "--test-tls" or "--test-usb" or "--test-sysinfo" or "--test-usbdesc" or "--test-systool" or "--test-fileprobe" or "--test-perfmon" or "--test-httpdbg"
 				or "--test-update-notes" or "--test-update-url"
 				or "--test-zhconv" or "--test-wincal" or "--test-jpyomi"
 				or "--test-wintop" or "--test-sql" or "--test-sqlexport" or "--test-sqlconv" or "--sqlconv" or "--test-autokey" or "--test-fastcopy" or "--test-glyphmod" or "--test-mdread" or "--test-docview" or "--test-doclib" or "--test-portuse" or "--test-midisynth" or "--test-voicerec" or "--test-vmeter" or "--test-cam" or "--test-scicalc" or "--test-note" or "--test-mqtt" or "--test-wsdbg"
@@ -393,6 +393,8 @@ static class Cli {
 					return testhash();
 				case "--test-codestat":
 					return testcodestat();
+				case "--test-codestat-ui":
+					return testcodestatui();
 				case "--test-texttool":
 					return testtexttool();
 				case "--test-fx":
@@ -4429,6 +4431,13 @@ static class Cli {
 				Err("FAIL: Markdown 围栏");
 				bad++;
 			}
+			var all = CodeStat.Sum(r.Langs, null);
+			var off = CodeStat.Sum(r.Langs, new HashSet<string>(StringComparer.Ordinal) { "C#" });
+			Out($"all={all.Files}/{all.Lines} off={off.Files}/{off.Lines}");
+			if (all.Files != r.Files.Count || off.Files != all.Files - 1 || off.Lines >= all.Lines) {
+				Err("FAIL: 禁用语言后合计");
+				bad++;
+			}
 		}
 		catch (Exception ex) {
 			Err("FAIL: " + ex.Message);
@@ -4439,6 +4448,38 @@ static class Cli {
 		}
 		Out(bad == 0 ? "=== OK：代码统计 ===" : $"=== FAIL bad={bad} ===");
 		return bad == 0 ? 0 : 1;
+	}
+
+	static int testcodestatui() {
+		Out("=== 代码统计窗口 --test-codestat-ui ===");
+		var root = Path.Combine(Path.GetTempPath(), "sk_csui_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+		CodeStatWindow win = null;
+		try {
+			Directory.CreateDirectory(root);
+			File.WriteAllText(Path.Combine(root, "a.cs"), "class A { }\n");
+			File.WriteAllText(Path.Combine(root, "b.py"), "print(1)\n");
+			File.WriteAllText(Path.Combine(root, "c.js"), "let a = 1;\n");
+			if (Application.Current != null) Application.Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+			win = new CodeStatWindow();
+			win.Show();
+			pump();
+			var msg = win.SelfTest(root);
+			Out(msg);
+			if (!msg.StartsWith("OK", StringComparison.Ordinal)) {
+				Err("FAIL: " + msg);
+				return 1;
+			}
+			Out("=== OK：代码统计窗口 ===");
+			return 0;
+		}
+		catch (Exception ex) {
+			Err("FAIL: " + ex.Message);
+			return 1;
+		}
+		finally {
+			try { win?.Close(); } catch { }
+			try { Directory.Delete(root, true); } catch { }
+		}
 	}
 
 	static int testtexttool() {
