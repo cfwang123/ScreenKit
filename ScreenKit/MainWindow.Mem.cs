@@ -357,4 +357,26 @@ public partial class MainWindow {
 		try { Dispatcher.BeginInvoke(new Action(refreshstbar)); }
 		catch { }
 	}
+
+	bool starttrimmed;
+
+	/// <summary>首帧渲染后回收一次。核显驱动给 WPF 的交换链表面会先提交几百 MB，空闲后能还给系统。</summary>
+	void trimonstart() {
+		if (starttrimmed) return;
+		starttrimmed = true;
+		var t = new System.Windows.Threading.DispatcherTimer {
+			Interval = TimeSpan.FromSeconds(2),
+		};
+		t.Tick += (_, _) => {
+			t.Stop();
+			_ = Task.Run(() => {
+				try {
+					// 本来就小的机器不必倒腾，免得白白触发缺页
+					if (MemUsage.Read().WorkingSet > 300L << 20) MemUsage.Trim();
+				}
+				catch { }
+			});
+		};
+		t.Start();
+	}
 }

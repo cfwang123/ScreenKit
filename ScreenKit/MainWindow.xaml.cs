@@ -236,6 +236,7 @@ public partial class MainWindow : Window {
 		// 系统 OCR 可直接用，启动不再弹出安装向导。按间隔检查更新。
 		Loaded += (_, _) => refreshfcmenu();
 		Loaded += onautoupdate;
+		Loaded += (_, _) => trimonstart();
 	}
 
 	void initonnxidle() {
