@@ -38,6 +38,11 @@ public partial class PerfMonWindow : Window {
 	readonly SolidColorBrush pinOff = freeze("#C5D0D6");
 	const double BODY = 10;
 	const double SMALL = 9;
+	// 数值列宽，够放 "1.1M/s"、"28°C" 这类最长读数
+	const double VALW = 52;
+	// 小于这么宽就只排一列，两列的话名称和数值都会被挤掉
+	const double TWOMIN = 340;
+	bool lasttwo = true;
 	static readonly string[] ShowOrder = {
 		"cpu", "gpu", "mem", "cputemp", "down", "up", "read", "write", "gputemp", "gpupower", "cpupower",
 	};
@@ -94,6 +99,11 @@ public partial class PerfMonWindow : Window {
 			setcursor(edgeat(e));
 		};
 		SizeChanged += (_, _) => {
+			// 跨过宽度阈值时换成一列或两列；重排会把读数重置成「—」，马上补一次
+			if (twocol() != lasttwo) {
+				buildrows();
+				tick();
+			}
 			foreach (var key in tabcells.Keys.ToList()) fitrows(key);
 		};
 		tabs.SizeChanged += (_, _) => {
@@ -284,35 +294,38 @@ public partial class PerfMonWindow : Window {
 		rows.ColumnDefinitions.Clear();
 		cells.Clear();
 		sparks.Clear();
-		history.Clear();
-		// 左右各占一半，右边不留空白
-		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-		rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+		// 窗口窄的时候排成一列，否则两列各占一半、数值会被裁掉
+		lasttwo = twocol();
+		var cols = lasttwo ? 2 : 1;
+		for (var c = 0; c < cols; c++)
+			rows.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 		var on = new List<string>();
 		foreach (var key in ShowOrder)
 			if (opt.On(key)) on.Add(key);
-		var halves = new Grid[2];
-		for (var h = 0; h < 2; h++) {
-			var half = new Grid { Margin = new Thickness(0, 0, h == 0 ? 8 : 0, 0) };
+		var halves = new Grid[cols];
+		for (var h = 0; h < cols; h++) {
+			var half = new Grid { Margin = new Thickness(0, 0, h == cols - 1 ? 0 : 8, 0) };
 			half.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 			half.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-			half.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(46) });
+			// 读数按内容定宽，星号列留给折线，宽度再紧也不会把读数截掉
+			half.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto, MinWidth = VALW });
 			halves[h] = half;
 			Grid.SetColumn(half, h);
 			rows.Children.Add(half);
 		}
 		for (var i = 0; i < on.Count; i++) {
-			var h = i % 2;
-			var r = i / 2;
+			var h = i % cols;
+			var r = i / cols;
 			if (h == 0) {
-				halves[0].RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-				halves[1].RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+				for (var k = 0; k < cols; k++)
+					halves[k].RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 			}
 			var name = new TextBlock {
 				Text = Loc.T($"perf.{on[i]}"),
 				Foreground = nameBrush,
 				FontSize = BODY,
 				VerticalAlignment = VerticalAlignment.Center,
+				TextTrimming = TextTrimming.CharacterEllipsis,
 				Margin = new Thickness(0, 1, 4, 1),
 			};
 			var spark = new PerfSpark {
@@ -339,8 +352,15 @@ public partial class PerfMonWindow : Window {
 			halves[h].Children.Add(val);
 			cells[on[i]] = val;
 			sparks[on[i]] = spark;
-			history[on[i]] = new List<(int tick, double v)>();
+			if (!history.ContainsKey(on[i])) history[on[i]] = new List<(int tick, double v)>();
 		}
+	}
+
+	/// <summary>宽度够就排两列，太窄排一列，免得读数和名称被裁掉</summary>
+	bool twocol() {
+		var w = ActualWidth > 0 ? ActualWidth : Width;
+		if (double.IsNaN(w)) w = TWOMIN;
+		return w >= TWOMIN;
 	}
 
 	// ==================== 进程排行 ====================
@@ -639,19 +659,28 @@ public partial class PerfMonWindow : Window {
 
 	public string Shown(string key) => cells.TryGetValue(key, out var block) ? block.Text ?? "" : "";
 
+	/// <summary>当前是不是两列排版</summary>
+	public bool TwoCol => lasttwo;
+
+	/// <summary>排一排的读数有没有被裁掉：按单元格实际宽度比一遍文字宽度</summary>
+	public string Clipped() {
+		var bad = new List<string>();
+		foreach (var pair in cells) {
+			var cell = pair.Value;
+			cell.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+			var need = cell.DesiredSize.Width;
+			if (need < 1) continue;
+			var have = cell.ActualWidth;
+			if (have < 1) continue;
+			if (need > have + 0.5) bad.Add($"{pair.Key}={have:0}<{need:0}");
+		}
+		return string.Join(",", bad);
+	}
+
 	public static int Check(Action<string> log, Action<string> err) {
 		var win = new PerfMonWindow();
 		win.Show();
-		var frame = new DispatcherFrame();
-		var pump = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
-		var n = 0;
-		pump.Tick += (_, _) => {
-			n++;
-			if (n >= 50) frame.Continue = false;
-		};
-		pump.Start();
-		Dispatcher.PushFrame(frame);
-		pump.Stop();
+		pumpms(50);
 		var cpu = win.Shown("cpu");
 		var mem = win.Shown("mem");
 		log($"win cpu={cpu} mem={mem}");
@@ -659,6 +688,19 @@ public partial class PerfMonWindow : Window {
 		var tabcpuval = win.TabShown("tcpu", 0, 1);
 		log($"tab cpu={tabcpu} {tabcpuval}");
 		log($"power cpu={win.Shown("cpupower")} gpu={win.Shown("gpupower")} min={win.MinWidth:0}");
+		// 宽的时候两列，拖窄之后应该自动变成一列，两种宽度下读数都不能被裁
+		win.Width = 470;
+		pumpms(20);
+		var wide = win.Clipped();
+		log($"wide two={win.TwoCol} w={win.ActualWidth:0} clip=[{wide}]");
+		win.Width = 350;
+		pumpms(20);
+		var mid = win.Clipped();
+		log($"mid two={win.TwoCol} w={win.ActualWidth:0} clip=[{mid}]");
+		win.Width = 240;
+		pumpms(20);
+		var narrow = win.Clipped();
+		log($"narrow two={win.TwoCol} w={win.ActualWidth:0} clip=[{narrow}]");
 		win.Close();
 		if (cpu.Length == 0 || cpu == "—") {
 			err("窗口没有显示 CPU");
@@ -672,7 +714,31 @@ public partial class PerfMonWindow : Window {
 			err("进程排行没有显示进程");
 			return 1;
 		}
+		if (narrow.Length > 0) {
+			err("窗口变窄后读数被裁：" + narrow);
+			return 1;
+		}
+		if (wide.Length > 0) {
+			err("窗口变宽后读数被裁：" + wide);
+			return 1;
+		}
 		return 0;
+	}
+
+	/// <summary>空转若干毫秒，让布局和定时器跑完</summary>
+	static void pumpms(int ms) {
+		var frame = new DispatcherFrame();
+		var pump = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
+		var n = 0;
+		var times = Math.Max(1, ms / 50);
+		pump.Tick += (_, _) => {
+			if (++n >= times) {
+				pump.Stop();
+				frame.Continue = false;
+			}
+		};
+		pump.Start();
+		Dispatcher.PushFrame(frame);
 	}
 
 	public string TabShown(string key, int row, int col) {
