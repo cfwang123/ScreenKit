@@ -452,7 +452,12 @@ static class SqlScript {
 		if (others.Count > 0) {
 			sb.Append("-- ").Append(Loc.T("sqlconv.header.kept", others.Count)).Append("\r\n");
 			// 原样保留的语句也过一遍函数改写：SELECT 里的日期函数照样换个写法
-			foreach (var s in others) sb.Append(wrapkeep(sqlfunc(s, src, dst, dver, res), dst)).Append("\r\n");
+			foreach (var s in others) {
+				splitnotes(s, out var head, out var body);
+				if (head.Length > 0) sb.Append(head).Append("\r\n");
+				var t = pretty(prettyrows(sqlfunc(body, src, dst, dver, res), "  "));
+				sb.Append(wrapkeep(t, dst)).Append("\r\n");
+			}
 			res.Kept = others.Count;
 		}
 		appendfooter(sb, dst, tables);
@@ -460,6 +465,7 @@ static class SqlScript {
 		return res;
 	}
 
+	/// <summary>原样保留的语句也排一下版：一行一句的改写成一列一句</summary>
 	static string wrapkeep(string s, SqlEngine dst) {
 		// 原样保留的语句用注释框起来，导入时不会因方言不合直接报错
 		if (dst == SqlEngine.Oracle) {
@@ -471,6 +477,210 @@ static class SqlScript {
 		var t = s.TrimEnd();
 		if (!t.EndsWith(";", StringComparison.Ordinal)) t += ";";
 		return t;
+	}
+
+	/// <summary>拆出语句开头连续的注释行，剩下的才是 SQL 本体</summary>
+	static void splitnotes(string s, out string head, out string body) {
+		head = "";
+		body = (s ?? "").Trim();
+		var lines = body.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+		var k = 0;
+		var sb = new StringBuilder();
+		// 只认开头的注释行；SQL 中间的行尾注释仍然留在本体里
+		while (k < lines.Length) {
+			var t = lines[k].Trim();
+			if (t.Length > 0 && !t.StartsWith("--", StringComparison.Ordinal) && !t.StartsWith("#", StringComparison.Ordinal)) break;
+			if (t.Length > 0) sb.Append(t).Append("\r\n");
+			k++;
+		}
+		if (k == 0 || k >= lines.Length) return;
+		head = sb.ToString().TrimEnd();
+		body = string.Join("\r\n", lines, k, lines.Length - k).Trim();
+	}
+
+	/// <summary>把语句按子句拆行；引号、括号里的内容一律不动</summary>
+	static string pretty(string sql, string indent = "  ") {
+		if (string.IsNullOrWhiteSpace(sql)) return sql ?? "";
+		var src = Regex.Replace(sql.Replace("\r\n", " ").Replace('\n', ' ').Replace('\t', ' '), @" {2,}", " ");
+		var sb = new StringBuilder(src.Length + 64);
+		var line = new StringBuilder();
+		var depth = 0;
+		void flush() {
+			var t = line.ToString().TrimEnd();
+			if (t.Length > 0) sb.Append(t).Append("\r\n");
+			line.Clear();
+		}
+		// 子句行的缩进：括号里多两级
+		string pad() => new string(' ', 2 + depth * 2);
+		var i = 0;
+		var n = src.Length;
+		while (i < n) {
+			var ch = src[i];
+			// 引号里的内容整段照抄，里面的关键字不算子句
+			if (ch == '\'' || ch == '"' || ch == '`' || ch == '[') {
+				var close = ch == '[' ? ']' : ch;
+				var from = i;
+				i++;
+				while (i < n) {
+					if (src[i] == close) {
+						if (i + 1 < n && src[i + 1] == close && close != ']') {
+							i += 2;
+							continue;
+						}
+						i++;
+						break;
+					}
+					i++;
+				}
+				line.Append(src.Substring(from, i - from));
+				continue;
+			}
+			if (ch == '(') {
+				depth++;
+				line.Append(ch);
+				i++;
+				continue;
+			}
+			if (ch == ')') {
+				depth = Math.Max(0, depth - 1);
+				line.Append(ch);
+				i++;
+				continue;
+			}
+			if (ch == '-' && i + 1 < n && src[i + 1] == '-') {
+				line.Append(src.Substring(i).TrimEnd());
+				break;
+			}
+			if (wordat(src, i, out var word)) {
+				var keep = line.ToString().Trim();
+				// EXTRACT(year FROM x)、SUBSTRING(s FROM n)、TRIM(BOTH ' ' FROM s) 里的 FROM 不算子句
+				if (word == "from" && Regex.IsMatch(keep, @"\b(extract|substring|substr|trim|overlay|position)\s*\([^()]*$", RegexOptions.IgnoreCase | RegexOptions.Singleline)) {
+					if (!line.ToString().EndsWith(" ", StringComparison.Ordinal)) line.Append(' ');
+					line.Append("FROM");
+					i = wordend(src, i);
+					continue;
+				}
+				// delete / insert 这类动词后面紧跟 FROM、INTO 时不断行
+				var verbonly = keep.Length > 0 && !keep.Contains(' ')
+					&& keep.ToLowerInvariant() is "delete" or "insert" or "select" or "update" or "replace";
+				if (word is "from" or "where" or "having" or "limit" or "offset" or "fetch"
+					or "union" or "except" or "intersect" or "returning" or "output" or "values" or "value") {
+					if (!verbonly) {
+						flush();
+						line.Append(pad());
+					}
+					line.Append(word.ToUpperInvariant());
+					i = wordend(src, i);
+					continue;
+				}
+				if (word == "group" || word == "order") {
+					// 后面跟 BY 才是子句，否则可能是列名（order_id 之类）
+					var k = skipws(src, wordend(src, i));
+					if (starts(src, k, "by")) {
+						flush();
+						line.Append(pad()).Append(word.ToUpperInvariant()).Append(" BY ");
+						i = skipws(src, k + 2);
+						continue;
+					}
+				}
+				if (word == "select" && keep.Length > 0) {
+					flush();
+					line.Append(pad()).Append("SELECT");
+					i = wordend(src, i);
+					continue;
+				}
+				// 后面紧跟括号的函数少数几个（IF / LEFT / RIGHT / REPLACE）写法不动，其余关键字大写
+				var after = skipws(src, wordend(src, i));
+				var iscall = after < src.Length && src[after] == '(' && Callable(word);
+				line.Append(Keyword(word) && !iscall ? word.ToUpperInvariant() : word);
+				i = wordend(src, i);
+				continue;
+			}
+			line.Append(ch);
+			i++;
+		}
+		flush();
+		var outText = sb.ToString().TrimEnd();
+		return outText.Length == 0 ? sql : outText;
+	}
+
+	/// <summary>这些词在输出里统一写成大写</summary>
+	static readonly SqlNameSet Keywords = new(
+		"select", "insert", "update", "delete", "create", "alter", "drop", "truncate",
+		"from", "where", "group", "order", "having", "limit", "offset", "fetch", "union", "except",
+		"intersect", "returning", "output", "values", "join", "inner", "cross", "outer", "on", "set",
+		"into", "as", "and", "or", "not", "in", "is", "like", "between", "asc", "desc", "distinct",
+		"case", "when", "then", "else", "end", "by", "primary", "key", "unique", "index", "table",
+		"exists", "if", "with", "left", "right", "replace", "nullif", "coalesce");
+
+	/// <summary>只有独立成词的才算关键字：后面紧跟括号的是函数调用，别动它的写法</summary>
+	static bool Keyword(string w) => Keywords.Has(w);
+
+	/// <summary>关键字里也有同名函数的几个，后面带括号时按函数处理</summary>
+	static bool Callable(string w) => w is "if" or "left" or "right" or "replace" or "nullif" or "coalesce";
+
+	/// <summary>取关键字的结束位置</summary>
+	static int wordend(string s, int i) {
+		var j = i;
+		while (j < s.Length && (char.IsLetter(s[j]) || s[j] == '_')) j++;
+		return j;
+	}
+
+	/// <summary>当前位置是独立的关键字（前后都不是标识符字符）</summary>
+	static bool wordat(string s, int i, out string word) {
+		word = "";
+		if (!char.IsLetter(s[i])) return false;
+		if (i > 0 && (char.IsLetterOrDigit(s[i - 1]) || s[i - 1] == '_' || s[i - 1] == '.')) return false;
+		var j = wordend(s, i);
+		if (j < s.Length && (char.IsLetterOrDigit(s[j]) || s[j] == '_')) return false;
+		word = s.Substring(i, j - i).ToLowerInvariant();
+		return true;
+	}
+
+	/// <summary>INSERT 的多行元组排成一行一个，量大的脚本也好改</summary>
+	static string prettyrows(string sql, string indent) {
+		if (string.IsNullOrEmpty(sql) || !sql.Contains("), (")) return sql;
+		var sb = new StringBuilder(sql.Length + 32);
+		var depth = 0;
+		var i = 0;
+		var n = sql.Length;
+		while (i < n) {
+			var ch = sql[i];
+			if (ch == '\'' || ch == '"' || ch == '`' || ch == '[') {
+				var close = ch == '[' ? ']' : ch;
+				var from = i;
+				i++;
+				while (i < n) {
+					if (sql[i] == close) {
+						if (i + 1 < n && sql[i + 1] == close && close != ']') {
+							i += 2;
+							continue;
+						}
+						i++;
+						break;
+					}
+					i++;
+				}
+				sb.Append(sql.Substring(from, i - from));
+				continue;
+			}
+			if (ch == '(') depth++;
+			else if (ch == ')') depth--;
+			if (ch == ')' && depth == 0) {
+				var j = skipws(sql, i + 1);
+				if (j < n && sql[j] == ',') {
+					var k = skipws(sql, j + 1);
+					if (k < n && sql[k] == '(') {
+						sb.Append("),\r\n").Append(indent).Append('(');
+						i = k + 1;
+						continue;
+					}
+				}
+			}
+			sb.Append(ch);
+			i++;
+		}
+		return sb.ToString();
 	}
 
 	static void appendpreamble(StringBuilder sb, SqlEngine e) {
@@ -761,7 +971,8 @@ static class SqlScript {
 		}
 		if (!first) sb.Append(";\r\n");
 		if (ident) sb.Append($"SET IDENTITY_INSERT {tn} OFF;\r\n");
-		return sb.ToString();
+		// 每行一条 VALUES，超长的脚本也好改
+		return prettyrows(sb.ToString(), "  ");
 	}
 
 	/// <summary>字面量按源方言解析、按目标方言重新书写；函数表达式交给函数改写，认不出才原样搬过去。</summary>
@@ -1754,6 +1965,9 @@ static class SqlScript {
 		var t = (s ?? "").Trim();
 		if (t.Length == 0) return t;
 		if (Regex.IsMatch(t, @"^[A-Za-z_][A-Za-z0-9_]*$")) return t;
+		// 带引号的标识符就是一个名字，不用再套括号
+		if (t.Length > 2 && (t[0] == '`' || t[0] == '"' || t[0] == '[') && (t[^1] == '`' || t[^1] == '"' || t[^1] == ']'))
+			return t;
 		if (Regex.IsMatch(t, @"^[A-Za-z_][A-Za-z0-9_]*\s*\(.*\)$")) return t;
 		if (Regex.IsMatch(t, @"^[-+]?(\d+(\.\d*)?|\.\d+)$")) return t;
 		if (t.Length > 1 && t[0] == '\'' && t[^1] == '\'') return t;
@@ -2144,7 +2358,7 @@ static class SqlScript {
 		case "date_sub":
 		case "subdate":
 			if (!addparts(a, out var u2, out var n2, out var d2)) return null;
-			return addval(u2, "-(" + n2 + ")", d2, dst);
+			return addval(u2, n2.StartsWith("-", StringComparison.Ordinal) ? n2.Substring(1) : "-" + n2, d2, dst);
 		case "add_months":
 			if (a.Count != 2) return null;
 			return addval("month", a[1], a[0], dst);
@@ -2179,9 +2393,15 @@ static class SqlScript {
 			if (a.Count != 2) return null;
 			return formatval(fmtin(a[1]), a[0], dst);
 		case "datetime":
-			// SQLite 的 datetime(x) 只取日期时间，其余方言按取日期再还原处理
+			// SQLite 的 datetime(x) 只是把值规范成时间戳写法，不是取日期
 			if (a.Count != 1) return null;
-			return dst == SqlEngine.Sqlite ? $"datetime({a[0]})" : dateval(a[0], dst);
+			return dst switch {
+				SqlEngine.Sqlite => $"datetime({a[0]})",
+				SqlEngine.Mysql => $"CAST({sqlnest(a[0])} AS datetime)",
+				SqlEngine.Mssql => $"CONVERT(datetime, {sqlnest(a[0])}, 120)",
+				SqlEngine.Oracle => $"TO_DATE({sqlnest(a[0])}, 'YYYY-MM-DD HH24:MI:SS')",
+				_ => $"CAST({sqlnest(a[0])} AS timestamp)",
+			};
 		case "format":
 			// SQL Server 的 FORMAT(x, 'yyyy-MM-dd') 用 .NET 格式串
 			if (a.Count == 2) return formatval(fmtnet(a[1]), a[0], dst);

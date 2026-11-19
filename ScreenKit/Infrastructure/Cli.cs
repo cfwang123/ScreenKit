@@ -8120,24 +8120,26 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Source = SqlEngine.Mysql, SourceVersion = new Version(8, 0),
 				Target = SqlEngine.Mssql, TargetVersion = new Version(16, 0),
 			});
-		// 目标 SQL Server 时 NOW() 落到 GETDATE()，格式串换成样式号
-		if (fn.Text.IndexOf("CONVERT(varchar, GETDATE(), 23)", StringComparison.Ordinal) < 0) {
+		// 目标 SQL Server 时 NOW() 落到 GETDATE()，格式串换成样式号；结果里的写法保留源大小写
+		string has(string text) => text.Replace("\r\n", " ");
+		bool inside(string text, string want) => has(text).IndexOf(want, StringComparison.OrdinalIgnoreCase) >= 0;
+		if (!inside(fn.Text, "CONVERT(varchar, GETDATE(), 23)")) {
 			Err("FAIL: DATE_FORMAT 没换成 CONVERT 样式号");
 			bad++;
 		}
-		if (fn.Text.IndexOf("DATEDIFF(day, '2024-01-01', GETDATE())", StringComparison.Ordinal) < 0) {
+		if (!inside(fn.Text, "DATEDIFF(day, '2024-01-01', GETDATE())")) {
 			Err("FAIL: DATEDIFF 两参数没有按天数换算");
 			bad++;
 		}
-		if (fn.Text.IndexOf("DATEDIFF(hour, '2024-01-01', '2024-01-02')", StringComparison.Ordinal) < 0) {
+		if (!inside(fn.Text, "DATEDIFF(hour, '2024-01-01', '2024-01-02')")) {
 			Err("FAIL: DATEDIFF 三参数的单位丢失");
 			bad++;
 		}
-		if (fn.Text.IndexOf("DATEADD(day, 30, GETDATE())", StringComparison.Ordinal) < 0) {
+		if (!inside(fn.Text, "DATEADD(day, 30, GETDATE())")) {
 			Err("FAIL: DATE_ADD + INTERVAL 没换成 DATEADD");
 			bad++;
 		}
-		if (fn.Text.IndexOf("DATEDIFF(minute, '2024-01-01', GETDATE())", StringComparison.Ordinal) < 0) {
+		if (!inside(fn.Text, "DATEDIFF(minute, '2024-01-01', GETDATE())")) {
 			Err("FAIL: TIMESTAMPDIFF 没有换成 DATEDIFF");
 			bad++;
 		}
@@ -8152,11 +8154,11 @@ INSERT INTO ja_word(reading,text,rank) VALUES('きょう','今日',1);";
 				Source = SqlEngine.Mysql, SourceVersion = new Version(8, 0),
 				Target = SqlEngine.Postgres, TargetVersion = new Version(16, 0),
 			});
-		if (fnpg.Text.IndexOf("CAST(('2024-02-01' AS date) - ('2024-01-01' AS date)", StringComparison.Ordinal) < 0) {
+		if (!inside(fnpg.Text, "CAST(('2024-02-01' AS date) - ('2024-01-01' AS date)")) {
 			Err("FAIL: PostgreSQL 的 DATEDIFF 方向不对");
 			bad++;
 		}
-		if (fnpg.Text.IndexOf("EXTRACT(year FROM CURRENT_TIMESTAMP)", StringComparison.Ordinal) < 0) {
+		if (!inside(fnpg.Text, "EXTRACT(year FROM CURRENT_TIMESTAMP)")) {
 			Err("FAIL: PostgreSQL 的 YEAR 没换成 EXTRACT");
 			bad++;
 		}

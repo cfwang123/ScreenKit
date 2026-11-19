@@ -60,6 +60,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Performance window: a new tab group below shows the top 5 processes by CPU, memory, disk or network, each with all four usage figures; can be turned on or off in the settings
 - Performance window: each metric row now has a mini sparkline and wider value columns
 - SQL dialect conversion: date and time functions are rewritten for the target dialect (DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB, DATEDIFF/TIMESTAMPDIFF in both directions, DATE_TRUNC/DATETRUNC/TRUNC, DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT styles, EXTRACT/YEAR and other date parts, UNIX_TIMESTAMP, LAST_DAY, CONCAT, IFNULL/ISNULL/NVL, LEN/LENGTH, RAND/NEWID/UUID), nested calls and SELECT statements included, identifiers re-quoted and dbo. dropped; dialects that cannot keep a function default (SQLite, MySQL before 5.7) drop it and say so, and the window reports how many functions were rewritten
+- SQL dialect conversion: statements are laid out one clause per line (SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT, subqueries indented, one VALUES row per line) even when the source is a single line, and comments above a statement stay on their own line
 
 #### Changed
 
@@ -85,6 +86,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 性能监控小窗下方新增 CPU、内存、硬盘、网络 tab；选中后列出该项目占用最多的 5 个进程，并显示四项占用；可在参数设置和右键菜单中开关
 - 性能监控：每个监控项前面加了一条迷你折线图，数值列加宽
 - SQL 方言转换：日期时间函数按目标方言改写（DATEADD/DATE_ADD/ADD_MONTHS/DATE_SUB、双向的 DATEDIFF/TIMESTAMPDIFF、DATE_TRUNC/DATETRUNC/TRUNC、DATE_FORMAT/strftime/TO_CHAR/FORMAT/CONVERT 样式号、EXTRACT/YEAR 等日期部分、UNIX_TIMESTAMP、LAST_DAY、CONCAT、IFNULL/ISNULL/NVL、LEN/LENGTH、RAND/NEWID/UUID），嵌套调用与 SELECT 语句一并处理，标识符引号跟着换、dbo. 前缀去掉；目标方言无法保留函数默认值时（SQLite、5.7 之前的 MySQL）去掉并说明，窗口里显示改写了多少处函数
+- SQL 方言转换：源脚本不换行也能处理，输出按子句排版（SELECT / FROM / WHERE / GROUP BY / ORDER BY / LIMIT 各占一行，子查询再缩进，INSERT 一行一条），语句前的注释单独占行
 
 #### 变更
 
