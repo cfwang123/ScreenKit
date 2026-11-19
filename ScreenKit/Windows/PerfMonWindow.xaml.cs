@@ -392,7 +392,7 @@ public partial class PerfMonWindow : Window {
 		for (var c = 0; c < 5; c++)
 			host.ColumnDefinitions.Add(new ColumnDefinition {
 				Width = c == 0 ? new GridLength(1, GridUnitType.Star) : GridLength.Auto,
-				MinWidth = c == 0 ? 60 : 0,
+				MinWidth = c == 0 ? 40 : 0,
 			});
 		var heads = new[] { "perf.colname", "perf.cpu", "perf.mem", "perf.disk", "perf.net" };
 		host.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -658,6 +658,7 @@ public partial class PerfMonWindow : Window {
 		var tabcpu = win.TabShown("tcpu", 0, 0);
 		var tabcpuval = win.TabShown("tcpu", 0, 1);
 		log($"tab cpu={tabcpu} {tabcpuval}");
+		log($"power cpu={win.Shown("cpupower")} gpu={win.Shown("gpupower")} min={win.MinWidth:0}");
 		win.Close();
 		if (cpu.Length == 0 || cpu == "—") {
 			err("窗口没有显示 CPU");

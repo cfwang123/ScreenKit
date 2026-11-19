@@ -209,10 +209,18 @@ static class PerfMon {
 		var wr = one(wrCtr);
 		if (!double.IsNaN(rd)) s.Read = rd;
 		if (!double.IsNaN(wr)) s.Write = wr;
-		var pwr = sumctr(pwrCtr, false);
+		var pwr = cpupower();
 		if (!double.IsNaN(pwr)) s.CpuPower = pwr;
 		var tz = cputemp();
 		if (!double.IsNaN(tz)) s.CpuTemp = tz;
+	}
+
+	/// <summary>CPU 功率：Power Meter 全为 0 说明这台机器没接能量计量，当没有读数</summary>
+	static double cpupower() {
+		var v = sumctr(pwrCtr, false);
+		// 0 W 在真机上不会出现，出现就是计数器没数据
+		if (double.IsNaN(v) || v <= 0) return double.NaN;
+		return v;
 	}
 
 	static void ensure() {

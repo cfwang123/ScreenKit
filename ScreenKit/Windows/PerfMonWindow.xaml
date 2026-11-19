@@ -8,7 +8,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         ResizeMode="CanResize"
-        MinWidth="300"
+        MinWidth="200"
         MinHeight="150"
         Topmost="True"
         ShowInTaskbar="True"
