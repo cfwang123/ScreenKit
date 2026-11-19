@@ -62,7 +62,7 @@
 	}
 
 	function onpick(){
-		if (this.id === "dc-mode") {
+		if (this === page.doms.dcMode) {
 			fillunits(true);
 			applymode();
 		}

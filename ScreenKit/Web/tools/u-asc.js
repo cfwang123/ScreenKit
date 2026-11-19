@@ -86,7 +86,7 @@
 		page.doms.aGroups.innerHTML = html.join("");
 		page.doms.aGroups.onclick = function(ev){
 			var el = ev.target;
-			while (el && el.id !== "a-groups") {
+			while (el && el !== page.doms.aGroups) {
 				if (el.getAttribute && F.attr(el, "data-i") != null) {
 					ascshow(parseInt(F.attr(el, "data-i"), 10), -1);
 					return;
@@ -96,7 +96,7 @@
 		};
 		page.doms.aGrid.onclick = function(ev){
 			var el = ev.target;
-			while (el && el.id !== "a-grid") {
+			while (el && el !== page.doms.aGrid) {
 				if (el.getAttribute && F.attr(el, "data-cp") != null) {
 					var cp = parseInt(F.attr(el, "data-cp"), 10);
 					ascmark(cp);

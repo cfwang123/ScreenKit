@@ -80,6 +80,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Windows restored to a saved position now clamp back on screen when the monitor layout changed (e.g. a removed secondary display), instead of appearing outside every screen.
 - SQL dialect conversion: a GO line now ends the batch only when it stands alone (case-insensitive, optionally with a repeat count or a trailing comment), it no longer swallows the next INSERT, MySQL # comments are only recognised at line start so SQL Server #temp tables survive, and statements without a trailing semicolon are split at line breaks
 - Performance window: CPU power shows a dash instead of a bogus 0.0 W when the machine has no energy meter, and the minimum window width drops from 300 to 200 pixels
+- Web tools: unit converter type, date calc mode and grid/list picks respond to clicks again
 
 ### 中文
 
@@ -110,6 +111,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 恢复上次窗口位置时若显示器布局已变（比如副屏拔掉），窗口会被拉回屏内，不再跑到所有屏幕之外。
 - SQL 方言转换：GO 只在独占一行时才算批处理分隔（不分大小写，可带重复次数或行尾注释），不会再吞掉下一条 INSERT；MySQL 的 # 注释只在行首识别，SQL Server 的 #临时表 得以保留；没有分号的语句按换行拆分
 - 性能小窗：机器没有能量计量时 CPU 功率显示「—」而不是假的 0.0 W；窗口最小宽度由 300 降到 200 像素
+- 网页工具：单位换算的类型、日期计算的模式以及码表/摩斯码等列表点击重新生效
 
 ## v1.0.39 (2026-11-14 ~ 11-17)
 

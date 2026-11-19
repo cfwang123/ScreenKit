@@ -102,7 +102,7 @@
 
 	function onclick(ev){
 		var el = ev.target;
-		while (el && el.id !== "morse-list") {
+		while (el && el !== page.doms.morseList) {
 			if (el.getAttribute && F.attr(el, "data-code")) {
 				SK.copytext(F.attr(el, "data-code"), "morse-msg");
 				play(el);

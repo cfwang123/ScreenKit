@@ -241,7 +241,7 @@
 		if (SK.curtool !== "u-board") return;
 		var tag = ev.target && ev.target.tagName;
 		if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
-			if (ev.target && ev.target.id === "board-txt") {
+			if (ev.target && ev.target === page.doms.boardTxt) {
 				if (ev.key === "Escape") { F.pd(ev); committext(false); }
 				else if (ev.key === "Enter") { F.pd(ev); committext(true); }
 			}

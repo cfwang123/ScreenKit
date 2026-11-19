@@ -109,11 +109,11 @@
 	}
 
 	function onpick(){
-		if (this.id === "box-kind") {
+		if (this === page.doms.boxKind) {
 			fillunits(false);
 			striptext();
 		}
-		else if (this.id === "box-from") striptext();
+		else if (this === page.doms.boxFrom) striptext();
 		live();
 	}
 

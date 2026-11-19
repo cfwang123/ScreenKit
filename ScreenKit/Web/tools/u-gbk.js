@@ -58,7 +58,7 @@
 		page.doms.gbkGroups.innerHTML = html.join("");
 		page.doms.gbkGroups.onclick = function(ev){
 			var el = ev.target;
-			while (el && el.id !== "gbk-groups") {
+			while (el && el !== page.doms.gbkGroups) {
 				if (el.getAttribute && F.attr(el, "data-i") != null) {
 					gbkshow(parseInt(F.attr(el, "data-i"), 10), -1);
 					return;
@@ -68,7 +68,7 @@
 		};
 		page.doms.gbkGrid.onclick = function(ev){
 			var el = ev.target;
-			while (el && el.id !== "gbk-grid") {
+			while (el && el !== page.doms.gbkGrid) {
 				if (el.getAttribute && F.attr(el, "data-j") != null) {
 					gbkpick(parseInt(F.attr(el, "data-j"), 10), true);
 					return;
