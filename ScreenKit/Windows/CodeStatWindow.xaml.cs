@@ -267,10 +267,15 @@ public partial class CodeStatWindow : Window {
 		return best;
 	}
 
+	/// <summary>双击文件列表：用系统默认程序打开这个文件。</summary>
 	void openfile() {
 		var row = lvfile.SelectedItem as CodeStatFileView;
 		if (row == null || string.IsNullOrEmpty(row.Path)) return;
-		try { System.Diagnostics.Process.Start("explorer.exe", "/select,\"" + row.Path + "\""); }
+		try {
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(row.Path) {
+				UseShellExecute = true,
+			});
+		}
 		catch { }
 	}
 
