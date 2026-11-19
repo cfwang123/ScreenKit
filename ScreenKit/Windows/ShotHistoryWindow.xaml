@@ -119,8 +119,10 @@
 				<ListBox x:Name="lv" BorderBrush="{StaticResource BorderSoft}"
 				         Background="{StaticResource BgPanel}"
 				         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+				         ScrollViewer.CanContentScroll="True"
 				         VirtualizingPanel.IsVirtualizing="True"
 				         VirtualizingPanel.VirtualizationMode="Recycling"
+				         VirtualizingPanel.ScrollUnit="Pixel"
 				         AutomationProperties.AutomationId="hist.list">
 					<ListBox.ItemContainerStyle>
 						<Style TargetType="ListBoxItem">

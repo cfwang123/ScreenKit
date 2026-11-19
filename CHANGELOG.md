@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SQL dialect conversion: the preview is now split into an editable source box and a result box; auto-detects the engine while you type.
 - SQL dialect conversion window: the source and target engine and version dropdowns stay enabled before any script is loaded, so a dialect can be picked first
 - Trim the working set once after the first frame so the graphics driver's swap-chain surfaces are handed back to the system
+- Screenshot history list scrolls by pixel instead of whole items
 
 #### Fixed
 
@@ -103,6 +104,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - SQL 方言转换：结果框拆成可编辑的源脚本框和转换结果框，输入时自动识别引擎并刷新结果。
 - SQL 方言转换窗口：没载入脚本时源与目标引擎、版本下拉也可选，可以先定方言再输入脚本
 - 首帧渲染后回收一次工作集，把核显驱动给 WPF 的表面还给系统
+- 截图历史列表改为按像素连续滚动，不再整张图片跳动
 
 #### 修复
 
