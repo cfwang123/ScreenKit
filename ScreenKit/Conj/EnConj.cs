@@ -486,6 +486,13 @@ static class EnConj {
 		["t_formal"] = new[] { "正式书面", "Formal" },
 		["t_neutral"] = new[] { "中性", "Neutral" },
 		["t_informal"] = new[] { "口语", "Informal" },
+		["g_short"] = new[] { "独特用法 · gonna / wanna", "Unique · gonna / wanna" },
+		["s_uniq_g1"] = new[] { "gonna 不能省 be、不能再加 to", "gonna: keep be, drop to" },
+		["s_uniq_g2"] = new[] { "再缩成 I'ma / Imma", "Further reduced to I'ma / Imma" },
+		["s_uniq_g3"] = new[] { "固定说法", "Fixed phrases" },
+		["s_uniq_w1"] = new[] { "第三人称单数不用 wanna", "no wanna with he / she / it" },
+		["s_uniq_w2"] = new[] { "wanna 后面不能再加 to", "no to after wanna" },
+		["s_uniq_w3"] = new[] { "wanna + 名词（= want a）", "wanna + noun (= want a)" },
 		["t_emph"] = new[] { "强调（do / does）", "Emphatic do" },
 		["t_inv"] = new[] { "强调倒装", "Emphatic inversion" },
 		["t_excl"] = new[] { "感叹", "Exclamation" },
@@ -1026,6 +1033,7 @@ static class EnConj {
 			"He may not have " + ppF + " · he must not have " + ppF));
 		R(g, L("t_hear"), P("He is said to " + b + " · he is supposed to " + b,
 			"He is said not to " + b + " · he isn't supposed to " + b));
+		// gonna / wanna 的常规说法并入语体与语气；只在最末一组单列它们自己的独特用法
 		// 地区变体：不规则动词的 -t / -ed 写法、gotten / got、dove / dived，以及 -l 双写
 		var ameP = pastF;
 		var amePP = ppF;
@@ -1089,7 +1097,7 @@ static class EnConj {
 			if (particle.Length > 0) R(g, L("x_phrasal"), baseword + " it " + particle + " · " + baseword + " " + particle + " it ✗");
 		}
 		R(g, L("x_used"), "I used to " + b + " · I am used to " + ingF + " · I would " + b);
-		R(g, L("x_going"), "I am going to " + b + " · I am about to " + b + " · I am to " + b + " · I am supposed to " + b);
+		R(g, L("x_going"), "I am going to " + b + " · I'm gonna " + b + " · I am about to " + b + " · I am to " + b + " · I am supposed to " + b);
 		R(g, L("x_ought"), "I ought to " + b + " · I had better " + b + " · I would rather " + b);
 		R(g, L("x_tagx"), "Let's " + b + ", shall we? · " + b + ", will you? · " + (isBe ? "I am ready, aren't I?" : "I do it, don't I?"));
 		R(g, L("x_contract"), "I'm " + ingF + " · he's " + ppF + " · I won't " + b + " · I hadn't " + ppF);
@@ -1159,6 +1167,14 @@ static class EnConj {
 			? "I ain't never" + sp + " · he ain't never been" + sp
 			: "I ain't never " + b + " · he ain't never " + ppF + " · he ain't never " + ingF);
 		if (!isBe || has) R(g, L("a_half"), isBe ? "he ain't half" + sp : "he ain't half " + ingF);
+		// 最后一组：只有 gonna / wanna 能说、换回 going to / want to 就变味或出错的说法
+		g = L("g_short");
+		R(g, L("s_uniq_g1"), "I'm gonna " + b + " ✓ · I gonna " + b + " ✗（be 不能省）· I'm gonna to " + b + " ✗（wanna / gonna 已含 to）");
+		R(g, L("s_uniq_g2"), "I'ma " + b + " · Imma " + b + " · I'm a " + b);
+		R(g, L("s_uniq_g3"), "It's gonna rain. · We're gonna have to " + b + ". · Whatcha gonna do? · You gonna " + b + "?");
+		R(g, L("s_uniq_w1"), "he wanna " + b + " ✗ · he wants to " + b + " ✓（wanna 只跟 I / you / we / they）");
+		R(g, L("s_uniq_w2"), "I wanna " + b + " ✓ · I wanna to " + b + " ✗（wanna 已含 to）");
+		R(g, L("s_uniq_w3"), "I wanna coffee · wanna bite?（wanna = want a，只用于口语）");
 		if (row != null) {
 			note = L("irr");
 			if (pasts.Count > 0) note += " · " + L("f_past") + " " + variants(row[1], particle, "", "");

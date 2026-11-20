@@ -59,6 +59,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Performance window settings: new opacity slider
 - Startup: performance window and desktop note are reopened on the next launch when they were open at exit, and the process ranking remembers its selected tab
 - Code statistics: add file size column (B/KB/MB/GB)
+- English conjugation: gonna now appears alongside be going to and wanna alongside want to, with a final group for the uses that only work as gonna / wanna (I'ma, I wanna coffee, no to after wanna, no third-person wanna)
 
 #### Changed
 
@@ -76,6 +77,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 性能监控参数设置新增不透明度调节
 - 启动：退出时开着的性能监控和桌面便笺会在下次启动时自动重开；性能监控的进程类别也会记住
 - 代码统计：新增文件大小列（B/KB/MB/GB）
+- 英语词形变化：gonna 与 be going to 合并、wanna 与 want to 合并展示；只在 gonna / wanna 才成立的独特用法（I'ma、wanna + 名词、wanna 后不再加 to、三单不用 wanna）单列在最后一组
 
 #### 变更
 
