@@ -64,6 +64,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Performance window: process ranking refreshes at the configured update interval instead of a fixed 1 s
 - Performance window: the process ranking samples right away when the window opens or a tab is switched, instead of waiting for the next update interval
 
+#### Fixed
+
+- Performance window: switching the process tab or reopening the window could sample again a few milliseconds after the last round, dividing the byte delta by that tiny interval and showing a disk rate hundreds of times too large; samples closer than 300 ms are now skipped
+
 ### 中文
 
 #### 新增
@@ -75,6 +79,10 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 性能监控：进程排行改用参数里的更新间隔刷新，不再固定 1 秒
 - 性能监控：开窗和切换进程类别时立刻采样一次进程，不用等下一个更新间隔
+
+#### 修复
+
+- 性能监控：切进程页签或重开窗口会在上一轮采样后几毫秒又采一次，用这个极小的间隔做除数，硬盘速率被放大几百倍；现在两轮间隔不足 300 毫秒就不再采
 
 ## v1.0.40 (2026-11-18 ~ 11-19)
 

@@ -28,8 +28,11 @@ sealed class ProcTop : IDisposable {
 	const uint QUERY_INFORMATION = 0x0400;
 	const uint QUERY_LIMITED = 0x1000;
 	const uint VM_READ = 0x0010;
-	// 两秒最多 2 GB，超过就是基线抖动，不是真流量
+	// 一次采样最多认 2 GB 的变化，超过说明基线变了（PID 复用、计数器重置），不是真流量
 	const ulong MAX_DELTA = 2UL << 30;
+	// 距上一轮太近就不再采：切页签会补采一次，间隔只有几毫秒，
+	// 拿它当除数会把几 MB 的写入放大成几百 M/s
+	const int MIN_SAMPLE_MS = 300;
 
 	readonly Thread worker;
 	readonly object gate = new();
@@ -94,10 +97,19 @@ sealed class ProcTop : IDisposable {
 
 	public int Test(Action<string> log, Action<string> err) {
 		sample();
-		Thread.Sleep(300);
+		Thread.Sleep(400);
 		sample();
 		var s = Take();
 		log($"proc cpu={s.Cpu.Count} mem={s.Mem.Count} disk={s.Disk.Count} net={s.Net.Count} netok={s.NetOk}");
+		if (s.Disk.Count > 0) {
+			var sum = s.Disk.Sum(r => r.Disk);
+			log($"disk top={s.Disk[0].Name} {s.Disk[0].Disk / 1048576.0:0.0}M/s sum={sum / 1048576.0:0.0}M/s");
+			// 切页签补采会把速率放大几百倍，这里挡住那条路
+			if (s.Disk[0].Disk > 4L << 30) {
+				err("进程磁盘速率离谱");
+				return 1;
+			}
+		}
 		if (s.Cpu.Count == 0) {
 			err("进程排行为空");
 			return 1;
@@ -141,6 +153,8 @@ sealed class ProcTop : IDisposable {
 	void sample() {
 		var now = Environment.TickCount;
 		var ms = preTick == 0 ? 1000 : unchecked(now - preTick);
+		// 离上一轮太近就跳过：速率是差值除间隔，间隔几毫秒会把读数放大几百倍
+		if (preTick != 0 && ms < MIN_SAMPLE_MS) return;
 		preTick = now;
 		var secs = ms / 1000.0;
 		lock (gate) {
@@ -195,7 +209,11 @@ sealed class ProcTop : IDisposable {
 				var disk = 0.0;
 				if (GetProcessIoCounters(h, out var io)) {
 					var bytes = io.ReadTransferCount + io.WriteTransferCount;
-					if (preIo.TryGetValue(pid, out var oio) && bytes >= oio) disk = (bytes - oio) / secs;
+					if (preIo.TryGetValue(pid, out var oio) && bytes >= oio) {
+						// 单次涨过 2 GB 只当基线变了（PID 复用、计数器重置），不记速率
+						var delta = bytes - oio;
+						if (delta <= MAX_DELTA) disk = delta / secs;
+					}
 					preIo[pid] = bytes;
 				}
 				rows.Add(new Row { Pid = pid, Name = imagepath(h), Cpu = pct, Mem = mem, Disk = disk });

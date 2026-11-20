@@ -5934,3 +5934,4 @@ sqlconv.warn.mysqldefault = "{0} 不支持表达式默认值，{1} 的默认值�
 codestat.file.open = "打开"
 codestat.file.show = "在资源管理器中定位"
 perf.opacity = "不透明度，越小越透。"
+perf.disktip = "进程的全部 I/O（含缓存命中、管道），比顶上的物理磁盘读写之和要大。"

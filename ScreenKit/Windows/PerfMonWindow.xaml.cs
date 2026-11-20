@@ -441,6 +441,7 @@ public partial class PerfMonWindow : Window {
 				FontSize = SMALL,
 				Margin = new Thickness(0, 0, c == 0 ? 6 : SPACEW, 2),
 				HorizontalAlignment = c == 0 ? HorizontalAlignment.Left : HorizontalAlignment.Right,
+				ToolTip = c == 3 ? Loc.T("perf.disktip") : null,
 			};
 			Grid.SetRow(lb, 0);
 			Grid.SetColumn(lb, c);
@@ -711,13 +712,18 @@ public partial class PerfMonWindow : Window {
 		var mem = win.Shown("mem");
 		log($"win cpu={cpu} mem={mem}");
 		// 进程排行由后台线程采样，第一轮快照可能要几十毫秒才好，等它出数据
-		var tabcpu = win.TabShown("tcpu", 0, 0);
+		// 读当前选中的类别：上次可能停在硬盘或网络页，那几页不一定先建出来
+		var tabkey = win.SelectedTabKey;
+		var tabcpu = win.TabShown(tabkey, 0, 0);
 		for (var i = 0; i < 15 && (tabcpu.Length == 0 || tabcpu == "—"); i++) {
 			pumpms(100);
-			tabcpu = win.TabShown("tcpu", 0, 0);
+			tabcpu = win.TabShown(tabkey, 0, 0);
 		}
-		var tabcpuval = win.TabShown("tcpu", 0, 1);
-		log($"tab cpu={tabcpu} {tabcpuval}");
+		var tabcpuval = win.TabShown(tabkey, 0, 1);
+		log($"tab {tabkey} cpu={tabcpu} {tabcpuval} disk={win.TabShown("tdisk", 0, 3)}");
+		// 进程磁盘列用的是每进程 I/O 计数（含缓存命中、管道等非物理盘 I/O），
+		// 和顶上的 PhysicalDisk 速率不是一个口径，把两者的量级打出来对一下
+		log(win.DiskDiag());
 		log($"power cpu={win.Shown("cpupower")} gpu={win.Shown("gpupower")} min={win.MinWidth:0}");
 		// 宽的时候两列，拖窄之后应该自动变成一列，两种宽度下读数都不能被裁
 		win.Width = 470;
@@ -770,6 +776,30 @@ public partial class PerfMonWindow : Window {
 		};
 		pump.Start();
 		Dispatcher.PushFrame(frame);
+	}
+
+	/// <summary>当前选中的进程类别键（tcpu/tmem/tdisk/tnet）</summary>
+	public string SelectedTabKey {
+		get {
+			var i = tabs.SelectedIndex;
+			return i >= 0 && i < PerfOpt.Tabs.Length ? PerfOpt.Tabs[i] : PerfOpt.Tabs[0];
+		}
+	}
+
+	/// <summary>把进程 I/O 合计和顶部物理磁盘速率放在一起，看口径差多少</summary>
+	public string DiskDiag() {
+		var snap = procs?.Take();
+		var sum = snap == null ? 0 : snap.Disk.Sum(r => r.Disk);
+		var top1 = snap != null && snap.Disk.Count > 0 ? snap.Disk[0].Disk : 0;
+		var physrd = PerfMonTakeDisk(out var physwr);
+		return $"proc disk sum={sum / 1048576.0:0.0}M/s top={top1 / 1048576.0:0.0}M/s "
+			+ $"phys rd={physrd / 1048576.0:0.0}M/s wr={physwr / 1048576.0:0.0}M/s";
+	}
+
+	static double PerfMonTakeDisk(out double wr) {
+		var s = PerfMon.Take();
+		wr = s.Write;
+		return s.Read;
 	}
 
 	public string TabShown(string key, int row, int col) {

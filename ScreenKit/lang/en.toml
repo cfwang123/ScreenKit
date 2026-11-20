@@ -5933,3 +5933,4 @@ sqlconv.warn.mysqldefault = "{0} has no expression defaults; the default of {1} 
 codestat.file.open = "Open"
 codestat.file.show = "Show in Explorer"
 perf.opacity = "Opacity, lower is more transparent."
+perf.disktip = "All process I/O, cached hits and pipes included, so it can exceed the physical disk figures above."
