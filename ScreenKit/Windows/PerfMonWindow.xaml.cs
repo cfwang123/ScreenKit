@@ -406,6 +406,8 @@ public partial class PerfMonWindow : Window {
 		if (index < 0 || index >= tabs.Items.Count) return;
 		if (tabs.Items[index] is not TabItem item || item.Content is not Grid host) return;
 		ensuretab((string)item.Tag, host);
+		// 切到另一个类别时不等定时器，立刻采一轮再画
+		refreshprocs();
 	}
 
 	void ensuretab(string key, Grid host) {
@@ -565,6 +567,8 @@ public partial class PerfMonWindow : Window {
 		}
 		proctimer.Start();
 		tickprocs();
+		// 刚开窗时快照还是空的，叫后台立刻采一轮，不用等第一个间隔
+		refreshprocs();
 	}
 
 	void settopref() {
@@ -584,6 +588,12 @@ public partial class PerfMonWindow : Window {
 		painttab("tmem", s.Mem, s.NetOk);
 		painttab("tdisk", s.Disk, s.NetOk);
 		painttab("tnet", s.Net, s.NetOk);
+	}
+
+	/// <summary>不等定时器，叫后台马上采一轮，采完回到界面线程刷一次</summary>
+	void refreshprocs() {
+		if (!opt.TopProcs || procs == null) return;
+		procs.Refresh(() => Dispatcher.BeginInvoke(new Action(tickprocs)));
 	}
 
 	void painttab(string key, List<ProcTop.Row> list, bool netOk) {

@@ -35,6 +35,9 @@ sealed class ProcTop : IDisposable {
 	readonly object gate = new();
 	// 采样间隔跟着小窗的参数走，改小之后要立刻叫醒等待中的采样线程
 	readonly ManualResetEventSlim wake = new(false);
+	// 一次性回调：请求立即采样后，采完这一轮叫一声
+	readonly object cbgate = new();
+	Action sampled;
 	volatile int intervalMs = 1000;
 	readonly Dictionary<int, ulong> preCpu = new();
 	readonly Dictionary<int, ulong> preIo = new();
@@ -72,6 +75,12 @@ sealed class ProcTop : IDisposable {
 
 	public void Start() {
 		if (!worker.IsAlive) worker.Start();
+	}
+
+	/// <summary>马上采一轮，采完叫 done（在后台线程上）。用于切 tab、刚开窗要立刻看到数据。</summary>
+	public void Refresh(Action done) {
+		lock (cbgate) sampled = done;
+		wake.Set();
 	}
 
 	public void Dispose() {
@@ -112,9 +121,21 @@ sealed class ProcTop : IDisposable {
 	void loop() {
 		while (!stop) {
 			try { sample(); } catch { }
+			notify();
 			wake.Wait(intervalMs);
 			wake.Reset();
 		}
+	}
+
+	/// <summary>采完一轮之后叫一次等候的一方，只叫一次</summary>
+	void notify() {
+		Action cb;
+		lock (cbgate) {
+			cb = sampled;
+			sampled = null;
+		}
+		if (cb == null) return;
+		try { cb(); } catch { }
 	}
 
 	void sample() {
