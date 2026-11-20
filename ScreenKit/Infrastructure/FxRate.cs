@@ -39,6 +39,8 @@ static class FxRate {
 	static string cachedAsof = "";
 	static bool cachedLive;
 	static int cachedAt;
+	/// <summary>这一份牌价是几点从网页取回来的。页面上的时间是中国银行的发布时间，两者不是一回事。</summary>
+	static DateTime cachedWall;
 	static Func<string> loader = download;
 
 	public static (string Text, bool Live) Quote(decimal amount, string from, string to) {
@@ -50,7 +52,7 @@ static class FxRate {
 			return (format(amount, src, dst, defrates(), ""), true);
 		var got = table();
 		var note = got.Live
-			? $"中国银行 {got.Asof} 中间价，缓存 10 分钟。"
+			? $"中国银行 {got.Asof} 发布的中间价，{got.Wall:HH:mm:ss} 取回，缓存 10 分钟。"
 			: "汇率查询失败，已用中国银行 2026-10-10 中间价，缓存 10 分钟。";
 		return (format(amount, src, dst, got.Rates, note), got.Live);
 	}
@@ -61,6 +63,7 @@ static class FxRate {
 			cached = null;
 			cachedAsof = "";
 			cachedLive = false;
+			cachedWall = default;
 			loader = load ?? download;
 		}
 	}
@@ -71,18 +74,18 @@ static class FxRate {
 		return parsed.Rates;
 	}
 
-	static (Dictionary<string, decimal> Rates, string Asof, bool Live) table() {
+	static (Dictionary<string, decimal> Rates, string Asof, bool Live, DateTime Wall) table() {
 		Func<string> load;
 		lock (gate) {
 			if (cached != null && fresh())
-				return (cached, cachedAsof, cachedLive);
+				return (cached, cachedAsof, cachedLive, cachedWall);
 			load = loader;
 		}
 		// 下载放锁外：慢网络不堵别的请求；同一时间只让一个请求去下，避免并发重复拉同一页。
 		lock (downloadgate) {
 			lock (gate) {
 				if (cached != null && fresh())
-					return (cached, cachedAsof, cachedLive);
+					return (cached, cachedAsof, cachedLive, cachedWall);
 			}
 			Dictionary<string, decimal> rates;
 			string asof;
@@ -102,7 +105,8 @@ static class FxRate {
 				cachedAsof = asof;
 				cachedLive = live;
 				cachedAt = Environment.TickCount;
-				return (cached, cachedAsof, cachedLive);
+				cachedWall = DateTime.Now;
+				return (cached, cachedAsof, cachedLive, cachedWall);
 			}
 		}
 	}

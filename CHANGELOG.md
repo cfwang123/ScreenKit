@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Fixed
 
 - Performance window: switching the process tab or reopening the window could sample again a few milliseconds after the last round, dividing the byte delta by that tiny interval and showing a disk rate hundreds of times too large; samples closer than 300 ms are now skipped
+- Currency converter: the note under the result showed the Bank of China publication time under the word 'cache', which read like the cache was stale; it now says the rates were published at that time by BOC and adds the local time they were fetched
 
 ### 中文
 
@@ -87,6 +88,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### 修复
 
 - 性能监控：切进程页签或重开窗口会在上一轮采样后几毫秒又采一次，用这个极小的间隔做除数，硬盘速率被放大几百倍；现在两轮间隔不足 300 毫秒就不再采
+- 货币换算：结果下面的说明把中国银行的发布时间写成了缓存时间，看着像缓存过期了；现在写明那个时间是中国银行发布的时间，另外附上本地取回的时刻
 
 ## v1.0.40 (2026-11-18 ~ 11-19)
 
