@@ -372,7 +372,7 @@ public partial class PerfMonWindow : Window {
 	// ==================== 进程排行 ====================
 	#region
 	void buildtabs() {
-		var keep = tabs.SelectedIndex;
+		var keep = tabs.SelectedIndex >= 0 ? tabs.SelectedIndex : Array.IndexOf(PerfOpt.Tabs, PerfOpt.NormTab(opt.ProcTab));
 		tabs.Items.Clear();
 		tabcells.Clear();
 		tabnote.Clear();
@@ -399,7 +399,17 @@ public partial class PerfMonWindow : Window {
 
 	void ontabchanged(object sender, SelectionChangedEventArgs e) {
 		if (e.OriginalSource != tabs) return;
+		savetab();
 		opentab(tabs.SelectedIndex);
+	}
+
+	/// <summary>记住选中的进程类别，下次开窗照旧</summary>
+	void savetab() {
+		var i = tabs.SelectedIndex;
+		if (i < 0 || i >= PerfOpt.Tabs.Length) return;
+		if (opt.ProcTab == PerfOpt.Tabs[i]) return;
+		opt.ProcTab = PerfOpt.Tabs[i];
+		try { opt.Save(); } catch { }
 	}
 
 	void opentab(int index) {

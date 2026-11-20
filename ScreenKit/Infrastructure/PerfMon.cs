@@ -22,7 +22,17 @@ public sealed class PerfOpt {
 	public double Opacity { get; set; } = 1;
 	/// <summary>小窗下方是否显示进程排行 tab。</summary>
 	public bool TopProcs { get; set; } = true;
+	/// <summary>进程排行上次选中的类别：tcpu / tmem / tdisk / tnet。空=CPU。</summary>
+	public string ProcTab { get; set; } = "";
 	public Dictionary<string, bool> Flags { get; set; } = new();
+
+	public static readonly string[] Tabs = { "tcpu", "tmem", "tdisk", "tnet" };
+
+	/// <summary>进程类别归一：不认识的当 CPU</summary>
+	public static string NormTab(string key) {
+		var k = (key ?? "").Trim();
+		return Array.IndexOf(Tabs, k) >= 0 ? k : Tabs[0];
+	}
 
 	public static int NormMs(int ms) {
 		if (ms < 200) return 1000;
@@ -61,6 +71,7 @@ public sealed class PerfOpt {
 			if (o == null) return new PerfOpt();
 			if (o.Flags == null) o.Flags = new Dictionary<string, bool>();
 			o.Opacity = NormOpacity(o.Opacity);
+			o.ProcTab = NormTab(o.ProcTab);
 			return o;
 		}
 		catch { return new PerfOpt(); }
@@ -158,10 +169,16 @@ static class PerfMon {
 			o.Set("gpu", false);
 			o.IntervalMs = 2500;
 			o.TopProcs = false;
+			o.ProcTab = "tdisk";
+			o.Opacity = 0.5;
 			o.Save(path);
 			var q = PerfOpt.Load(path);
 			if (q.On("gpu") || !q.On("cpu") || !q.Topmost || q.IntervalMs != 2500 || PerfOpt.NormMs(0) != 1000 || q.TopProcs) {
 				err("开关没有保存");
+				return 1;
+			}
+			if (q.ProcTab != "tdisk" || PerfOpt.NormTab("zz") != "tcpu" || Math.Abs(q.Opacity - 0.5) > 0.01) {
+				err("进程类别或不透明度没有保存");
 				return 1;
 			}
 		}

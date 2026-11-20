@@ -237,6 +237,7 @@ public partial class MainWindow : Window {
 		Loaded += (_, _) => refreshfcmenu();
 		Loaded += onautoupdate;
 		Loaded += (_, _) => trimonstart();
+		Loaded += (_, _) => restorestartup();
 	}
 
 	void initonnxidle() {
@@ -1362,6 +1363,7 @@ public partial class MainWindow : Window {
 		try {
 			opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(ImageUtil.CurrentSnapAnnTool);
 			savewindowbounds();
+			savestartup();
 			try { dicthost?.SaveSelSize(opt); } catch { }
 			savettsprefs();
 			saveasrprefs();
