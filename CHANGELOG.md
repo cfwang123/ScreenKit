@@ -50,6 +50,28 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Added
+
+- Performance window settings: new opacity slider
+
+#### Changed
+
+- Performance window: process ranking refreshes at the configured update interval instead of a fixed 1 s
+
+### 中文
+
+#### 新增
+
+- 性能监控参数设置新增不透明度调节
+
+#### 变更
+
+- 性能监控：进程排行改用参数里的更新间隔刷新，不再固定 1 秒
+
 ## v1.0.40 (2026-11-18 ~ 11-19)
 
 ### English

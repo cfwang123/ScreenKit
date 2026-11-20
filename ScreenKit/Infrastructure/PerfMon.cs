@@ -18,6 +18,8 @@ public sealed class PerfOpt {
 	public double WinHeight { get; set; }
 	/// <summary>采样间隔，毫秒。200～5000，缺省 1000。</summary>
 	public int IntervalMs { get; set; } = 1000;
+	/// <summary>小窗底色不透明度，0.2～1，缺省 1（不透明）。</summary>
+	public double Opacity { get; set; } = 1;
 	/// <summary>小窗下方是否显示进程排行 tab。</summary>
 	public bool TopProcs { get; set; } = true;
 	public Dictionary<string, bool> Flags { get; set; } = new();
@@ -26,6 +28,14 @@ public sealed class PerfOpt {
 		if (ms < 200) return 1000;
 		if (ms > 5000) return 5000;
 		return ms;
+	}
+
+	/// <summary>不透明度归一到 0.2～1，非法值当不透明</summary>
+	public static double NormOpacity(double v) {
+		if (double.IsNaN(v) || v <= 0) return 1;
+		if (v < 0.2) return 0.2;
+		if (v > 1) return 1;
+		return v;
 	}
 
 	public static string DefaultPath => DataStore.StorePath;
@@ -50,6 +60,7 @@ public sealed class PerfOpt {
 			}
 			if (o == null) return new PerfOpt();
 			if (o.Flags == null) o.Flags = new Dictionary<string, bool>();
+			o.Opacity = NormOpacity(o.Opacity);
 			return o;
 		}
 		catch { return new PerfOpt(); }

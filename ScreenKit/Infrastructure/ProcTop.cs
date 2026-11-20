@@ -33,6 +33,9 @@ sealed class ProcTop : IDisposable {
 
 	readonly Thread worker;
 	readonly object gate = new();
+	// 采样间隔跟着小窗的参数走，改小之后要立刻叫醒等待中的采样线程
+	readonly ManualResetEventSlim wake = new(false);
+	volatile int intervalMs = 1000;
 	readonly Dictionary<int, ulong> preCpu = new();
 	readonly Dictionary<int, ulong> preIo = new();
 	readonly Dictionary<string, ConnPrev> preConn = new(StringComparer.Ordinal);
@@ -56,13 +59,26 @@ sealed class ProcTop : IDisposable {
 		worker = new Thread(loop) { IsBackground = true, Name = "ScreenKit.ProcTop" };
 	}
 
+	/// <summary>采样间隔，毫秒。跟小窗参数里的更新间隔一致。</summary>
+	public int IntervalMs {
+		get => intervalMs;
+		set {
+			var v = Math.Max(200, Math.Min(5000, value));
+			if (v == intervalMs) return;
+			intervalMs = v;
+			wake.Set();
+		}
+	}
+
 	public void Start() {
 		if (!worker.IsAlive) worker.Start();
 	}
 
 	public void Dispose() {
 		stop = true;
+		wake.Set();
 		if (worker.IsAlive) worker.Join(1500);
+		wake.Dispose();
 	}
 
 	public Snap Take() => snap;
@@ -96,7 +112,8 @@ sealed class ProcTop : IDisposable {
 	void loop() {
 		while (!stop) {
 			try { sample(); } catch { }
-			Thread.Sleep(900);
+			wake.Wait(intervalMs);
+			wake.Reset();
 		}
 	}
 

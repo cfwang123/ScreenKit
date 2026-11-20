@@ -64,14 +64,16 @@ public partial class PerfMonWindow : Window {
 		Title = Loc.T("perf.title");
 		lbtitle.Text = Loc.T("perf.title");
 		Topmost = opt.Topmost;
+		Opacity = PerfOpt.NormOpacity(opt.Opacity);
 		btop.ToolTip = Loc.T("perf.top");
+		bclose.ToolTip = Loc.T("perf.close");
 		paintpin();
 		buildmenu();
 		buildrows();
 		buildtabs();
 		card.MouseLeftButtonDown += (_, e) => {
 			var src = e.OriginalSource as DependencyObject;
-			if (under(btop, src) || under(tabs, src) || under(psec, src)) return;
+			if (under(btop, src) || under(bclose, src) || under(tabs, src) || under(psec, src)) return;
 			var edge = edgeat(e);
 			if (edge != 0) {
 				startresize(edge, e);
@@ -123,7 +125,7 @@ public partial class PerfMonWindow : Window {
 		timer.Tick += (_, _) => tick();
 		timer.Start();
 		tick();
-		proctimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(1000) };
+		proctimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(opt.IntervalMs) };
 		proctimer.Tick += (_, _) => tickprocs();
 		startprocs();
 	}
@@ -182,6 +184,10 @@ public partial class PerfMonWindow : Window {
 
 	void btop_Click(object sender, RoutedEventArgs e) {
 		settop(!opt.Topmost);
+	}
+
+	void bclose_Click(object sender, RoutedEventArgs e) {
+		Close();
 	}
 
 	void settop(bool on) {
@@ -554,7 +560,7 @@ public partial class PerfMonWindow : Window {
 			return;
 		}
 		if (procs == null) {
-			procs = new ProcTop();
+			procs = new ProcTop { IntervalMs = opt.IntervalMs };
 			procs.Start();
 		}
 		proctimer.Start();
@@ -684,7 +690,12 @@ public partial class PerfMonWindow : Window {
 		var cpu = win.Shown("cpu");
 		var mem = win.Shown("mem");
 		log($"win cpu={cpu} mem={mem}");
+		// 进程排行由后台线程采样，第一轮快照可能要几十毫秒才好，等它出数据
 		var tabcpu = win.TabShown("tcpu", 0, 0);
+		for (var i = 0; i < 15 && (tabcpu.Length == 0 || tabcpu == "—"); i++) {
+			pumpms(100);
+			tabcpu = win.TabShown("tcpu", 0, 0);
+		}
 		var tabcpuval = win.TabShown("tcpu", 0, 1);
 		log($"tab cpu={tabcpu} {tabcpuval}");
 		log($"power cpu={win.Shown("cpupower")} gpu={win.Shown("gpupower")} min={win.MinWidth:0}");
@@ -809,7 +820,7 @@ public partial class PerfMonWindow : Window {
 			optWin.Activate();
 			return;
 		}
-		optWin = new PerfMonOptWindow(opt, setinterval, settopprocs) { Owner = this, Topmost = Topmost };
+		optWin = new PerfMonOptWindow(opt, setinterval, settopprocs, setopacity) { Owner = this, Topmost = Topmost };
 		optWin.Closed += (_, _) => optWin = null;
 		optWin.Show();
 	}
@@ -817,6 +828,9 @@ public partial class PerfMonWindow : Window {
 	void setinterval(int ms) {
 		opt.IntervalMs = PerfOpt.NormMs(ms);
 		timer.Interval = TimeSpan.FromMilliseconds(opt.IntervalMs);
+		// 进程排行跟随同一个更新间隔
+		proctimer.Interval = TimeSpan.FromMilliseconds(opt.IntervalMs);
+		if (procs != null) procs.IntervalMs = opt.IntervalMs;
 		opt.Save();
 	}
 
@@ -825,6 +839,12 @@ public partial class PerfMonWindow : Window {
 		opt.Save();
 		if (procmi != null) procmi.IsChecked = on;
 		settopref();
+	}
+
+	void setopacity(double v) {
+		opt.Opacity = PerfOpt.NormOpacity(v);
+		Opacity = opt.Opacity;
+		opt.Save();
 	}
 
 	void savepos() {

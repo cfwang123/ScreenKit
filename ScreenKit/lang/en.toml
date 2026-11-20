@@ -5932,3 +5932,4 @@ sqlconv.warn.sqlitedefault = "SQLite has no function defaults; the default of {0
 sqlconv.warn.mysqldefault = "{0} has no expression defaults; the default of {1} was dropped"
 codestat.file.open = "Open"
 codestat.file.show = "Show in Explorer"
+perf.opacity = "Opacity, lower is more transparent."
