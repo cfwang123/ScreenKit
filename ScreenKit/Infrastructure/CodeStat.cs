@@ -23,6 +23,7 @@ sealed class CodeFileRow {
 	public int Code;
 	public int Comments;
 	public int Blanks;
+	public long Bytes;
 	public string Note;
 }
 
@@ -35,6 +36,7 @@ sealed class CodeLangRow {
 	public int Code;
 	public int Comments;
 	public int Blanks;
+	public long Bytes;
 }
 
 /// <summary>一次统计的结果。</summary>
@@ -194,6 +196,7 @@ static class CodeStat {
 			sum.Code += row.Code;
 			sum.Comments += row.Comments;
 			sum.Blanks += row.Blanks;
+			sum.Bytes += row.Bytes;
 		}
 		return sum;
 	}
@@ -212,6 +215,7 @@ static class CodeStat {
 		sum.Code += row.Code;
 		sum.Comments += row.Comments;
 		sum.Blanks += row.Blanks;
+		sum.Bytes += row.Bytes;
 	}
 
 	static List<CodeFileRow> parseembed(CodeFileRow row) {
@@ -403,6 +407,8 @@ static class CodeStat {
 			Name = Path.GetFileName(path),
 			Lang = lang.Name,
 		};
+		try { row.Bytes = new FileInfo(path).Length; }
+		catch { }
 		var lines = splitlines(text);
 		string open = null, close = null;
 		var fence = false;

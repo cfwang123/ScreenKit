@@ -14,7 +14,11 @@ sealed class CodeStatLangView : INotifyPropertyChanged {
 	public int Code { get; set; }
 	public int Comments { get; set; }
 	public int Blanks { get; set; }
+	public long Bytes { get; set; }
 	public bool Total { get; set; }
+
+	/// <summary>合计或单语言的体积，按 KB/MB/GB 显示。</summary>
+	public string Size => FtpFmt.Size(Bytes);
 	public bool Selectable { get; set; }
 
 	/// <summary>勾选后才进入合计，取消勾选立即重算。</summary>
@@ -36,11 +40,13 @@ sealed class CodeStatLangView : INotifyPropertyChanged {
 		Code = row.Code;
 		Comments = row.Comments;
 		Blanks = row.Blanks;
+		Bytes = row.Bytes;
 		raise(nameof(Files));
 		raise(nameof(Lines));
 		raise(nameof(Code));
 		raise(nameof(Comments));
 		raise(nameof(Blanks));
+		raise(nameof(Size));
 	}
 
 	void raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -51,6 +57,9 @@ sealed class CodeStatFileView {
 	public string Path { get; set; }
 	public int Lines { get; set; }
 	public int Code { get; set; }
+	public long Bytes { get; set; }
+
+	public string Size => FtpFmt.Size(Bytes);
 }
 
 /// <summary>工具 → 代码统计。拖入目录或文件，按语言列出代码、注释和空行。</summary>
@@ -100,6 +109,8 @@ public partial class CodeStatWindow : Window {
 		coluse.Header = Loc.T("codestat.col.use");
 		collang.Header = Loc.T("codestat.col.lang");
 		colfiles.Header = Loc.T("codestat.col.files");
+		colsize.Header = Loc.T("codestat.col.size");
+		colfsize.Header = Loc.T("codestat.col.size");
 		collines.Header = Loc.T("codestat.col.lines");
 		colcode.Header = Loc.T("codestat.col.code");
 		colcmt.Header = Loc.T("codestat.col.comments");
@@ -204,6 +215,7 @@ public partial class CodeStatWindow : Window {
 				Code = row.Code,
 				Comments = row.Comments,
 				Blanks = row.Blanks,
+				Bytes = row.Child ? -1 : row.Bytes,
 				Selectable = !row.Child,
 				Enabled = row.Child || !offlangs.Contains(row.Name),
 			};
@@ -249,6 +261,7 @@ public partial class CodeStatWindow : Window {
 				Path = row.Path,
 				Lines = row.Lines,
 				Code = row.Code,
+				Bytes = row.Bytes,
 			});
 		}
 	}
