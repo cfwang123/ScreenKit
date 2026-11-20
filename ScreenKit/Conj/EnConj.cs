@@ -486,7 +486,7 @@ static class EnConj {
 		["t_formal"] = new[] { "正式书面", "Formal" },
 		["t_neutral"] = new[] { "中性", "Neutral" },
 		["t_informal"] = new[] { "口语", "Informal" },
-		["g_short"] = new[] { "独特用法 · gonna / wanna", "Unique · gonna / wanna" },
+		["g_short"] = new[] { "gonna / wanna", "gonna / wanna" },
 		["s_uniq_g1"] = new[] { "gonna 不能省 be、不能再加 to", "gonna: keep be, drop to" },
 		["s_uniq_g2"] = new[] { "再缩成 I'ma / Imma", "Further reduced to I'ma / Imma" },
 		["s_uniq_g3"] = new[] { "固定说法", "Fixed phrases" },
