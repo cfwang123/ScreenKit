@@ -821,6 +821,7 @@ public partial class CaptureOverlay : Window {
 		restoreannstyle();
 		foreach (var rb in anncolorradios()) {
 			rb.Checked += (_, _) => {
+				if (restoringann) return;
 				var tag = (rb.Tag as string) ?? "";
 				if (tag.Length == 0) return;
 				anncolorhex = ImageUtil.NormSnapAnnColor(tag);
@@ -3243,18 +3244,19 @@ public partial class CaptureOverlay : Window {
 	/// <summary>微信式颜色圆点集合。</summary>
 	RadioButton[] anncolorradios() => new[] { crred, cryellow, crgreen, crblue, crwhite };
 
-	/// <summary>按配置恢复上次颜色/线粗/字号；圆点里没有该颜色时落到第一位并记住。</summary>
+	/// <summary>按配置恢复上次颜色/线粗/字号；圆点里没有该颜色时保留配置色并清掉圆点选中。</summary>
 	void restoreannstyle() {
 		restoringann = true;
 		try {
 			anncolorhex = ImageUtil.NormSnapAnnColor(ImageUtil.CurrentSnapAnnColor);
 			var hit = anncolorradios().FirstOrDefault(rb =>
 				string.Equals(rb?.Tag as string, anncolorhex, StringComparison.OrdinalIgnoreCase));
-			if (hit != null) hit.IsChecked = true;
+			if (hit != null) {
+				hit.IsChecked = true;
+			}
 			else {
-				var first = anncolorradios().FirstOrDefault();
-				if (first != null) first.IsChecked = true;
-				anncolorhex = ImageUtil.NormSnapAnnColor(first?.Tag as string);
+				// 配置里是自定义色：圆点全不选中，用 anncolorhex 兜底
+				foreach (var rb in anncolorradios()) rb.IsChecked = false;
 			}
 			selectcombo(ethick, ImageUtil.NormSnapAnnThick(ImageUtil.CurrentSnapAnnThick));
 			selectcombo(efont, ImageUtil.NormSnapAnnFont(ImageUtil.CurrentSnapAnnFont));
