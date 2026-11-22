@@ -72,3 +72,11 @@ tr.rowpick:hover{background:#f9fafb}
 .modalacts .primary:hover{background:#1d4ed8}
 .empty{padding:24px 20px}
 #err,#empty{padding-left:20px}
+.upcard h3{margin:0 0 4px}
+.upprog{height:8px;border-radius:99px;background:#e5e7eb;overflow:hidden;margin:6px 0 8px}
+.upbar{height:100%;width:0;border-radius:99px;background:#2563eb;transition:width .12s linear}
+.upbar.indet{width:35%;animation:upslide 1.1s ease-in-out infinite}
+@keyframes upslide{0%{margin-left:-35%}100%{margin-left:100%}}
+#upinfo{font-variant-numeric:tabular-nums;margin:0}
+.modalacts #bupcancel{background:#fef2f2;border-color:#fecaca;color:#b91c1c}
+.modalacts #bupcancel:hover{background:#fee2e2}

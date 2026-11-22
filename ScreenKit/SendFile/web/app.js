@@ -16,6 +16,8 @@ window.sfweb = (function(){
 	var mconfirmFn = null;
 	var toastTimer = 0;
 	var ctxmenu = null;
+	// 上传取消回调；非空表示正在上传
+	var upcancel = null;
 
 	return t;
 
@@ -73,6 +75,7 @@ window.sfweb = (function(){
 		on("bzip", "click", zipcur);
 		on("bdel", "click", delsel);
 		on("efile", "change", onfiles);
+		on("bupcancel", "click", cancelupload);
 		var keep = el("ekeep");
 		if (keep) {
 			try { keep.checked = localStorage.getItem("sk_web_keep") === "1"; } catch (e) {}
@@ -122,7 +125,10 @@ window.sfweb = (function(){
 		on("mupdateclose", "click", closemoverlays);
 		on("mupdatedl", "click", mupdatedownload);
 		on("mlogout", "click", function(){ closemoverlays(); logout(); });
-		on("mscrim", "click", closemoverlays);
+		on("mscrim", "click", function(){
+			if (upcancel) return;
+			closemoverlays();
+		});
 		on("bcam", "click", function(){ var c = el("ecamera"); if (c) c.click(); });
 		on("ecamera", "change", oncamera);
 		on("mselcancel", "click", clearmsel);
@@ -198,6 +204,7 @@ window.sfweb = (function(){
 		settxt("emptytitle", zh ? "这个文件夹是空的" : "This folder is empty");
 		settxt("emptyhint", zh ? "点击下方「上传」或「新建」" : "Use Upload or New below");
 		settxt("maccountsub", zh ? "网页文件管理" : "Web file manager");
+		settxt("bupcancel", zh ? "取消上传" : "Cancel");
 	}
 
 	function me() {
@@ -537,6 +544,11 @@ window.sfweb = (function(){
 		}
 	}
 
+	function cancelupload() {
+		if (upcancel) upcancel();
+		else closeupdlg();
+	}
+
 	function onfiles() {
 		var f = el("efile");
 		if (!f || !f.files || !f.files.length) return;
@@ -670,26 +682,114 @@ window.sfweb = (function(){
 	function uploadfiles(files, photo) {
 		if (!files || !files.length || busy) return;
 		busy = true;
+		var list = [];
+		for (var k = 0; k < files.length; k++) list.push(files[k]);
 		var i = 0;
+		var cancelled = false;
+		var xhr = null;
+		upcancel = function(){
+			if (cancelled) return;
+			cancelled = true;
+			if (xhr) { try { xhr.abort(); } catch (e) {} return; }
+			step();
+		};
+		openupdlg(list);
 		step();
 		function step() {
-			if (i >= files.length) {
+			if (cancelled) {
 				busy = false;
+				upcancel = null;
+				closeupdlg();
+				if (t.mobile) mtoast(zh ? "已取消上传" : "Upload cancelled");
+				else showerr("err", zh ? "已取消上传" : "Upload cancelled");
 				load();
 				return;
 			}
-			var f = files[i++];
+			if (i >= list.length) {
+				busy = false;
+				upcancel = null;
+				closeupdlg();
+				load();
+				return;
+			}
+			var f = list[i];
 			var rel = join(path, f.name);
-			var note = (zh ? "上传中 " : "Uploading ") + f.name + " (" + i + "/" + files.length + ")";
-			if (t.mobile) mtoast(note);
-			else showerr("err", note);
+			setupdlg(i, list.length, f);
 			var url = "/api/web/upload?path=" + enc(rel);
 			if (photo) url += "&photo=1";
-			rawpost(url, f, function(ok, data){
-				if (!ok) mfail(msg(data) || (zh ? "上传失败" : "Upload failed"));
+			xhr = rawpost(url, f, function(ok, data, aborted){
+				xhr = null;
+				if (aborted) { cancelled = true; step(); return; }
+				if (!ok) {
+					i = list.length;
+					mfail(msg(data) || (zh ? "上传失败" : "Upload failed"));
+					busy = false;
+					upcancel = null;
+					closeupdlg();
+					load();
+					return;
+				}
+				i++;
 				step();
+			}, function(loaded, total){
+				setupprog(i, list.length, loaded, total);
 			});
 		}
+	}
+
+	function openupdlg(list) {
+		if (t.mobile) {
+			closemoverlays();
+			el("mscrim").classList.add("show");
+			el("updlg").classList.add("show");
+		}
+		else showel("updlg", true);
+		settxt("bupcancel", zh ? "取消上传" : "Cancel");
+		setupdlg(0, list.length, list[0]);
+	}
+
+	function setupdlg(i, total, f) {
+		settxt("uptitle", total > 1
+			? (zh ? "上传中 " : "Uploading ") + (i + 1) + "/" + total
+			: (zh ? "上传中" : "Uploading"));
+		settxt("upname", f ? f.name : "");
+		setupprog(i, total, 0, f ? (f.size || 0) : 0);
+	}
+
+	function setupprog(i, total, loaded, totalBytes) {
+		var bar = el("upbar");
+		var pct = totalBytes > 0 ? Math.floor(loaded * 100 / totalBytes) : 0;
+		if (pct > 100) pct = 100;
+		if (bar) {
+			if (totalBytes > 0) {
+				bar.classList.remove("indet");
+				bar.style.width = pct + "%";
+			}
+			else {
+				bar.classList.add("indet");
+				bar.style.width = "";
+			}
+		}
+		var info = "";
+		if (totalBytes > 0)
+			info = size(loaded) + " / " + size(totalBytes) + "  " + pct + "%";
+		else info = zh ? "正在上传…" : "Uploading…";
+		if (total > 1)
+			info += (zh ? "   第 " : "   ") + (i + 1) + "/" + total + (zh ? " 个" : "");
+		settxt("upinfo", info);
+	}
+
+	function closeupdlg() {
+		if (t.mobile) {
+			var d = el("updlg");
+			if (d) d.classList.remove("show");
+			var sc = el("mscrim");
+			if (sc) sc.classList.remove("show");
+			return;
+		}
+		showel("updlg", false);
+		var bar = el("upbar");
+		if (bar) { bar.style.width = "0"; bar.classList.remove("indet"); }
 	}
 
 	function copylink(p) {
@@ -745,18 +845,31 @@ window.sfweb = (function(){
 		});
 	}
 
-	function rawpost(url, blob, done) {
-		var opt = {method: "POST", credentials: "same-origin", headers: {}, body: blob};
+	function rawpost(url, blob, done, progress) {
+		var xhr = new XMLHttpRequest();
+		xhr.open("POST", url, true);
+		xhr.withCredentials = true;
 		var tok = loadtoken();
-		if (tok) opt.headers["X-Web-Token"] = tok;
-		fetch(url, opt).then(function(r){
-			return r.text().then(function(txt){
-				var j = parse(txt);
-				done(r.ok && j && j.code === 100, pick(r.ok && j && j.code === 100, j, r.status, txt));
-			});
-		}).catch(function(e){
-			done(false, {code: 900, data: String(e)});
-		});
+		if (tok) xhr.setRequestHeader("X-Web-Token", tok);
+		if (xhr.upload && progress) {
+			xhr.upload.onprogress = function(e){
+				try { progress(e.loaded || 0, e.lengthComputable ? e.total : (blob && blob.size) || 0); }
+				catch (e2) {}
+			};
+		}
+		xhr.onload = function(){
+			var ok = xhr.status >= 200 && xhr.status < 300;
+			var j = parse(xhr.responseText);
+			done(ok && j && j.code === 100, pick(ok && j && j.code === 100, j, xhr.status, xhr.responseText), false);
+		};
+		xhr.onerror = function(){
+			done(false, {code: 900, data: "network"}, false);
+		};
+		xhr.onabort = function(){
+			done(false, {code: 901, data: "aborted"}, true);
+		};
+		xhr.send(blob);
+		return xhr;
 	}
 
 	function pick(ok, j, status, txt) {

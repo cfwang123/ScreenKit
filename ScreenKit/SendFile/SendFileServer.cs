@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -900,9 +900,22 @@ public sealed partial class SendFileServer : IDisposable {
 			writejson(ctx, 200, err(410, ex.Message));
 		}
 		catch (Exception ex) {
+			// 网页端取消上传会让流提前结束，这里删掉写了一半的文件
 			Jobs.Finish(job.Id, false, ex.Message);
+			removepartial(rel);
 			throw;
 		}
+	}
+
+	/// <summary>删除上传中断留下的半个文件。</summary>
+	static void removepartial(string rel) {
+		try {
+			if (string.IsNullOrEmpty(rel)) return;
+			if (!SendFilePaths.TryResolve(rel, out var full, out _)) return;
+			if (string.IsNullOrEmpty(full) || !File.Exists(full)) return;
+			File.Delete(full);
+		}
+		catch { }
 	}
 
 	void fitphoto(string rel) {
