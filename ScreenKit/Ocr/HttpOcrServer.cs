@@ -231,9 +231,12 @@ sealed partial class HttpOcrServer : IDisposable {
 				handletoolspage(ctx, path);
 				return;
 			}
-			if (sendFile != null && sendFile.IsRunning && SendFileServer.IsOurPath(path)
-				&& sendFile.TryHandle(ctx))
+			if (SendFileServer.IsOurPath(path)) {
+				if (sendFile != null && sendFile.IsRunning && sendFile.TryHandle(ctx))
+					return;
+				handlesendfileoff(ctx, path);
 				return;
+			}
 
 			if (path is "/api/ocr/engines" or "/api/ocr/engines/") {
 				if (!apiok(ctx, optNow.HttpOcr && optNow.ModOcr)) return;
@@ -2578,6 +2581,36 @@ sealed partial class HttpOcrServer : IDisposable {
 		res.Headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS";
 		res.Headers["Access-Control-Allow-Headers"] = "Content-Type";
 		// 接口响应不压缩：JSON 多是小包，压了省不了多少还要多耗 CPU。
+		writebody(ctx, bytes, null, false);
+	}
+
+	static void handlesendfileoff(SockCtx ctx, string path) {
+		if (path is "/files" or "/m" or "/index.html" or "/m.html") {
+			var zh = uilang().StartsWith("zh", StringComparison.OrdinalIgnoreCase);
+			var title = zh ? "文件传输未启用" : "File transfer is off";
+			var tip = zh
+				? "请在主窗口「参数设置 → web/接口」勾选「文件传输」，再刷新本页。"
+				: "Enable File transfer in Settings → Web/API, then reload this page.";
+			var back = zh ? "返回工具主页" : "Back to tools";
+			var html = "<!doctype html><html lang=\"" + (zh ? "zh" : "en") + "\"><meta charset=\"utf-8\">"
+				+ "<title>" + title + "</title>"
+				+ "<style>body{margin:0;padding:48px 20px;background:#f5f7fa;color:#243044;font:14px/1.7 'Microsoft YaHei',system-ui,sans-serif}"
+				+ "main{max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px}"
+				+ "h1{margin:0 0 10px;font-size:18px}p{margin:0 0 16px;color:#475569}a{color:#f97316}</style>"
+				+ "<main><h1>" + title + "</h1><p>" + tip + "</p><a href=\"/\">" + back + "</a></main></html>";
+			writehtml(ctx, html);
+			return;
+		}
+		writejson(ctx, 404, err(404, "文件传输未启用（参数设置 → web/接口）"));
+	}
+
+	static void writehtml(SockCtx ctx, string html) {
+		var bytes = Encoding.UTF8.GetBytes(html ?? "");
+		var res = ctx.Response;
+		res.StatusCode = 200;
+		res.ContentType = "text/html; charset=utf-8";
+		res.ContentEncoding = Encoding.UTF8;
+		res.Headers["Cache-Control"] = "no-store";
 		writebody(ctx, bytes, null, false);
 	}
 

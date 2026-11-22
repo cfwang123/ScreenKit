@@ -147,6 +147,22 @@ public partial class MainWindow {
 	}
 
 	void openhttpfiles(bool fromTray) {
+		if (sendFile == null) return;
+		// 点了「文件传输」就是要用它：没启用先启用，服务没跑再启动，别打开一个 404 页面
+		if (!opt.SendFileEnabled && opt.TabSendFileVisible) {
+			opt.SendFileEnabled = true;
+			try { AppConfig.Save(opt); } catch { }
+			syncsfstatus();
+		}
+		if (opt.SendFileEnabled && !sendFile.IsRunning) startsendfile();
+		if (!sendFile.IsRunning) {
+			var msg = string.IsNullOrWhiteSpace(sendFile.LastError) ? Loc.T("sf.tab.off") : sendFile.LastError;
+			if (tray != null) tray.showwindow(); else showmainontop();
+			selectmaintab(tabsf);
+			setstatus(msg);
+			if (fromTray) UiToast.Show(null, msg);
+			return;
+		}
 		openhttppage(fromTray, "/files");
 	}
 
