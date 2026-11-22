@@ -625,6 +625,15 @@ static class ImageUtil {
 	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。</summary>
 	public static string CurrentSnapAnnTool = "rect";
 
+	/// <summary>截图标注上次颜色（#RRGGBB，主窗配置同步）。</summary>
+	public static string CurrentSnapAnnColor = "#FA5151";
+
+	/// <summary>截图标注上次线粗。</summary>
+	public static double CurrentSnapAnnThick = 3;
+
+	/// <summary>截图标注上次字号。</summary>
+	public static double CurrentSnapAnnFont = 18;
+
 	/// <summary>规范标注工具名。无法识别时用矩形。</summary>
 	public static string NormSnapAnnTool(string raw) {
 		var s = (raw ?? "").Trim().Trim('"').ToLowerInvariant();
@@ -632,6 +641,39 @@ static class ImageUtil {
 			return s;
 		return "rect";
 	}
+
+	/// <summary>规范标注颜色：#RRGGBB；无法识别时用微信红。</summary>
+	public static string NormSnapAnnColor(string raw) {
+		const string def = "#FA5151";
+		var s = (raw ?? "").Trim().Trim('"');
+		if (s.Length == 0) return def;
+		if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
+		byte r = 0, g = 0, b = 0;
+		var hex = s.Substring(1);
+		try {
+			if (hex.Length == 3) {
+				r = Convert.ToByte(new string(hex[0], 2), 16);
+				g = Convert.ToByte(new string(hex[1], 2), 16);
+				b = Convert.ToByte(new string(hex[2], 2), 16);
+			}
+			else if (hex.Length == 6) {
+				r = Convert.ToByte(hex.Substring(0, 2), 16);
+				g = Convert.ToByte(hex.Substring(2, 2), 16);
+				b = Convert.ToByte(hex.Substring(4, 2), 16);
+			}
+			else return def;
+		}
+		catch { return def; }
+		return $"#{r:X2}{g:X2}{b:X2}";
+	}
+
+	/// <summary>规范标注线粗：1–40，非法用 3。</summary>
+	public static double NormSnapAnnThick(double raw) =>
+		raw >= 1 && raw <= 40 ? raw : 3;
+
+	/// <summary>规范标注字号：8–200，非法用 18。</summary>
+	public static double NormSnapAnnFont(double raw) =>
+		raw >= 8 && raw <= 200 ? raw : 18;
 
 	/// <summary>最近一次写入 screenshots/ 的截图完整路径（切换复制方式时复用）。</summary>
 	public static string LastScreenshotPath { get; private set; }

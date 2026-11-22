@@ -49,6 +49,9 @@ public partial class CaptureOverlay : Window {
 	/// <summary>截图标注换工具时通知主窗写入配置。参数为 none / rect / ellipse / line / arrow / text。</summary>
 	public static event Action<string> SnapAnnToolChosen;
 
+	/// <summary>截图标注改颜色/线粗/字号时通知主窗写入配置（color, thick, font）。</summary>
+	public static event Action<string, double, double> SnapAnnStyleChosen;
+
 
 
 	[StructLayout(LayoutKind.Sequential)]
@@ -624,6 +627,10 @@ public partial class CaptureOverlay : Window {
 	bool hasHoverWin;
 	/// <summary>光标下像素色值（供 Ctrl+C）。</summary>
 	string lastColorHex = "#000000";
+	/// <summary>当前标注颜色 #RRGGBB（圆点没覆盖时的回退值）。</summary>
+	string anncolorhex = "#FA5151";
+	/// <summary>正在按配置恢复颜色/线粗/字号，期间的改动不上报。</summary>
+	bool restoringann;
 	int lastCursorX, lastCursorY;
 
 	double selX, selY, selW, selH;
@@ -810,6 +817,18 @@ public partial class CaptureOverlay : Window {
 		tline.Unchecked += (_, _) => { if (tool == Tool.Line) settool(Tool.None); };
 		tarrow.Unchecked += (_, _) => { if (tool == Tool.Arrow) settool(Tool.None); };
 		ttext.Unchecked += (_, _) => { if (tool == Tool.Text) settool(Tool.None); };
+		// 颜色 / 线粗 / 字号：沿用上次并在改动时记住
+		restoreannstyle();
+		foreach (var rb in anncolorradios()) {
+			rb.Checked += (_, _) => {
+				var tag = (rb.Tag as string) ?? "";
+				if (tag.Length == 0) return;
+				anncolorhex = ImageUtil.NormSnapAnnColor(tag);
+				raiseannstyle();
+			};
+		}
+		ethick.SelectionChanged += (_, _) => { if (!restoringann) raiseannstyle(); };
+		efont.SelectionChanged += (_, _) => { if (!restoringann) raiseannstyle(); };
 		bundo.Click += (_, _) => undo();
 		bsave.Click += (_, _) => savefile();
 		bopen.Click += (_, _) => finishopen();
@@ -3195,7 +3214,7 @@ public partial class CaptureOverlay : Window {
 
 	Color curcolor() {
 		// 优先微信式颜色圆点
-		foreach (var rb in new[] { crred, cryellow, crgreen, crblue, crwhite }) {
+		foreach (var rb in anncolorradios()) {
 			if (rb?.IsChecked == true) {
 				var tag = rb.Tag as string;
 				if (!string.IsNullOrEmpty(tag)) {
@@ -3204,14 +3223,14 @@ public partial class CaptureOverlay : Window {
 				}
 			}
 		}
-		var legacy = (ecolor.SelectedItem as ComboBoxItem)?.Tag as string ?? "#FA5151";
+		var legacy = string.IsNullOrEmpty(anncolorhex) ? "#FA5151" : anncolorhex;
 		try { return (Color)System.Windows.Media.ColorConverter.ConvertFromString(legacy); }
 		catch { return Color.FromRgb(0xFA, 0x51, 0x51); }
 	}
 
 	double curfontsize() {
 		var tag = (efont.SelectedItem as ComboBoxItem)?.Tag as string;
-		return double.TryParse(tag, out var v) ? v : 18;
+		return double.TryParse(tag, out var v) && v > 0 ? v : 18;
 	}
 
 	Brush strokebrush() => new SolidColorBrush(curcolor());
@@ -3219,6 +3238,63 @@ public partial class CaptureOverlay : Window {
 	double curthick() {
 		var tag = (ethick.SelectedItem as ComboBoxItem)?.Tag as string;
 		return double.TryParse(tag, out var v) && v > 0 ? v : 2;
+	}
+
+	/// <summary>微信式颜色圆点集合。</summary>
+	RadioButton[] anncolorradios() => new[] { crred, cryellow, crgreen, crblue, crwhite };
+
+	/// <summary>按配置恢复上次颜色/线粗/字号；圆点里没有该颜色时落到第一位并记住。</summary>
+	void restoreannstyle() {
+		restoringann = true;
+		try {
+			anncolorhex = ImageUtil.NormSnapAnnColor(ImageUtil.CurrentSnapAnnColor);
+			var hit = anncolorradios().FirstOrDefault(rb =>
+				string.Equals(rb?.Tag as string, anncolorhex, StringComparison.OrdinalIgnoreCase));
+			if (hit != null) hit.IsChecked = true;
+			else {
+				var first = anncolorradios().FirstOrDefault();
+				if (first != null) first.IsChecked = true;
+				anncolorhex = ImageUtil.NormSnapAnnColor(first?.Tag as string);
+			}
+			selectcombo(ethick, ImageUtil.NormSnapAnnThick(ImageUtil.CurrentSnapAnnThick));
+			selectcombo(efont, ImageUtil.NormSnapAnnFont(ImageUtil.CurrentSnapAnnFont));
+		}
+		catch { }
+		finally { restoringann = false; }
+	}
+
+	/// <summary>在 ComboBox 里选中数值最近的一项；列表里没有该值时追加一项。</summary>
+	void selectcombo(ComboBox cb, double value) {
+		if (cb == null) return;
+		ComboBoxItem best = null;
+		var bestDiff = double.MaxValue;
+		foreach (var it in cb.Items.OfType<ComboBoxItem>()) {
+			if (!double.TryParse(it.Tag as string, out var v)) continue;
+			var diff = Math.Abs(v - value);
+			if (diff < bestDiff) { bestDiff = diff; best = it; }
+		}
+		if (best != null) {
+			cb.SelectedItem = best;
+			return;
+		}
+		var add = new ComboBoxItem { Content = value.ToString("0.##"), Tag = value.ToString("0.##") };
+		cb.Items.Add(add);
+		cb.SelectedItem = add;
+	}
+
+	/// <summary>把当前颜色/线粗/字号通知主窗记住（画板不记）。</summary>
+	void raiseannstyle() {
+		if (boardMode) return;
+		try {
+			SnapAnnStyleChosen?.Invoke(curcolorhex(), curthick(), curfontsize());
+		}
+		catch (Exception ex) { CaptureLog.Ex("SnapAnnStyleChosen", ex); }
+	}
+
+	/// <summary>当前颜色 #RRGGBB。</summary>
+	string curcolorhex() {
+		var c = curcolor();
+		return $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 	}
 
 	void ondrawdown(object sender, MouseButtonEventArgs e) {

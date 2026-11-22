@@ -190,6 +190,7 @@ public partial class MainWindow : Window {
 		CaptureOverlay.SnapCopyModeChosen += (asImg, asFile, asPath) =>
 			applysnapcopyopts(asImg, asFile, asPath, recopy: false);
 		CaptureOverlay.SnapAnnToolChosen += rememberanntool;
+		CaptureOverlay.SnapAnnStyleChosen += rememberannstyle;
 		SnapLastRegion.Saved += (l, t, w, h) => {
 			opt.SnapLastLeft = l;
 			opt.SnapLastTop = t;
@@ -821,11 +822,24 @@ public partial class MainWindow : Window {
 		ImageUtil.CurrentSnapCopyAsPath = opt.SnapCopyAsPath;
 		opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(opt.SnapAnnTool);
 		ImageUtil.CurrentSnapAnnTool = opt.SnapAnnTool;
+		opt.SnapAnnColor = ImageUtil.NormSnapAnnColor(opt.SnapAnnColor);
+		ImageUtil.CurrentSnapAnnColor = opt.SnapAnnColor;
+		opt.SnapAnnThick = ImageUtil.NormSnapAnnThick(opt.SnapAnnThick);
+		ImageUtil.CurrentSnapAnnThick = opt.SnapAnnThick;
+		opt.SnapAnnFont = ImageUtil.NormSnapAnnFont(opt.SnapAnnFont);
+		ImageUtil.CurrentSnapAnnFont = opt.SnapAnnFont;
 	}
 
 	/// <summary>记住截图标注工具（含无工具）。只改内存，退出时再写入配置。屏幕画板不走这里。</summary>
 	void rememberanntool(string name) {
 		ImageUtil.CurrentSnapAnnTool = ImageUtil.NormSnapAnnTool(name);
+	}
+
+	/// <summary>记住截图标注颜色/线粗/字号。只改内存，退出时再写入配置。</summary>
+	void rememberannstyle(string color, double thick, double font) {
+		ImageUtil.CurrentSnapAnnColor = ImageUtil.NormSnapAnnColor(color);
+		ImageUtil.CurrentSnapAnnThick = ImageUtil.NormSnapAnnThick(thick);
+		ImageUtil.CurrentSnapAnnFont = ImageUtil.NormSnapAnnFont(font);
 	}
 
 	/// <summary>
@@ -1362,6 +1376,9 @@ public partial class MainWindow : Window {
 		try { trEngine?.Dispose(); } catch { }
 		try {
 			opt.SnapAnnTool = ImageUtil.NormSnapAnnTool(ImageUtil.CurrentSnapAnnTool);
+			opt.SnapAnnColor = ImageUtil.NormSnapAnnColor(ImageUtil.CurrentSnapAnnColor);
+			opt.SnapAnnThick = ImageUtil.NormSnapAnnThick(ImageUtil.CurrentSnapAnnThick);
+			opt.SnapAnnFont = ImageUtil.NormSnapAnnFont(ImageUtil.CurrentSnapAnnFont);
 			savewindowbounds();
 			savestartup();
 			try { dicthost?.SaveSelSize(opt); } catch { }

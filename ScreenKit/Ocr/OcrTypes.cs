@@ -347,6 +347,12 @@ public sealed class OcrOptions {
 	public bool SnapCopyAsPath = false;
 	/// <summary>截图标注上次工具：none / rect / ellipse / line / arrow / text。默认矩形。</summary>
 	public string SnapAnnTool = "rect";
+	/// <summary>截图标注上次颜色 #RRGGBB。默认微信红。</summary>
+	public string SnapAnnColor = "#FA5151";
+	/// <summary>截图标注上次线粗。</summary>
+	public double SnapAnnThick = 3;
+	/// <summary>截图标注上次字号。</summary>
+	public double SnapAnnFont = 18;
 	/// <summary>界面语言：zh / en。</summary>
 	public string UiLang = "zh";
 	/// <summary>启动后隐藏到托盘：不调用 Show，主窗口不显示也不闪一下；热键和托盘照常可用。</summary>
@@ -751,6 +757,9 @@ public sealed class OcrOptions {
 		SnapCopyAsFile = SnapCopyAsFile,
 		SnapCopyAsPath = SnapCopyAsPath,
 		SnapAnnTool = string.IsNullOrWhiteSpace(SnapAnnTool) ? "rect" : SnapAnnTool,
+		SnapAnnColor = ImageUtil.NormSnapAnnColor(SnapAnnColor),
+		SnapAnnThick = ImageUtil.NormSnapAnnThick(SnapAnnThick),
+		SnapAnnFont = ImageUtil.NormSnapAnnFont(SnapAnnFont),
 		UiLang = UiLang ?? "zh",
 		StartHidden = StartHidden,
 		Dev = Dev,
