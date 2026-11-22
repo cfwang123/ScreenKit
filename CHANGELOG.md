@@ -72,6 +72,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Currency converter: the note under the result showed the Bank of China publication time under the word 'cache', which read like the cache was stale; it now says the rates were published at that time by BOC and adds the local time they were fetched
 - Tools: opening File transfer while the service is off enables and starts it instead of opening a 404 page
 - Remember last screenshot annotation color, line width and font size
+- Screenshot annotation color dot restores after the window is loaded, only one dot stays checked
 
 ### 中文
 
@@ -93,6 +94,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 货币换算：结果下面的说明把中国银行的发布时间写成了缓存时间，看着像缓存过期了；现在写明那个时间是中国银行发布的时间，另外附上本地取回的时刻
 - 工具页：文件传输服务未启用时，点卡片自动启用并启动，不再打开 404 页面
 - 截图标注记住上次的颜色、线粗和字号
+- 截图标注颜色圆点改为窗口加载后恢复，只保留一个选中
 
 ## v1.0.40 (2026-11-18 ~ 11-19)
 

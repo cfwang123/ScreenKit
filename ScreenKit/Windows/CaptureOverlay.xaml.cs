@@ -631,6 +631,8 @@ public partial class CaptureOverlay : Window {
 	string anncolorhex = "#FA5151";
 	/// <summary>正在按配置恢复颜色/线粗/字号，期间的改动不上报。</summary>
 	bool restoringann;
+	/// <summary>颜色/线粗/字号已按配置恢复过（Loaded 后只做一次）。</summary>
+	bool styleRestored;
 	int lastCursorX, lastCursorY;
 
 	double selX, selY, selW, selH;
@@ -818,7 +820,13 @@ public partial class CaptureOverlay : Window {
 		tarrow.Unchecked += (_, _) => { if (tool == Tool.Arrow) settool(Tool.None); };
 		ttext.Unchecked += (_, _) => { if (tool == Tool.Text) settool(Tool.None); };
 		// 颜色 / 线粗 / 字号：沿用上次并在改动时记住
-		restoreannstyle();
+		// 必须等窗口进可视化树后再恢复，否则 RadioButton 的 GroupName 互斥不生效，
+		// 会出现红、蓝同时选中且后续点击蓝点不再触发 Checked 的问题。
+		Loaded += (_, _) => {
+			if (styleRestored) return;
+			styleRestored = true;
+			restoreannstyle();
+		};
 		foreach (var rb in anncolorradios()) {
 			rb.Checked += (_, _) => {
 				if (restoringann) return;
@@ -3249,17 +3257,17 @@ public partial class CaptureOverlay : Window {
 		restoringann = true;
 		try {
 			anncolorhex = ImageUtil.NormSnapAnnColor(ImageUtil.CurrentSnapAnnColor);
+			// 先全清（XAML 里 crred 默认 IsChecked=True），再单独勾选目标，避免同时选中两个
+			foreach (var rb in anncolorradios()) {
+				if (rb != null) rb.IsChecked = false;
+			}
 			var hit = anncolorradios().FirstOrDefault(rb =>
 				string.Equals(rb?.Tag as string, anncolorhex, StringComparison.OrdinalIgnoreCase));
-			if (hit != null) {
-				hit.IsChecked = true;
-			}
-			else {
-				// 配置里是自定义色：圆点全不选中，用 anncolorhex 兜底
-				foreach (var rb in anncolorradios()) rb.IsChecked = false;
-			}
+			if (hit != null) hit.IsChecked = true;
 			selectcombo(ethick, ImageUtil.NormSnapAnnThick(ImageUtil.CurrentSnapAnnThick));
 			selectcombo(efont, ImageUtil.NormSnapAnnFont(ImageUtil.CurrentSnapAnnFont));
+			CaptureLog.Info($"ann style restored color={anncolorhex} dot={hit?.Name ?? "-"} "
+				+ $"thick={curthick():0.##} font={curfontsize():0.##}");
 		}
 		catch { }
 		finally { restoringann = false; }
