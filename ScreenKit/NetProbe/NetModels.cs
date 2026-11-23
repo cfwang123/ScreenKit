@@ -127,9 +127,10 @@ public sealed class ProcessNetRow : INotifyPropertyChanged {
 	public bool IsHighlight { get; set; }
 	/// <summary>规则着色：Black / White / null。</summary>
 	public string RuleTag { get; set; }
-	/// <summary>速率历史（sparkline）。</summary>
+	/// <summary>速率历史（sparkline），每点距今毫秒数见 HistoryAges。</summary>
 	public double[] SendHistory { get; set; }
 	public double[] RecvHistory { get; set; }
+	public double[] HistoryAges { get; set; }
 
 	public string TotalBytesText => FormatBytes(BytesSent + BytesRecv);
 	public string SendBpsText => FormatRate(SendBps);

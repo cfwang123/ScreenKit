@@ -356,9 +356,10 @@ sealed class NetworkMonitor : IDisposable {
 		foreach (var p in procMap.Values) {
 			p.RuleTag = rules.MatchColor(p.ProcessName, null);
 			RateHistory.Instance.Push(p.Pid, p.SendBps, p.RecvBps);
-			RateHistory.Instance.Get(p.Pid, out var sh, out var rh);
+			RateHistory.Instance.Get(p.Pid, out var sh, out var rh, out var ag);
 			p.SendHistory = sh;
 			p.RecvHistory = rh;
+			p.HistoryAges = ag;
 		}
 		try {
 			var alivePids = new HashSet<int>(procMap.Keys);
@@ -409,6 +410,7 @@ sealed class NetworkMonitor : IDisposable {
 			// 历史数组每次换新引用
 			old.SendHistory = neu.SendHistory;
 			old.RecvHistory = neu.RecvHistory;
+			old.HistoryAges = neu.HistoryAges;
 			old.LastSeenTick = neu.LastSeenTick;
 			if (ch) old.NotifyAll();
 			else {

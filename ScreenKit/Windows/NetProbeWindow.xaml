@@ -405,10 +405,11 @@
 										<DataGridTemplateColumn Header="速率曲线" Width="100" MinWidth="72" SortMemberPath="SendBps">
 											<DataGridTemplateColumn.CellTemplate>
 												<DataTemplate>
-													<Border ToolTip="近几分钟上下行速率（绿=上行 蓝=下行）">
+													<Border ToolTip="近两分钟上下行速率（绿=上行 蓝=下行）">
 														<ctrl:Sparkline Height="22" Margin="2,2"
 														                SendValues="{Binding SendHistory}"
-														                RecvValues="{Binding RecvHistory}"/>
+														                RecvValues="{Binding RecvHistory}"
+														                Ages="{Binding HistoryAges}"/>
 													</Border>
 												</DataTemplate>
 											</DataGridTemplateColumn.CellTemplate>
