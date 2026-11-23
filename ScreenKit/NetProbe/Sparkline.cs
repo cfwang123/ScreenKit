@@ -38,7 +38,6 @@ public class Sparkline : FrameworkElement {
 
 	static readonly Pen SendPen = freezePen(Color.FromRgb(0x16, 0xA3, 0x4A));
 	static readonly Pen RecvPen = freezePen(Color.FromRgb(0x25, 0x63, 0xEB));
-	static readonly Pen EmptyPen = freezePen(Color.FromRgb(0xD1, 0xD5, 0xDB));
 
 	static Pen freezePen(Color c) {
 		var p = new Pen(new SolidColorBrush(c), PENW);
@@ -54,10 +53,7 @@ public class Sparkline : FrameworkElement {
 		var recv = RecvValues as double[];
 		var ages = Ages as double[];
 		var n = Math.Max(send?.Length ?? 0, recv?.Length ?? 0);
-		if (n == 0) {
-			dc.DrawLine(EmptyPen, new Point(0, h / 2), new Point(w, h / 2));
-			return;
-		}
+		if (n == 0) return;
 		double max = 1;
 		if (send != null) foreach (var v in send) if (v > max) max = v;
 		if (recv != null) foreach (var v in recv) if (v > max) max = v;
