@@ -66,6 +66,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - Performance window: process ranking refreshes at the configured update interval instead of a fixed 1 s
 - Performance window: the process ranking samples right away when the window opens or a tab is switched, instead of waiting for the next update interval
+- Tool list (categories, names, icons, hotkeys, module gating) is now defined once in ToolCatalog.cs; the main menu, tray menu, Tools tab and web tools page all render from it
 
 #### Fixed
 
@@ -89,6 +90,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 - 性能监控：进程排行改用参数里的更新间隔刷新，不再固定 1 秒
 - 性能监控：开窗和切换进程类别时立刻采样一次进程，不用等下一个更新间隔
+- 工具列表（分类、名称、图标、热键、模块开关）统一在 ToolCatalog.cs 定义，主菜单、托盘菜单、工具页、网页工具页都按它生成
 
 #### 修复
 

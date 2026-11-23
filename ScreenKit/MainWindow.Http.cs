@@ -170,53 +170,6 @@ public partial class MainWindow {
 		openhttppage(fromTray, "/dict");
 	}
 
-	void fillwebmenu() {
-		stripweb(mncattext);
-		stripweb(mncatcalc);
-		stripweb(mncatspeech);
-		stripweb(mncattime);
-		stripweb(mncatimage);
-		stripweb(mninfo);
-		stripweb(mncattalk);
-		for (int i = mntools.Items.Count - 1; i >= 0; i--) {
-			if (mntools.Items[i] is MenuItem old && old.Tag is string tag && tag.StartsWith("webcat:"))
-				mntools.Items.RemoveAt(i);
-		}
-		foreach (var cat in TrayIcon.WebCatalog()) {
-			var host = webhost(cat.Id);
-			if (host == null) {
-				if (cat.Tools.Count == 0) continue;
-				host = new MenuItem { Header = cat.Title, Tag = "webcat:" + cat.Id };
-				mntools.Items.Add(host);
-			}
-			foreach (var tool in cat.Tools) {
-				var id = tool.Id;
-				var item = new MenuItem { Header = tool.Name + " (web)", Tag = "web" };
-				item.Click += (_, _) => openhttptools(tool: id);
-				host.Items.Add(item);
-			}
-		}
-	}
-
-	static void stripweb(MenuItem host) {
-		if (host == null) return;
-		for (int i = host.Items.Count - 1; i >= 0; i--) {
-			if (host.Items[i] is MenuItem mi && Equals(mi.Tag, "web"))
-				host.Items.RemoveAt(i);
-		}
-	}
-
-	MenuItem webhost(string id) {
-		if (id == "text") return mncattext;
-		if (id == "calc") return mncatcalc;
-		if (id == "speech") return mncatspeech;
-		if (id == "time") return mncattime;
-		if (id == "image") return mncatimage;
-		if (id == "info") return mninfo;
-		if (id == "talk") return mncattalk;
-		return null;
-	}
-
 	void openhttppage(bool fromTray, string path) {
 		if (httpServer == null || !httpServer.IsRunning) {
 			httptoolfail(httpstatustext(), fromTray);

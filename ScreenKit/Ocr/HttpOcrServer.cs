@@ -14,7 +14,7 @@ namespace ScreenKit;
 /// <item>WebSocket /chat 工具页聊天室（昵称、性别，文字）</item>
 /// <item>WebSocket /rtsp?rtsp= 把一路 RTSP 转成 H.264 给网页播放</item>
 /// <item>GET/POST /api/toast 底部 Toast</item>
-/// <item>GET / 本机工具页；/dict 词典页；/reader 小说阅读器页；/chrome Chrome 模型页；/sk/tools.css · /sk/tools.js · /sk/dict.css · /sk/dict.js · /sk/reader.css · /sk/reader.js · /sk/chrome.css · /sk/chrome.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/emoji.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
+/// <item>GET / 本机工具页；/dict 词典页；/reader 小说阅读器页；/chrome Chrome 模型页；/sk/tools.css · /sk/tools.js · /sk/dict.css · /sk/dict.js · /sk/reader.css · /sk/reader.js · /sk/chrome.css · /sk/chrome.js · /sk/L.js · /sk/catalog.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/emoji.woff2 · /sk/viewer.min.css · /sk/viewer.min.js</item>
 /// <item>GET /api/dict · /api/dict/entry · /api/dict/speak · /api/dict/export</item>
 /// <item>GET  /api/reader/list · /api/reader/file · POST /api/reader/upload · rename · delete · stop</item>
 /// <item>GET/POST /api/zhconv 简繁转换</item>
@@ -188,6 +188,14 @@ sealed partial class HttpOcrServer : IDisposable {
 					return;
 				}
 				handlelangjs(ctx);
+				return;
+			}
+			if (path is "/sk/catalog.js") {
+				if (!isget(req)) {
+					writejson(ctx, 405, err(805, "工具目录仅支持 GET"));
+					return;
+				}
+				handlecatalogjs(ctx);
 				return;
 			}
 			if (path is "/chrome" or "/sk/chrome.css" or "/sk/chrome.js") {
@@ -952,9 +960,18 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	void handlelangjs(SockCtx ctx) {
-		var bytes = Loc.WebFile();
+		sendscript(ctx, "l.js", Loc.WebFile());
+	}
+
+	/// <summary>网页端的工具目录，内容来自 <see cref="ToolCatalog"/>，和桌面菜单同一份定义。</summary>
+	void handlecatalogjs(SockCtx ctx) {
+		sendscript(ctx, "catalog.js", Encoding.UTF8.GetBytes(ToolCatalog.WebJs()));
+	}
+
+	/// <summary>内存里生成的脚本：按语言和内容缓存 gzip，支持 HEAD。</summary>
+	static void sendscript(SockCtx ctx, string name, byte[] bytes) {
 		var head = string.Equals(ctx.Request.HttpMethod, "HEAD", StringComparison.OrdinalIgnoreCase);
-		var gz = WebGzip.Cached("l.js|" + (Loc.Lang ?? "") + "|" + WebGzip.Stamp(bytes),
+		var gz = WebGzip.Cached(name + "|" + (Loc.Lang ?? "") + "|" + WebGzip.Stamp(bytes),
 			"application/javascript; charset=utf-8", bytes);
 		var res = ctx.Response;
 		res.StatusCode = 200;
@@ -2530,7 +2547,7 @@ sealed partial class HttpOcrServer : IDisposable {
 	}
 
 	static JSONF apilist(OcrOptions o) {
-		var a = JSONF.newArray("GET  /  本机工具页", "GET  /dict  词典页（新窗口）", "GET  /reader  小说阅读器页（新窗口）", "GET  /chrome  Chrome 模型页", "GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语", "GET  /api/dict/entry  ?id=", "GET  /api/dict/speak  ?text=&lang=  WAV；该语言用 Chrome 时仅本机", "GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md", "GET  /api/reader/list  小说阅读器：web/up/reader 下的 txt、md", "GET  /api/reader/file  ?name=&enc=  读一篇的正文", "POST /api/reader/upload  ?name=&overwrite=1  正文就是文件字节", "POST /api/reader/rename  JSON{from,to} · /api/reader/delete JSON{name}", "POST /api/reader/stop  停止 Chrome 朗读", "GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/emoji.woff2 · /sk/viewer.min.css · /sk/viewer.min.js", "GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}", "GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成", "GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟", "GET/POST /api/ipcity  IP 城市。GET ?ip= 或 POST JSON{ip}。ip 为空时查本机出口", "GET/POST /api/mac  MAC 厂家。GET ?mac= 或 POST JSON{mac}", "GET/POST /api/usb  USB ID。GET ?vid=&pid= 或 POST JSON{vid,pid}。返回厂家、产品、型号和接口", "GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空", "GET  /api/fonts  本机已安装字体", "GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}", "POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart", "GET  /api/status", "GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}", "GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}", "GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；有 text 时同时返回 pinyin 和 py", "GET/POST /api/md  Markdown 转网页。POST JSON{text|base64,title?,theme?}，返回 data.html 和 data.bg", "POST /api/docview  ?name=a.docx|a.pdf|a.md  请求体是文件字节，返回 data.html；GET /api/docasset  ?id=&f=  取转换出的页面和图片", "GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}", "GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}", "GET/POST /api/cast/stop  立即关闭投屏画面", "WebSocket /chat  工具页聊天室", "POST /chat/file  聊天室上传。multipart 字段 file，kind=image|file。图片和文件写入程序目录 tmp/chat-*，启动时删除", "GET  /chat/file/{id}  下载聊天室里的图片或文件");
+		var a = JSONF.newArray("GET  /  本机工具页", "GET  /dict  词典页（新窗口）", "GET  /reader  小说阅读器页（新窗口）", "GET  /chrome  Chrome 模型页", "GET  /api/dict  ?q=&dict=&limit=  汉语/英语/日语/韩语", "GET  /api/dict/entry  ?id=", "GET  /api/dict/speak  ?text=&lang=  WAV；该语言用 Chrome 时仅本机", "GET  /api/dict/export  ?q=&dict=&fmt=txt|csv|html|md", "GET  /api/reader/list  小说阅读器：web/up/reader 下的 txt、md", "GET  /api/reader/file  ?name=&enc=  读一篇的正文", "POST /api/reader/upload  ?name=&overwrite=1  正文就是文件字节", "POST /api/reader/rename  JSON{from,to} · /api/reader/delete JSON{name}", "POST /api/reader/stop  停止 Chrome 朗读", "GET  /sk/tools.css · /sk/tools.js · /sk/L.js · /sk/catalog.js · /sk/fa.css · /sk/fa-solid-900.woff2 · /sk/emoji.woff2 · /sk/viewer.min.css · /sk/viewer.min.js", "GET/POST /api/text  文本。GET ?text=&op= 或 POST JSON{text,op}", "GET/POST /api/fake  测试数据。GET 看 Bogus 是否安装，已安装时带语言和分类；GET/POST locale&kind&n 生成", "GET/POST /api/fx  货币。GET ?amount=&from=&to= 或 POST JSON{amount,from,to}。中国银行中间价，缓存 10 分钟", "GET/POST /api/ipcity  IP 城市。GET ?ip= 或 POST JSON{ip}。ip 为空时查本机出口", "GET/POST /api/mac  MAC 厂家。GET ?mac= 或 POST JSON{mac}", "GET/POST /api/usb  USB ID。GET ?vid=&pid= 或 POST JSON{vid,pid}。返回厂家、产品、型号和接口", "GET/POST /api/enc  单码位代码页。GET ?cp= 或 POST JSON{cp}，放不下的编码为空", "GET  /api/fonts  本机已安装字体", "GET/POST /api/qrmake  生成二维码/条码。JSON{text,format?,encoding?}", "POST /api/qrscan  识别二维码/条码。JSON{base64} 或 multipart", "GET  /api/status", "GET/POST /api/toast  底部 Toast。GET ?text= 或 POST JSON{text,ms?}", "GET/POST /api/zhconv  简繁。GET ?text=&to=trad|simp 或 POST JSON{text,to?}", "GET/POST /api/pinyin  中文转拼音。不带 text 时返回是否已安装 NPinyin；有 text 时同时返回 pinyin 和 py", "GET/POST /api/md  Markdown 转网页。POST JSON{text|base64,title?,theme?}，返回 data.html 和 data.bg", "POST /api/docview  ?name=a.docx|a.pdf|a.md  请求体是文件字节，返回 data.html；GET /api/docasset  ?id=&f=  取转换出的页面和图片", "GET/POST /api/calendar  历法。GET ?date=yyyy-MM-dd&cal=lunar 或 POST JSON{date?,cal?}", "GET/POST /api/jpyomi  日文注音。GET ?text=&mono= 或 POST JSON{text,mono?}", "GET/POST /api/cast/stop  立即关闭投屏画面", "WebSocket /chat  工具页聊天室", "POST /chat/file  聊天室上传。multipart 字段 file，kind=image|file。图片和文件写入程序目录 tmp/chat-*，启动时删除", "GET  /chat/file/{id}  下载聊天室里的图片或文件");
 		if (o.HttpOcr && o.ModOcr) {
 			a.Add("GET  /api/ocr/engines  只列识别引擎和各自的模型数量");
 			a.Add("GET  /api/ocr/models  ?engine=winocr|onnx 按引擎列模型包");

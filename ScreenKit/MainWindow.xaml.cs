@@ -177,7 +177,7 @@ public partial class MainWindow : Window {
 		// 先读配置再装模型栏
 		AppConfig.LoadInto(opt);
 		// 收藏里没有这张卡片的 id 直接丢掉，不改写成别的卡片
-		var toolfav = ToolHub.KeepFav((opt.ToolFav ?? "").Split(','));
+		var toolfav = ToolCatalog.KeepFav((opt.ToolFav ?? "").Split(','));
 		opt.ToolFav = string.Join(",", toolfav);
 		// 发布版只认合并后的 web/tools.js；开发目录用 config.toml 的 dev = true 保留各工具脚本
 		if (!opt.Dev) WebToolSources.Clean();
@@ -664,10 +664,11 @@ public partial class MainWindow : Window {
 				fmttrayhk(opt.HotkeyVoiceInput),
 				fmttrayhk(opt.HotkeyTranslate),
 				opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "",
-				fmttrayhk(opt.HotkeySnapCopy),
-				fmttrayhk(opt.HotkeyImeCycle),
-				fmttrayhk(opt.HotkeyWebHome),
-				fmttrayhk(opt.HotkeyMdRead));
+				fmttrayhk(opt.HotkeySnapCopy));
+			// 工具项的热键也来自同一个目录
+			tray.ToolHotkeyProvider = d =>
+				d.Hotkey != null && ToolCatalog.ModuleOn(d, opt.ModOcr, opt.ModTranslate, opt.ModDict)
+					? fmttrayhk(d.Hotkey(opt)) : "";
 			// 构造托盘时还没有热键来源，设置后立刻补一次，菜单一打开就带快捷键
 			try { tray.ApplyHotkeys(); } catch { }
 			// 记下点菜单前主窗是否真的在前台（菜单关闭会误激活隐藏的主窗）
@@ -715,77 +716,9 @@ public partial class MainWindow : Window {
 				applyselbar(on, true, true);
 			}));
 			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(clipimageasfile));
-			tray.PdfRequested += () => Dispatcher.BeginInvoke(new Action(() => openpdfworkbench()));
-			// 截图历史：打开截图历史窗口，不唤起主窗
-			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(() => openhistory()));
-			// 录屏 / 录屏参数 / 系统参数：不唤起主窗，只打开对应功能窗
-			tray.RecordRequested += () => Dispatcher.BeginInvoke(new Action(startrecord));
-			tray.RecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => openrecordoptions(fromTray: true)));
-			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
-			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => opengifrecordoptions(fromTray: true)));
-			tray.WebHomeRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttptools(fromTray: true)));
-			tray.WebFilesRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpfiles(fromTray: true)));
-			tray.WebDictRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdict(fromTray: true)));
 			tray.ToolFavProvider = () => opt.ToolFav;
-			tray.WebToolRequested += id => Dispatcher.BeginInvoke(new Action(() => {
-				if (id != null && id.StartsWith("fav:")) {
-					opentoolcard(ToolHub.Find(id.Substring(4)));
-					return;
-				}
-				openhttptools(fromTray: true, tool: id);
-			}));
-			tray.ImgConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openimgconv()));
-			tray.CharArtRequested += () => Dispatcher.BeginInvoke(new Action(() => opencharart()));
-			tray.PixelArtRequested += () => Dispatcher.BeginInvoke(new Action(() => openpixel()));
-			tray.VidConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidconv()));
-			tray.VidGifRequested += () => Dispatcher.BeginInvoke(new Action(() => openvidgif()));
-			tray.QrMakeRequested += () => Dispatcher.BeginInvoke(new Action(() => openqrmake()));
-			tray.RenameRequested += () => Dispatcher.BeginInvoke(new Action(() => openrename()));
-			tray.HashRequested += () => Dispatcher.BeginInvoke(new Action(() => openhash()));
-			tray.TextToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opentexttool()));
-			tray.MdReadRequested += () => Dispatcher.BeginInvoke(new Action(() => openmdread()));
-			tray.DocToMdRequested += () => Dispatcher.BeginInvoke(new Action(() => opendoc2md()));
-			tray.PwGenRequested += () => Dispatcher.BeginInvoke(new Action(() => openpwgen()));
-			tray.SciCalcRequested += () => Dispatcher.BeginInvoke(new Action(() => openscicalc()));
-			tray.NoteRequested += () => Dispatcher.BeginInvoke(new Action(() => opennote()));
-			tray.RtspSrvRequested += () => Dispatcher.BeginInvoke(new Action(() => openrtspsrv()));
-			tray.NetToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opennettool()));
-			tray.DictRequested += () => Dispatcher.BeginInvoke(new Action(() => showdicttab()));
-			tray.SysRequested += () => Dispatcher.BeginInvoke(new Action(() => opensys()));
-			tray.DiagRequested += () => Dispatcher.BeginInvoke(new Action(() => {
-				if (tray != null) tray.showwindow();
-				opendiag();
-			}));
-			tray.MemRequested += () => Dispatcher.BeginInvoke(new Action(() => openmem()));
-			tray.SysToolRequested += () => Dispatcher.BeginInvoke(new Action(() => opensystool()));
-			tray.FileProbeRequested += () => Dispatcher.BeginInvoke(new Action(() => openfileprobe()));
-			tray.CodeStatRequested += () => Dispatcher.BeginInvoke(new Action(() => opencodestat()));
-			tray.PerfMonRequested += () => Dispatcher.BeginInvoke(new Action(() => openperfmon()));
-			tray.HttpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openhttpdbg()));
-			tray.MqttRequested += () => Dispatcher.BeginInvoke(new Action(() => openmqtt()));
-		tray.WsDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openwsdbg()));
-			tray.UdpDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => openudpdbg()));
-			tray.SoapDbgRequested += () => Dispatcher.BeginInvoke(new Action(() => opensoapdbg()));
-			tray.NetMonRequested += () => Dispatcher.BeginInvoke(new Action(() => opennetmon()));
-			tray.UsbCapRequested += () => Dispatcher.BeginInvoke(new Action(() => openusbcap()));
-			tray.TlsRequested += () => Dispatcher.BeginInvoke(new Action(() => opentls()));
-			tray.FtpRequested += () => Dispatcher.BeginInvoke(new Action(() => openftp()));
-			tray.SqlRequested += () => Dispatcher.BeginInvoke(new Action(() => opensql()));
-			tray.ZhConvRequested += () => Dispatcher.BeginInvoke(new Action(() => openzhconv()));
-			tray.PinyinRequested += () => Dispatcher.BeginInvoke(new Action(() => openpinyin()));
-			tray.HangulRequested += () => Dispatcher.BeginInvoke(new Action(() => hangulset(hangul == null || !hangul.On)));
-
-			tray.WinCalRequested += () => Dispatcher.BeginInvoke(new Action(() => openwincal()));
-			tray.JpYomiRequested += () => Dispatcher.BeginInvoke(new Action(() => openjpyomi()));
-			tray.WinTopRequested += () => Dispatcher.BeginInvoke(new Action(() => openwintop()));
-			tray.AutoKeyRequested += () => Dispatcher.BeginInvoke(new Action(() => openautokey()));
-			tray.FastCopyRequested += () => Dispatcher.BeginInvoke(new Action(() => openfastcopy()));
-			tray.GlyphModRequested += () => Dispatcher.BeginInvoke(new Action(() => openglyphmod()));
-			tray.PortUseRequested += () => Dispatcher.BeginInvoke(new Action(() => openportuse()));
-			tray.MidiSynthRequested += () => Dispatcher.BeginInvoke(new Action(() => openmidi()));
-			tray.VoiceRecRequested += () => Dispatcher.BeginInvoke(new Action(() => openvoicerec()));
-			tray.CamRequested += () => Dispatcher.BeginInvoke(new Action(() => opencam()));
-			tray.CastRequested += () => Dispatcher.BeginInvoke(new Action(() => opencast()));
+			// 托盘「工具」和「收藏」里的项都走同一个入口，参数是目录里的 id
+			tray.ToolRequested += id => Dispatcher.BeginInvoke(new Action(() => opentooldef(ToolCatalog.Find(id))));
 			tray.SettingsRequested += () => Dispatcher.BeginInvoke(new Action(() => opensettings(fromTray: true)));
 			tray.ForceExitRequested += () => RequestExit();
 			tray.SnapCopyOptionsChanged += (asImg, asFile, asPath) => Dispatcher.BeginInvoke(new Action(() => {
@@ -1890,19 +1823,9 @@ public partial class MainWindow : Window {
 		mncopyimg.Click += (_, _) => copyimage();
 		mncopyfile.Click += (_, _) => copyfile();
 		mncopypath.Click += (_, _) => copypath();
-		// 工具菜单
-		mnpdf.Click += (_, _) => openpdfworkbench();
-		mntools.SubmenuOpened += (_, e) => {
-			if (!ReferenceEquals(e.OriginalSource, mntools)) return;
-			fillwebmenu();
-		};
-		fillwebmenu();
+		// 工具菜单：整棵子树按 ToolCatalog 建，点击统一走 opentooldef
+		inittoolmenu();
 		inittoolhub();
-		mnwebhome.Click += (_, _) => openhttptools();
-		mnwebfiles.Click += (_, _) => openhttpfiles(false);
-		mnwebdict.Click += (_, _) => openhttpdict(false);
-		mntrpopup.Click += (_, _) => showtranslatepopup();
-		mndict.Click += (_, _) => showdicttab();
 		SelBar.Picked += (text, bounds) => {
 			try { dicthost?.ShowOutside(text, bounds); } catch { }
 		};
@@ -1912,54 +1835,6 @@ public partial class MainWindow : Window {
 		SelBar.PopupHwnd = () => dicthost?.OutsideHwnd() ?? IntPtr.Zero;
 		if (dicthost != null) dicthost.SelBarChanged += v => applyselbar(v, true, false);
 		applyselbar(opt.DictSelBar, false, false);
-		mnimgconv.Click += (_, _) => openimgconv();
-		mncharart.Click += (_, _) => opencharart();
-		mnpixel.Click += (_, _) => openpixel();
-		mnvidconv.Click += (_, _) => openvidconv();
-		mnplayer.Click += (_, _) => openplayer();
-		mnvidgif.Click += (_, _) => openvidgif();
-		mnqrmake.Click += (_, _) => openqrmake();
-		mnrename.Click += (_, _) => openrename();
-		mnhash.Click += (_, _) => openhash();
-		mncodestat.Click += (_, _) => opencodestat();
-		mntexttool.Click += (_, _) => opentexttool();
-		mnmdread.Click += (_, _) => openmdread();
-		mndoc2md.Click += (_, _) => opendoc2md();
-		mncast.Click += (_, _) => opencast();
-		mnpwgen.Click += (_, _) => openpwgen();
-		mnscicalc.Click += (_, _) => openscicalc();
-		mnnote.Click += (_, _) => opennote();
-		mnrtspsrv.Click += (_, _) => openrtspsrv();
-		mnnet.Click += (_, _) => opennettool();
-		mnportuse.Click += (_, _) => openportuse();
-		mnnetmon.Click += (_, _) => opennetmon();
-		mnusbcap.Click += (_, _) => openusbcap();
-		mntls.Click += (_, _) => opentls();
-		mnftp.Click += (_, _) => openftp();
-		mnmidi.Click += (_, _) => openmidi();
-		mnvoicerec.Click += (_, _) => openvoicerec();
-		mncam.Click += (_, _) => opencam();
-		mnsys.Click += (_, _) => opensys();
-		mnsystool.Click += (_, _) => opensystool();
-		mnfileprobe.Click += (_, _) => openfileprobe();
-		mnperfmon.Click += (_, _) => openperfmon();
-		mnhttpdbg.Click += (_, _) => openhttpdbg();
-		mnmqtt.Click += (_, _) => openmqtt();
-		mnwsdbg.Click += (_, _) => openwsdbg();
-		mnudpdbg.Click += (_, _) => openudpdbg();
-		mnsoapdbg.Click += (_, _) => opensoapdbg();
-		mnzhconv.Click += (_, _) => openzhconv();
-		mnpinyin.Click += (_, _) => openpinyin();
-		mnhangul.Click += (_, _) => hangulset(mnhangul.IsChecked == true);
-
-		mnwincal.Click += (_, _) => openwincal();
-		mnjpyomi.Click += (_, _) => openjpyomi();
-		mnwintop.Click += (_, _) => openwintop();
-		mnsql.Click += (_, _) => opensql();
-		mnsqlconv.Click += (_, _) => opensqlconv();
-		mnautokey.Click += (_, _) => openautokey();
-		mnfastcopy.Click += (_, _) => openfastcopy();
-		mnglyphmod.Click += (_, _) => openglyphmod();
 		// 选项菜单
 		mndictselbar.Checked += (_, _) => {
 			if (selBarMenuUi) return;
@@ -2039,8 +1914,6 @@ public partial class MainWindow : Window {
 			mnpaste.ToolTip = Loc.T("menu.paste.tip");
 			mnsaveclip.Header = Loc.T("menu.saveimg");
 			mnsaveclip.ToolTip = Loc.T("menu.saveimg.tip");
-			mnpdf.Header = Loc.T("menu.pdf");
-			mnpdf.ToolTip = Loc.T("menu.pdf.tip");
 			mnrestart.Header = Loc.T("menu.restart");
 			mnexit.Header = Loc.T("menu.exit");
 
@@ -2077,121 +1950,7 @@ public partial class MainWindow : Window {
 			mncopypath.Header = Loc.T("menu.copypath");
 			mncopypath.ToolTip = Loc.T("menu.copypath.tip");
 
-			mnwebhome.Header = Loc.T("tray.webhome") + "(_B)";
-			mnwebhome.ToolTip = Loc.T("menu.webhome.tip");
-			mnwebfiles.Header = Loc.T("tray.webfiles");
-			mnwebdict.Header = Loc.T("web.dict");
-			mnwebdict.ToolTip = Loc.T("web.dict.tip");
-			mncattext.Header = Loc.T("web.cat.text") + "(_X)";
-			mncatcalc.Header = Loc.T("web.cat.calc") + "(_C)";
-			mncatspeech.Header = Loc.T("web.cat.speech") + "(_V)";
-			mncattime.Header = Loc.T("web.cat.time") + "(_L)";
-			mncatimage.Header = Loc.T("web.cat.image") + "(_G)";
-			mncattalk.Header = Loc.T("web.cat.talk") + "(_A)";
-			mncatfile.Header = Loc.T("menu.cat.file") + "(_F)";
-			mncatsys.Header = Loc.T("menu.cat.sys") + "(_Y)";
-			mntrpopup.Header = Loc.T("menu.translate.popup");
-			mntrpopup.ToolTip = Loc.T("menu.translate.popup.tip");
-			mndict.Header = Loc.T("menu.dict");
-			mndict.ToolTip = Loc.T("menu.dict.tip");
-			mnimgconv.Header = Loc.T("menu.imgconv");
-			mnimgconv.ToolTip = Loc.T("menu.imgconv.tip");
-			mncharart.Header = Loc.T("menu.charart");
-			mncharart.ToolTip = Loc.T("menu.charart.tip");
-			mnpixel.Header = Loc.T("menu.pixel");
-			mnpixel.ToolTip = Loc.T("menu.pixel.tip");
-			mnvidconv.Header = Loc.T("menu.vidconv");
-			mnvidconv.ToolTip = Loc.T("menu.vidconv.tip");
-			mnplayer.Header = Loc.T("menu.player");
-			mnplayer.ToolTip = Loc.T("menu.player.tip");
-			mnvidgif.Header = Loc.T("menu.vidgif");
-			mnvidgif.ToolTip = Loc.T("menu.vidgif.tip");
-			mnqrmake.Header = Loc.T("menu.qrmake");
-			mnqrmake.ToolTip = Loc.T("menu.qrmake.tip");
-			mnrename.Header = Loc.T("menu.rename");
-			mnrename.ToolTip = Loc.T("menu.rename.tip");
-			mnhash.Header = Loc.T("menu.hash");
-			mnhash.ToolTip = Loc.T("menu.hash.tip");
-			mncodestat.Header = Loc.T("menu.codestat");
-			mncodestat.ToolTip = Loc.T("menu.codestat.tip");
-			mntexttool.Header = Loc.T("menu.texttool");
-			mntexttool.ToolTip = Loc.T("menu.texttool.tip");
-			mnmdread.Header = Loc.T("menu.mdread");
-			mnmdread.ToolTip = Loc.T("menu.mdread.tip");
-			mndoc2md.Header = Loc.T("menu.doc2md");
-			mndoc2md.ToolTip = Loc.T("menu.doc2md.tip");
-			mnpwgen.Header = Loc.T("menu.pwgen");
-			mnpwgen.ToolTip = Loc.T("menu.pwgen.tip");
-			mnscicalc.Header = Loc.T("menu.scicalc");
-			mnscicalc.ToolTip = Loc.T("menu.scicalc.tip");
-			mnnote.Header = Loc.T("menu.note");
-			mnnote.ToolTip = Loc.T("menu.note.tip");
-			mnrtspsrv.Header = Loc.T("menu.rtspsrv");
-			mnrtspsrv.ToolTip = Loc.T("menu.rtspsrv.tip");
-			mncast.Header = Loc.T("menu.cast");
-			mncast.ToolTip = Loc.T("menu.cast.tip");
-			mnnetgroup.Header = Loc.T("menu.netgroup");
-			mnnetgroup.ToolTip = Loc.T("menu.netgroup.tip");
-			mnnet.Header = Loc.T("menu.net");
-			mnnet.ToolTip = Loc.T("menu.net.tip");
-			mninfo.Header = Loc.T("menu.info");
-			mninfo.ToolTip = Loc.T("menu.info.tip");
-			mnportuse.Header = Loc.T("menu.portuse");
-			mnportuse.ToolTip = Loc.T("menu.portuse.tip");
-			mnnetmon.Header = Loc.T("menu.netmon");
-			mnnetmon.ToolTip = Loc.T("menu.netmon.tip");
-			mnusbcap.Header = Loc.T("menu.usbcap");
-			mnusbcap.ToolTip = Loc.T("menu.usbcap.tip");
-			mnmidi.Header = Loc.T("menu.midisynth");
-			mnmidi.ToolTip = Loc.T("menu.midisynth.tip");
-			mnvoicerec.Header = Loc.T("menu.voicerec");
-			mnvoicerec.ToolTip = Loc.T("menu.voicerec.tip");
-			mncam.Header = Loc.T("menu.cam");
-			mncam.ToolTip = Loc.T("menu.cam.tip");
-			mnsys.Header = Loc.T("menu.sysinfo");
-			mnsys.ToolTip = Loc.T("menu.sysinfo.tip");
-			mnsystool.Header = Loc.T("menu.systool");
-			mnsystool.ToolTip = Loc.T("menu.systool.tip");
-			mnfileprobe.Header = Loc.T("menu.fileprobe");
-			mnfileprobe.ToolTip = Loc.T("menu.fileprobe.tip");
-			mnperfmon.Header = Loc.T("menu.perfmon");
-			mnperfmon.ToolTip = Loc.T("menu.perfmon.tip");
-			mnhttpdbg.Header = Loc.T("menu.httpdbg");
-			mnhttpdbg.ToolTip = Loc.T("menu.httpdbg.tip");
-			mnmqtt.Header = Loc.T("menu.mqtt");
-			mnmqtt.ToolTip = Loc.T("menu.mqtt.tip");
-			mnwsdbg.Header = Loc.T("menu.wsdbg");
-			mnwsdbg.ToolTip = Loc.T("menu.wsdbg.tip");
-			mnudpdbg.Header = Loc.T("menu.udpdbg");
-			mnudpdbg.ToolTip = Loc.T("menu.udpdbg.tip");
-			mnsoapdbg.Header = Loc.T("menu.soapdbg");
-			mnsoapdbg.ToolTip = Loc.T("menu.soapdbg.tip");
-			mnftp.Header = Loc.T("menu.ftp");
-			mnftp.ToolTip = Loc.T("menu.ftp.tip");
-			mnzhconv.Header = Loc.T("menu.zhconv");
-			mnzhconv.ToolTip = Loc.T("menu.zhconv.tip");
-			mnpinyin.Header = Loc.T("menu.pinyin");
-			mnpinyin.ToolTip = Loc.T("menu.pinyin.tip");
-			mnhangul.Header = Loc.T("menu.hangul");
-			mnhangul.ToolTip = Loc.T("menu.hangul.tip");
-			try { hangul?.ApplyLang(); } catch { }
-			mnwincal.Header = Loc.T("menu.wincal");
-			mnwincal.ToolTip = Loc.T("menu.wincal.tip");
-			mnjpyomi.Header = Loc.T("menu.jpyomi");
-			mnjpyomi.ToolTip = Loc.T("menu.jpyomi.tip");
-			mnwintop.Header = Loc.T("menu.wintop");
-			mnwintop.ToolTip = Loc.T("menu.wintop.tip");
-			mnsql.Header = Loc.T("menu.sql");
-			mnsql.ToolTip = Loc.T("menu.sql.tip");
-			mnsqlconv.Header = Loc.T("menu.sqlconv");
-			mnsqlconv.ToolTip = Loc.T("menu.sqlconv.tip");
-			mnautokey.Header = Loc.T("menu.autokey");
-			mnautokey.ToolTip = Loc.T("menu.autokey.tip");
-			mnfastcopy.Header = Loc.T("menu.fastcopy");
-			mnfastcopy.ToolTip = Loc.T("menu.fastcopy.tip");
-			mnglyphmod.Header = Loc.T("menu.glyphmod");
-			mnglyphmod.ToolTip = Loc.T("menu.glyphmod.tip");
-			fillwebmenu();
+			filltoolmenulang();
 			mndictselbar.Header = Loc.T("dict.selbar");
 			mndictselbar.ToolTip = Loc.T("dict.selbar.tip");
 			mnsettings.Header = Loc.T("menu.settings");
@@ -2327,11 +2086,9 @@ public partial class MainWindow : Window {
 
 	void applymodui() {
 		mncapture.IsEnabled = opt.ModOcr;
-		mnpdf.IsEnabled = opt.ModOcr;
 		mnvoice.IsEnabled = opt.ModAsr;
-		mntrpopup.IsEnabled = opt.ModTranslate;
-		mndict.IsEnabled = opt.ModDict;
 		if (mndictselbar != null) mndictselbar.IsEnabled = opt.ModDict;
+		applytoolmodules();
 		try { tray?.SetModules(opt.ModOcr, opt.ModAsr, opt.ModTranslate, opt.ModDict); } catch { }
 		if (!opt.ModTranslate) try { trPopup?.Hide(); } catch { }
 		if (!opt.ModAsr) {
@@ -2411,25 +2168,17 @@ public partial class MainWindow : Window {
 			var snap = fmttrayhk(opt.HotkeySnap);
 			var board = fmttrayhk(opt.HotkeyBoard);
 			var voice = fmttrayhk(opt.HotkeyVoiceInput);
-			var tr = fmttrayhk(opt.HotkeyTranslate);
 			var copy = fmttrayhk(opt.HotkeySnapCopy);
 			var screensnap = fmttrayhk(opt.HotkeyScreenSnap);
-			var dict = fmttrayhk(opt.HotkeyDict);
 			mncapture.InputGestureText = cap;
 			mnsnap.InputGestureText = snap;
 			if (mnscreensnap != null) mnscreensnap.InputGestureText = screensnap;
 			mnboard.InputGestureText = board;
 			mnvoice.InputGestureText = voice;
-			mntrpopup.InputGestureText = tr;
-			mndict.InputGestureText = dict;
 			if (mndictselbar != null)
 				mndictselbar.InputGestureText = opt.ModDict ? fmttrayhk(opt.HotkeyDictSel) : "";
-			if (mnhangul != null) mnhangul.InputGestureText = fmttrayhk(opt.HotkeyImeCycle);
-			if (mnwebhome != null) mnwebhome.InputGestureText = fmttrayhk(opt.HotkeyWebHome);
-			if (mnmdread != null) mnmdread.InputGestureText = fmttrayhk(opt.HotkeyMdRead);
+			applytoolhotkeys();
 			painthangul();
-			// 只在工具窗口打开时监听，菜单上不标快捷键
-			if (mnautokey != null) mnautokey.InputGestureText = "";
 			if (mnsnapcopyimg != null) mnsnapcopyimg.InputGestureText = copy;
 			if (mnsnapcopyfile != null) mnsnapcopyfile.InputGestureText = copy;
 			if (mnsnapcopypath != null) mnsnapcopypath.InputGestureText = copy;
@@ -2441,7 +2190,7 @@ public partial class MainWindow : Window {
 	void hangulset(bool on) {
 		if (hangul == null) return;
 		if (on && !ImeLex.DbInstalled) {
-			if (mnhangul != null) mnhangul.IsChecked = false;
+			settoolchecked("hangul", false);
 			try { tray?.SetHangul(false); } catch { }
 			setstatus(Loc.T("hangul.needdb"));
 			return;
@@ -2451,7 +2200,7 @@ public partial class MainWindow : Window {
 			return;
 		}
 		if (!hangul.Set(on)) {
-			if (mnhangul != null) mnhangul.IsChecked = false;
+			settoolchecked("hangul", false);
 			try { tray?.SetHangul(false); } catch { }
 			setstatus(Loc.T("hangul.hookfail"));
 		}
@@ -2467,10 +2216,8 @@ public partial class MainWindow : Window {
 
 	void painthangul() {
 		var ok = ImeLex.DbInstalled;
-		if (mnhangul != null) {
-			mnhangul.IsEnabled = ok;
-			mnhangul.IsChecked = ok && hangul != null && hangul.On && !hangul.Paused;
-		}
+		settoolenabled("hangul", ok);
+		settoolchecked("hangul", ok && hangul != null && hangul.On && !hangul.Paused);
 		try {
 			tray?.SetHangulAvailable(ok);
 			tray?.SetHangul(ok && hangul != null && hangul.On && !hangul.Paused);
@@ -5832,7 +5579,6 @@ public partial class MainWindow : Window {
 		mnpaste.IsEnabled = !on;
 		mncopyimg.IsEnabled = !on;
 		mnsaveclip.IsEnabled = !on;
-		mnpdf.IsEnabled = !on;
 		mnsettings.IsEnabled = !on;
 		mninstall.IsEnabled = !on;
 		mndiag.IsEnabled = !on;
@@ -5900,14 +5646,128 @@ public partial class MainWindow : Window {
 		foreach (var obj in menu.Items) {
 			if (obj is not MenuItem item) continue;
 			if (item.Header is string text)
-				item.Header = ToolHub.Plain(text);
+				item.Header = ToolCatalog.Plain(text);
 			stripmenuacc(item);
 		}
 	}
 
+	// ==================== 工具菜单 ====================
+	#region
+	/// <summary>「工具」菜单里按目录建出来的项，键是 <see cref="ToolDef.Id"/>。</summary>
+	readonly Dictionary<string, MenuItem> toolmenu = new();
+	/// <summary>分类子菜单，键是 <see cref="ToolCat.Id"/>。</summary>
+	readonly Dictionary<string, MenuItem> toolcathost = new();
+
+	void inittoolmenu() {
+		toolmenu.Clear();
+		toolcathost.Clear();
+		foreach (var d in ToolCatalog.Top(ToolPlace.Menu)) addtoolitem(mntools, d);
+		mntools.Items.Add(new Separator());
+		foreach (var cat in ToolCatalog.CatsWith(ToolPlace.Menu)) {
+			var host = new MenuItem { Header = ToolCatalog.CatMenuName(cat) };
+			var tip = ToolCatalog.CatTip(cat);
+			if (tip.Length > 0) host.ToolTip = tip;
+			AutomationProperties.SetAutomationId(host, "menu.cat." + cat.Id);
+			foreach (var d in ToolCatalog.InCat(ToolPlace.Menu, cat.Id)) addtoolitem(host, d);
+			mntools.Items.Add(host);
+			toolcathost[cat.Id] = host;
+		}
+		applytoolhotkeys();
+		applytoolmodules();
+	}
+
+	void addtoolitem(ItemsControl host, ToolDef d) {
+		if (d == null) return;
+		var mi = new MenuItem {
+			Header = ToolCatalog.MenuName(d),
+			IsCheckable = d.Check,
+		};
+		var tip = ToolCatalog.TipOf(d);
+		if (tip.Length > 0) mi.ToolTip = tip;
+		AutomationProperties.SetAutomationId(mi, "menu." + d.Id);
+		mi.Click += (_, _) => opentooldef(d);
+		toolmenu[d.Id] = mi;
+		host.Items.Add(mi);
+	}
+
+	/// <summary>界面语言变了：分类和工具名重新取文案，热键和模块开关也一起刷。</summary>
+	void filltoolmenulang() {
+		mntools.Header = Loc.T("menu.tools");
+		foreach (var cat in ToolCatalog.Cats) {
+			if (!toolcathost.TryGetValue(cat.Id, out var host) || host == null) continue;
+			host.Header = ToolCatalog.CatMenuName(cat);
+			var tip = ToolCatalog.CatTip(cat);
+			if (tip.Length > 0) host.ToolTip = tip;
+		}
+		foreach (var d in ToolCatalog.Items) {
+			if (!toolmenu.TryGetValue(d.Id, out var mi) || mi == null) continue;
+			mi.Header = ToolCatalog.MenuName(d);
+			var tip = ToolCatalog.TipOf(d);
+			mi.ToolTip = tip.Length > 0 ? tip : null;
+		}
+		applytoolhotkeys();
+		applytoolmodules();
+	}
+
+	/// <summary>菜单右侧的快捷键文案来自目录里每项的热键。模块关掉时不显示。</summary>
+	void applytoolhotkeys() {
+		foreach (var d in ToolCatalog.Items) {
+			if (!toolmenu.TryGetValue(d.Id, out var mi) || mi == null) continue;
+			var keys = "";
+			if (d.Hotkey != null && ToolCatalog.ModuleOn(d, opt.ModOcr, opt.ModTranslate, opt.ModDict))
+				keys = fmttrayhk(d.Hotkey(opt));
+			mi.InputGestureText = keys;
+		}
+	}
+
+	/// <summary>模块开关变了：目录里写了 Module 的项跟着启用或禁用。</summary>
+	void applytoolmodules() {
+		foreach (var d in ToolCatalog.Items) {
+			if (string.IsNullOrEmpty(d.Module)) continue;
+			if (!toolmenu.TryGetValue(d.Id, out var mi) || mi == null) continue;
+			mi.IsEnabled = ToolCatalog.ModuleOn(d, opt.ModOcr, opt.ModTranslate, opt.ModDict);
+		}
+	}
+
+	void settoolchecked(string id, bool on) {
+		if (toolmenu.TryGetValue(id, out var mi) && mi != null) mi.IsChecked = on;
+	}
+
+	void settoolenabled(string id, bool on) {
+		if (toolmenu.TryGetValue(id, out var mi) && mi != null) mi.IsEnabled = on;
+	}
+
+	/// <summary>菜单 / 托盘 / 「工具」页 / 网页卡片统一从这里打开。</summary>
+	void opentooldef(ToolDef d) {
+		if (d == null) return;
+		if (d.Check) {
+			// 勾选项（输入法开关）按当前真实状态取反，菜单和托盘点哪个都一致
+			var wasOn = hangul != null && hangul.On && !hangul.Paused;
+			if (d.Id == "hangul") hangulset(!wasOn);
+			return;
+		}
+		if (d.Kind == ToolKind.Tab) {
+			opentooltab(d.Open);
+			return;
+		}
+		if (d.Kind == ToolKind.Act) {
+			opentoolact(d.Open);
+			return;
+		}
+		// 桌面上没有对应窗口的工具，在浏览器里开它的网页卡片
+		if (d.Web != WebKind.None) openhttptools(tool: ToolCatalog.WebId(d));
+	}
+	#endregion
+
 	// ==================== 工具页 ====================
 	#region
-	string toolcat = ToolHub.All;
+	string toolcat = ToolCatalog.All;
+
+	// 「收藏」「全部」不是真分类，只是工具页左栏的两个入口
+	static readonly (string Id, string NameKey, string Glyph)[] toolvirtuals = {
+		(ToolCatalog.Fav, "web.cat.fav", "\uE734"),
+		(ToolCatalog.All, "web.cat.all", "\uE8FD"),
+	};
 
 	void inittoolhub() {
 		ltoolcat.SelectionChanged += (_, _) => {
@@ -5933,10 +5793,19 @@ public partial class MainWindow : Window {
 		filltoolcards();
 	}
 
+	/// <summary>工具页上的分类：先「收藏」「全部」，再是有桌面工具的各个分类。</summary>
+	static List<(string Id, string NameKey, string Glyph)> toolcats() {
+		var list = new List<(string Id, string NameKey, string Glyph)>();
+		list.AddRange(toolvirtuals);
+		foreach (var cat in ToolCatalog.CatsWith(ToolPlace.Tab))
+			list.Add((cat.Id, cat.NameKey, cat.Glyph));
+		return list;
+	}
+
 	void filltoolcats() {
 		var keep = toolcat;
 		ltoolcat.Items.Clear();
-		foreach (var cat in ToolHub.Cats) {
+		foreach (var cat in toolcats()) {
 			var row = new StackPanel { Orientation = Orientation.Horizontal };
 			row.Children.Add(new TextBlock {
 				Text = cat.Glyph,
@@ -5946,7 +5815,7 @@ public partial class MainWindow : Window {
 				VerticalAlignment = VerticalAlignment.Center,
 			});
 			row.Children.Add(new TextBlock {
-				Text = ToolHub.CatName(cat.Id),
+				Text = ToolCatalog.Plain(Loc.T(cat.NameKey)),
 				VerticalAlignment = VerticalAlignment.Center,
 			});
 			ltoolcat.Items.Add(new ListBoxItem { Content = row, Tag = cat.Id });
@@ -5960,26 +5829,25 @@ public partial class MainWindow : Window {
 	}
 
 	List<string> toolfavs() =>
-		ToolHub.KeepFav((opt.ToolFav ?? "").Split(','));
+		ToolCatalog.KeepFav((opt.ToolFav ?? "").Split(','));
 
 	void filltoolcards() {
 		var q = (etoolq.Text ?? "").Trim();
-		var fav = toolfavs();
-		var favset = new HashSet<string>(fav);
-		var hits = new List<ToolCard>();
-		foreach (var card in ToolHub.Cards()) {
-			if (toolcat == ToolHub.Fav) {
+		var favset = new HashSet<string>(toolfavs());
+		var hits = new List<ToolDef>();
+		foreach (var card in ToolCatalog.In(ToolPlace.Tab)) {
+			if (card.Cat == null) continue;
+			if (toolcat == ToolCatalog.Fav) {
 				if (!favset.Contains(card.Id)) continue;
 			}
-			else if (toolcat != ToolHub.All && card.Cat != toolcat) continue;
+			else if (toolcat != ToolCatalog.All && card.Cat != toolcat) continue;
 			if (q.Length > 0 && !toolhit(card, q)) continue;
 			hits.Add(card);
 		}
 		ptoolcards.Children.Clear();
-		if (toolcat == ToolHub.All) {
-			foreach (var cat in ToolHub.Cats) {
-				if (cat.Id == ToolHub.Fav || cat.Id == ToolHub.All) continue;
-				var rows = new List<ToolCard>();
+		if (toolcat == ToolCatalog.All) {
+			foreach (var cat in ToolCatalog.CatsWith(ToolPlace.Tab)) {
+				var rows = new List<ToolDef>();
 				foreach (var card in hits)
 					if (card.Cat == cat.Id) rows.Add(card);
 				if (rows.Count == 0) continue;
@@ -5992,17 +5860,17 @@ public partial class MainWindow : Window {
 		}
 		var none = hits.Count == 0;
 		lbtoolnone.Visibility = none ? Visibility.Visible : Visibility.Collapsed;
-		lbtoolnone.Text = toolcat == ToolHub.Fav && q.Length == 0
+		lbtoolnone.Text = toolcat == ToolCatalog.Fav && q.Length == 0
 			? Loc.T("web.fav.none") : Loc.T("web.find.none");
 	}
 
-	bool toolhit(ToolCard card, string q) {
-		if (ToolHub.NameOf(card).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+	bool toolhit(ToolDef card, string q) {
+		if (ToolCatalog.WebName(card).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		if ((card.Search ?? "").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+		if ((card.Title ?? "").IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
 		if (card.Id.IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-		return ToolHub.TipOf(card).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
+		return ToolCatalog.TipOf(card).IndexOf(q, StringComparison.OrdinalIgnoreCase) >= 0;
 	}
-
 	// 「全部」里每个分类一行标题，图标加文字，下面再排卡片。
 	UIElement toolhead(string cat, string glyph) {
 		var row = new StackPanel { Orientation = Orientation.Horizontal };
@@ -6015,7 +5883,7 @@ public partial class MainWindow : Window {
 			VerticalAlignment = VerticalAlignment.Center,
 		});
 		row.Children.Add(new TextBlock {
-			Text = ToolHub.CatName(cat),
+			Text = ToolCatalog.CatName(cat),
 			FontSize = 16,
 			FontWeight = FontWeights.SemiBold,
 			VerticalAlignment = VerticalAlignment.Center,
@@ -6029,25 +5897,23 @@ public partial class MainWindow : Window {
 		};
 	}
 
-	WrapPanel toolwrap(List<ToolCard> cards, HashSet<string> favset) {
+	WrapPanel toolwrap(List<ToolDef> cards, HashSet<string> favset) {
 		var wrap = new WrapPanel();
 		foreach (var card in cards)
 			wrap.Children.Add(toolcard(card, favset.Contains(card.Id)));
 		return wrap;
 	}
 
-	Border toolcard(ToolCard card, bool fav) {
-		var name = ToolHub.NameOf(card);
-		if (name.Length == 0) name = card.Search ?? card.Id;
-		if (card.Kind == "web") name += " (web)";
-		var tip = ToolHub.TipOf(card);
+	Border toolcard(ToolDef card, bool fav) {
+		var name = ToolCatalog.MenuName(card);
+		var tip = ToolCatalog.TipOf(card);
 		// 图标、名字、星标三列：名字占中间，星标永远贴到卡片最右边。
 		var row = new Grid();
 		row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 		row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 		row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 		var glyph = new TextBlock {
-			Text = card.Glyph,
+			Text = card.Glyph ?? "\uE774",
 			FontFamily = ToolBtnUi.Mdl2,
 			FontSize = 16,
 			Width = 24,
@@ -6108,7 +5974,7 @@ public partial class MainWindow : Window {
 			box.Background = new SolidColorBrush(Color.FromRgb(0xEE, 0xF1, 0xF4));
 		box.MouseLeftButtonUp += (_, e) => {
 			e.Handled = true;
-			opentoolcard(card);
+			opentooldef(card);
 		};
 		return box;
 	}
@@ -6121,19 +5987,6 @@ public partial class MainWindow : Window {
 		filltoolcards();
 	}
 
-	void opentoolcard(ToolCard card) {
-		if (card == null) return;
-		if (card.Kind == "web") {
-			openhttptools(tool: card.Open);
-			return;
-		}
-		if (card.Kind == "tab") {
-			opentooltab(card.Open);
-			return;
-		}
-		opentoolact(card.Open);
-	}
-
 	void opentooltab(string id) {
 		if (id == "dict") opendicttab();
 		else if (id == "cast") opencast();
@@ -6142,7 +5995,12 @@ public partial class MainWindow : Window {
 	}
 
 	void opentoolact(string id) {
-		if (id == "trpopup") showtranslatepopup();
+		if (id == "webhome") openhttptools();
+		else if (id == "dictweb") openhttpdict(false);
+		// 这两个桌面上只在托盘里，主窗菜单放在「帮助」下，所以单独分派
+		else if (id == "diag") opendiag();
+		else if (id == "mem") openmem();
+		else if (id == "trpopup") showtranslatepopup();
 		else if (id == "texttool") opentexttool();
 		else if (id == "mdread") openmdread();
 		else if (id == "doc2md") opendoc2md();

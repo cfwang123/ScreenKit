@@ -1,7 +1,5 @@
 using System.Drawing;
 using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Windows;
 using Forms = System.Windows.Forms;
 
@@ -25,7 +23,7 @@ class MenuShortcutRenderer : Forms.ToolStripProfessionalRenderer {
 /// <summary>
 /// 通知栏图标：左键与主窗热键相同（前台则隐藏，否则显示并置顶），右键菜单。
 /// </summary>
-sealed class TrayIcon : IDisposable {
+sealed partial class TrayIcon : IDisposable {
 	readonly Forms.NotifyIcon ni;
 	readonly Window win;
 	Forms.ContextMenuStrip menu;
@@ -38,7 +36,6 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miTranslate;
 	Forms.ToolStripMenuItem miDictSel;
 	Forms.ToolStripMenuItem miClipFile;
-	Forms.ToolStripMenuItem miPdf;
 	Forms.ToolStripMenuItem miSnapshots;
 	Forms.ToolStripMenuItem miRecord;
 	Forms.ToolStripMenuItem miRecordOpt;
@@ -46,73 +43,13 @@ sealed class TrayIcon : IDisposable {
 	Forms.ToolStripMenuItem miGifRecordOpt;
 	Forms.ToolStripMenuItem miTools;
 	Forms.ToolStripMenuItem miFav;
-	Forms.ToolStripMenuItem miWebHome;
-	Forms.ToolStripMenuItem miWebFiles;
-	Forms.ToolStripMenuItem miWebDict;
-	Forms.ToolStripMenuItem miCatText;
-	Forms.ToolStripMenuItem miCatCalc;
-	Forms.ToolStripMenuItem miCatSpeech;
-	Forms.ToolStripMenuItem miCatTime;
-	Forms.ToolStripMenuItem miCatImage;
-	Forms.ToolStripMenuItem miCatTalk;
-	Forms.ToolStripMenuItem miCatFile;
-	Forms.ToolStripMenuItem miCatSys;
-	Forms.ToolStripMenuItem miImgConv;
-	Forms.ToolStripMenuItem miCharArt;
-	Forms.ToolStripMenuItem miPixel;
-	Forms.ToolStripMenuItem miVidConv;
-	Forms.ToolStripMenuItem miVidGif;
-	Forms.ToolStripMenuItem miQrMake;
-	Forms.ToolStripMenuItem miRename;
-	Forms.ToolStripMenuItem miHash;
-	Forms.ToolStripMenuItem miTextTool;
-	Forms.ToolStripMenuItem miMdRead;
-	Forms.ToolStripMenuItem miDoc2Md;
-	Forms.ToolStripMenuItem miPwGen;
-	Forms.ToolStripMenuItem miSciCalc;
-	Forms.ToolStripMenuItem miNote;
-	Forms.ToolStripMenuItem miRtspSrv;
-	Forms.ToolStripMenuItem miNet;
-	Forms.ToolStripMenuItem miNetGroup;
-	Forms.ToolStripMenuItem miInfo;
-	Forms.ToolStripMenuItem miPortUse;
-	Forms.ToolStripMenuItem miMidi;
-	Forms.ToolStripMenuItem miVoiceRec;
-	Forms.ToolStripMenuItem miCam;
-	Forms.ToolStripMenuItem miDict;
-	Forms.ToolStripMenuItem miSys;
-	Forms.ToolStripMenuItem miDiag;
-	Forms.ToolStripMenuItem miMem;
-	Forms.ToolStripMenuItem miSysTool;
-	Forms.ToolStripMenuItem miFileProbe;
-	Forms.ToolStripMenuItem miCodeStat;
-	Forms.ToolStripMenuItem miPerfMon;
-	Forms.ToolStripMenuItem miHttpDbg;
-	Forms.ToolStripMenuItem miMqtt;
-	Forms.ToolStripMenuItem miWsDbg;
-	Forms.ToolStripMenuItem miUdpDbg;
-	Forms.ToolStripMenuItem miSoapDbg;
-	Forms.ToolStripMenuItem miNetMon;
-	Forms.ToolStripMenuItem miUsbCap;
-	Forms.ToolStripMenuItem miTls;
-	Forms.ToolStripMenuItem miFtp;
-	Forms.ToolStripMenuItem miSql;
-	Forms.ToolStripMenuItem miZhConv;
-	Forms.ToolStripMenuItem miPinyin;
-	Forms.ToolStripMenuItem miHangul;
-
-	Forms.ToolStripMenuItem miWinCal;
-	Forms.ToolStripMenuItem miJpYomi;
-	Forms.ToolStripMenuItem miWinTop;
-	Forms.ToolStripMenuItem miAutoKey;
-	Forms.ToolStripMenuItem miFastCopy;
-	Forms.ToolStripMenuItem miGlyphMod;
-	Forms.ToolStripMenuItem miCast;
 	Forms.ToolStripMenuItem miSettings;
 	Forms.ToolStripMenuItem miSnapCopyImg;
 	Forms.ToolStripMenuItem miSnapCopyFile;
 	Forms.ToolStripMenuItem miSnapCopyPath;
 	Forms.ToolStripMenuItem miExit;
+	/// <summary>「工具」子菜单里按目录建出来的项，id 对应 <see cref="ToolDef.Id"/>。</summary>
+	readonly Dictionary<string, Forms.ToolStripMenuItem> toolitems = new();
 	bool disposed;
 	bool snapCopyUi;
 	bool dictSelUi;
@@ -121,8 +58,10 @@ sealed class TrayIcon : IDisposable {
 	/// <summary>菜单屏幕坐标（Opened 时记录，用于 reopen）。</summary>
 	System.Drawing.Point menuScreenLoc;
 
-	/// <summary>返回 (呼出, 截图识别, 截图标注, 重复上次截图, 屏幕画板, 语音输入, 翻译小窗, 划词浮窗, 切换复制方式, 输入法, web工具主页) 快捷键文案；空串表示无。</summary>
-	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string dictsel, string copy, string hangul, string web, string mdread)> HotkeyProvider { get; set; }
+	/// <summary>顶栏几项的热键文案；工具项的热键由 <see cref="ToolHotkeyProvider"/> 给。</summary>
+	public Func<(string show, string ocr, string snap, string screensnap, string board, string voice, string tr, string dictsel, string copy)> HotkeyProvider { get; set; }
+	/// <summary>取工具目录里某一项的热键文案，参数是 <see cref="ToolDef"/>。</summary>
+	public Func<ToolDef, string> ToolHotkeyProvider { get; set; }
 
 	public TrayIcon(Window window) {
 		win = window ?? throw new ArgumentNullException(nameof(window));
@@ -205,11 +144,6 @@ sealed class TrayIcon : IDisposable {
 			try { DictSelBarChanged?.Invoke(miDictSel.Checked); } catch { }
 		};
 		miClipFile = item("tray.clipfile", () => ClipboardAsFileRequested?.Invoke());
-		miPdf = item("tray.pdf", () => {
-			showwindow();
-			PdfRequested?.Invoke();
-		});
-		miPdf.ToolTipText = Loc.T("menu.pdf.tip");
 		// 截图历史：打开截图历史窗口，不唤起主窗
 		miSnapshots = item("tray.snapshots", () => SnapshotsRequested?.Invoke());
 		miSnapshots.ToolTipText = Loc.T("menu.snapshots.tip");
@@ -218,135 +152,10 @@ sealed class TrayIcon : IDisposable {
 		miRecordOpt = item("tray.recordopt", () => RecordOptionsRequested?.Invoke());
 		miGifRecord = item("tray.gifrecord", () => GifRecordRequested?.Invoke());
 		miGifRecordOpt = item("tray.gifrecordopt", () => GifRecordOptionsRequested?.Invoke());
-		miImgConv = item("tray.imgconv", () => ImgConvRequested?.Invoke());
-		miCharArt = item("tray.charart", () => CharArtRequested?.Invoke());
-		miPixel = item("tray.pixel", () => PixelArtRequested?.Invoke());
-		miVidConv = item("tray.vidconv", () => VidConvRequested?.Invoke());
-		miVidGif = item("tray.vidgif", () => VidGifRequested?.Invoke());
-		miQrMake = item("tray.qrmake", () => QrMakeRequested?.Invoke());
-		miRename = item("tray.rename", () => RenameRequested?.Invoke());
-		miHash = item("tray.hash", () => HashRequested?.Invoke());
-		miTextTool = item("tray.texttool", () => TextToolRequested?.Invoke());
-		miMdRead = item("tray.mdread", () => MdReadRequested?.Invoke());
-		miDoc2Md = item("tray.doc2md", () => DocToMdRequested?.Invoke());
-		miPwGen = item("tray.pwgen", () => PwGenRequested?.Invoke());
-		miSciCalc = item("tray.scicalc", () => SciCalcRequested?.Invoke());
-		miNote = item("tray.note", () => NoteRequested?.Invoke());
-		miRtspSrv = item("tray.rtspsrv", () => RtspSrvRequested?.Invoke());
-		miNet = item("tray.net", () => NetToolRequested?.Invoke());
-		miPortUse = item("tray.portuse", () => PortUseRequested?.Invoke());
-		miMidi = item("tray.midisynth", () => MidiSynthRequested?.Invoke());
-		miVoiceRec = item("tray.voicerec", () => VoiceRecRequested?.Invoke());
-		miCam = item("tray.cam", () => CamRequested?.Invoke());
-		miDict = item("tray.dict", () => DictRequested?.Invoke());
-		miDict.ToolTipText = Loc.T("menu.dict.tip");
-		miSys = item("tray.sysinfo", () => SysRequested?.Invoke());
-		miDiag = item("tray.diag", () => DiagRequested?.Invoke());
-		miDiag.ToolTipText = Loc.T("menu.diag.tip");
-		miMem = item("tray.mem", () => MemRequested?.Invoke());
-		miMem.ToolTipText = Loc.T("menu.mem.tip");
-		miSysTool = item("tray.systool", () => SysToolRequested?.Invoke());
-		miFileProbe = item("tray.fileprobe", () => FileProbeRequested?.Invoke());
-		miCodeStat = item("tray.codestat", () => CodeStatRequested?.Invoke());
-		miPerfMon = item("tray.perfmon", () => PerfMonRequested?.Invoke());
-		miHttpDbg = item("tray.httpdbg", () => HttpDbgRequested?.Invoke());
-		miMqtt = item("tray.mqtt", () => MqttRequested?.Invoke());
-		miWsDbg = item("tray.wsdbg", () => WsDbgRequested?.Invoke());
-		miUdpDbg = item("tray.udpdbg", () => UdpDbgRequested?.Invoke());
-		miSoapDbg = item("tray.soapdbg", () => SoapDbgRequested?.Invoke());
-		miNetMon = item("tray.netmon", () => NetMonRequested?.Invoke());
-		miUsbCap = item("tray.usbcap", () => UsbCapRequested?.Invoke());
-		miTls = item("tray.tls", () => TlsRequested?.Invoke());
-		miFtp = item("tray.ftp", () => FtpRequested?.Invoke());
-		miSql = item("tray.sql", () => SqlRequested?.Invoke());
-		miZhConv = item("tray.zhconv", () => ZhConvRequested?.Invoke());
-		miPinyin = item("tray.pinyin", () => PinyinRequested?.Invoke());
-		miHangul = item("tray.hangul", () => HangulRequested?.Invoke());
-		miWinCal = item("tray.wincal", () => WinCalRequested?.Invoke());
-		miJpYomi = item("tray.jpyomi", () => JpYomiRequested?.Invoke());
-		miWinTop = item("tray.wintop", () => WinTopRequested?.Invoke());
-		miAutoKey = item("tray.autokey", () => AutoKeyRequested?.Invoke());
-		miFastCopy = item("tray.fastcopy", () => FastCopyRequested?.Invoke());
-		miGlyphMod = item("tray.glyphmod", () => GlyphModRequested?.Invoke());
-		miCast = item("tray.cast", () => CastRequested?.Invoke());
-		miWebHome = item("tray.webhome", () => WebHomeRequested?.Invoke());
-		miWebFiles = item("tray.webfiles", () => WebFilesRequested?.Invoke());
-		miWebDict = item("web.dict", () => WebDictRequested?.Invoke());
-		miTools = new Forms.ToolStripMenuItem(Loc.T("tray.tools"));
-		miTools.DropDownItems.Add(miWebHome);
-		miTools.DropDownItems.Add(miWebFiles);
-		miTools.DropDownItems.Add(miWebDict);
-		miTools.DropDownItems.Add(miHangul);
-		miTools.DropDownItems.Add(new Forms.ToolStripSeparator());
-		miCatText = new Forms.ToolStripMenuItem(Loc.T("web.cat.text"));
-		miCatText.DropDownItems.Add(miTextTool);
-		miCatText.DropDownItems.Add(miMdRead);
-		miCatText.DropDownItems.Add(miDoc2Md);
-		miCatText.DropDownItems.Add(miPwGen);
-		miCatText.DropDownItems.Add(miNote);
-		miCatText.DropDownItems.Add(miZhConv);
-		miCatText.DropDownItems.Add(miPinyin);
-		miCatText.DropDownItems.Add(miJpYomi);
-		miCatText.DropDownItems.Add(miHash);
-		miCatCalc = new Forms.ToolStripMenuItem(Loc.T("web.cat.calc"));
-		miCatCalc.DropDownItems.Add(miSciCalc);
-		miCatSpeech = new Forms.ToolStripMenuItem(Loc.T("web.cat.speech"));
-		miCatSpeech.DropDownItems.Add(miVoiceRec);
-		miCatSpeech.DropDownItems.Add(miMidi);
-		miCatTime = new Forms.ToolStripMenuItem(Loc.T("web.cat.time"));
-		miCatTime.DropDownItems.Add(miWinCal);
-		miCatImage = new Forms.ToolStripMenuItem(Loc.T("web.cat.image"));
-		miCatImage.DropDownItems.Add(miPdf);
-		miCatImage.DropDownItems.Add(miImgConv);
-		miCatImage.DropDownItems.Add(miCharArt);
-		miCatImage.DropDownItems.Add(miPixel);
-		miCatImage.DropDownItems.Add(miVidConv);
-		miCatImage.DropDownItems.Add(miVidGif);
-		miCatImage.DropDownItems.Add(miQrMake);
-		miCatImage.DropDownItems.Add(miCam);
-		miCatImage.DropDownItems.Add(miRtspSrv);
-		miCatImage.DropDownItems.Add(miGlyphMod);
-		miCatImage.DropDownItems.Add(miCast);
-		miInfo = new Forms.ToolStripMenuItem(Loc.T("tray.info"));
-		miInfo.DropDownItems.Add(miDict);
-		miCatTalk = new Forms.ToolStripMenuItem(Loc.T("web.cat.talk"));
-		miNetGroup = new Forms.ToolStripMenuItem(Loc.T("tray.netgroup"));
-		miNetGroup.DropDownItems.Add(miNet);
-		miNetGroup.DropDownItems.Add(miHttpDbg);
-		miNetGroup.DropDownItems.Add(miMqtt);
-		miNetGroup.DropDownItems.Add(miWsDbg);
-		miNetGroup.DropDownItems.Add(miUdpDbg);
-		miNetGroup.DropDownItems.Add(miSoapDbg);
-		miNetGroup.DropDownItems.Add(miPortUse);
-		miNetGroup.DropDownItems.Add(miNetMon);
-		miNetGroup.DropDownItems.Add(miUsbCap);
-		miNetGroup.DropDownItems.Add(miTls);
-		miNetGroup.DropDownItems.Add(miFtp);
-		miNetGroup.DropDownItems.Add(miSql);
-		miCatFile = new Forms.ToolStripMenuItem(Loc.T("menu.cat.file"));
-		miCatFile.DropDownItems.Add(miRename);
-		miCatFile.DropDownItems.Add(miFastCopy);
-		miCatFile.DropDownItems.Add(miFileProbe);
-		miCatFile.DropDownItems.Add(miCodeStat);
-		miCatSys = new Forms.ToolStripMenuItem(Loc.T("menu.cat.sys"));
-		miCatSys.DropDownItems.Add(miSys);
-		miCatSys.DropDownItems.Add(miSysTool);
-		miCatSys.DropDownItems.Add(miPerfMon);
-		miCatSys.DropDownItems.Add(miWinTop);
-		miCatSys.DropDownItems.Add(miAutoKey);
-		miCatSys.DropDownItems.Add(miDiag);
-		miCatSys.DropDownItems.Add(miMem);
-		miTools.DropDownItems.Add(miCatText);
-		miTools.DropDownItems.Add(miCatCalc);
-		miTools.DropDownItems.Add(miCatSpeech);
-		miTools.DropDownItems.Add(miCatTime);
-		miTools.DropDownItems.Add(miCatImage);
-		miTools.DropDownItems.Add(miInfo);
-		miTools.DropDownItems.Add(miCatTalk);
-		miTools.DropDownItems.Add(miNetGroup);
-		miTools.DropDownItems.Add(miCatFile);
-		miTools.DropDownItems.Add(miCatSys);
-		miTools.DropDownOpening += (_, _) => fillwebtools();
+		// 「工具」子菜单按 ToolCatalog 建，和主窗菜单、工具页、网页卡片同一份定义
+		miTools = new Forms.ToolStripMenuItem(ToolCatalog.Plain(Loc.T("tray.tools")));
+		filltools();
+		miTools.DropDownOpening += (_, _) => filltools();
 		miSettings = item("tray.settings", () => SettingsRequested?.Invoke());
 		miSnapCopyImg = checkitem("tray.snapcopyimg", true);
 		miSnapCopyFile = checkitem("tray.snapcopyfile", true);
@@ -483,11 +292,11 @@ sealed class TrayIcon : IDisposable {
 	public void SetModules(bool ocr, bool asr, bool translate, bool dict) {
 		try {
 			if (miOcr != null) miOcr.Enabled = ocr;
-			if (miPdf != null) miPdf.Enabled = ocr;
+			if (toolitems.TryGetValue("pdf", out var pdf) && pdf != null) pdf.Enabled = ocr;
 			if (miVoice != null) miVoice.Enabled = asr;
 			if (miTranslate != null) miTranslate.Enabled = translate;
 			if (miDictSel != null) miDictSel.Enabled = dict;
-			if (miDict != null) miDict.Enabled = dict;
+			if (toolitems.TryGetValue("dict", out var dic) && dic != null) dic.Enabled = dict;
 		}
 		catch { }
 	}
@@ -511,10 +320,10 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	void applyhotkeys() {
-		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", dictsel = "", copy = "", hangul = "", web = "", mdread = "";
+		string show = "", ocr = "", snap = "", screensnap = "", board = "", voice = "", tr = "", dictsel = "", copy = "";
 		try {
 			if (HotkeyProvider != null)
-				(show, ocr, snap, screensnap, board, voice, tr, dictsel, copy, hangul, web, mdread) = HotkeyProvider();
+				(show, ocr, snap, screensnap, board, voice, tr, dictsel, copy) = HotkeyProvider();
 		}
 		catch { }
 		setshortcut(miShow, show);
@@ -525,64 +334,23 @@ sealed class TrayIcon : IDisposable {
 		setshortcut(miVoice, voice);
 		setshortcut(miTranslate, tr);
 		setshortcut(miDictSel, dictsel);
-		// 其余无全局热键，清空以免残留
-		setshortcut(miClipFile, null);
-		setshortcut(miPdf, null);
-		setshortcut(miSnapshots, null);
 		setshortcut(miSnapCopyImg, copy);
 		setshortcut(miSnapCopyFile, copy);
 		setshortcut(miSnapCopyPath, copy);
-		setshortcut(miRecord, null);
-		setshortcut(miRecordOpt, null);
-		setshortcut(miGifRecord, null);
-		setshortcut(miGifRecordOpt, null);
 		setshortcut(miTools, null);
-		setshortcut(miWebHome, web);
-		setshortcut(miImgConv, null);
-		setshortcut(miCharArt, null);
-		setshortcut(miPixel, null);
-		setshortcut(miVidConv, null);
-		setshortcut(miVidGif, null);
-		setshortcut(miQrMake, null);
-		setshortcut(miRename, null);
-		setshortcut(miHash, null);
-		setshortcut(miTextTool, null);
-		setshortcut(miMdRead, mdread);
-		setshortcut(miPwGen, null);
-		setshortcut(miSciCalc, null);
-		setshortcut(miNote, null);
-		setshortcut(miRtspSrv, null);
-		setshortcut(miNet, null);
-		setshortcut(miNetGroup, null);
-		setshortcut(miPortUse, null);
-		setshortcut(miMidi, null);
-		setshortcut(miVoiceRec, null);
-		setshortcut(miCam, null);
-		setshortcut(miSys, null);
-		setshortcut(miHttpDbg, null);
-		setshortcut(miMqtt, null);
-		setshortcut(miWsDbg, null);
-		setshortcut(miUdpDbg, null);
-		setshortcut(miSoapDbg, null);
-		setshortcut(miNetMon, null);
-		setshortcut(miUsbCap, null);
-		setshortcut(miTls, null);
-		setshortcut(miFtp, null);
-		setshortcut(miSql, null);
-		setshortcut(miZhConv, null);
-		setshortcut(miPinyin, null);
-		setshortcut(miHangul, hangul);
-		setshortcut(miWinCal, null);
-		setshortcut(miJpYomi, null);
-		setshortcut(miWinTop, null);
-		setshortcut(miAutoKey, null);
-		setshortcut(miFastCopy, null);
-		setshortcut(miFileProbe, null);
-		setshortcut(miCodeStat, null);
-		setshortcut(miGlyphMod, null);
-		setshortcut(miCast, null);
+		setshortcut(miFav, null);
 		setshortcut(miSettings, null);
 		setshortcut(miExit, null);
+		// 工具项的热键文案也来自目录，目录里没写 Hotkey 的一律清空
+		foreach (var kv in toolitems) {
+			var keys = "";
+			try {
+				var d = ToolCatalog.Find(kv.Key);
+				if (d != null && d.Hotkey != null) keys = ToolHotkeyProvider?.Invoke(d) ?? "";
+			}
+			catch { }
+			setshortcut(kv.Value, keys);
+		}
 	}
 
 	static void setshortcut(Forms.ToolStripMenuItem mi, string keys) {
@@ -604,8 +372,6 @@ sealed class TrayIcon : IDisposable {
 			settext(miTranslate, "tray.translate");
 			settext(miDictSel, "dict.selbar");
 			settext(miClipFile, "tray.clipfile");
-			settext(miPdf, "tray.pdf");
-			if (miPdf != null) miPdf.ToolTipText = Loc.T("menu.pdf.tip");
 			settext(miSnapshots, "tray.snapshots");
 			if (miSnapshots != null) miSnapshots.ToolTipText = Loc.T("menu.snapshots.tip");
 			settext(miSnapCopyImg, "tray.snapcopyimg");
@@ -615,133 +381,55 @@ sealed class TrayIcon : IDisposable {
 			settext(miRecordOpt, "tray.recordopt");
 			settext(miGifRecord, "tray.gifrecord");
 			settext(miGifRecordOpt, "tray.gifrecordopt");
-			settext(miTools, "tray.tools");
-			settext(miWebHome, "tray.webhome");
-			settext(miWebFiles, "tray.webfiles");
-			settext(miWebDict, "web.dict");
-			settext(miCatText, "web.cat.text");
-			settext(miCatCalc, "web.cat.calc");
-			settext(miCatSpeech, "web.cat.speech");
-			settext(miCatTime, "web.cat.time");
-			settext(miCatImage, "web.cat.image");
-			settext(miCatTalk, "web.cat.talk");
-			settext(miCatFile, "menu.cat.file");
-			settext(miCatSys, "menu.cat.sys");
-			settext(miImgConv, "tray.imgconv");
-			settext(miCharArt, "tray.charart");
-			settext(miPixel, "tray.pixel");
-			settext(miVidConv, "tray.vidconv");
-			settext(miVidGif, "tray.vidgif");
-			settext(miQrMake, "tray.qrmake");
-			settext(miRename, "tray.rename");
-			settext(miHash, "tray.hash");
-			settext(miTextTool, "tray.texttool");
-			settext(miMdRead, "tray.mdread");
-			settext(miDoc2Md, "tray.doc2md");
-			settext(miPwGen, "tray.pwgen");
-			settext(miSciCalc, "tray.scicalc");
-			settext(miNote, "tray.note");
-			settext(miRtspSrv, "tray.rtspsrv");
-			settext(miNet, "tray.net");
-			settext(miNetGroup, "tray.netgroup");
-			settext(miInfo, "tray.info");
-			settext(miPortUse, "tray.portuse");
-			settext(miMidi, "tray.midisynth");
-			settext(miVoiceRec, "tray.voicerec");
-			settext(miCam, "tray.cam");
-			settext(miDict, "tray.dict");
-			if (miDict != null) miDict.ToolTipText = Loc.T("menu.dict.tip");
-			settext(miSys, "tray.sysinfo");
-			settext(miDiag, "tray.diag");
-			if (miDiag != null) miDiag.ToolTipText = Loc.T("menu.diag.tip");
-			settext(miMem, "tray.mem");
-			if (miMem != null) miMem.ToolTipText = Loc.T("menu.mem.tip");
-			settext(miSysTool, "tray.systool");
-			settext(miPerfMon, "tray.perfmon");
-			settext(miHttpDbg, "tray.httpdbg");
-			settext(miMqtt, "tray.mqtt");
-			settext(miWsDbg, "tray.wsdbg");
-			settext(miUdpDbg, "tray.udpdbg");
-			settext(miSoapDbg, "tray.soapdbg");
-			settext(miNetMon, "tray.netmon");
-			settext(miUsbCap, "tray.usbcap");
-			settext(miTls, "tray.tls");
-			settext(miFtp, "tray.ftp");
-			settext(miSql, "tray.sql");
-			settext(miZhConv, "tray.zhconv");
-			settext(miPinyin, "tray.pinyin");
-			settext(miHangul, "tray.hangul");
-			settext(miWinCal, "tray.wincal");
-			settext(miJpYomi, "tray.jpyomi");
-			settext(miWinTop, "tray.wintop");
-			settext(miAutoKey, "tray.autokey");
-			settext(miFastCopy, "tray.fastcopy");
-			settext(miFileProbe, "tray.fileprobe");
-			settext(miCodeStat, "tray.codestat");
-			settext(miGlyphMod, "tray.glyphmod");
-			settext(miCast, "tray.cast");
 			settext(miSettings, "tray.settings");
 			settext(miExit, "tray.exit");
+			// 「工具」整个按目录重建，名字、提示、(web) 后缀都跟着语言走
+			filltools();
 			applyhotkeys();
-			fillwebtools();
 		}
 		catch { }
 	}
 
 	static void settext(Forms.ToolStripMenuItem mi, string key) {
-		if (mi != null) mi.Text = ToolHub.Plain(Loc.T(key));
+		if (mi != null) mi.Text = ToolCatalog.Plain(Loc.T(key));
 	}
 
-	public event Action ClipboardAsFileRequested;
-	public event Action OcrRequested;
-	public event Action SnapRequested;
-	public event Action ScreenSnapRequested;
-	public event Action BoardRequested;
-	public event Action VoiceRequested;
-	public event Action TranslateRequested;
-	public event Action<bool> DictSelBarChanged;
-	public event Action PdfRequested;
-	public event Action SnapshotsRequested;
-	public event Action RecordRequested;
-	public event Action RecordOptionsRequested;
-	public event Action GifRecordRequested;
-	public event Action GifRecordOptionsRequested;
-	public event Action WebHomeRequested;
-	public event Action WebFilesRequested;
-	public event Action WebDictRequested;
-	public event Action<string> WebToolRequested;
-	/// <summary>收藏的卡片 id，逗号分隔。空时托盘不显示「收藏工具」。</summary>
-	public Func<string> ToolFavProvider;
+	/// <summary>按 ToolCatalog 重建「工具」子菜单：顶部几项，再是各分类。</summary>
+	void filltools() {
+		miTools.DropDownItems.Clear();
+		toolitems.Clear();
+		foreach (var d in ToolCatalog.Top(ToolPlace.Tray)) {
+			var mi = toolitem(d);
+			if (mi != null) miTools.DropDownItems.Add(mi);
+		}
+		miTools.DropDownItems.Add(new Forms.ToolStripSeparator());
+		foreach (var cat in ToolCatalog.CatsWith(ToolPlace.Tray)) {
+			var host = new Forms.ToolStripMenuItem(ToolCatalog.Plain(Loc.T(cat.NameKey)));
+			var tip = ToolCatalog.CatTip(cat);
+			if (tip.Length > 0) host.ToolTipText = tip;
+			foreach (var d in ToolCatalog.InCat(ToolPlace.Tray, cat.Id)) {
+				var mi = toolitem(d);
+				if (mi != null) host.DropDownItems.Add(mi);
+			}
+			if (host.DropDownItems.Count == 0) {
+				host.Dispose();
+				continue;
+			}
+			miTools.DropDownItems.Add(host);
+		}
+	}
 
-	void fillwebtools() {
-		stripweb(miCatText);
-		stripweb(miCatCalc);
-		stripweb(miCatSpeech);
-		stripweb(miCatTime);
-		stripweb(miCatImage);
-		stripweb(miInfo);
-		stripweb(miCatTalk);
-		for (int i = miTools.DropDownItems.Count - 1; i >= 0; i--) {
-			var it = miTools.DropDownItems[i];
-			if (it.Tag is string tag && tag.StartsWith("webcat:")) {
-				miTools.DropDownItems.RemoveAt(i);
-				it.Dispose();
-			}
-		}
-		foreach (var cat in WebCatalog()) {
-			var host = trayhost(cat.Id);
-			if (host == null) {
-				if (cat.Tools.Count == 0) continue;
-				host = new Forms.ToolStripMenuItem(cat.Title) { Tag = "webcat:" + cat.Id };
-				miTools.DropDownItems.Add(host);
-			}
-			foreach (var tool in cat.Tools) {
-				var id = tool.Id;
-				host.DropDownItems.Add(new Forms.ToolStripMenuItem(tool.Name + " (web)", null, (_, _) => {
-					try { WebToolRequested?.Invoke(id); } catch { }
-				}) { Tag = "web" });
-			}
-		}
+	Forms.ToolStripMenuItem toolitem(ToolDef d) {
+		if (d == null) return null;
+		var mi = new Forms.ToolStripMenuItem(ToolCatalog.TrayLabel(d)) { Checked = false };
+		var tip = ToolCatalog.TipOf(d);
+		if (tip.Length > 0) mi.ToolTipText = tip;
+		var id = d.Id;
+		mi.Click += (_, _) => {
+			try { ToolRequested?.Invoke(id); } catch { }
+		};
+		toolitems[id] = mi;
+		return mi;
 	}
 
 	/// <summary>有收藏才显示「收藏工具」，和「工具」并列、排在它前面。</summary>
@@ -751,129 +439,20 @@ sealed class TrayIcon : IDisposable {
 		host.DropDownItems.Clear();
 		var raw = "";
 		try { raw = ToolFavProvider?.Invoke() ?? ""; } catch { }
-		var ids = ToolHub.KeepFav((raw ?? "").Split(','));
+		var ids = ToolCatalog.KeepFav((raw ?? "").Split(','));
 		host.Visible = ids.Count > 0;
 		if (ids.Count == 0) return;
-		host.Text = ToolHub.Plain(Loc.T("web.cat.fav"));
+		host.Text = ToolCatalog.Plain(Loc.T("web.cat.fav"));
 		foreach (var id in ids) {
-			var card = ToolHub.Find(id);
-			if (card == null) continue;
-			var name = ToolHub.NameOf(card);
-			if (name.Length == 0) name = card.Search ?? card.Id;
-			if (card.Kind == "web") name += " (web)";
-			var open = card.Id;
+			var d = ToolCatalog.Find(id);
+			if (d == null) continue;
+			var name = ToolCatalog.TrayLabel(d);
+			var open = d.Id;
 			host.DropDownItems.Add(new Forms.ToolStripMenuItem(name, null, (_, _) => {
-				try { WebToolRequested?.Invoke("fav:" + open); } catch { }
+				try { ToolRequested?.Invoke(open); } catch { }
 			}));
 		}
 	}
-
-	static void stripweb(Forms.ToolStripMenuItem host) {
-		if (host == null) return;
-		for (int i = host.DropDownItems.Count - 1; i >= 0; i--) {
-			var it = host.DropDownItems[i];
-			if (Equals(it.Tag, "web")) {
-				host.DropDownItems.RemoveAt(i);
-				it.Dispose();
-			}
-		}
-	}
-
-	Forms.ToolStripMenuItem trayhost(string id) {
-		if (id == "text") return miCatText;
-		if (id == "calc") return miCatCalc;
-		if (id == "speech") return miCatSpeech;
-		if (id == "time") return miCatTime;
-		if (id == "image") return miCatImage;
-		if (id == "info") return miInfo;
-		if (id == "talk") return miCatTalk;
-		return null;
-	}
-
-	public static string CatalogJs() {
-		// 页面只加载合并后的 tools.js。旧版本留在 web/tools 里的各工具脚本可能已经过时，
-		// 菜单目录要以 tools.js 为准，否则会出现菜单和页面对不上。
-		if (SendFileWebPages.TryLoad("tools.js", out var bytes) && bytes != null && bytes.Length > 0)
-			return Encoding.UTF8.GetString(bytes);
-		try {
-			var home = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "web", "tools", "00-home.js");
-			if (File.Exists(home)) return File.ReadAllText(home);
-		}
-		catch { }
-		return "";
-	}
-
-	static string webname(string key, string fallback) {
-		var name = (fallback ?? "").Trim();
-		if (string.IsNullOrEmpty(key) || !key.StartsWith("web.", StringComparison.Ordinal)) return name;
-		var tr = Loc.T(key);
-		return string.IsNullOrEmpty(tr) || tr == key ? name : tr;
-	}
-
-	public static List<(string Id, string Title, List<(string Id, string Name)> Tools)> WebCatalog() {
-		var cats = new List<(string Id, string Title)>();
-		var tools = new List<(string Id, string Cat, string Name)>();
-		var list = new List<(string Id, string Title, List<(string Id, string Name)> Tools)>();
-		var js = CatalogJs();
-		if (js.Length == 0) return list;
-		foreach (Match m in Regex.Matches(js, "\"data-cat\":\"([^\"]+)\"\\s*,\\s*\"data-title\":\"([^\"]+)\"\\s*,\\s*\"data-kt\":\"([^\"]+)\"")) {
-			if (m.Groups[1].Value == "fav" || m.Groups[1].Value == "all") continue;
-			cats.Add((m.Groups[1].Value, webname(m.Groups[3].Value, m.Groups[2].Value)));
-		}
-		// 只在本张卡片里找 data-k：卡片之间没有分隔，不加这层限制会一路吃到下一张卡片的键。
-		foreach (Match m in Regex.Matches(js, "\"data-(?:tool|page)\":\"([^\"]+)\"\\s*,\\s*\"data-cat\":\"([^\"]+)\"(?:(?!\"data-(?:tool|page)\":)[\\s\\S])*?\"data-k\":\"([^\"]+)\"\\s*,\\s*c:\"([^\"]*)\""))
-			tools.Add((m.Groups[1].Value, m.Groups[2].Value, webname(m.Groups[3].Value, m.Groups[4].Value)));
-		foreach (var cat in cats) {
-			var rows = new List<(string Id, string Name)>();
-			foreach (var tool in tools) {
-				if (tool.Cat == cat.Id && tool.Name.Length > 0)
-					rows.Add((tool.Id, tool.Name));
-			}
-			if (rows.Count > 0) list.Add((cat.Id, cat.Title, rows));
-		}
-		return list;
-	}
-	public event Action ImgConvRequested;
-	public event Action CharArtRequested;
-	public event Action PixelArtRequested;
-	public event Action VidConvRequested;
-	public event Action VidGifRequested;
-	public event Action QrMakeRequested;
-	public event Action RenameRequested;
-	public event Action HashRequested;
-	public event Action TextToolRequested;
-	public event Action MdReadRequested;
-	public event Action DocToMdRequested;
-	public event Action PwGenRequested;
-	public event Action SciCalcRequested;
-	public event Action NoteRequested;
-	public event Action RtspSrvRequested;
-	public event Action NetToolRequested;
-	public event Action PortUseRequested;
-	public event Action MidiSynthRequested;
-	public event Action VoiceRecRequested;
-	public event Action CamRequested;
-	public event Action DictRequested;
-	public event Action SysRequested;
-	public event Action DiagRequested;
-	public event Action MemRequested;
-	public event Action SysToolRequested;
-	public event Action FileProbeRequested;
-	public event Action CodeStatRequested;
-	public event Action PerfMonRequested;
-	public event Action HttpDbgRequested;
-	public event Action MqttRequested;
-	public event Action WsDbgRequested;
-	public event Action UdpDbgRequested;
-	public event Action SoapDbgRequested;
-	public event Action NetMonRequested;
-	public event Action UsbCapRequested;
-	public event Action TlsRequested;
-	public event Action FtpRequested;
-	public event Action SqlRequested;
-	public event Action ZhConvRequested;
-	public event Action PinyinRequested;
-	public event Action HangulRequested;
 
 	public void SetDictSelBarChecked(bool on) {
 		dictSelUi = true;
@@ -885,23 +464,32 @@ sealed class TrayIcon : IDisposable {
 	}
 
 	public void SetHangul(bool on) {
-		if (miHangul == null) return;
-		miHangul.Checked = on;
+		if (toolitems.TryGetValue("hangul", out var mi) && mi != null) mi.Checked = on;
 	}
 
 	public void SetHangulAvailable(bool ok) {
-		if (miHangul == null) return;
-		miHangul.Enabled = ok;
-		if (!ok) miHangul.Checked = false;
+		if (!toolitems.TryGetValue("hangul", out var mi) || mi == null) return;
+		mi.Enabled = ok;
+		if (!ok) mi.Checked = false;
 	}
 
-	public event Action WinCalRequested;
-	public event Action JpYomiRequested;
-	public event Action WinTopRequested;
-	public event Action AutoKeyRequested;
-	public event Action FastCopyRequested;
-	public event Action GlyphModRequested;
-	public event Action CastRequested;
+	public event Action SnapshotsRequested;
+	public event Action RecordRequested;
+	public event Action RecordOptionsRequested;
+	public event Action GifRecordRequested;
+	public event Action GifRecordOptionsRequested;
+	public event Action ClipboardAsFileRequested;
+	public event Action OcrRequested;
+	public event Action SnapRequested;
+	public event Action ScreenSnapRequested;
+	public event Action BoardRequested;
+	public event Action VoiceRequested;
+	public event Action TranslateRequested;
+	public event Action<bool> DictSelBarChanged;
+	/// <summary>工具目录里的某一项被点了，参数是 <see cref="ToolDef.Id"/>。</summary>
+	public event Action<string> ToolRequested;
+	/// <summary>收藏的卡片 id，逗号分隔。空时托盘不显示「收藏工具」。</summary>
+	public Func<string> ToolFavProvider;
 	public event Action SettingsRequested;
 	public event Action ForceExitRequested;
 	/// <summary>托盘勾选「复制为图片 / 文件 / 路径」变更（asImage, asFile, asPath）。</summary>
