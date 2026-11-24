@@ -69,6 +69,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tool list (categories, names, icons, hotkeys, module gating) is now defined once in ToolCatalog.cs; the main menu, tray menu, Tools tab and web tools page all render from it
 - Net monitor rate curve shows only the last two minutes and leaves startup gaps blank
 - Japanese i-adjective deferential: kawaii -> kawayuu gozaimasu, yowai -> yoo (read woo) gozaimasu
+- Japanese i-adjectives: u-onbin for -u gozaimasu now follows the stem's vowel row (kawaii -> kawayuu, ookii -> ookyuu, samui -> samuu, abunai -> abunou); add o-prefixed forms (o-takau gozaimasu, o-samu gozaimasu)
 
 #### Fixed
 
@@ -96,6 +97,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具列表（分类、名称、图标、热键、模块开关）统一在 ToolCatalog.cs 定义，主菜单、托盘菜单、工具页、网页工具页都按它生成
 - 网络监控速率曲线只显示最近两分钟，启动时无数据的部分不画线
 - 日语い形容词丁重形：かわいい→かわゆうございます，よわい→よおう（读ヲー）ございます
+- 日语い形容词：うございます 的ウ音便按语干末音分段生成（かわいい→かわゆう、大きい→大きゅう、寒い→寒う、危ない→あぶのう），并新增「お」前缀形式（お高うございます、お寒うございます）
 
 #### 修复
 

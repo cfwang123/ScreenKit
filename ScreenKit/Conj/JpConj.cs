@@ -36,7 +36,7 @@ sealed class JpConjLabels {
 	public string reg, jdegozaru, jdearimasu, jnya, jnanoda, jdesuwa, jnoja, jssu, jssho, jjan, jnari, jdesourou, jojaru;
 	public string jane, njane, kayo, nokayo, jyan, jnet, nakune, dato;
 	public string ai, an, nn, badai;
-	public string pol, polneg, polpast, polpastneg, ugoza;
+	public string pol, polneg, polpast, polpastneg, ugoza, ogoza;
 	public string nainodesu;
 	public string adv, naru, rentai, ume;
 	public string darou, karou, deshou, tarou, dearu;
@@ -104,10 +104,28 @@ static class JpConj {
 		["る"] = new[] { "ら", "り", "る", "れ", "ろ", "って", "った" },
 	};
 
-	/// <summary>ウ音便用的ア段→オ段（か→こ、わら→わろ、わ→お）；い→ゆ 只给「言う」。</summary>
+	/// <summary>ウ音便用的ア段→オ段（か→こ、が→ご、ぱ→ぽ）。ワ行保留 w（こわ＋う＝こわう），只有 弱い 例外。</summary>
 	static readonly Dictionary<string, string> A2O = new() {
-		["か"] = "こ", ["さ"] = "そ", ["た"] = "と", ["な"] = "の",
-		["は"] = "ほ", ["ま"] = "も", ["や"] = "よ", ["ら"] = "ろ", ["わ"] = "お", ["い"] = "ゆ",
+		["あ"] = "お", ["か"] = "こ", ["さ"] = "そ", ["た"] = "と", ["な"] = "の",
+		["は"] = "ほ", ["ま"] = "も", ["や"] = "よ", ["ら"] = "ろ",
+		["が"] = "ご", ["ざ"] = "ぞ", ["だ"] = "ど", ["ば"] = "ぼ", ["ぱ"] = "ぽ",
+	};
+
+	/// <summary>语干末音的イ段：该假名保留，接 ゅう（し＋う＝しゅう）。「い」单独处理（い＋う＝ゆう）。</summary>
+	const string IDAN = "きしちにひみりぎじぢびぴ";
+
+	/// <summary>直接接 う 的末音：ウ段・オ段（く＋う＝くう、よ＋う＝よう）。</summary>
+	const string UODAN = "うくすつぬふむゆるぐずづぶぷ" + "おこそとのほもよろどごぞぼぽ";
+
+	/// <summary>不接美化语「お」的い形容词：客观属性（大小・多少・広狭・遠近・長短・太細・重軽・厚薄・深浅・新旧）、
+	/// かわいい 这类词，以及 いい・ありがたい・よろしい 这些已固化成寒暄的说法。汉字、假名写法都列。</summary>
+	static readonly HashSet<string> NOO = new() {
+		"大きい", "おおきい", "小さい", "ちいさい", "広い", "ひろい", "狭い", "せまい",
+		"多い", "おおい", "少ない", "すくない", "遠い", "とおい", "近い", "ちかい",
+		"長い", "ながい", "短い", "みじかい", "太い", "ふとい", "細い", "ほそい",
+		"重い", "おもい", "軽い", "かるい", "厚い", "あつい", "薄い", "うすい",
+		"深い", "ふかい", "浅い", "あさい", "新しい", "あたらしい", "古い", "ふるい",
+		"かわいい", "可愛い", "よろしい", "ありがたい", "弱い", "よわい",
 	};
 
 	/// <summary>网页下拉里的常见词表：g,辞书形,读音,类,flag,sub,中文,English。</summary>
@@ -518,6 +536,7 @@ static class JpConj {
 			L.polneg = "丁宁否定";
 			L.nainodesu = "ないです（口语）";
 			L.ugoza = "丁重（うございます）";
+			L.ogoza = "美化语（お＋うございます）";
 			L.ume = "め（程度）";
 			L.polpast = "丁宁过去";
 			L.polpastneg = "丁宁过去否定";
@@ -742,6 +761,7 @@ static class JpConj {
 			L.polneg = "polite negative";
 		L.nainodesu = "nai desu (colloquial)";
 			L.ugoza = "deferential (-u gozaimasu)";
+			L.ogoza = "polite o- (-o ... -u gozaimasu)";
 			L.ume = "-me (rather, on the ... side)";
 		L.polpast = "polite past";
 		L.polpastneg = "polite past negative";
@@ -848,6 +868,7 @@ static class JpConj {
 			row(L.dict, word),
 			row(L.pol, word + "です"),
 			row(L.ugoza, ugov(word, s)),
+			row(L.ogoza, ogov(word, s)),
 			row(L.nai, s + "くない、" + s + "くねえ"),
 			row(L.polneg, s + "くありません、" + s + "くないです"),
 			row(L.ta, s + "かった"),
@@ -885,23 +906,39 @@ static class JpConj {
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
 	}
 
-	// い形容词的丁重形：高い→高うございます，おいしい→おいしゅうございます，いい→よろしゅうございます，
-	// かわいい→かわゆうございます，弱い→よおう（读ヲー）ございます。
+	// い形容词的丁重形：高い→高うございます，おいしい→おいしゅうございます，大きい→大きゅうございます，
+	// 寒い→寒うございます，弱い→よおうございます，かわいい→かわゆうございます，
+	// いい・よい→ようございます（よろしゅう 是「よろしい」的形）。
 	// 「高いでございます」不成立，でございます 只接名词和な形容词。
 	static string ugov(string word, string s) {
-		var u = irri(word) ? cut(word, 2) + "よろしゅう" : utai(s);
+		var u = utai(s);
 		return u + "ございます、" + u + "ございました";
 	}
 
-	// い形容词的ウ音便词干：高い→高う，おいしい→おいしゅう，かわいい→かわゆう，安い→安う，弱い→よおう。
-	// 弱い 的 わ 变 お 后假名写法会变（よわう→よおう），直接写假名，不写 弱う。
+	// 带美化语「お」的同一形：お高うございます、お寒うございます、お美しゅうございます、おはようございます。
+	// 大小・多少・広狭・長短这类客观形容词不接「お」（お大きい×），いい类也不接（およう×），
+	// 词干本来以 お 开头的（おいしい・おかしい）不加，免得变成 おお…。接不上时返回空串。
+	static string ogov(string word, string s) {
+		if (irri(word) || NOO.Contains(word)) return "";
+		if (s.Length > 0 && s[0] == 'お') return "";
+		var u = "お" + utai(s);
+		return u + "ございます、" + u + "ございました";
+	}
+
+	// い形容词的ウ音便词干：结果由语干末音属哪一段决定。
+	//   ア段 → 换成オ段再加 う：高い→高う，甘い→あもう，危ない→あぶのう
+	//   イ段 → 保留假名加 ゅう：うれしい→うれしゅう，大きい→大きゅう，美しい→美しゅう
+	//   ウ段・オ段 → 直接加 う：寒い→寒う，安い→安う，重い→おもう，強い→つよう
+	//   ワ行 → 保留 わ：こわい→こわう（只有 弱い 念 よおう，单列）
+	//   い 结尾 → い 换 ゆ 再加 う：かわいい→かわゆう
 	// 可愛い 的 愛 要按假名走（かわゆう），不能写成 可愛う。
 	static string utai(string s) {
-		if (s == "弱") return "よおう";
 		if (s == "可愛") return "かわゆう";
+		if (s == "弱" || s == "よわ") return "よおう";
 		var k = s.Length == 0 ? "" : last(s);
-		if (k == "し") return s + "ゅう";
 		if (k == "い") return cut(s, 1) + "ゆう";
+		if (IDAN.IndexOf(k, StringComparison.Ordinal) >= 0) return s + "ゅう";
+		if (UODAN.IndexOf(k, StringComparison.Ordinal) >= 0) return s + "う";
 		if (A2O.TryGetValue(k, out var o)) return cut(s, 1) + o + "う";
 		return s + "う";
 	}
