@@ -104,10 +104,10 @@ static class JpConj {
 		["る"] = new[] { "ら", "り", "る", "れ", "ろ", "って", "った" },
 	};
 
-	/// <summary>ウ音便用的ア段→オ段（か→こ、わら→わろ）；い→ゆ 只给「言う」。</summary>
+	/// <summary>ウ音便用的ア段→オ段（か→こ、わら→わろ、わ→お）；い→ゆ 只给「言う」。</summary>
 	static readonly Dictionary<string, string> A2O = new() {
 		["か"] = "こ", ["さ"] = "そ", ["た"] = "と", ["な"] = "の",
-		["は"] = "ほ", ["ま"] = "も", ["や"] = "よ", ["ら"] = "ろ", ["い"] = "ゆ",
+		["は"] = "ほ", ["ま"] = "も", ["や"] = "よ", ["ら"] = "ろ", ["わ"] = "お", ["い"] = "ゆ",
 	};
 
 	/// <summary>网页下拉里的常见词表：g,辞书形,读音,类,flag,sub,中文,English。</summary>
@@ -885,17 +885,23 @@ static class JpConj {
 			return new JpConjPacked { plain = word, rows = rows, tail = JpGrammar.PosRows(L.zh, "i", word) };
 	}
 
-	// い形容词的丁重形：高い→高うございます，おいしい→おいしゅうございます，いい→よろしゅうございます。
+	// い形容词的丁重形：高い→高うございます，おいしい→おいしゅうございます，いい→よろしゅうございます，
+	// かわいい→かわゆうございます，弱い→よおう（读ヲー）ございます。
 	// 「高いでございます」不成立，でございます 只接名词和な形容词。
 	static string ugov(string word, string s) {
 		var u = irri(word) ? cut(word, 2) + "よろしゅう" : utai(s);
 		return u + "ございます、" + u + "ございました";
 	}
 
-	// い形容词的ウ音便词干：高い→高う，おいしい→おいしゅう，かわいい→かわいゅう。
+	// い形容词的ウ音便词干：高い→高う，おいしい→おいしゅう，かわいい→かわゆう，安い→安う，弱い→よおう。
+	// 弱い 的 わ 变 お 后假名写法会变（よわう→よおう），直接写假名，不写 弱う。
+	// 可愛い 的 愛 要按假名走（かわゆう），不能写成 可愛う。
 	static string utai(string s) {
+		if (s == "弱") return "よおう";
+		if (s == "可愛") return "かわゆう";
 		var k = s.Length == 0 ? "" : last(s);
-		if (k == "し" || k == "い") return s + "ゅう";
+		if (k == "し") return s + "ゅう";
+		if (k == "い") return cut(s, 1) + "ゆう";
 		if (A2O.TryGetValue(k, out var o)) return cut(s, 1) + o + "う";
 		return s + "う";
 	}
