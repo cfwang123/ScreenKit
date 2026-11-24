@@ -57,55 +57,49 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 #### Added
 
 - Performance window settings: new opacity slider
-- Startup: performance window and desktop note are reopened on the next launch when they were open at exit, and the process ranking remembers its selected tab
-- Code statistics: add file size column (B/KB/MB/GB)
-- English conjugation: gonna now appears alongside be going to and wanna alongside want to, with a final group for the uses that only work as gonna / wanna (I'ma, I wanna coffee, no to after wanna, no third-person wanna)
-- Web file upload shows a progress dialog with cancel
+- Performance window: the process ranking remembers its selected tab
+- Startup: a performance window or desktop note open at exit is reopened on the next launch
+- Code statistics: file size column (B/KB/MB/GB)
+- Screenshot annotation: remembers the last color, line width and font size
+- Web file upload: progress dialog with cancel
 
 #### Changed
 
-- Performance window: process ranking refreshes at the configured update interval instead of a fixed 1 s
-- Performance window: the process ranking samples right away when the window opens or a tab is switched, instead of waiting for the next update interval
+- Performance window: the process ranking refreshes at the configured update interval instead of a fixed 1 s, and samples right away when the window opens or a tab is switched
+- Net monitor: the rate curve shows only the last two minutes and leaves startup gaps blank
 - Tool list (categories, names, icons, hotkeys, module gating) is now defined once in ToolCatalog.cs; the main menu, tray menu, Tools tab and web tools page all render from it
-- Net monitor rate curve shows only the last two minutes and leaves startup gaps blank
-- Japanese i-adjective deferential: kawaii -> kawayuu gozaimasu, yowai -> yoo (read woo) gozaimasu
-- Japanese i-adjectives: u-onbin for -u gozaimasu now follows the stem's vowel row (kawaii -> kawayuu, ookii -> ookyuu, samui -> samuu, abunai -> abunou); add o-prefixed forms (o-takau gozaimasu, o-samu gozaimasu)
 
 #### Fixed
 
 - Performance window: switching the process tab or reopening the window could sample again a few milliseconds after the last round, dividing the byte delta by that tiny interval and showing a disk rate hundreds of times too large; samples closer than 300 ms are now skipped
+- Screenshot annotation: the color dot is restored after the window loads, with only one dot checked
 - Currency converter: the note under the result showed the Bank of China publication time under the word 'cache', which read like the cache was stale; it now says the rates were published at that time by BOC and adds the local time they were fetched
 - Tools: opening File transfer while the service is off enables and starts it instead of opening a 404 page
-- Remember last screenshot annotation color, line width and font size
-- Screenshot annotation color dot restores after the window is loaded, only one dot stays checked
-- Document viewer: image preview overlay now pinned to the document area by physical rect, so it opens centered on secondary screens and mixed DPI
+- Document viewer: image preview overlay is pinned to the document area by physical rect, so it opens centered on secondary screens and mixed DPI
 
 ### 中文
 
 #### 新增
 
 - 性能监控参数设置新增不透明度调节
-- 启动：退出时开着的性能监控和桌面便笺会在下次启动时自动重开；性能监控的进程类别也会记住
-- 代码统计：新增文件大小列（B/KB/MB/GB）
-- 英语词形变化：gonna 与 be going to 合并、wanna 与 want to 合并展示；只在 gonna / wanna 才成立的独特用法（I'ma、wanna + 名词、wanna 后不再加 to、三单不用 wanna）单列在最后一组
-- 网页上传文件显示进度弹窗，可取消上传
+- 性能监控：进程排行记住上次选中的类别
+- 启动：退出时开着的性能监控、桌面便笺会在下次启动时自动重开
+- 代码统计：文件大小列（B/KB/MB/GB）
+- 截图标注：记住上次的颜色、线粗和字号
+- 网页上传文件：显示进度弹窗，可取消上传
 
 #### 变更
 
-- 性能监控：进程排行改用参数里的更新间隔刷新，不再固定 1 秒
-- 性能监控：开窗和切换进程类别时立刻采样一次进程，不用等下一个更新间隔
+- 性能监控：进程排行按参数里的更新间隔刷新，不再固定 1 秒；开窗和切换类别时立刻采样一次
+- 网络监控：速率曲线只显示最近两分钟，启动时无数据的部分不画线
 - 工具列表（分类、名称、图标、热键、模块开关）统一在 ToolCatalog.cs 定义，主菜单、托盘菜单、工具页、网页工具页都按它生成
-- 网络监控速率曲线只显示最近两分钟，启动时无数据的部分不画线
-- 日语い形容词丁重形：かわいい→かわゆうございます，よわい→よおう（读ヲー）ございます
-- 日语い形容词：うございます 的ウ音便按语干末音分段生成（かわいい→かわゆう、大きい→大きゅう、寒い→寒う、危ない→あぶのう），并新增「お」前缀形式（お高うございます、お寒うございます）
 
 #### 修复
 
 - 性能监控：切进程页签或重开窗口会在上一轮采样后几毫秒又采一次，用这个极小的间隔做除数，硬盘速率被放大几百倍；现在两轮间隔不足 300 毫秒就不再采
+- 截图标注：颜色圆点改为窗口加载后恢复，只保留一个选中
 - 货币换算：结果下面的说明把中国银行的发布时间写成了缓存时间，看着像缓存过期了；现在写明那个时间是中国银行发布的时间，另外附上本地取回的时刻
 - 工具页：文件传输服务未启用时，点卡片自动启用并启动，不再打开 404 页面
-- 截图标注记住上次的颜色、线粗和字号
-- 截图标注颜色圆点改为窗口加载后恢复，只保留一个选中
 - 文档阅读器：图片预览改为按物理矩形钉在文档区，副屏与混合 DPI 下也从窗口中间打开
 
 ## v1.0.40 (2026-11-18 ~ 11-19)
