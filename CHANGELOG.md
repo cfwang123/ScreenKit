@@ -76,6 +76,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - Tools: opening File transfer while the service is off enables and starts it instead of opening a 404 page
 - Remember last screenshot annotation color, line width and font size
 - Screenshot annotation color dot restores after the window is loaded, only one dot stays checked
+- Document viewer: image preview overlay now pinned to the document area by physical rect, so it opens centered on secondary screens and mixed DPI
 
 ### 中文
 
@@ -101,6 +102,7 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - 工具页：文件传输服务未启用时，点卡片自动启用并启动，不再打开 404 页面
 - 截图标注记住上次的颜色、线粗和字号
 - 截图标注颜色圆点改为窗口加载后恢复，只保留一个选中
+- 文档阅读器：图片预览改为按物理矩形钉在文档区，副屏与混合 DPI 下也从窗口中间打开
 
 ## v1.0.40 (2026-11-18 ~ 11-19)
 

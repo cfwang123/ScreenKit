@@ -520,6 +520,14 @@ static class ImageOverlay {
 					try { Focus(); } catch { /* ignore */ }
 				}));
 			};
+			// 弹层跨到另一块 DPI 不同的屏时，DWM 会改它的物理尺寸，重新按物理矩形钉一次
+			SourceInitialized += (_, _) => {
+				try {
+					var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+					System.Windows.Interop.HwndSource.FromHwnd(hwnd)?.AddHook(dpisink);
+				}
+				catch { /* ignore */ }
+			};
 			stage.SizeChanged += (_, e) => {
 				if (e.NewSize.Width > 40 && e.NewSize.Height > 40 && !didFit) {
 					didFit = true;
@@ -577,27 +585,63 @@ static class ImageOverlay {
 			try { syncbounds(); } catch { /* ignore */ }
 		}
 
-		/// <summary>弹层矩形 = 文档区（pcontent）屏幕坐标。</summary>
+		/// <summary>窗口换屏/换 DPI 时（WM_DPICHANGED）按新的物理矩形重新钉一次。</summary>
+		IntPtr dpisink(IntPtr hwnd, int msg, IntPtr wp, IntPtr lp, ref bool handled) {
+			const int WM_DPICHANGED = 0x02E0;
+			if (msg != WM_DPICHANGED) return IntPtr.Zero;
+			handled = true;
+			Dispatcher.BeginInvoke(new Action(() => {
+				try {
+					syncbounds();
+					centerimage();
+				} catch { /* ignore */ }
+			}));
+			return IntPtr.Zero;
+		}
+
+		bool pinning;
+
+		/// <summary>
+		/// 弹层矩形 = 文档区（pcontent）屏幕坐标。
+		/// 锚点只给出物理像素矩形，位置与大小都按物理矩形钉给 HWND：多屏 / 混合 DPI 下
+		/// 直接赋 DIP 会被该窗所在屏的缩放重新解释，弹层就跑到屏外或只剩一角。
+		/// </summary>
 		void syncbounds() {
+			if (pinning) return;
 			try {
 				var fe = anchor ?? ownerWin as FrameworkElement;
 				if (fe == null || !fe.IsVisible) return;
 				if (fe.ActualWidth < 20 || fe.ActualHeight < 20) return;
 				var tl = fe.PointToScreen(new Point(0, 0));
 				var br = fe.PointToScreen(new Point(fe.ActualWidth, fe.ActualHeight));
-				// 感知 DPI：PointToScreen 已是设备像素，WPF Window Left/Top 是 DIP
-				var src = PresentationSource.FromVisual(fe)
-					?? (ownerWin != null ? PresentationSource.FromVisual(ownerWin) : null);
-				var fromDev = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
-				var tlDip = fromDev.Transform(tl);
-				var brDip = fromDev.Transform(br);
-				Left = tlDip.X;
-				Top = tlDip.Y;
-				Width = Math.Max(200, brDip.X - tlDip.X);
-				Height = Math.Max(160, brDip.Y - tlDip.Y);
+				var px = (int)Math.Round(tl.X);
+				var py = (int)Math.Round(tl.Y);
+				var pw = Math.Max(200, (int)Math.Round(br.X - tl.X));
+				var ph = Math.Max(160, (int)Math.Round(br.Y - tl.Y));
+				pinning = true;
+				try {
+					var msg = ScreenDpi.PinWindowRect(this, px, py, pw, ph);
+					if (msg == "no-hwnd") fallbackdip(fe, tl, br);
+				}
+				finally { pinning = false; }
 			} catch (Exception ex) {
+				pinning = false;
 				DocViewLog.Warn("ImageOverlay syncbounds: " + ex.Message);
 			}
+		}
+
+		/// <summary>窗还没建出 HWND（构造期/Show 前）时按本窗 DIP 摆一次，Show 后再由 syncbounds 钉死。</summary>
+		void fallbackdip(FrameworkElement fe, Point tl, Point br) {
+			var src = PresentationSource.FromVisual(this)
+				?? PresentationSource.FromVisual(fe)
+				?? (ownerWin != null ? PresentationSource.FromVisual(ownerWin) : null);
+			var fromDev = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+			var tlDip = fromDev.Transform(tl);
+			var brDip = fromDev.Transform(br);
+			Left = tlDip.X;
+			Top = tlDip.Y;
+			Width = Math.Max(200, brDip.X - tlDip.X);
+			Height = Math.Max(160, brDip.Y - tlDip.Y);
 		}
 
 		Canvas canvas => stage.Tag as Canvas;

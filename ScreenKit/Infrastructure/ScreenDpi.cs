@@ -52,6 +52,8 @@ static class ScreenDpi {
 		public int Left, Top, Right, Bottom;
 	}
 
+	const uint SWP_NOSIZE = 0x0001;
+	const uint SWP_NOZORDER = 0x0004;
 	const uint SWP_NOACTIVATE = 0x0010;
 	const uint SWP_SHOWWINDOW = 0x0040;
 	static readonly IntPtr HwndTopmost = new(-1);
@@ -100,16 +102,28 @@ static class ScreenDpi {
 	/// 若仍按系统缩放设 DIP 再 SetWindowPos 成屏 Bounds，整窗会缩到 mon/sys（150% 系统 + 100% 屏 ≈ 66%）。
 	/// HWND 已是该屏 DPI 时 DIP=物理/窗缩放并钉 Bounds；否则 DIP=物理/屏缩放，HWND 预放大供 DWM 缩回。
 	/// </summary>
-	public static string PinWindowToPhysical(Window w, int physX, int physY, int physW, int physH) {
+	public static string PinWindowToPhysical(Window w, int physX, int physY, int physW, int physH) =>
+		pinwindow(w, physX, physY, physW, physH, topmost: true);
+
+	/// <summary>
+	/// 同 <see cref="PinWindowToPhysical"/>，但不改 Z 序（保留 Owner 关系与窗口前后层次），
+	/// 供文档图片预览这类跟着宿主窗走的弹层用。
+	/// </summary>
+	public static string PinWindowRect(Window w, int physX, int physY, int physW, int physH) =>
+		pinwindow(w, physX, physY, physW, physH, topmost: false);
+
+	static string pinwindow(Window w, int physX, int physY, int physW, int physH, bool topmost) {
 		if (w == null) return "no-window";
 		physW = Math.Max(1, physW);
 		physH = Math.Max(1, physH);
 		var hwnd = new WindowInteropHelper(w).Handle;
 		if (hwnd == IntPtr.Zero) return "no-hwnd";
 
+		var zorder = topmost ? HwndTopmost : IntPtr.Zero;
+		var flags = SWP_NOACTIVATE | SWP_SHOWWINDOW | (topmost ? 0u : SWP_NOZORDER);
 		var sys = Math.Max(0.25, SystemScale());
 		var mon = Math.Max(0.25, GetMonitorScale(physX + physW / 2, physY + physH / 2));
-		SetWindowPos(hwnd, HwndTopmost, physX, physY, physW, physH, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		SetWindowPos(hwnd, zorder, physX, physY, physW, physH, flags);
 		var hwndScale = Math.Max(0.25, WindowScale(hwnd));
 		var match = Math.Abs(hwndScale - mon) / Math.Max(hwndScale, mon) <= 0.06;
 		string path;
@@ -121,7 +135,7 @@ static class ScreenDpi {
 			if (Math.Abs(w.Height - dipH) > 0.5) w.Height = dipH;
 			if (Math.Abs(w.Left - physX / hwndScale) > 0.5) w.Left = physX / hwndScale;
 			if (Math.Abs(w.Top - physY / hwndScale) > 0.5) w.Top = physY / hwndScale;
-			SetWindowPos(hwnd, HwndTopmost, physX, physY, physW, physH, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+			SetWindowPos(hwnd, zorder, physX, physY, physW, physH, flags);
 		}
 		else {
 			// System Aware + 异 DPI 屏：DWM 把 HWND 从系统缩放缩到该屏缩放
@@ -134,7 +148,7 @@ static class ScreenDpi {
 			if (Math.Abs(w.Top - physY / sys) > 0.5) w.Top = physY / sys;
 			var hwndW = Math.Max(1, (int)Math.Round(physW * sys / mon));
 			var hwndH = Math.Max(1, (int)Math.Round(physH * sys / mon));
-			SetWindowPos(hwnd, HwndTopmost, physX, physY, hwndW, hwndH, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+			SetWindowPos(hwnd, zorder, physX, physY, hwndW, hwndH, flags);
 		}
 
 		GetWindowRect(hwnd, out var rc);
