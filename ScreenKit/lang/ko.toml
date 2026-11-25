@@ -5302,3 +5302,5 @@ perf.netneed = "관리자 아님: 프로세스별 네트워크 바이트를 읽�
 perf.netadmin = "관리자 권한으로 다시 열기"
 perf.disk = "디스크"
 perf.net = "네트워크"
+hud.stop = "중지"
+hud.stop.tip = "이번 음성 입력을 끝냅니다. 단축키를 다시 누르는 것과 같습니다"

@@ -915,10 +915,8 @@ public partial class MainWindow : Window {
 					try { setstatus("语音输入热键失败: " + ex.Message); } catch { }
 					// 仅浮层，不弹托盘右下角
 					try {
-						if (asrVoiceHud == null) {
-							asrVoiceHud = new VoiceInputHud();
-							asrVoiceHud.Closed += (_, _) => asrVoiceHud = null;
-						}
+						if (asrVoiceHud == null)
+							asrVoiceHud = newvoicehud();
 						asrVoiceHud.SetStatus("热键失败: " + ex.Message);
 						if (!asrVoiceHud.IsVisible) asrVoiceHud.Show();
 					}

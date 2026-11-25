@@ -55,11 +55,19 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 
 ### English
 
+#### Changed
+
+- Voice input HUD: a Stop button sits on the floating status bar; clicking it ends the dictation just like the hotkey
+
 #### Fixed
 
 - Tray menu: snapshot history, screen recording, GIF recording and their options did nothing after the tool list moved into ToolCatalog.cs; the menu items are wired up again
 
 ### 中文
+
+#### 变更
+
+- 语音输入浮层：状态条右侧增加「结束」按钮，点击等同再按一次热键
 
 #### 修复
 

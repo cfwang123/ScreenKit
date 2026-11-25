@@ -563,7 +563,19 @@ public partial class MainWindow {
 		}
 	}
 
-	/// <summary>状态栏 + 可选浮层 toast（主窗隐藏时也能看见；不弹托盘右下角通知）。</summary>
+	/// <summary>建浮层并接上「结束」按钮（点它等同再按一次语音热键）。</summary>
+	VoiceInputHud newvoicehud() {
+		var hud = new VoiceInputHud();
+		hud.StopRequested += () => Dispatcher.BeginInvoke(new Action(() => {
+			if (asrVoice == null || !asrVoice.IsActive) return;
+			toggleasrvoice(fromHotkey: false);
+		}));
+		hud.Closed += (_, _) => {
+			if (ReferenceEquals(asrVoiceHud, hud)) asrVoiceHud = null;
+		};
+		return hud;
+	}
+
 	void notifyvoice(string msg, bool err = false, bool showHud = false) {
 		try { setstatus(msg); } catch { }
 		try {
@@ -573,10 +585,8 @@ public partial class MainWindow {
 		// 语音输入只用浮层 toast，不弹右下角托盘气泡
 		if (showHud) {
 			try {
-				if (asrVoiceHud == null) {
-					asrVoiceHud = new VoiceInputHud();
-					asrVoiceHud.Closed += (_, _) => asrVoiceHud = null;
-				}
+				if (asrVoiceHud == null)
+					asrVoiceHud = newvoicehud();
 				applyvoicehudmsg(msg);
 				if (!asrVoiceHud.IsVisible)
 					asrVoiceHud.Show();
@@ -590,6 +600,8 @@ public partial class MainWindow {
 	/// <summary>「识别中/润色中」只写第二行，避免盖掉第一行听写提示。</summary>
 	void applyvoicehudmsg(string s) {
 		if (asrVoiceHud == null) return;
+		// 「结束」只在听写进行中可点
+		asrVoiceHud.SetStopVisible(asrVoice != null && asrVoice.IsActive);
 		s = s ?? "";
 		if (s.StartsWith("润色中")) {
 			var orig = s;
@@ -682,10 +694,8 @@ public partial class MainWindow {
 	void showpolishhud(string original) {
 		try {
 			void paint() {
-				if (asrVoiceHud == null) {
-					asrVoiceHud = new VoiceInputHud();
-					asrVoiceHud.Closed += (_, _) => asrVoiceHud = null;
-				}
+				if (asrVoiceHud == null)
+					asrVoiceHud = newvoicehud();
 				asrVoiceHud.SetPolish(original);
 				if (!asrVoiceHud.IsVisible)
 					asrVoiceHud.Show();
@@ -772,16 +782,15 @@ public partial class MainWindow {
 
 	void showasrvoicehud() {
 		try {
-			if (asrVoiceHud == null) {
-				asrVoiceHud = new VoiceInputHud();
-				asrVoiceHud.Closed += (_, _) => asrVoiceHud = null;
-			}
+			if (asrVoiceHud == null)
+				asrVoiceHud = newvoicehud();
 			var mode = asrVoice != null && asrVoice.IsStreamingMode ? "流式" : "离线";
 			var tip = string.IsNullOrWhiteSpace(opt.HotkeyVoiceInput)
 				? $"{mode}语音输入中…"
 				: $"{mode}语音输入中… 再按 {opt.HotkeyVoiceInput.Trim()} 结束";
 			asrVoiceHud.SetStatus(tip);
 			asrVoiceHud.SetDetail("", "");
+			asrVoiceHud.SetStopVisible(asrVoice != null && asrVoice.IsActive);
 			if (!asrVoiceHud.IsVisible)
 				asrVoiceHud.Show();
 		}

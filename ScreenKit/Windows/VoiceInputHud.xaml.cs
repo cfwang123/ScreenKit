@@ -21,8 +21,20 @@ public partial class VoiceInputHud : Window {
 	DispatcherTimer blink;
 	bool lit = true;
 
+	/// <summary>点了「结束」：由宿主停掉当前听写。</summary>
+	public event Action StopRequested;
+	bool stopFired;
+
 	public VoiceInputHud() {
 		InitializeComponent();
+		bstop.Content = Loc.T("hud.stop");
+		bstop.ToolTip = Loc.T("hud.stop.tip");
+		// 浮层是 WS_EX_NOACTIVATE，不靠 WPF 的 Click（需要激活）；按下即算
+		bstop.PreviewMouseLeftButtonDown += (_, e) => {
+			e.Handled = true;
+			firestop();
+		};
+		bstop.Click += (_, _) => firestop();
 		SourceInitialized += (_, _) => {
 			var hwnd = new WindowInteropHelper(this).Handle;
 			if (hwnd == IntPtr.Zero) return;
@@ -48,6 +60,24 @@ public partial class VoiceInputHud : Window {
 			lbtext.Text = string.IsNullOrWhiteSpace(text) ? Loc.T("hud.voice") : text;
 			place();
 		}, async: true);
+	}
+
+	/// <summary>「结束」按钮：仅听写进行中显示。</summary>
+	public void SetStopVisible(bool on) {
+		runui(() => {
+			var vis = on ? Visibility.Visible : Visibility.Collapsed;
+			if (bstop.Visibility == vis) return;
+			bstop.Visibility = vis;
+			// 新一轮听写：允许再次点结束
+			if (on) stopFired = false;
+			place();
+		}, async: true);
+	}
+
+	void firestop() {
+		if (stopFired) return;
+		stopFired = true;
+		try { StopRequested?.Invoke(); } catch { }
 	}
 
 	/// <summary>第二行：阶段与内容同一行（如「润色中  原文」）。空则隐藏第二行。</summary>
