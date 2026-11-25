@@ -716,6 +716,13 @@ public partial class MainWindow : Window {
 				applyselbar(on, true, true);
 			}));
 			tray.ClipboardAsFileRequested += () => Dispatcher.BeginInvoke(new Action(clipimageasfile));
+			// 截图历史：打开截图历史窗口，不唤起主窗
+			tray.SnapshotsRequested += () => Dispatcher.BeginInvoke(new Action(() => openhistory()));
+			// 录屏 / 录屏参数 / GIF：只开功能窗，不唤起主窗
+			tray.RecordRequested += () => Dispatcher.BeginInvoke(new Action(startrecord));
+			tray.RecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => openrecordoptions(fromTray: true)));
+			tray.GifRecordRequested += () => Dispatcher.BeginInvoke(new Action(startgifrecord));
+			tray.GifRecordOptionsRequested += () => Dispatcher.BeginInvoke(new Action(() => opengifrecordoptions(fromTray: true)));
 			tray.ToolFavProvider = () => opt.ToolFav;
 			// 托盘「工具」和「收藏」里的项都走同一个入口，参数是目录里的 id
 			tray.ToolRequested += id => Dispatcher.BeginInvoke(new Action(() => opentooldef(ToolCatalog.Find(id))));

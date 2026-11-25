@@ -51,6 +51,20 @@ Each version has matching **English** and **中文** sections. GitHub Release no
 - [v1.0.1 (2026-08-07)](#v101-2026-08-07)
 - [v1.0.0 (2026-08-01)](#v100-2026-08-01)
 
+## unreleased
+
+### English
+
+#### Fixed
+
+- Tray menu: snapshot history, screen recording, GIF recording and their options did nothing after the tool list moved into ToolCatalog.cs; the menu items are wired up again
+
+### 中文
+
+#### 修复
+
+- 托盘菜单：工具列表统一到 ToolCatalog.cs 后，截图历史、录屏、GIF 录屏及录屏参数点击无反应，现已重新接上
+
 ## v1.0.41 (2026-11-24)
 
 ### English
